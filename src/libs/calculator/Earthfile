@@ -1,0 +1,17 @@
+VERSION 0.7
+
+deps:
+    FROM golang:latest
+    WORKDIR /libs/calculator
+    COPY go.mod ./
+    RUN go mod download
+
+artifact:
+    FROM +deps
+    COPY calculator.go .
+    SAVE ARTIFACT .
+
+unit-test:
+    FROM +artifact
+    COPY calculator_test.go .
+    RUN go test -v
