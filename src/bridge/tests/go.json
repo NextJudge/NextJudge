@@ -1,0 +1,5 @@
+{
+    "code": "package main\nimport \"fmt\"\nfunc main() {\n    fmt.Println(\"hello world\")\n}",
+    "lang": "Go",
+    "problemId": "1"
+}
