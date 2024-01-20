@@ -1,0 +1,89 @@
+{
+  "name": "nextjudge",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "serve": "vite preview",
+    "preview": "tsc && vite build && vite preview",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "fmt": "prettier --write \"**/*.{ts,tsx,mdx}\" --cache",
+    "fmt:check": "prettier --check \"**/*.{ts,tsx,mdx}\" --cache",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.1",
+    "@heroicons/react": "^2.1.1",
+    "@lezer/highlight": "^1.2.0",
+    "@monaco-editor/react": "^4.6.0",
+    "@react-spring/parallax": "^9.7.3",
+    "@react-spring/web": "^9.7.3",
+    "@types/three": "^0.160.0",
+    "@uiw/codemirror-theme-vscode": "^4.21.21",
+    "@uiw/codemirror-themes": "^4.21.21",
+    "@uiw/react-codemirror": "^4.21.21",
+    "@uiw/react-github-corners": "^1.5.16",
+    "@uiw/react-textarea-code-editor": "^3.0.2",
+    "clsx": "^2.0.0",
+    "codemirror": "^6.0.1",
+    "framer-motion": "^10.16.16",
+    "install": "^0.13.0",
+    "lucide-react": "^0.300.0",
+    "react": "^18.2.0",
+    "react-collapsed": "^4.1.2",
+    "react-dom": "^18.2.0",
+    "react-globe.gl": "^2.27.1",
+    "react-hot-toast": "^2.4.1",
+    "react-intersection-observer": "^9.5.3",
+    "react-router-dom": "^6.21.0",
+    "react-scroll-parallax": "^3.4.5",
+    "react-split": "^2.0.14",
+    "tailwind-merge": "^2.1.0",
+    "three": "^0.160.0",
+    "three-globe": "^2.30.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3",
+    "@ianvs/prettier-plugin-sort-imports": "^4.1.1",
+    "@total-typescript/ts-reset": "^0.5.1",
+    "@types/node": "^20.10.5",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "eslint-plugin-tailwindcss": "^3.13.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "postcss": "^8.4.32",
+    "prettier": "^3.1.1",
+    "prettier-plugin-tailwindcss": "^0.5.9",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,md,mdx}": [
+      "prettier --write \"**/*.{ts,tsx,mdx}\" --cache"
+    ],
+    "*.{ts,tsx,mdx}": [
+      "eslint --fix ."
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "engines": {
+    "node": ">=20.10.0"
+  }
+}
