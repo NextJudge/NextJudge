@@ -1,0 +1,5 @@
+{
+    "code": "public class Main {\n\n  public static void main(String[] args) {\n  \tSystem.out.println(\"hello world\"); \n  }\n  \n}",
+    "lang": "Java",
+    "problemId": "1"
+}

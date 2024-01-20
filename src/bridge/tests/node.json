@@ -1,0 +1,5 @@
+{
+    "code": "console.log(\"hello world\")",
+    "lang": "Node",
+    "problemId": "1"
+}
