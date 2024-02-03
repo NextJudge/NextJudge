@@ -33,10 +33,25 @@ function EditorComponent() {
     editorRef.current = editor;
   }
 
-  function showValue() {
-    console.log(editorRef.current?.getValue());
-  }
+  // async function showValue() {
+  //     console.log(editorRef.current.getValue());
+  // }
 
+  async function submitCode() {
+    const code = editorRef.current.getValue();
+    const language = selectedLanguage;
+    const problemId = "1";
+
+    const submission = {
+      type: "submission",
+      code: code,
+      lang: language,
+      problemId: problemId,
+    };
+      console.log(languages);
+      console.log("Submission:", submission);
+  }
+  
   const [code, setCode] = useState(`/**
     * @param {string}
     * @return {boolean}
@@ -64,6 +79,7 @@ function EditorComponent() {
         }
         return false;
     };`);
+
 
   const handleCodeChange = (ev: any) => {
     setCode(ev.target.value);
@@ -149,6 +165,7 @@ function EditorComponent() {
             }}
             beforeMount={handleEditorDidMount}
             onChange={handleCodeChange}
+            onMount={handleEditorDidMount}
           />
           <div className="flex w-full flex-row justify-between space-x-4  rounded-md border-2 border-slate-600/25 px-12 text-center">
             <button
@@ -205,7 +222,7 @@ function EditorComponent() {
 
             <div className="flex flex-col items-center justify-center gap-12 space-y-4 align-middle">
               <button
-                onClick={() => console.log("hi")}
+                onClick={submitCode}
                 className="rounded border-2 border-slate-500 bg-blue-500 px-4 py-2 font-bold text-black hover:bg-blue-600 sm:w-40 md:w-48 md:px-6 md:py-2 md:text-lg lg:w-56 xl:w-64"
               >
                 Submit Code

@@ -1,2 +1,3 @@
 src/data-layer/bin
+src/bridge/app/bun.lockb
 .env
