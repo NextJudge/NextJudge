@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { Submission } from "./index";
+import { Submission } from "../types";
 declare var self: Worker;
 
 const LANG_TO_EXTENSION: Record<string, string> = {
@@ -183,6 +183,6 @@ self.onmessage = async (event: MessageEvent) => {
 
     languageHandlers[submission.lang](fileName);
   } catch (e) {
-    console.log(e);
+    console.error(e);
   }
 };
