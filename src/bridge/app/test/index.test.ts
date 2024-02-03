@@ -3,7 +3,9 @@ import { beforeAll, describe, expect, it } from "bun:test";
 import UserService from "../src/UserService";
 import { App } from "../src/index";
 
-const api = edenTreaty<App>("http://localhost:3000");
+const apiPort = process.env.PORT
+
+const api = edenTreaty<App>(`http://localhost:${apiPort}`);
 const userService = new UserService();
 const globals = {
   token: "",
