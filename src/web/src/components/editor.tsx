@@ -13,7 +13,7 @@ function EditorComponent() {
   const languages = monaco?.languages.getLanguages();
   const [isExpanded, setExpanded] = useState(true);
   const { getCollapseProps, getToggleProps } = useCollapse({ isExpanded });
-  const [submissionStatus, setSubmissionStatus] = useState("Loading");
+  const [submissionStatus] = useState("Loading");
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
 
   useLayoutEffect(() => {
@@ -48,10 +48,10 @@ function EditorComponent() {
       lang: language,
       problemId: problemId,
     };
-      console.log(languages);
-      console.log("Submission:", submission);
+    console.log(languages);
+    console.log("Submission:", submission);
   }
-  
+
   const [code, setCode] = useState(`/**
     * @param {string}
     * @return {boolean}
@@ -79,7 +79,6 @@ function EditorComponent() {
         }
         return false;
     };`);
-
 
   const handleCodeChange = (ev: any) => {
     setCode(ev.target.value);
