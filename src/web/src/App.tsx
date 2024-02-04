@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Error from "./components/error";
 import RootLayout from "./components/root-layout";
 import Auth from "./routes/auth";
+import EarlyAcess from "./routes/early-access";
 import Home from "./routes/home";
 import Problem from "./routes/problem";
 import Problems from "./routes/problems";
@@ -27,6 +28,10 @@ const router = createBrowserRouter([
       {
         path: "/problem/:id",
         element: <Problem />,
+      },
+      {
+        path: "/early-access",
+        element: <EarlyAcess />,
       },
     ],
   },
