@@ -41,6 +41,8 @@ func main() {
 	mux.Use(c.Handler)
 
 	mux.HandleFunc(pat.Get("/v1/users"), getUsers)
+	mux.HandleFunc(pat.Get("/v1/users/:user_id"), getUser)
+	mux.HandleFunc(pat.Delete("/v1/users/:user_id"), deleteUser)
 	mux.HandleFunc(pat.Post("/v1/users"), postUser)
 
 	addr := ":" + *port
