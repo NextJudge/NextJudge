@@ -1,20 +1,15 @@
 import Database from "bun:sqlite";
-import { Elysia, t } from "elysia";
+import { Elysia, t, type ErrorHandler } from "elysia";
 import { randomUUID } from "node:crypto";
+import { Submission } from "../types";
+import UserService from "./UserService";
+import { userRouter } from "./routes";
 
-const PORT = 3000;
-
-export interface Submission {
-  submissionId: string;
-  code: string;
-  lang: string;
-  problemId: string;
-}
+const PORT = Bun.env.PORT || 3000;
 
 const setupDatabase = () => {
   console.log("[Main] Setting up database...");
   const db = new Database("mydb.sqlite");
-
   if (
     !db
       .query(
@@ -30,7 +25,7 @@ const setupDatabase = () => {
               lang TEXT NOT NULL,
               problemId TEXT NOT NULL
           )
-          `);
+    `);
     createSubmissionsTable.run();
   } else {
     console.log("[Main] Table already exists...");
@@ -96,8 +91,50 @@ const executeCodePlugin = new Elysia().post(
   }
 );
 
-const app = new Elysia().use(executeCodePlugin).listen(PORT);
+const errorHandler: ErrorHandler = ({
+  error,
+  set,
+  code,
+  path,
+  request: { method },
+}) => {
+  switch (code) {
+    case "VALIDATION":
+      set.status = 400;
+      break;
+    case "PARSE":
+    case "INVALID_COOKIE_SIGNATURE":
+      set.status = 401;
+      break;
+    case "NOT_FOUND":
+      set.status = 404;
+      break;
+    default:
+      set.status = 500;
+  }
+
+  console.error(method, path, set.status);
+  error.stack && console.error(error.stack);
+
+  return { success: false, message: error.message };
+};
+
+async function init() {
+  const userService = new UserService();
+  const users = await userService.getUsers();
+  console.log("[Main] Users:", users);
+  if (users.length === 0) await userService.createUser("test", "test");
+  else console.log("[Main] Test user already exist...");
+}
+
+init();
+
+const app = new Elysia().use(userRouter).listen(PORT);
+
+app.onError(errorHandler);
 
 console.log(
   `[Main] Elysia is running at http://${app.server?.hostname}:${app.server?.port}\n\n\n`
 );
+
+export type App = typeof app;
