@@ -1,3 +1,5 @@
+![Preview Image](images/nextjudge.png)
+
 # NextJudge
 
 Welcome to the official NextJudge Monorepo. This repository contains all the code for the NextJudge platform and services.
