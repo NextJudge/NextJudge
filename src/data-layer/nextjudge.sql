@@ -2,7 +2,8 @@ CREATE TABLE "user" (
   "id" SERIAL PRIMARY KEY,
   "username" varchar,
   "password_hash" varchar,
-  "join_date" timestamp
+  "join_date" timestamp,
+  "is_admin" boolean
 );
 
 CREATE TABLE "problem" (
