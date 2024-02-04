@@ -1,3 +1,4 @@
+import bearer from "@elysiajs/bearer";
 import { t } from "elysia";
 
 export const userSwaggerTags = { detail: { tags: ["USERSs"] } };
@@ -14,4 +15,15 @@ export const loginUsersHook = {
 
 export const getUsersHook = {
   ...userSwaggerTags,
+};
+
+export const createSubmissionHook = {
+  ...userSwaggerTags,
+  body: t.Object({
+    userId: t.String(),
+    code: t.String(),
+    lang: t.String(),
+    problemId: t.String(),
+  }),
+  bearer: bearer,
 };

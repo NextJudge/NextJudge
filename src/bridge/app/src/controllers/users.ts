@@ -1,6 +1,6 @@
-import bearer from "@elysiajs/bearer";
-import UserService from "../UserService";
+import { validateToken } from "@util/main";
 import jwt from "jsonwebtoken";
+import UserService from "../classes/UserService";
 
 const userService = new UserService();
 
@@ -47,7 +47,7 @@ export const createUser = async ({
 
 export const authorizeUser = async (token: string) => {
   try {
-    return await userService.validateToken(token);
+    return await validateToken(token);
   } catch (error) {
     console.error("An error occurred while validating the token:", error);
     throw error;

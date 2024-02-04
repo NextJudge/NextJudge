@@ -1,9 +1,9 @@
+import UserService from "@classes/UserService";
 import { edenTreaty } from "@elysiajs/eden";
+import { App } from "@main/index";
 import { beforeAll, describe, expect, it } from "bun:test";
-import UserService from "../src/UserService";
-import { App } from "../src/index";
 
-const apiPort = process.env.PORT
+const apiPort = process.env.PORT;
 
 const api = edenTreaty<App>(`http://localhost:${apiPort}`);
 const userService = new UserService();
