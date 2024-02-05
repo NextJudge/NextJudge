@@ -1,9 +1,13 @@
 import { Elysia } from "elysia";
 import { createUser, getUsers, loginUser } from "../controllers/users";
-import { createUserHook, userSwaggerTags } from "../hooks/users";
+import {
+  createUserHook,
+  loginUsersHook,
+  userSwaggerTags,
+} from "../hooks/users";
 
 const userEndpoints = new Elysia()
-  .post("/login", loginUser, createUserHook)
+  .post("/login", loginUser, loginUsersHook)
   .derive(({ headers }) => {
     const auth = headers["authorization"];
 

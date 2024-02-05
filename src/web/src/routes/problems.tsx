@@ -9,9 +9,9 @@ type Problem = {
   name: string;
 };
 
-type ProblemProps = {
-  problem: Problem;
-};
+// type ProblemProps = {
+//   problem: Problem;
+// };
 
 const problems: Problem[] = [
   { id: "1", difficulty: "easy", description: "Add two numbers", name: "Sum" },
@@ -209,7 +209,7 @@ export default function Problems() {
 
   return (
     <>
-      <Navbar fixed={true} />
+      <Navbar />
       <main className="layout w-full bg-black bg-fixed text-white selection:bg-white selection:text-black">
         <section className="container px-4 md:px-3 md:pt-8 lg:pt-12 xl:pt-16">
           <div className="flex flex-col justify-start space-y-4 text-center">

@@ -4,7 +4,7 @@ import "@/styles/layout.css";
 
 import { useState } from "react";
 
-export function Navbar({ fixed }: { fixed: boolean }) {
+export function Navbar() {
   const [navbarOpen, setNavbarOpen] = useState(false);
   return (
     <>
@@ -80,7 +80,7 @@ export function Navbar({ fixed }: { fixed: boolean }) {
 export default function Problem() {
   return (
     <div className="layout h-screen w-full overflow-y-scroll bg-black bg-fixed text-white selection:bg-white selection:text-black">
-      <Navbar fixed={true} />
+      <Navbar />
       <EditorComponent />
     </div>
   );

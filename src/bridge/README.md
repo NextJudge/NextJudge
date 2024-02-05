@@ -17,6 +17,7 @@ To successfully run the bridge, you will need to have a `.env` file in the root 
 # .env
 PORT=3000
 JWT_SECRET=your_secret_here
+DATABASE_PORT=5000
 ```
 
 Once you have your `.env` file, you'll need to make sure the data layer is running. You can do this by navigating to the `src/data-layer` directory and running the following commands:
@@ -43,7 +44,7 @@ To run the integration tests, you can use the following command:
 > Note, you must have both the data layer and the bridge running on your machine to run the tests.
 
 ```bash
-bun test
+bun run test
 ```
 
 This will install the necessary dependencies and start the bridge server.
