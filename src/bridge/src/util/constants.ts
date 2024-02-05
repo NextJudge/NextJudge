@@ -1,3 +1,4 @@
+export const DATABASE_HOST = process.env.DATABASE_HOST
 export const DATABASE_PORT = process.env.DATABASE_PORT;
 export const PORT = process.env.PORT;
 export const API_PORT = process.env.API_PORT;

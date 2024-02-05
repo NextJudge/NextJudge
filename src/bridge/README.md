@@ -11,27 +11,21 @@ Welcome to the NextJudge Bridge! This is the "middleman" application that connec
 
 ## Running the Bridge
 
-To successfully run the bridge, you will need to have a `.env` file in the root of the project. This file should contain the following:
+Before running the Bridge, you will need to ensure the data layer is running. Navigate to the `data-layer` directory of NextJudge for instructions on running the data layer.
 
-```env
-# .env
-PORT=3000
-JWT_SECRET=your_secret_here
-DATABASE_PORT=5000
-```
+### Docker
 
-Once you have your `.env` file, you'll need to make sure the data layer is running. You can do this by navigating to the `src/data-layer` directory and running the following commands:
-
-```bash
-go build
+```sh
 docker-compose up -d
-make postgres
-./main
 ```
 
-These commands builds the data layer, runs the docker container, initializes the database, and starts the data layer server.
+By default, the `docker-compose.yml` file will read environment variables from the `.env` file and pass them to the docker container. See the `./template.env` file for the format.
 
-Once the data layer is running, you can start the bridge by opening a new terminal in `src/bridge` the following command:
+### Host
+
+To successfully run the bridge on the host, you will need to have a `.env` file in the root of the project. Additionally, you will need to make sure the data layer running.
+
+You can start the bridge running the following commands:
 
 ```bash
 bun install && bun run dev

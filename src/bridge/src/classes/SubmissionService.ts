@@ -1,7 +1,7 @@
 import ApiService from "@classes/ApiService";
 import { BackendSubmission, SubmissionRequest, User } from "@util/types";
+import { DATABASE_PORT, DATABASE_HOST } from "@util/constants";
 
-const databasePort = process.env.DATABASE_PORT;
 
 export class SubmissionService {
   async createSubmission(
@@ -10,7 +10,7 @@ export class SubmissionService {
   ): Promise<any> {
     try {
       const response = await ApiService.post(
-        `http://localhost:${databasePort}/v1/submissions`,
+        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions`,
         submissionData
       );
 
@@ -29,7 +29,7 @@ export class SubmissionService {
     try {
       console.log("[SubmissionService] Getting submission");
       const response = await ApiService.get(
-        `http://localhost:${databasePort}/v1/submissions/${submissionId}`
+        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions/${submissionId}`
       );
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);

@@ -1,5 +1,5 @@
 import ApiService from "@classes/ApiService";
-import { DATABASE_PORT } from "@util/constants";
+import { DATABASE_PORT, DATABASE_HOST } from "@util/constants";
 import { ApiResponse, User, UserValidationResult } from "@util/types";
 import jwt from "jsonwebtoken";
 
@@ -20,7 +20,7 @@ class UserService {
     try {
       console.log("[UserService] Getting users");
       const response = await ApiService.get(
-        `http://localhost:${DATABASE_PORT}/v1/users`
+        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/users`
       );
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -39,7 +39,7 @@ class UserService {
 
       const hashedPassword = await Bun.password.hash(password);
       const response = await ApiService.post(
-        `http://localhost:${DATABASE_PORT}/v1/users`,
+        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/users`,
         {
           username,
           password_hash: hashedPassword,
@@ -62,7 +62,7 @@ class UserService {
   async authenticateUser(username: string, password: string) {
     console.log("[UserService] Authenticating user");
     const response = await ApiService.get(
-      `http://localhost:${DATABASE_PORT}/v1/users`
+      `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/users`
     );
     let users = (await response.json()) as ApiResponse;
     const { user, isCorrectUser }: any = await this.isCorrectUser(
