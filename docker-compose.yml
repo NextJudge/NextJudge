@@ -1,0 +1,25 @@
+version: '3'
+services:
+  nextjudge-frontend:
+    extends: 
+      file: src/web/docker-compose.yml
+      service: nextjudge-frontend
+
+  nextjudge-bridge:
+    extends: 
+      file: src/bridge/docker-compose.yml
+      service: nextjudge-bridge
+    environment:
+      - DATABASE_HOST=nextjudge-data-layer
+    depends_on:
+      - nextjudge-data-layer
+
+  nextjudge-data-layer:
+    extends: 
+      file: src/data-layer/docker-compose.yml
+      service: nextjudge-data-layer
+  
+  db:
+    extends: 
+      file: src/data-layer/docker-compose.yml
+      service: db
