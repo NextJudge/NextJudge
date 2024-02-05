@@ -1,57 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "@/styles/index.css";
 
-import { useLayoutEffect, useRef, useState } from "react";
-import Editor, { loader, useMonaco } from "@monaco-editor/react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import Editor, { loader } from "@monaco-editor/react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useCollapse } from "react-collapsed";
 import Split from "react-split";
 
 function EditorComponent() {
-  const editorRef = useRef<any>();
-  const monaco = useMonaco();
-  const languages = monaco?.languages.getLanguages();
-  const [isExpanded, setExpanded] = useState(true);
-  const { getCollapseProps, getToggleProps } = useCollapse({ isExpanded });
-  const [submissionStatus] = useState("Loading");
-  const [selectedLanguage, setSelectedLanguage] = useState("javascript");
-
-  useLayoutEffect(() => {
-    loader.init().then((monaco) => {
-      monaco.editor.defineTheme("myTheme", {
-        base: "vs-dark",
-        inherit: true,
-        rules: [],
-        colors: {
-          "editor.background": "#000000",
-        },
-      });
-    });
-  }, []);
-
-  function handleEditorDidMount(editor: any) {
-    editorRef.current = editor;
-  }
-
-  // async function showValue() {
-  //     console.log(editorRef.current.getValue());
-  // }
-
-  async function submitCode() {
-    const code = editorRef.current.getValue();
-    const language = selectedLanguage;
-    const problemId = "1";
-
-    const submission = {
-      type: "submission",
-      code: code,
-      lang: language,
-      problemId: problemId,
-    };
-    console.log(languages);
-    console.log("Submission:", submission);
-  }
-
   const [code, setCode] = useState(`/**
     * @param {string}
     * @return {boolean}
@@ -79,6 +35,100 @@ function EditorComponent() {
         }
         return false;
     };`);
+  const editorRef = useRef<any>();
+  const [languages, setLanguages] = useState<any>([]);
+  const [isExpanded, setExpanded] = useState(true);
+  const { getCollapseProps, getToggleProps } = useCollapse({ isExpanded });
+  const [submissionStatus] = useState("Loading");
+  const supportedLanguages = [
+    { language: "C++", extension: "cpp" },
+    { language: "Python", extension: "py" },
+    { language: "Go", extension: "go" },
+    { language: "Java", extension: "java" },
+    { language: "Node", extension: "ts" },
+  ];
+  const [selectedLanguage, setSelectedLanguage] = useState("typescript");
+
+  const supportedLangs = languages?.filter((lang: any) => {
+    return supportedLanguages.some((supportedLang) => {
+      if (supportedLang.language === "Node") {
+        return lang.id === "typescript" || lang.id === "javascript";
+      }
+      return lang.id === supportedLang.language.toLowerCase();
+    });
+  });
+
+  useLayoutEffect(() => {
+    loader.init().then((monaco) => {
+      monaco.editor.defineTheme("myTheme", {
+        base: "vs-dark",
+        inherit: true,
+        rules: [],
+        colors: {
+          "editor.background": "#000000",
+        },
+      });
+    });
+  }, []);
+  useEffect(() => {
+    const fetchLanguages = async () => {
+      try {
+        const response = await fetch("http://localhost:3000/languages", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            //  This is temporary, for testing.
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        const data = await response.json();
+        if (response.status === 200) {
+          setLanguages(data);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchLanguages();
+  }, []);
+
+  function handleEditorDidMount(editor: any) {
+    editorRef.current = editor;
+  }
+
+  // async function showValue() {
+  //     console.log(editorRef.current.getValue());
+  // }
+
+  const mapLanguage = (lang: string) => {
+    console.log(lang);
+    if (lang === "javascript" || lang === "typescript") {
+      return "Node";
+    } else if (lang === "go") {
+      return "Go";
+    } else if (lang === "java") {
+      return "Java";
+    } else if (lang === "cpp") {
+      return "C++";
+    } else if (lang === "python") {
+      return "Python";
+    } else {
+      return "Node";
+    }
+  };
+
+  async function submitCode() {
+    const code = editorRef.current.getValue();
+    const problemId = "1";
+    const submission = {
+      type: "submission",
+      code: code,
+      lang: mapLanguage(selectedLanguage),
+      problemId: problemId,
+    };
+    console.log("Submission:", submission);
+  }
 
   const handleCodeChange = (ev: any) => {
     setCode(ev.target.value);
@@ -145,7 +195,7 @@ function EditorComponent() {
         <div className="panel mx-auto p-4">
           <Editor
             language={selectedLanguage}
-            defaultLanguage="javascript"
+            defaultLanguage="typescript"
             loading={<LoadingSkeleton />}
             theme="myTheme"
             value={code}
@@ -213,9 +263,17 @@ function EditorComponent() {
                  text-black sm:w-40 md:w-48 md:px-6 md:py-2 md:text-lg lg:w-56 xl:w-64"
                 onChange={(e) => setSelectedLanguage(e.target.value)}
               >
-                {languages?.map((language) => (
-                  <option value={language.id}>{language.id}</option>
-                ))}
+                <option value={selectedLanguage}>{selectedLanguage}</option>
+                {supportedLangs?.map((lang: any) => {
+                  if (lang.id === selectedLanguage) {
+                    return null;
+                  }
+                  return (
+                    <option key={lang.id} value={lang.id}>
+                      {lang.id}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
