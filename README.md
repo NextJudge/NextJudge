@@ -8,6 +8,13 @@ Welcome to the official NextJudge Monorepo. This repository contains all the cod
 
 NextJudge is a code execution engine, database, api gateway, and web application. We're building NextJudge to be a platform for competitive programming, coding challenges, and code execution.
 
+### Quickly deploy
+
+The top-level `docker-compose.yml` will instantiate all modules.
+```sh
+docker-compose up
+```
+
 ### Prerequisites
 
 - [Bun.js](https://bun.sh/)
@@ -18,11 +25,17 @@ NextJudge is a code execution engine, database, api gateway, and web application
 ### Installation
 
 1. Clone the repo
-   ```sh
-    git clone https://github.com/NextJudge/NextJudge.git
-   ```
+```sh
+git clone https://github.com/NextJudge/NextJudge.git
+```
 
 Open the `README.md` file in `/src/*` to get started with the specific service you want to run.
+```
+app - the frontend application
+bridge - interface to the application, listens on HTTP and WebSockets. Acts as a proxy - a "middleman" - that sends requests to data-layer and engine
+data-layer - HTTP wrapper over underlying database
+engine - runs and judges code submissions
+```
 
 ## Usage
 
