@@ -31,3 +31,7 @@ export const createSubmissionHook = {
   }),
   bearer: bearer,
 };
+
+export const getLanguagesHook = {
+  ...userSwaggerTags,
+};

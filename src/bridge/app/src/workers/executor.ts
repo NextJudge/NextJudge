@@ -1,14 +1,7 @@
 declare var self: Window & typeof globalThis;
+import { LANG_TO_EXTENSION } from "@util/constants";
 import { SubmissionRequest } from "@util/types";
 import * as fs from "node:fs";
-
-const LANG_TO_EXTENSION: Record<string, string> = {
-  "C++": "cpp",
-  Python: "py",
-  Go: "go",
-  Java: "java",
-  Node: "ts",
-};
 
 const TMP_DIR = "tmp";
 
