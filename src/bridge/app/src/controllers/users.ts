@@ -29,15 +29,25 @@ export const loginUser = async ({
 
 export const createUser = async ({
   bearer,
-  body: { username, password },
+  body: { username, password, isAdmin },
 }: {
   bearer: string;
-  body: { username: string; password: string };
+  body: { username: string; password: string; isAdmin: boolean };
 }) => {
   try {
-    const decoded = jwt.verify(bearer, "secret");
-    if (decoded) {
-      return await userService.createUser(username, password);
+    let decoded = jwt.verify(bearer, "secret");
+    decoded = JSON.parse(JSON.stringify(decoded));
+    // @ts-ignore
+    if (decoded.user.is_admin && isAdmin === true) {
+      return await userService.createUser(username, password, true);
+      // @ts-ignore
+    } else if (decoded.user.is_admin && isAdmin === false) {
+      return await userService.createUser(username, password, false);
+      // @ts-ignore
+    } else if (!decoded.user.is_admin && isAdmin === true) {
+      throw new Error("Unauthorized to create an admin user");
+    } else {
+      return await userService.createUser(username, password, false);
     }
   } catch (error) {
     console.error("An error occurred while creating the user:", error);

@@ -5,7 +5,11 @@ export const userSwaggerTags = { detail: { tags: ["USERSs"] } };
 
 export const createUserHook = {
   ...userSwaggerTags,
-  body: t.Object({ username: t.String(), password: t.String() }),
+  body: t.Object({
+    username: t.String(),
+    password: t.String(),
+    isAdmin: t.Boolean(),
+  }),
 };
 
 export const loginUsersHook = {

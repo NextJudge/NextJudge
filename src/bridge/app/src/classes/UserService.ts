@@ -33,18 +33,9 @@ class UserService {
     }
   }
 
-  async createUser(username: string, password: string) {
+  async createUser(username: string, password: string, isAdmin: true | false) {
     try {
       console.log("[UserService] Creating user");
-
-      const users = await this.getUsers();
-      const userExists = users.find((user: User) => user.username === username);
-
-      if (
-        (userExists && users.length >= 1 && users[0].username === username) ||
-        users[1]?.username === username
-      )
-        throw new Error("User already exists");
 
       const hashedPassword = await Bun.password.hash(password);
       const response = await ApiService.post(
@@ -53,11 +44,10 @@ class UserService {
           username,
           password_hash: hashedPassword,
           join_date: new Date(),
+          is_admin: isAdmin,
         }
       );
-
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) throw new Error(`User already exists!`);
       const user = await this.getUsers();
       const userToReturn = user.find(
         (user: User) => user.username === username

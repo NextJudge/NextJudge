@@ -44,7 +44,7 @@ const errorHandler: ErrorHandler = ({
 async function setupBridge() {
   const userService = new UserService();
   const users = await userService.getUsers();
-  if (users.length === 0) await userService.createUser("test", "test");
+  if (users.length === 0) await userService.createUser("test", "test", true);
   else console.log("[Main] Test user already exist...");
 }
 
