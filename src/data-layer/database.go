@@ -36,6 +36,11 @@ type Database struct {
 
 type NextJudgeDB interface {
 	GetUsers() ([]User, error)
+	CreateUser(user *User) (*User, error)
+	GetUserByID(userId int) (*User, error)
+	GetUserByUsername(username string) (*User, error)
+	UpdateUser(user *User)
+	DeleteUser(userId int)
 }
 
 func NewDatabase() (*Database, error) {
@@ -65,16 +70,25 @@ func NewDatabase() (*Database, error) {
 	return db, nil
 }
 
-func (d Database) CreateUser(user User) error {
+func (d Database) CreateUser(user *User) (*User, error) {
 	sqlStatement := `
 	INSERT INTO "user" (username, password_hash, is_admin, join_date)
-	VALUES ($1, $2, $3, $4)`
-	_, err := d.NextJudgeDB.Exec(sqlStatement, user.Username, user.PasswordHash, user.IsAdmin, time.Now())
-	if err != nil {
-		return err
+	VALUES ($1, $2, $3, $4)
+	RETURNING id`
+
+	res := &User{
+		Username:     user.Username,
+		PasswordHash: user.PasswordHash,
+		IsAdmin:      user.IsAdmin,
+		JoinDate:     user.JoinDate,
 	}
 
-	return nil
+	err := d.NextJudgeDB.QueryRow(sqlStatement, user.Username, user.PasswordHash, user.IsAdmin, time.Now()).Scan(&res.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (d Database) GetUsers() ([]User, error) {
@@ -133,6 +147,19 @@ func (d Database) GetUserByUsername(username string) (*User, error) {
 	}
 
 	return &res, nil
+}
+
+func (d Database) UpdateUser(user *User) error {
+	sqlStatement := `SELECT "user" 
+	SET username = $2, password_hash = $3, is_admin = $4
+	WHERE id = $1`
+	_, err := db.NextJudgeDB.Exec(sqlStatement, user.ID, user.Username, user.PasswordHash, user.IsAdmin)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d Database) DeleteUser(userId int) error {
