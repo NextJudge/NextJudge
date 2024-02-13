@@ -8,7 +8,6 @@ import (
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"goji.io"
-	"goji.io/pat"
 )
 
 var (
@@ -40,10 +39,8 @@ func main() {
 	})
 	mux.Use(c.Handler)
 
-	mux.HandleFunc(pat.Get("/v1/users"), getUsers)
-	mux.HandleFunc(pat.Get("/v1/users/:user_id"), getUser)
-	mux.HandleFunc(pat.Delete("/v1/users/:user_id"), deleteUser)
-	mux.HandleFunc(pat.Post("/v1/users"), postUser)
+	addUserRoutes(mux)
+	addProblemRoutes(mux)
 
 	addr := ":" + *port
 	err = http.ListenAndServe(addr, mux)
