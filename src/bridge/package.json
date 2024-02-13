@@ -1,0 +1,25 @@
+{
+    "name": "app",
+    "version": "1.0.50",
+    "scripts": {
+        "dev": "bun run --watch src/index.ts",
+        "test": "bun test --env-file=.env.local"
+    },
+    "dependencies": {
+        "@elysiajs/bearer": "^0.8.0",
+        "@elysiajs/eden": "^0.8.1",
+        "@elysiajs/swagger": "^0.8.5",
+        "@grpc/grpc-js": "^1.9.13",
+        "@grpc/proto-loader": "^0.7.10",
+        "@types/jsonwebtoken": "^9.0.5",
+        "@types/supertest": "^6.0.2",
+        "elysia": "latest",
+        "jsonwebtoken": "^9.0.2",
+        "supertest": "^6.3.4",
+        "vitest": "^1.2.2"
+    },
+    "devDependencies": {
+        "bun-types": "latest"
+    },
+    "module": "src/index.js"
+}

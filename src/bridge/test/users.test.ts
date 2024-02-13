@@ -1,9 +1,9 @@
+import UserService from "@classes/UserService";
 import { edenTreaty } from "@elysiajs/eden";
+import { App } from "@main/index";
 import { beforeAll, describe, expect, it } from "bun:test";
-import UserService from "../src/UserService";
-import { App } from "../src/index";
 
-const apiPort = process.env.PORT
+const apiPort = process.env.PORT;
 
 const api = edenTreaty<App>(`http://localhost:${apiPort}`);
 const userService = new UserService();
@@ -96,6 +96,7 @@ describe("USER TESTS", () => {
     const { data } = await api.users.post({
       username: "test2",
       password: "test2",
+      isAdmin: false,
       $headers: { Authorization: `Bearer ${globals.token}` },
     });
 
@@ -118,7 +119,7 @@ describe("USER TESTS", () => {
       ) {
         expect(data).toEqual(
           expect.objectContaining({
-            message: "User already exists",
+            message: "User already exists!",
           })
         );
       }
@@ -129,6 +130,7 @@ describe("USER TESTS", () => {
     const { data } = await api.users.post({
       username: "test2",
       password: "test2",
+      isAdmin: false,
     });
 
     expect(data).toEqual(
@@ -154,6 +156,7 @@ describe("USER TESTS", () => {
     const { data } = await api.users.post({
       username: "",
       password: "",
+      isAdmin: true,
       $headers: { Authorization: `Bearer ${globals.token}` },
     });
 
@@ -168,12 +171,13 @@ describe("USER TESTS", () => {
     const { data } = await api.users.post({
       username: "test",
       password: "test",
+      isAdmin: true,
       $headers: { Authorization: `Bearer ${globals.token}` },
     });
 
     expect(data).toEqual(
       expect.objectContaining({
-        message: "User already exists",
+        message: "User already exists!",
       })
     );
   });
@@ -182,6 +186,7 @@ describe("USER TESTS", () => {
     const { data } = await api.users.post({
       username: "test2",
       password: "test2",
+      isAdmin: true,
       $headers: { Authorization: `lolBearer ${globals.token}1` },
     });
 

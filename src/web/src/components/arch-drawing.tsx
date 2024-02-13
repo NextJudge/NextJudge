@@ -103,7 +103,7 @@ const ArchDrawing: React.FC<ArchDrawingProps> = () => {
 const Main: React.FC = () => {
   return (
     <div>
-      <ArchDrawing />
+      <ArchDrawing children />
     </div>
   );
 };

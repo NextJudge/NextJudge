@@ -1,11 +1,11 @@
+import ApiService from "@classes/ApiService";
+import { DATABASE_PORT, DATABASE_HOST } from "@util/constants";
+import { ApiResponse, User, UserValidationResult } from "@util/types";
 import jwt from "jsonwebtoken";
-import { ApiResponse, User, UserValidationResult } from "../types";
-import ApiService from "./ApiService";
-
-const databasePort = process.env.DATABASE_PORT;
 
 class UserService {
   private users: User[] = [];
+
   static mockUsers: User[] = [
     {
       id: 1,
@@ -19,7 +19,9 @@ class UserService {
   async getUsers() {
     try {
       console.log("[UserService] Getting users");
-      const response = await ApiService.get(`http://localhost:${databasePort}/v1/users`);
+      const response = await ApiService.get(
+        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/users`
+      );
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
       this.users = (await response.json()) as ApiResponse;
@@ -31,28 +33,21 @@ class UserService {
     }
   }
 
-  async createUser(username: string, password: string) {
+  async createUser(username: string, password: string, isAdmin: true | false) {
     try {
       console.log("[UserService] Creating user");
 
-      const users = await this.getUsers();
-      const userExists = users.find((user: User) => user.username === username);
-
-      if (
-        (userExists && users.length >= 1 && users[0].username === username) ||
-        users[1]?.username === username
-      )
-        throw new Error("User already exists");
-
       const hashedPassword = await Bun.password.hash(password);
-      const response = await ApiService.post(`http://localhost:${databasePort}/v1/users`, {
-        username,
-        password_hash: hashedPassword,
-        join_date: new Date(),
-      });
-
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await ApiService.post(
+        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/users`,
+        {
+          username,
+          password_hash: hashedPassword,
+          join_date: new Date(),
+          is_admin: isAdmin,
+        }
+      );
+      if (!response.ok) throw new Error(`User already exists!`);
       const user = await this.getUsers();
       const userToReturn = user.find(
         (user: User) => user.username === username
@@ -66,7 +61,9 @@ class UserService {
 
   async authenticateUser(username: string, password: string) {
     console.log("[UserService] Authenticating user");
-    const response = await ApiService.get(`http://localhost:${databasePort}/v1/users`);
+    const response = await ApiService.get(
+      `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/users`
+    );
     let users = (await response.json()) as ApiResponse;
     const { user, isCorrectUser }: any = await this.isCorrectUser(
       users,
@@ -76,15 +73,6 @@ class UserService {
     if (!isCorrectUser) throw new Error("Invalid username or password");
     const token = jwt.sign({ user }, "secret");
     return { token };
-  }
-
-  async validateToken(token: string) {
-    try {
-      const decoded = jwt.verify(token, "secret");
-      return decoded;
-    } catch (error) {
-      throw new Error("Invalid token");
-    }
   }
 
   async isCorrectUser(

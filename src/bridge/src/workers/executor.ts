@@ -1,14 +1,7 @@
+declare var self: Window & typeof globalThis;
+import { LANG_TO_EXTENSION } from "@util/constants";
+import { SubmissionRequest } from "@util/types";
 import * as fs from "node:fs";
-import { Submission } from "../types";
-declare var self: Worker;
-
-const LANG_TO_EXTENSION: Record<string, string> = {
-  "C++": "cpp",
-  Python: "py",
-  Go: "go",
-  Java: "java",
-  Node: "ts",
-};
 
 const TMP_DIR = "tmp";
 
@@ -145,23 +138,23 @@ const languageHandlers: Record<string, (fileName: string) => void> = {
       stdout: "pipe",
     });
     const output = result.stdout.toString();
-    const error = result.stderr.toString();
+    let error = result.stderr.toString();
 
-    if (error) {
-      console.log(
-        "[Executor] Error occurred while executing code...\n\n",
-        error
-      );
-      return;
+    // TODO: Find a better way to do this? 0.o
+    if (error.includes("at")) {
+      error = error.substring(0, error.indexOf("at"));
     }
 
-    postMessage(output);
+    if (error) {
+      self.postMessage({ error: error });
+    } else {
+      postMessage(output);
+    }
   },
 };
 
 self.onmessage = async (event: MessageEvent) => {
-  console.log("[Executor] Received submission...");
-  const submission: Submission = event.data;
+  const submission: SubmissionRequest = event.data;
   const fileName = `${submission.submissionId.substring(0, 5)}.${
     LANG_TO_EXTENSION[submission.lang]
   }`;
@@ -182,7 +175,12 @@ self.onmessage = async (event: MessageEvent) => {
       fs.renameSync(filePath, `./${TMP_DIR}/Main.java`);
 
     languageHandlers[submission.lang](fileName);
+
+    fs.unlinkSync(filePath);
   } catch (e) {
-    console.error(e);
+    fs.unlinkSync(filePath);
+    self.reportError(e);
+    postMessage({ error: e });
+    return;
   }
 };
