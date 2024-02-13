@@ -7,7 +7,8 @@ CREATE TABLE "user" (
 );
 
 CREATE TABLE "problem" (
-  "id" integer PRIMARY KEY,
+  "id" SERIAL PRIMARY KEY,
+  "title" varchar,
   "prompt" varchar,
   "timeout" integer,
   "user_id" integer,
@@ -15,7 +16,7 @@ CREATE TABLE "problem" (
 );
 
 CREATE TABLE "submission" (
-  "id" integer PRIMARY KEY,
+  "id" SERIAL PRIMARY KEY,
   "user_id" integer,
   "problem_id" integer,
   "time_elapsed" integer,
@@ -26,14 +27,14 @@ CREATE TABLE "submission" (
 );
 
 CREATE TABLE "test_case" (
-  "id" integer PRIMARY KEY,
+  "id" SERIAL PRIMARY KEY,
   "problem_id" integer,
   "input" varchar,
   "expected_output" varchar
 );
 
 CREATE TABLE "competition" (
-  "id" integer PRIMARY KEY,
+  "id" SERIAL PRIMARY KEY,
   "user_id" integer,
   "start_time" timestamp,
   "end_time" timestamp,

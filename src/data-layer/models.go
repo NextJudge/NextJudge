@@ -11,11 +11,19 @@ type User struct {
 }
 
 type Problem struct {
-	ID         int       `json:"id"`
-	Prompt     string    `json:"prompt"`
-	Timeout    int       `json:"timeout"`
-	UserID     int       `json:"user_id"`
-	UploadDate time.Time `json:"upload_date"`
+	ID         int        `json:"id"`
+	Prompt     string     `json:"prompt"`
+	Title      string     `json:"title"`
+	Timeout    int        `json:"timeout"`
+	UserID     int        `json:"user_id"`
+	UploadDate time.Time  `json:"upload_date"`
+	TestCases  []TestCase `json:"test_cases"`
+}
+
+type TestCase struct {
+	ID             int    `json:"id"`
+	Input          string `json:"input"`
+	ExpectedOutput string `json:"expected_output"`
 }
 
 type Submission struct {
