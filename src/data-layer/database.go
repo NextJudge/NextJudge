@@ -46,6 +46,8 @@ type NextJudgeDB interface {
 	GetProblemByID(problemId int) (*Problem, error)
 	GetProblemByTitle(title string) (*Problem, error)
 	GetTestCases(problemId int) ([]*TestCase, error)
+	CreateSubmission(submission *Submission) (*Submission, error)
+	GetSubmission(submissionId int) (*Submission, error)
 }
 
 func NewDatabase() (*Database, error) {
@@ -283,4 +285,61 @@ func (d Database) GetTestCases(problemId int) ([]*TestCase, error) {
 	}
 
 	return response, nil
+}
+
+func (d Database) CreateSubmission(submission *Submission) (*Submission, error) {
+	sqlStatement := `
+	INSERT INTO "submission" (user_id, problem_id, time_elapsed, language, status, failed_test_case_id, submit_time)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	RETURNING id`
+
+	createTime := time.Now()
+
+	res := &Submission{
+		UserID:           submission.UserID,
+		ProblemID:        submission.ProblemID,
+		TimeElapsed:      submission.TimeElapsed,
+		Language:         submission.Language,
+		Status:           submission.Status,
+		FailedTestCaseID: submission.FailedTestCaseID,
+		SubmitTime:       createTime,
+	}
+
+	failedTestCaseID := sql.NullInt64{
+		Int64: int64(submission.FailedTestCaseID),
+		Valid: false,
+	}
+
+	if submission.FailedTestCaseID != 0 {
+		failedTestCaseID.Valid = true
+	}
+
+	err := d.NextJudgeDB.QueryRow(sqlStatement, submission.UserID, submission.ProblemID, submission.TimeElapsed,
+		submission.Language, submission.Status, failedTestCaseID, createTime).Scan(&res.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (d Database) GetSubmission(submissionId int) (*Submission, error) {
+	sqlStatement := `SELECT * FROM "submission" WHERE id = $1`
+	row := db.NextJudgeDB.QueryRow(sqlStatement, submissionId)
+
+	res := Submission{}
+	var failedTestCaseId *int
+	err := row.Scan(&res.ID, &res.UserID, &res.ProblemID, &res.TimeElapsed, &res.Language, &res.Status, &failedTestCaseId, &res.SubmitTime)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if failedTestCaseId != nil {
+		res.FailedTestCaseID = *failedTestCaseId
+	}
+
+	return &res, nil
 }

@@ -29,7 +29,7 @@ type TestCase struct {
 type Submission struct {
 	ID               int       `json:"id"`
 	UserID           int       `json:"user_id"`
-	ProblemID        string    `json:"problem_id"`
+	ProblemID        int       `json:"problem_id"`
 	TimeElapsed      int       `json:"time_elapsed"`
 	Language         string    `json:"language"`
 	Status           string    `json:"status"`
