@@ -4,5 +4,8 @@ services:
     build: .
     privileged: true
     environment:
-      - REDIS_HOST=localhost
+      - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - DATALAYER_HOST=localhost
+      - DATALAYER_PORT=5000
+
