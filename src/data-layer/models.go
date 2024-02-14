@@ -35,6 +35,7 @@ type Submission struct {
 	Status           string    `json:"status"`
 	FailedTestCaseID int       `json:"failed_test_case_id"`
 	SubmitTime       time.Time `json:"submit_time"`
+	SourceCode       string    `json:"source_code"`
 }
 
 type Competition struct {
