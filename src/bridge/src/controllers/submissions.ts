@@ -33,7 +33,7 @@ export const createSubmission = async ({
       body as SubmissionRequest
     );
 
-    const submission_id: number = submission_to_db_response.problem_id;
+    const submission_id: number = submission_to_db_response.id;
 
     console.log("Sending submission to the queue", submission_id)
     await add_submission_to_queue(submission_id);

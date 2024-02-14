@@ -50,10 +50,10 @@ export const LANG_TO_EXTENSION = {
 
   
 
-type Languages = 'cpp' | 'python'
+type Languages = 'C++' | 'Python'
 
 interface Submission {
-    code: string,
+    source_code: string,
     id: number;
     user_id: number;
     problem_id: number;
@@ -66,13 +66,10 @@ interface Submission {
 
 export interface TestCase {
     input: string;
-    output: string;
+    expected_output: string;
 }
   
-export interface ProblemData {
-    problemId: string;
-    testCases: TestCase[];
-}
+
 
 
 function split_and_trim(code: string) {
@@ -102,12 +99,14 @@ async function process_submission(submission: Submission)
 {
     // First, fetch all testcases
     // Send a response to the bridge saying we are done
-    const db_testcase_request = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/testcases/${submission.problem_id}`);
+    const db_submission_request = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/testcases/${submission.problem_id}`);
 
-    const final_test_cases = await db_testcase_request.json() as ProblemData;
-    console.log(final_test_cases)
+    const final_submission_data = await db_submission_request.json();
+    
+    console.log(final_submission_data)
 
-    const testcases = final_test_cases.testCases;
+    const testcases = final_submission_data.test_cases as TestCase[];
+
 
     // // TODO: pass real data from the testcase
     // const testcases: TestCase[] = [
@@ -126,9 +125,9 @@ async function process_submission(submission: Submission)
 
 
     // TODO: Get information from the submission
-    if(!compile_in_jail(submission)){
-        return;
-    }
+
+    compile_in_jail(submission);
+
 
     let success = true;
     for(const test of testcases){
@@ -138,15 +137,23 @@ async function process_submission(submission: Submission)
         }
     }
 
+    console.log("Done running test cases")
     // Delete run directory 
     fs.rmSync(RUN_DIRECTORY, { recursive: true, force: true });
 
+    const body = JSON.stringify({
+        submission_id: submission.id,
+        success: success ? "SUCCESS" : "FAIL"
+    });
+
+    console.log(body, body);
     // Send a response to the bridge saying we are done
     const send = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/judging_complete`, {
         method: "POST",
-        body: JSON.stringify({
-            success: success
-        })
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: body
     });
 }
 
@@ -162,18 +169,25 @@ function compile_in_jail(submission: Submission): boolean
         return false;
     }
 
-    const code = submission.code;
+    const code = submission.source_code;
 
-    const INPUT_FILE_PATH = `${BUILD_DIRECTORY}/input.${LANG_TO_EXTENSION[submission.language]}`
+    const extension = LANG_TO_EXTENSION[submission.language]
+
+    const INPUT_FILE_PATH = `${BUILD_DIRECTORY}/input.${extension}`
 
     fs.writeFileSync(INPUT_FILE_PATH, code);
 
 
-    const extension = LANG_TO_EXTENSION[submission.language]
 
     let build_script: string = BUILD_SCRIPTS[extension];
 
     build_script = build_script.replace("{IN_FILE}", INPUT_FILE_PATH);
+
+    console.log("Build script")
+    console.log(build_script)
+
+    console.log("Submission code")
+    console.log(code)
 
     fs.writeFileSync(BUILD_SCRIPT_PATH,build_script)
 
@@ -214,9 +228,8 @@ function compile_in_jail(submission: Submission): boolean
     const compile_error = compile_result.stderr.toString();
     if(compile_error){
         console.log("Error in compilation!", compile_error)
-        return;
+        return false;
     }
-
 
     // Copy file from build directory to run directory
     fs.copyFileSync(`${BUILD_DIRECTORY}/main`, `${RUN_SCRIPT_PATH}`);
@@ -224,6 +237,7 @@ function compile_in_jail(submission: Submission): boolean
     // Delete build directory 
     fs.rmSync(BUILD_DIRECTORY, { recursive: true, force: true });
 
+    console.log("Done! Compile succeeded")
     return true;
 }
 
@@ -275,7 +289,6 @@ function run_single_test_case(testcase: TestCase): boolean
 
     console.log("Program done");
 
-    
     const run_error = run_result.stderr.toString();
     if(run_error){
         console.log("Error in runtime (?)!", run_error)
@@ -286,9 +299,8 @@ function run_single_test_case(testcase: TestCase): boolean
     console.log("Process STDOUT", process_stdout)
 
     // Compare program output to expected output
-    const success = compare_input_output(testcase.output, process_stdout);
+    const success = compare_input_output(testcase.expected_output, process_stdout);
 
-    
     if(success){
         console.log("Program is correct!")
     } else {
@@ -402,7 +414,7 @@ async function main()
 
         if(!submission_data.ok){
             console.log("Getting submission data failed!")
-            console.log(user_submission.code)
+            console.log(user_submission)
             continue;
         }
 

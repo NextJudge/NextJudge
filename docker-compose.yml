@@ -24,9 +24,7 @@ services:
     extends: 
       file: src/judge/docker-compose.yml
       service: nextjudge-judge
-      environment:
-        - BRIDGE_HOST=nextjudge-bridge # This override is not working - bug in Docker compose?
-        - BRIDGE_PORT=3000
+
   
   redis:
     extends: 
