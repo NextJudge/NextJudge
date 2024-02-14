@@ -32,17 +32,23 @@ const BUILD_SCRIPTS = {
     'cpp': `#!/bin/sh
         g++ {IN_FILE} -o main
     `,
-    'python': `#!/bin/sh
+    'py': `#!/bin/sh
         echo "#!/bin/sh" >> main
         echo "python3 {IN_FILE}" >> main
         chmod +x main
     `,
 }
 
-const LANG_EXTENSION =  {
-    "python":"py",
-    "cpp": ".cpp"
-}
+
+export const LANG_TO_EXTENSION = {
+    "C++": "cpp",
+    Python: "py",
+    Go: "go",
+    Java: "java",
+    Node: "ts",
+} as const;
+
+  
 
 type Languages = 'cpp' | 'python'
 
@@ -96,12 +102,7 @@ async function process_submission(submission: Submission)
 {
     // First, fetch all testcases
     // Send a response to the bridge saying we are done
-    const db_testcase_request = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/testcases/${submission.problem_id}`, {
-        method: "GET",
-        body: JSON.stringify({
-            problemId: submission.problem_id
-        })
-    });
+    const db_testcase_request = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/testcases/${submission.problem_id}`);
 
     const final_test_cases = await db_testcase_request.json() as ProblemData;
     console.log(final_test_cases)
@@ -125,7 +126,9 @@ async function process_submission(submission: Submission)
 
 
     // TODO: Get information from the submission
-    compile_in_jail(submission);
+    if(!compile_in_jail(submission)){
+        return;
+    }
 
     let success = true;
     for(const test of testcases){
@@ -135,33 +138,41 @@ async function process_submission(submission: Submission)
         }
     }
 
-
     // Delete run directory 
     fs.rmSync(RUN_DIRECTORY, { recursive: true, force: true });
 
     // Send a response to the bridge saying we are done
-    const send = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/submissions/${submission_id}`, {
+    const send = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/judging_complete`, {
         method: "POST",
         body: JSON.stringify({
             success: success
         })
     });
-
 }
 
 // Convert a submission into a form that can be run - either an executable or 
 // a bash script wrapper
-function compile_in_jail(submission: Submission)
+function compile_in_jail(submission: Submission): boolean
 {
     // Compile in an nsjail
 
+    if(!(submission.language in LANG_TO_EXTENSION)){
+        console.log("Unsupported language",submission.language)
+        console.log(LANG_TO_EXTENSION)
+        return false;
+    }
+
     const code = submission.code;
 
-    const INPUT_FILE_PATH = `${BUILD_DIRECTORY}/input.${LANG_EXTENSION[submission.language]}`
+    const INPUT_FILE_PATH = `${BUILD_DIRECTORY}/input.${LANG_TO_EXTENSION[submission.language]}`
 
     fs.writeFileSync(INPUT_FILE_PATH, code);
 
-    let build_script = BUILD_SCRIPTS[submission.language];
+
+    const extension = LANG_TO_EXTENSION[submission.language]
+
+    let build_script: string = BUILD_SCRIPTS[extension];
+
     build_script = build_script.replace("{IN_FILE}", INPUT_FILE_PATH);
 
     fs.writeFileSync(BUILD_SCRIPT_PATH,build_script)
@@ -212,6 +223,8 @@ function compile_in_jail(submission: Submission)
     
     // Delete build directory 
     fs.rmSync(BUILD_DIRECTORY, { recursive: true, force: true });
+
+    return true;
 }
 
 
@@ -376,19 +389,33 @@ async function main()
             continue;
         }
 
-        console.log("Just running test")
-        await test()
         // Query database for all the relevent information regarding this submission_id
         // Meaning the user code, the testcases, and more.
 
-        const submission_data = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/submissions/${submission_id}`);
+        console.log(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/submission/${submission_id}`)
 
+        const submission_data = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/submission/${submission_id}`);
 
         const user_submission = await submission_data.json() as Submission;
+        console.log("User submission data!")
+        console.log(user_submission)
+
+        if(!submission_data.ok){
+            console.log("Getting submission data failed!")
+            console.log(user_submission.code)
+            continue;
+        }
+
+        console.log("Submission data got successfully!")
+        
+        
 
 
         process_submission(user_submission);
 
+
+        // console.log("Just running test")
+        // await test()
         
     }
 }

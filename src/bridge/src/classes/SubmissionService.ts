@@ -8,15 +8,20 @@ export class SubmissionService {
     submissionData: SubmissionRequest
   ): Promise<any> {
     try {
+      console.log("Sending submission to db")
+      console.log(submissionData)
       const response = await ApiService.post(
         `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions`,
         submissionData
       );
 
-      if (!response.ok)
+      if (!response.ok){
+        console.log(await response.json())
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const submission = await response.json();
+      console.log("Returned value", submission);
       return submission;
     } catch (error) {
       console.error("An error occurred while creating the submission:", error);
@@ -24,16 +29,18 @@ export class SubmissionService {
     }
   }
 
-  async getSubmission(submissionId: string): Promise<BackendSubmission> {
+  async getSubmission(submission_id: number): Promise<BackendSubmission> {
     try {
-      console.log("[SubmissionService] Getting submission");
+      console.log("[SubmissionService] Getting submission", submission_id);
 
       const response = await ApiService.get(
-        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions/${submissionId}`
+        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions/${submission_id}`
       );
 
-      if (!response.ok)
+      if (!response.ok){
+        console.log(await response.json())
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
       const submission = (await response.json()) as BackendSubmission;
       return submission;

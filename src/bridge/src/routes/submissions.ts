@@ -1,6 +1,9 @@
-import { createSubmission, getSubmission } from "@controllers/submissions";
-import { createSubmissionHook, getSubmissionHook } from "@hooks/users";
-import { Elysia } from "elysia";
+import { SubmissionService } from "@classes/SubmissionService";
+import { createSubmission } from "@controllers/submissions";
+import { createSubmissionHook } from "@hooks/users";
+import { Elysia, t } from "elysia";
+
+const submissionService = new SubmissionService();
 
 const submissionEndpoints = new Elysia()
   // .derive(({ headers }) => {
@@ -21,6 +24,28 @@ const submissionEndpoints = new Elysia()
   //   };
   // })
   .post("/submission", createSubmission, createSubmissionHook)
-  .get("/submission", getSubmission, getSubmissionHook);
+  .get("/submission/:submission_id", async ({ bearer, params }: {
+          bearer: string;
+          params: { submission_id: number };
+        }) => {
+          try {
+            // Query and return whatever the database returns
+            // Send submission to the database
+            const db_response = await submissionService.getSubmission(params.submission_id);
+        
+            return db_response;
+        
+          } catch (error) {
+            throw { success: false, message: error };
+          }
+        }, 
+    {
+    params: t.Object({
+      submission_id:t.Numeric()
+    })
+  });
+
+
+
 
 export default submissionEndpoints;

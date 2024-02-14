@@ -9,6 +9,7 @@ const postJudgeHook = {
   body: t.Object({ success: t.String()}),
 };
 
+
 const postJudgeComplete = async ({
   bearer,
   body,
@@ -21,17 +22,16 @@ const postJudgeComplete = async ({
 
 
     const response = await ApiService.post(
-      `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/problems/${body.problemId}`
+      `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/problems/${body.problemId}`,
+      {
+        status:body.success
+      }
     );
 
     if (!response.ok)
       throw new Error(`HTTP error! status: ${response.status}`);
-    
-    
-    const data = (await response.json()) as ProblemData;
-    console.log(data)
 
-    return data
+    return "thanks!"
   } catch (error) {
     throw { success: false, message: error };
   }

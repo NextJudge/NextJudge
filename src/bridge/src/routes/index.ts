@@ -3,6 +3,7 @@ import userEndpoints from "@routes/users";
 import { Elysia } from "elysia";
 import availableLangsEndpoint from "./languages";
 import testcaseEndpoints from "./testcases";
+import judgingEndpoints from "./judging";
 
 const userRouter = new Elysia().use(userEndpoints);
 const submissionsRouter = new Elysia().use(submissionEndpoints);

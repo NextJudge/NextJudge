@@ -15,7 +15,7 @@ export const createSubmission = async ({
   body,
 }: {
   bearer: string;
-  body: { userId: string; code: string; lang: string; problemId: string };
+  body: { user_id: number; source_code: string; language: string; problem_id: number };
 }) => {
   try {
     // const [isValid, user] = await isValidToken(bearer, body.userId);
@@ -33,45 +33,29 @@ export const createSubmission = async ({
       body as SubmissionRequest
     );
 
-    const submission: SubmissionRequest = {
-      ...body,
-      // userId: user.id.toString(),
-      submissionId: randomUUID(),
-    };
+    const submission_id: number = submission_to_db_response.problem_id;
 
-    console.log("Sending submission to the queue")
-    await add_submission_to_queue(submission.submissionId);
+    console.log("Sending submission to the queue", submission_id)
+    await add_submission_to_queue(submission_id);
     
-    return submission.submissionId;
+    return submission_id;
   } catch (error) {
     throw { success: false, message: error };
   }
 };
 
 
-async function add_submission_to_queue(submission_id: string){
+async function add_submission_to_queue(submission_id: number){
+  console.log(`Connecting to redis queue      redis://${REDIS_HOST}:${REDIS_PORT}`)
   const client = createClient({
     url:`redis://${REDIS_HOST}:${REDIS_PORT}`
   });
   client.on('error', err => console.log('Redis Client Error', err));
   await client.connect();
 
-  await client.lPush('submissions', [submission_id]);
+  console.log(`Connected to queue`)
+  await client.lPush('submissions', [submission_id.toString()]);
+  console.log(`Pushed submission ${submission_id} }to queue`)
 }
 
 
-export const getSubmission = async ({ bearer, body }: {
-  bearer: string;
-  body: { submissionId: string };
-}) => {
-  try {
-    // Query and return whatever the database returns
-    // Send submission to the database
-    const db_response = await submissionService.getSubmission(body.submissionId);
-
-    return db_response
-    
-  } catch (error) {
-    throw { success: false, message: error };
-  }
-};

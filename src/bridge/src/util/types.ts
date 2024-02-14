@@ -1,9 +1,9 @@
 export interface SubmissionRequest {
-  submissionId: string;
-  code: string;
-  lang: string;
-  problemId: string;
-  userId: string;
+  submission_id: string;
+  source_code: string;
+  language: string;
+  problem_id: number;
+  user_id: number;
 }
 
 export interface User {

@@ -8,23 +8,23 @@ import {
 
 const userEndpoints = new Elysia()
   .post("/login", loginUser, loginUsersHook)
-  .derive(({ headers }) => {
-    const auth = headers["authorization"];
+  // .derive(({ headers }) => {
+  //   const auth = headers["authorization"];
 
-    if (!auth) {
-      throw new Error("Unauthorized");
-    }
+  //   if (!auth) {
+  //     throw new Error("Unauthorized");
+  //   }
 
-    const token = auth.split(" ")[1];
+  //   const token = auth.split(" ")[1];
 
-    if (!token) {
-      throw new Error("Unauthorized");
-    }
+  //   if (!token) {
+  //     throw new Error("Unauthorized");
+  //   }
 
-    return {
-      bearer: token,
-    };
-  })
+  //   return {
+  //     bearer: token,
+  //   };
+  // })
   .get("/users", getUsers, userSwaggerTags)
   .post("/users", createUser, createUserHook);
 
