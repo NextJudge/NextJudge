@@ -14,6 +14,9 @@ docker-compose -f docker-compose-local.yml up -d
 If you change the schema, you need to completely delete the containers by running:
 ```sh
 docker-compose rm
+# Also, delete the volumes
+docker volume ls
+docker volume rm <POSTGRES_VOLUME_ID>
 ```
 
 ## Host

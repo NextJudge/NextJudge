@@ -1,0 +1,11 @@
+# version: '3.9'
+services:
+  nextjudge-judge:
+    build: .
+    privileged: true
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DATALAYER_HOST=localhost
+      - DATALAYER_PORT=5000
+

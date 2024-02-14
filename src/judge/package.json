@@ -1,0 +1,14 @@
+{
+  "name": "judge",
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "type": "module",
+  "dependencies": {
+    "redis": "^4.6.13"
+  }
+}

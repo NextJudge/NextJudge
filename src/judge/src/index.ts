@@ -1,0 +1,356 @@
+
+import { createClient } from 'redis';
+import { commandOptions } from 'redis';
+import * as fs from 'fs';
+
+const { REDIS_HOST, REDIS_PORT, DATALAYER_HOST, DATALAYER_PORT } = process.env
+
+const NEXTJUDGE_USER_ID = 99999
+const BUILD_DIRECTORY = "/build_dir"
+const RUN_DIRECTORY = "/run_dir"
+
+const BUILD_SCRIPT_PATH = `${BUILD_DIRECTORY}/build.sh`
+const RUN_SCRIPT_PATH = `${RUN_DIRECTORY}/main`
+
+
+const BASE_NSJAIL_COMMANDLINE = [
+    "nsjail",
+    "--mode", "o",
+    "--time_limit", `${10}`,
+    "--max_cpus", `${1}`, 
+    "--rlimit_as", `${512}`, // Max virtual memory space
+    "--rlimit_cpu", `${10}`, // Max CPU time
+    "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
+    "--nice_level", "-20", // High priority
+    // "--seccomp_policy", "Path to file containined seccomp-bpf policy. _string for string" // Allowed syscalls 
+    "--persona_addr_no_randomize", // Disable ASLR
+    "--user", `${NEXTJUDGE_USER_ID}`,
+    "--group", `${NEXTJUDGE_USER_ID}`,
+];
+
+const BUILD_SCRIPTS = {
+    'cpp': `#!/bin/sh
+        g++ {IN_FILE} -o main
+    `,
+    'python': `#!/bin/sh
+        echo "#!/bin/sh" >> main
+        echo "python3 {IN_FILE}" >> main
+        chmod +x main
+    `,
+}
+
+const LANG_EXTENSION =  {
+    "python":"py",
+    "cpp": ".cpp"
+}
+
+type Languages = 'cpp' | 'python'
+
+interface Submission {
+    code: string,
+    id: number;
+    user_id: number;
+    problem_id: number;
+    time_elapsed: number;
+    language: Languages;
+    failed_test_case_id: number
+    submit_time: string,
+}
+
+interface TestCase {
+    input: string;
+    output: string;
+}
+
+function split_and_trim(code: string) {
+    return code.split("\n").map((sentence) => sentence.trimEnd());
+}
+
+export function compare_input_output(expected: string, real: string): boolean 
+{
+    const expected_lines = split_and_trim(expected.trim());
+    const real_lines = split_and_trim(real.trim());
+  
+    if (expected_lines.length !== real_lines.length) {
+      return false;
+    }
+  
+    // Compare the output line by line
+    for (let i = 0; i < expected_lines.length; i += 1) {
+        if (expected_lines[i] !== real_lines[i]) {
+            return false;
+        }
+    }
+  
+    return true;
+}
+
+async function process_submission(submission: Submission)
+{
+    // Ensure relevent directories exist
+    Bun.spawnSync({
+        cmd: ["mkdir", "-p", BUILD_DIRECTORY]
+    });
+
+    Bun.spawnSync({
+        cmd: ["mkdir", "-p", RUN_DIRECTORY]
+    });
+
+
+    // TODO: Get information from the submission
+    compile_in_jail(submission);
+
+    // TODO: pass real data from the testcase
+    // TOOO: make real testcases
+    run_single_test_case({input: "TRUE", output: "FALSE"});
+    run_single_test_case({input: "FALSE", output: "TRUE"});
+
+    // Delete run directory 
+    fs.rmSync(RUN_DIRECTORY, { recursive: true, force: true });
+
+
+}
+
+// Convert a submission into a form that can be run - either an executable or 
+// a bash script wrapper
+function compile_in_jail(submission: Submission)
+{
+    // Compile in an nsjail
+
+    const code = submission.code;
+
+    const INPUT_FILE_PATH = `${BUILD_DIRECTORY}/input.${LANG_EXTENSION[submission.language]}`
+
+    fs.writeFileSync(INPUT_FILE_PATH, code);
+
+    let build_script = BUILD_SCRIPTS[submission.language];
+    build_script = build_script.replace("{IN_FILE}", INPUT_FILE_PATH);
+
+    fs.writeFileSync(BUILD_SCRIPT_PATH,build_script)
+
+    fs.chmodSync(BUILD_SCRIPT_PATH, "755");
+    fs.chownSync(BUILD_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID);
+    fs.chownSync(BUILD_SCRIPT_PATH, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID);
+
+    console.log("Compiling")
+
+    const compile_result = Bun.spawnSync({
+        cmd: [
+            "nsjail",
+            "--mode", "o",
+
+            "--time_limit", `${10}`,
+            "--max_cpus", `${1}`, 
+            "--rlimit_as", `${512}`, // Max virtual memory space
+            "--rlimit_cpu", `${10}`, // Max CPU time
+            "--user", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
+            "--group", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
+
+            "--bindmount_ro", "/:/", // Map root file system readonly
+            "--chroot", `/`, // Chroot entire file system
+            
+            "--bindmount", `${BUILD_DIRECTORY}:${BUILD_DIRECTORY}`, // Map build dir as read/write
+            "--cwd", `${BUILD_DIRECTORY}`,
+
+            "--env", `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`, // Map entire file system
+
+            "--exec_file",`${BUILD_SCRIPT_PATH}`,
+            "--really_quiet"
+        ],
+        stderr: "pipe",
+        stdout: "pipe"
+    });
+
+
+    const compile_error = compile_result.stderr.toString();
+    if(compile_error){
+        console.log("Error in compilation!", compile_error)
+        return;
+    }
+
+
+    // Copy file from build directory to run directory
+    fs.copyFileSync(`${BUILD_DIRECTORY}/main`, `${RUN_SCRIPT_PATH}`);
+    
+    // Delete build directory 
+    fs.rmSync(BUILD_DIRECTORY, { recursive: true, force: true });
+}
+
+
+
+function run_single_test_case(testcase: TestCase)
+{
+
+
+    fs.chmodSync(RUN_SCRIPT_PATH, "755");
+    fs.chownSync(RUN_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID);
+    fs.chownSync(RUN_SCRIPT_PATH, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID);
+
+    Bun.spawnSync(["file", RUN_SCRIPT_PATH])
+    
+    console.log("Running")
+
+    // Run the program
+    const run_result = Bun.spawnSync({
+        cmd: [
+            "nsjail",
+            "--mode", "o",
+            "--time_limit", `${10}`,
+            "--max_cpus", `${1}`, 
+            "--rlimit_as", `${512}`, // Max virtual memory space
+            "--rlimit_cpu", `${10}`, // Max CPU time
+            // "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
+            "--nice_level", "-20", // High priority
+            // "--seccomp_policy", "Path to file containined seccomp-bpf policy. _string for string" // Allowed syscalls 
+            "--persona_addr_no_randomize", // Disable ASLR
+            "--user", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
+            "--group", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
+
+            "--bindmount_ro", "/:/", // Map root file system readonly
+            "--chroot", `/`, // Chroot entire file system
+            
+            "--bindmount", `${RUN_DIRECTORY}:${RUN_DIRECTORY}`, // Map build dir as read/write
+            "--cwd", `${RUN_DIRECTORY}`,
+
+            "--env", `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`, // Map entire file system
+
+            "--exec_file",`${RUN_SCRIPT_PATH}`,
+            "--really_quiet"
+        ],
+        stderr: "pipe",
+        stdout: "pipe",
+        stdin: new TextEncoder().encode(testcase.input)
+    });
+
+    console.log("Program done");
+
+    
+    const run_error = run_result.stderr.toString();
+    if(run_error){
+        console.log("Error in runtime (?)!", run_error)
+        return;
+    }
+
+    const process_stdout = run_result.stdout.toString()
+    console.log("Process STDOUT", process_stdout)
+
+    // Compare program output to expected output
+    const success = compare_input_output(testcase.output, process_stdout);
+
+    if(success){
+        console.log("Program is correct!")
+    } else {
+        console.log("Program is incorrect!!")
+    }
+    // Send response back!
+
+    console.log("Done running it!")
+}
+
+
+
+const example = `
+#include <iostream>
+
+using namespace std;
+
+int main()
+{
+    string input;
+    cin >> input;
+    if(input == "TRUE"){
+        cout << "FALSE" << endl;;        
+    } else {
+        cout << "TRUE" << endl;        
+    }
+}
+
+`
+async function test()
+{
+
+    process_submission({
+        code:example,
+        language:"cpp",
+    } as any)
+}
+
+async function connect_to_redis()
+{
+    let redis_connection_attempts = 0;
+
+    do {
+        console.log("Connection attempt ", redis_connection_attempts, `redis://${REDIS_HOST}:${REDIS_PORT}`)
+        let success = true;
+        redis_connection_attempts++
+        Bun.sleep(2);
+        console.log("Sleep done")
+
+        const redis_connection = await createClient(
+            {
+                url:`redis://${REDIS_HOST}:${REDIS_PORT}`
+            }
+            ).on('error', err => {
+                success = false
+            }).connect();
+
+        if(success){
+            return redis_connection;
+        } else {
+            console.log
+            Bun.sleep(2);
+        }
+    }
+    while(redis_connection_attempts < 10);
+
+    console.log("Judge failed to connect to queue")
+    return null;
+}
+
+
+async function main()
+{
+    const redis_connection = await connect_to_redis();
+    if(!redis_connection){
+        console.log("Could not connect to redis");
+        process.exit(1);
+    }
+
+    while(true){
+        // Continously listen for new jobs on the queue!
+        // The queue contains submission_id's\
+        console.log("Judge waiting for new submissions");
+        
+        const value = await redis_connection.blPop(
+            commandOptions({ isolated: true }),
+            'submissions',
+            0
+        );
+
+        console.log("Judge received a submission!")
+
+        const submission_id = value?.element
+
+        if(submission_id === undefined){
+            console.error("ERROR: queue popped null object")
+            continue;
+        }
+
+        console.log("Just running test")
+        await test()
+        // Query database for all the relevent information regarding this submission_id
+        // Meaning the user code, the testcases, and more.
+
+        // const submission_data = await fetch(`http://${DATALAYER_HOST}:${DATALAYER_PORT}/v1/problems/${PROBLEM_ID}/submissions/${submission_id}`);
+
+        // const json = await submission_data.json();
+
+
+        // process_submission();
+
+        
+    }
+}
+
+main()
+// test()
