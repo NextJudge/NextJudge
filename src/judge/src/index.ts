@@ -126,7 +126,9 @@ async function process_submission(submission: Submission)
 
     // TODO: Get information from the submission
 
-    compile_in_jail(submission);
+    if(!compile_in_jail(submission)){
+        return
+    }
 
 
     let success = true;
@@ -227,7 +229,7 @@ function compile_in_jail(submission: Submission): boolean
 
     const compile_error = compile_result.stderr.toString();
     if(compile_error){
-        console.log("Error in compilation!", compile_error)
+        console.log("Error in compilation!", compile_error);
         return false;
     }
 
