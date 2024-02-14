@@ -8,7 +8,8 @@ export default defineConfig({
   server: {
     strictPort: true,
     port:8080,
-    host:true
+    host:true,
+    cors:false
   },
   resolve: {
     alias: {

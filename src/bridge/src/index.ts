@@ -3,6 +3,7 @@ import UserService from "@classes/UserService";
 import { judgingRouter, languagesRouter, submissionsRouter, testcaseRouter, userRouter } from "@routes/index";
 import { DATABASE_HOST, DATABASE_PORT } from "@util/constants";
 import { Elysia, type ErrorHandler } from "elysia";
+import { cors } from '@elysiajs/cors'
 
 const PORT = Bun.env.PORT || 3000;
 
@@ -86,6 +87,7 @@ async function setupBridge() {
 await setupBridge();
 
 const app = new Elysia()
+  .use(cors())
   .use(userRouter)
   .use(submissionsRouter)
   .use(languagesRouter)

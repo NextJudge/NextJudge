@@ -38,8 +38,10 @@ function EditorComponent() {
   const editorRef = useRef<any>();
   const [languages, setLanguages] = useState<any>([]);
   const [isExpanded, setExpanded] = useState(true);
+  const [submissionId, setSubmissionId] = useState(0);
+
   const { getCollapseProps, getToggleProps } = useCollapse({ isExpanded });
-  const [submissionStatus] = useState("Loading");
+  const [submissionStatus, setSubmissionStatus ] = useState("Loading");
   const supportedLanguages = [
     { language: "C++", extension: "cpp" },
     { language: "Python", extension: "py" },
@@ -47,16 +49,27 @@ function EditorComponent() {
     { language: "Java", extension: "java" },
     { language: "Node", extension: "ts" },
   ];
-  const [selectedLanguage, setSelectedLanguage] = useState("typescript");
+  const [selectedLanguage, setSelectedLanguage] = useState("cpp");
 
-  const supportedLangs = languages?.filter((lang: any) => {
-    return supportedLanguages.some((supportedLang) => {
-      if (supportedLang.language === "Node") {
-        return lang.id === "typescript" || lang.id === "javascript";
-      }
-      return lang.id === supportedLang.language.toLowerCase();
-    });
-  });
+  // const supportedLangs = languages?.filter((lang: any) => {
+  //   return supportedLanguages.some((supportedLang) => {
+  //     if (supportedLang.language === "Node") {
+  //       return lang.id === "typescript" || lang.id === "javascript";
+  //     }
+  //     return lang.id === supportedLang.language.toLowerCase();
+  //   });
+  // });
+
+  const supportedLangs = ["cpp"]
+  
+
+  async function fetch_submission(){
+    
+  }
+
+  useEffect(() => {
+    fetch_submission()
+  }, []);
 
   useLayoutEffect(() => {
     loader.init().then((monaco) => {
@@ -74,15 +87,22 @@ function EditorComponent() {
     const fetchLanguages = async () => {
       try {
         const response = await fetch("http://localhost:3000/languages", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            //  This is temporary, for testing.
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+            method: "GET",
+            // headers: {
+              // "Content-Type": "application/json",
+              //  This is temporary, for testing.
+              // Authorization: `Bearer ${localStorage.getItem("token")}`,
+            // },
         });
 
+        if(!response.ok){
+          console.log("Error in response", response.status)
+          throw "error"
+        }
+
         const data = await response.json();
+        console.log(data)
+
         if (response.status === 200) {
           setLanguages(data);
         }
@@ -119,16 +139,80 @@ function EditorComponent() {
   };
 
   async function submitCode() {
-    const code = editorRef.current.getValue();
-    const problemId = "1";
+    const code: string = editorRef.current.getValue();
+    const problemId = 1;
     const submission = {
-      type: "submission",
-      code: code,
-      lang: mapLanguage(selectedLanguage),
-      problemId: problemId,
+      user_id: 1,
+      source_code: code,
+      language: mapLanguage(selectedLanguage),
+      problem_id: problemId,
     };
+
+    const body_payload = JSON.stringify(submission)
+
+    console.log("Sending submission")
+    console.log(submission)
+    console.log(body_payload)
+
+    const response = await fetch("http://localhost:3000/submission", {
+          method: "POST",
+          body: body_payload,
+          headers: {
+            "Content-Type": "application/json",
+            //  This is temporary, for testing.
+            // Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+      if(!response.ok){
+        console.log("Error in response", response.status)
+        return
+      }
+
+      const data = await response.text();
+      console.log("SUVMISSION ID GOT", +data)
+      setSubmissionId(+data);
+
     console.log("Submission:", submission);
+
+    return "hi"
   }
+
+  useEffect(() => {
+
+
+    const interval = setInterval(async () => {
+      console.log(submissionId)
+      if(submissionId === 0) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:3000/submission/${submissionId}`, {
+            method: "GET",
+        });
+
+        const data = await response.json()
+        console.log(data)
+
+        if(data.status === "SUCCESS"){
+          clearInterval(interval)
+        }
+
+        setSubmissionStatus(data.status);
+
+        } catch(e){
+          console.error("error", e)
+        }
+    }, 1000)
+
+    if(submissionId === 0) {
+      clearInterval(interval)
+      return;
+    }
+    
+  }, [submissionId])
+  
 
   const handleCodeChange = (ev: any) => {
     setCode(ev.target.value);
@@ -194,8 +278,8 @@ function EditorComponent() {
         </div>
         <div className="panel mx-auto p-4">
           <Editor
-            language={selectedLanguage}
-            defaultLanguage="typescript"
+            language={"cpp"}
+            defaultLanguage="cpp"
             loading={<LoadingSkeleton />}
             theme="myTheme"
             value={code}
@@ -233,13 +317,13 @@ function EditorComponent() {
               <h3 className="text-center text-lg font-bold">
                 Submission Status
               </h3>
-              {submissionStatus === "AC" && (
+              {submissionStatus === "SUCCESS" && (
                 <div className="flex flex-row items-center space-x-2">
                   <div className="h-4 w-4 rounded-full bg-green-500"></div>
                   <p className="text-sm">Accepted</p>
                 </div>
               )}
-              {submissionStatus === "WA" && (
+              {submissionStatus === "FAIL" && (
                 <div className=" flex flex-row items-center space-x-2">
                   <div className="h-4 w-4 rounded-full bg-red-500"></div>
                   <p className="text-sm">Wrong Answer</p>
