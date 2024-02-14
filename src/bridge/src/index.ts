@@ -1,5 +1,5 @@
 import UserService from "@classes/UserService";
-import { languagesRouter, submissionsRouter, userRouter } from "@routes/index";
+import { languagesRouter, submissionsRouter, testcaseRouter, userRouter } from "@routes/index";
 import { Elysia, type ErrorHandler } from "elysia";
 
 const PORT = Bun.env.PORT || 3000;
@@ -52,9 +52,11 @@ async function setupBridge() {
 setupBridge();
 
 const app = new Elysia()
-  // .use(userRouter)
+  .use(userRouter)
   .use(submissionsRouter)
-  // .use(languagesRouter)
+  .use(languagesRouter)
+  .use(testcaseRouter)
+  .use(judgingRouter)
   .listen(PORT);
 
 app.onError(errorHandler);

@@ -32,6 +32,14 @@ export const createSubmissionHook = {
   bearer: bearer,
 };
 
+export const getSubmissionHook = {
+  ...userSwaggerTags,
+  body: t.Object({
+    submissionId: t.String(),
+  }),
+  bearer: bearer,
+};
+
 export const getLanguagesHook = {
   ...userSwaggerTags,
 };

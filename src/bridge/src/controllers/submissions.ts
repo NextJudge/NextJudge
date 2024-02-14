@@ -5,9 +5,10 @@ import { isValidToken } from "@util/main";
 import { JudgeEvent, SubmissionRequest, SubmissionResult } from "@util/types";
 import { randomUUID } from "node:crypto";
 import { REDIS_HOST, REDIS_PORT } from '@util/constants';
+import { SubmissionService } from '@classes/SubmissionService';
 
 // TODO: Implement this in the data-layer so that we can append submissions.
-// const submissionService = new SubmissionService();
+const submissionService = new SubmissionService();
 
 export const createSubmission = async ({
   bearer,
@@ -17,23 +18,20 @@ export const createSubmission = async ({
   body: { userId: string; code: string; lang: string; problemId: string };
 }) => {
   try {
-    const [isValid, user] = await isValidToken(bearer, body.userId);
+    // const [isValid, user] = await isValidToken(bearer, body.userId);
 
-    if (!isValid) {
-      throw new Error("Unauthorized");
-    }
+    // if (!isValid) {
+    //   throw new Error("Unauthorized");
+    // }
 
-    if (!user) {
-      throw new Error("User not found");
-    }
+    // if (!user) {
+    //   throw new Error("User not found");
+    // }
 
-    /*
-    * TODO: Implement this in the data-later so that we can append submissions.
-    const submission = await submissionService.createSubmission(
-      user,
+    // Send submission to the database
+    const submission_to_db_response = await submissionService.createSubmission(
       body as SubmissionRequest
     );
-    */
 
     const submission: SubmissionRequest = {
       ...body,
@@ -44,8 +42,7 @@ export const createSubmission = async ({
     console.log("Sending submission to the queue")
     await add_submission_to_queue(submission.submissionId);
     
-    // Responds with SOMETHING to indicate success
-    return { submission };
+    return submission.submissionId;
   } catch (error) {
     throw { success: false, message: error };
   }
@@ -63,4 +60,18 @@ async function add_submission_to_queue(submission_id: string){
 }
 
 
+export const getSubmission = async ({ bearer, body }: {
+  bearer: string;
+  body: { submissionId: string };
+}) => {
+  try {
+    // Query and return whatever the database returns
+    // Send submission to the database
+    const db_response = await submissionService.getSubmission(body.submissionId);
 
+    return db_response
+    
+  } catch (error) {
+    throw { success: false, message: error };
+  }
+};

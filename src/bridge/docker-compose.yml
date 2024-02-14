@@ -11,7 +11,7 @@ services:
       - REDIS_PORT=6379
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    init: true # Make ctrl-c actual stop it immediately
+    init: true
 
   redis:
     image: redis

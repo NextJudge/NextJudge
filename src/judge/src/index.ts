@@ -3,7 +3,7 @@ import { createClient } from 'redis';
 import { commandOptions } from 'redis';
 import * as fs from 'fs';
 
-const { REDIS_HOST, REDIS_PORT, DATALAYER_HOST, DATALAYER_PORT } = process.env
+const { REDIS_HOST, REDIS_PORT, BRIDGE_HOST, BRIDGE_PORT } = process.env
 
 const NEXTJUDGE_USER_ID = 99999
 const BUILD_DIRECTORY = "/build_dir"
@@ -57,10 +57,17 @@ interface Submission {
     submit_time: string,
 }
 
-interface TestCase {
+
+export interface TestCase {
     input: string;
     output: string;
 }
+  
+export interface ProblemData {
+    problemId: string;
+    testCases: TestCase[];
+}
+
 
 function split_and_trim(code: string) {
     return code.split("\n").map((sentence) => sentence.trimEnd());
@@ -87,6 +94,26 @@ export function compare_input_output(expected: string, real: string): boolean
 
 async function process_submission(submission: Submission)
 {
+    // First, fetch all testcases
+    // Send a response to the bridge saying we are done
+    const db_testcase_request = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/testcases/${submission.problem_id}`, {
+        method: "GET",
+        body: JSON.stringify({
+            problemId: submission.problem_id
+        })
+    });
+
+    const final_test_cases = await db_testcase_request.json() as ProblemData;
+    console.log(final_test_cases)
+
+    const testcases = final_test_cases.testCases;
+
+    // // TODO: pass real data from the testcase
+    // const testcases: TestCase[] = [
+    //     {input: "TRUE", output: "FALSE"},
+    //     {input: "FALSE", output: "TRUE"},
+    // ]
+
     // Ensure relevent directories exist
     Bun.spawnSync({
         cmd: ["mkdir", "-p", BUILD_DIRECTORY]
@@ -100,14 +127,25 @@ async function process_submission(submission: Submission)
     // TODO: Get information from the submission
     compile_in_jail(submission);
 
-    // TODO: pass real data from the testcase
-    // TOOO: make real testcases
-    run_single_test_case({input: "TRUE", output: "FALSE"});
-    run_single_test_case({input: "FALSE", output: "TRUE"});
+    let success = true;
+    for(const test of testcases){
+        if(!run_single_test_case(test)){
+            success = false;
+            break;
+        }
+    }
+
 
     // Delete run directory 
     fs.rmSync(RUN_DIRECTORY, { recursive: true, force: true });
 
+    // Send a response to the bridge saying we are done
+    const send = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/submissions/${submission_id}`, {
+        method: "POST",
+        body: JSON.stringify({
+            success: success
+        })
+    });
 
 }
 
@@ -178,7 +216,7 @@ function compile_in_jail(submission: Submission)
 
 
 
-function run_single_test_case(testcase: TestCase)
+function run_single_test_case(testcase: TestCase): boolean
 {
 
 
@@ -228,7 +266,7 @@ function run_single_test_case(testcase: TestCase)
     const run_error = run_result.stderr.toString();
     if(run_error){
         console.log("Error in runtime (?)!", run_error)
-        return;
+        return false;
     }
 
     const process_stdout = run_result.stdout.toString()
@@ -237,14 +275,16 @@ function run_single_test_case(testcase: TestCase)
     // Compare program output to expected output
     const success = compare_input_output(testcase.output, process_stdout);
 
+    
     if(success){
         console.log("Program is correct!")
     } else {
         console.log("Program is incorrect!!")
     }
-    // Send response back!
+
 
     console.log("Done running it!")
+    return success;
 }
 
 
@@ -341,12 +381,13 @@ async function main()
         // Query database for all the relevent information regarding this submission_id
         // Meaning the user code, the testcases, and more.
 
-        // const submission_data = await fetch(`http://${DATALAYER_HOST}:${DATALAYER_PORT}/v1/problems/${PROBLEM_ID}/submissions/${submission_id}`);
-
-        // const json = await submission_data.json();
+        const submission_data = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/submissions/${submission_id}`);
 
 
-        // process_submission();
+        const user_submission = await submission_data.json() as Submission;
+
+
+        process_submission(user_submission);
 
         
     }

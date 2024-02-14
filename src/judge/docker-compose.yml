@@ -6,6 +6,4 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - DATALAYER_HOST=localhost
-      - DATALAYER_PORT=5000
 
