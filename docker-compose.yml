@@ -1,5 +1,10 @@
 version: '3'
 services:
+  redis:
+    extends: 
+      file: src/bridge/docker-compose.yml
+      service: redis
+
   nextjudge-frontend:
     extends: 
       file: src/web/docker-compose.yml
@@ -13,13 +18,31 @@ services:
       - DATABASE_HOST=nextjudge-data-layer
     depends_on:
       - nextjudge-data-layer
-
+      
   nextjudge-data-layer:
     extends: 
       file: src/data-layer/docker-compose.yml
       service: nextjudge-data-layer
   
+
+  nextjudge-judge:
+    extends: 
+      file: src/judge/docker-compose.yml
+      service: nextjudge-judge
+      environment:
+      - REDIS_HOST=redis # This override is not working - bug in Docker compose?
+      - REDIS_PORT=6379
+      - DATALAYER_HOST=nextjudge-data-layer
+      - DATALAYER_PORT=5000
+
+
   db:
     extends: 
       file: src/data-layer/docker-compose.yml
       service: db
+      
+      
+volumes: 
+  postgres_data:
+  
+  

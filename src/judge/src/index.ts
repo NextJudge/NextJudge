@@ -3,7 +3,7 @@ import { createClient } from 'redis';
 import { commandOptions } from 'redis';
 import * as fs from 'fs';
 
-const { REDIS_HOST, REDIS_PORT } = process.env
+const { REDIS_HOST, REDIS_PORT, DATALAYER_HOST, DATALAYER_PORT } = process.env
 
 const NEXTJUDGE_USER_ID = 99999
 const BUILD_DIRECTORY = "/build_dir"
@@ -47,10 +47,14 @@ const LANG_EXTENSION =  {
 type Languages = 'cpp' | 'python'
 
 interface Submission {
-    submission_id?: number;
-    code: string;
+    code: string,
+    id: number;
+    user_id: number;
+    problem_id: number;
+    time_elapsed: number;
     language: Languages;
-    tests: TestCase[];
+    failed_test_case_id: number
+    submit_time: string,
 }
 
 interface TestCase {
@@ -81,15 +85,30 @@ export function compare_input_output(expected: string, real: string): boolean
     return true;
 }
 
-
 async function process_submission(submission: Submission)
 {
+    // Ensure relevent directories exist
+    Bun.spawnSync({
+        cmd: ["mkdir", "-p", BUILD_DIRECTORY]
+    });
+
+    Bun.spawnSync({
+        cmd: ["mkdir", "-p", RUN_DIRECTORY]
+    });
+
+
     // TODO: Get information from the submission
     compile_in_jail(submission);
 
     // TODO: pass real data from the testcase
     // TOOO: make real testcases
-    run_single_test_case({input: "", output: ""});
+    run_single_test_case({input: "TRUE", output: "FALSE"});
+    run_single_test_case({input: "FALSE", output: "TRUE"});
+
+    // Delete run directory 
+    fs.rmSync(RUN_DIRECTORY, { recursive: true, force: true });
+
+
 }
 
 // Convert a submission into a form that can be run - either an executable or 
@@ -100,12 +119,7 @@ function compile_in_jail(submission: Submission)
 
     const code = submission.code;
 
-    Bun.spawnSync({
-        cmd: ["mkdir", "-p", BUILD_DIRECTORY]
-    });
-
     const INPUT_FILE_PATH = `${BUILD_DIRECTORY}/input.${LANG_EXTENSION[submission.language]}`
-
 
     fs.writeFileSync(INPUT_FILE_PATH, code);
 
@@ -166,9 +180,7 @@ function compile_in_jail(submission: Submission)
 
 function run_single_test_case(testcase: TestCase)
 {
-    Bun.spawnSync({
-        cmd: ["mkdir", "-p", RUN_DIRECTORY]
-    });
+
 
     fs.chmodSync(RUN_SCRIPT_PATH, "755");
     fs.chownSync(RUN_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID);
@@ -212,23 +224,25 @@ function run_single_test_case(testcase: TestCase)
 
     console.log("Program done");
 
-    // Delete run directory 
-    fs.rmSync(RUN_DIRECTORY, { recursive: true, force: true });
     
     const run_error = run_result.stderr.toString();
     if(run_error){
         console.log("Error in runtime (?)!", run_error)
         return;
     }
+
     const process_stdout = run_result.stdout.toString()
-    console.log(process_stdout)
+    console.log("Process STDOUT", process_stdout)
 
     // Compare program output to expected output
     const success = compare_input_output(testcase.output, process_stdout);
 
-    console.log(success);
+    if(success){
+        console.log("Program is correct!")
+    } else {
+        console.log("Program is incorrect!!")
+    }
     // Send response back!
-
 
     console.log("Done running it!")
 }
@@ -236,11 +250,19 @@ function run_single_test_case(testcase: TestCase)
 
 
 const example = `
-#include <stdio.h>
+#include <iostream>
+
+using namespace std;
 
 int main()
 {
-    printf("Hello world!");        
+    string input;
+    cin >> input;
+    if(input == "TRUE"){
+        cout << "FALSE" << endl;;        
+    } else {
+        cout << "TRUE" << endl;        
+    }
 }
 
 `
@@ -250,33 +272,62 @@ async function test()
     process_submission({
         code:example,
         language:"cpp",
-        tests: [],
-        submission_id: 1
-    })
+    } as any)
 }
+
+async function connect_to_redis()
+{
+    let redis_connection_attempts = 0;
+
+    do {
+        console.log("Connection attempt ", redis_connection_attempts, `redis://${REDIS_HOST}:${REDIS_PORT}`)
+        let success = true;
+        redis_connection_attempts++
+        Bun.sleep(2);
+        console.log("Sleep done")
+
+        const redis_connection = await createClient(
+            {
+                url:`redis://${REDIS_HOST}:${REDIS_PORT}`
+            }
+            ).on('error', err => {
+                success = false
+            }).connect();
+
+        if(success){
+            return redis_connection;
+        } else {
+            console.log
+            Bun.sleep(2);
+        }
+    }
+    while(redis_connection_attempts < 10);
+
+    console.log("Judge failed to connect to queue")
+    return null;
+}
+
 
 async function main()
 {
-
-    const redis_connection = await createClient(
-        {
-            url:`redis://${REDIS_HOST}:${REDIS_PORT}`
-        }
-    ).on('error', err => {
-        console.log('Redis Client Error', err);
+    const redis_connection = await connect_to_redis();
+    if(!redis_connection){
+        console.log("Could not connect to redis");
         process.exit(1);
-    }).connect();
-
-    
+    }
 
     while(true){
         // Continously listen for new jobs on the queue!
-        // The queue contains submission_id's
+        // The queue contains submission_id's\
+        console.log("Judge waiting for new submissions");
+        
         const value = await redis_connection.blPop(
             commandOptions({ isolated: true }),
             'submissions',
             0
         );
+
+        console.log("Judge received a submission!")
 
         const submission_id = value?.element
 
@@ -285,15 +336,21 @@ async function main()
             continue;
         }
 
+        console.log("Just running test")
+        await test()
         // Query database for all the relevent information regarding this submission_id
         // Meaning the user code, the testcases, and more.
 
-        process_submission(submission_id);
+        // const submission_data = await fetch(`http://${DATALAYER_HOST}:${DATALAYER_PORT}/v1/problems/${PROBLEM_ID}/submissions/${submission_id}`);
 
+        // const json = await submission_data.json();
+
+
+        // process_submission();
 
         
     }
 }
 
-// main()
-test()
+main()
+// test()

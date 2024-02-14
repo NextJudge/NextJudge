@@ -23,12 +23,13 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=example
     volumes:
-      # - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./nextjudge.sql:/docker-entrypoint-initdb.d/nextjudge.sql # To instantiate the database
     healthcheck:
       test: pg_isready -U $$POSTGRES_USER
       interval: 2s
       timeout: 2s
       retries: 10
-# volumes:
-#   postgres_data:
+      
+volumes:
+  postgres_data:
