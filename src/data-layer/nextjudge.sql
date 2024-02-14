@@ -23,7 +23,8 @@ CREATE TABLE "submission" (
   "language" varchar,
   "status" varchar,
   "failed_test_case_id" integer,
-  "submit_time" timestamp
+  "submit_time" timestamp,
+  "source_code" varchar
 );
 
 CREATE TABLE "test_case" (

@@ -289,8 +289,8 @@ func (d Database) GetTestCases(problemId int) ([]*TestCase, error) {
 
 func (d Database) CreateSubmission(submission *Submission) (*Submission, error) {
 	sqlStatement := `
-	INSERT INTO "submission" (user_id, problem_id, time_elapsed, language, status, failed_test_case_id, submit_time)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	INSERT INTO "submission" (user_id, problem_id, time_elapsed, language, status, failed_test_case_id, submit_time, source_code)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	RETURNING id`
 
 	createTime := time.Now()
@@ -315,7 +315,7 @@ func (d Database) CreateSubmission(submission *Submission) (*Submission, error) 
 	}
 
 	err := d.NextJudgeDB.QueryRow(sqlStatement, submission.UserID, submission.ProblemID, submission.TimeElapsed,
-		submission.Language, submission.Status, failedTestCaseID, createTime).Scan(&res.ID)
+		submission.Language, submission.Status, failedTestCaseID, createTime, submission.SourceCode).Scan(&res.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +329,7 @@ func (d Database) GetSubmission(submissionId int) (*Submission, error) {
 
 	res := Submission{}
 	var failedTestCaseId *int
-	err := row.Scan(&res.ID, &res.UserID, &res.ProblemID, &res.TimeElapsed, &res.Language, &res.Status, &failedTestCaseId, &res.SubmitTime)
+	err := row.Scan(&res.ID, &res.UserID, &res.ProblemID, &res.TimeElapsed, &res.Language, &res.Status, &failedTestCaseId, &res.SubmitTime, &res.SourceCode)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
