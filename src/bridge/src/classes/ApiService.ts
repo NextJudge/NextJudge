@@ -17,6 +17,16 @@ class ApiService {
       body: JSON.stringify(body),
     });
   }
+
+  static async patch(url: string, body: object): Promise<Response> {
+    return fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  }
 }
 
 export default ApiService;

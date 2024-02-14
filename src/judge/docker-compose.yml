@@ -6,6 +6,5 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - DATALAYER_HOST=localhost
-      - DATALAYER_PORT=5000
-
+      - BRIDGE_HOST=nextjudge-bridge # This override is not working - bug in Docker compose?
+      - BRIDGE_PORT=3000

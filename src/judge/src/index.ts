@@ -3,7 +3,7 @@ import { createClient } from 'redis';
 import { commandOptions } from 'redis';
 import * as fs from 'fs';
 
-const { REDIS_HOST, REDIS_PORT, DATALAYER_HOST, DATALAYER_PORT } = process.env
+const { REDIS_HOST, REDIS_PORT, BRIDGE_HOST, BRIDGE_PORT } = process.env
 
 const NEXTJUDGE_USER_ID = 99999
 const BUILD_DIRECTORY = "/build_dir"
@@ -32,22 +32,28 @@ const BUILD_SCRIPTS = {
     'cpp': `#!/bin/sh
         g++ {IN_FILE} -o main
     `,
-    'python': `#!/bin/sh
+    'py': `#!/bin/sh
         echo "#!/bin/sh" >> main
         echo "python3 {IN_FILE}" >> main
         chmod +x main
     `,
 }
 
-const LANG_EXTENSION =  {
-    "python":"py",
-    "cpp": ".cpp"
-}
 
-type Languages = 'cpp' | 'python'
+export const LANG_TO_EXTENSION = {
+    "C++": "cpp",
+    Python: "py",
+    Go: "go",
+    Java: "java",
+    Node: "ts",
+} as const;
+
+  
+
+type Languages = 'C++' | 'Python'
 
 interface Submission {
-    code: string,
+    source_code: string,
     id: number;
     user_id: number;
     problem_id: number;
@@ -57,10 +63,14 @@ interface Submission {
     submit_time: string,
 }
 
-interface TestCase {
+
+export interface TestCase {
     input: string;
-    output: string;
+    expected_output: string;
 }
+  
+
+
 
 function split_and_trim(code: string) {
     return code.split("\n").map((sentence) => sentence.trimEnd());
@@ -87,6 +97,23 @@ export function compare_input_output(expected: string, real: string): boolean
 
 async function process_submission(submission: Submission)
 {
+    // First, fetch all testcases
+    // Send a response to the bridge saying we are done
+    const db_submission_request = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/testcases/${submission.problem_id}`);
+
+    const final_submission_data = await db_submission_request.json();
+    
+    console.log(final_submission_data)
+
+    const testcases = final_submission_data.test_cases as TestCase[];
+
+
+    // // TODO: pass real data from the testcase
+    // const testcases: TestCase[] = [
+    //     {input: "TRUE", output: "FALSE"},
+    //     {input: "FALSE", output: "TRUE"},
+    // ]
+
     // Ensure relevent directories exist
     Bun.spawnSync({
         cmd: ["mkdir", "-p", BUILD_DIRECTORY]
@@ -98,33 +125,69 @@ async function process_submission(submission: Submission)
 
 
     // TODO: Get information from the submission
+
     compile_in_jail(submission);
 
-    // TODO: pass real data from the testcase
-    // TOOO: make real testcases
-    run_single_test_case({input: "TRUE", output: "FALSE"});
-    run_single_test_case({input: "FALSE", output: "TRUE"});
 
+    let success = true;
+    for(const test of testcases){
+        if(!run_single_test_case(test)){
+            success = false;
+            break;
+        }
+    }
+
+    console.log("Done running test cases")
     // Delete run directory 
     fs.rmSync(RUN_DIRECTORY, { recursive: true, force: true });
 
+    const body = JSON.stringify({
+        submission_id: submission.id,
+        success: success ? "SUCCESS" : "FAIL"
+    });
 
+    console.log(body, body);
+    // Send a response to the bridge saying we are done
+    const send = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/judging_complete`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: body
+    });
 }
 
 // Convert a submission into a form that can be run - either an executable or 
 // a bash script wrapper
-function compile_in_jail(submission: Submission)
+function compile_in_jail(submission: Submission): boolean
 {
     // Compile in an nsjail
 
-    const code = submission.code;
+    if(!(submission.language in LANG_TO_EXTENSION)){
+        console.log("Unsupported language",submission.language)
+        console.log(LANG_TO_EXTENSION)
+        return false;
+    }
 
-    const INPUT_FILE_PATH = `${BUILD_DIRECTORY}/input.${LANG_EXTENSION[submission.language]}`
+    const code = submission.source_code;
+
+    const extension = LANG_TO_EXTENSION[submission.language]
+
+    const INPUT_FILE_PATH = `${BUILD_DIRECTORY}/input.${extension}`
 
     fs.writeFileSync(INPUT_FILE_PATH, code);
 
-    let build_script = BUILD_SCRIPTS[submission.language];
+
+
+    let build_script: string = BUILD_SCRIPTS[extension];
+
     build_script = build_script.replace("{IN_FILE}", INPUT_FILE_PATH);
+
+    console.log("Build script")
+    console.log(build_script)
+
+    console.log("Submission code")
+    console.log(code)
 
     fs.writeFileSync(BUILD_SCRIPT_PATH,build_script)
 
@@ -165,20 +228,22 @@ function compile_in_jail(submission: Submission)
     const compile_error = compile_result.stderr.toString();
     if(compile_error){
         console.log("Error in compilation!", compile_error)
-        return;
+        return false;
     }
-
 
     // Copy file from build directory to run directory
     fs.copyFileSync(`${BUILD_DIRECTORY}/main`, `${RUN_SCRIPT_PATH}`);
     
     // Delete build directory 
     fs.rmSync(BUILD_DIRECTORY, { recursive: true, force: true });
+
+    console.log("Done! Compile succeeded")
+    return true;
 }
 
 
 
-function run_single_test_case(testcase: TestCase)
+function run_single_test_case(testcase: TestCase): boolean
 {
 
 
@@ -224,27 +289,27 @@ function run_single_test_case(testcase: TestCase)
 
     console.log("Program done");
 
-    
     const run_error = run_result.stderr.toString();
     if(run_error){
         console.log("Error in runtime (?)!", run_error)
-        return;
+        return false;
     }
 
     const process_stdout = run_result.stdout.toString()
     console.log("Process STDOUT", process_stdout)
 
     // Compare program output to expected output
-    const success = compare_input_output(testcase.output, process_stdout);
+    const success = compare_input_output(testcase.expected_output, process_stdout);
 
     if(success){
         console.log("Program is correct!")
     } else {
         console.log("Program is incorrect!!")
     }
-    // Send response back!
+
 
     console.log("Done running it!")
+    return success;
 }
 
 
@@ -336,18 +401,33 @@ async function main()
             continue;
         }
 
-        console.log("Just running test")
-        await test()
         // Query database for all the relevent information regarding this submission_id
         // Meaning the user code, the testcases, and more.
 
-        // const submission_data = await fetch(`http://${DATALAYER_HOST}:${DATALAYER_PORT}/v1/problems/${PROBLEM_ID}/submissions/${submission_id}`);
+        console.log(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/submission/${submission_id}`)
 
-        // const json = await submission_data.json();
+        const submission_data = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/submission/${submission_id}`);
+
+        const user_submission = await submission_data.json() as Submission;
+        console.log("User submission data!")
+        console.log(user_submission)
+
+        if(!submission_data.ok){
+            console.log("Getting submission data failed!")
+            console.log(user_submission)
+            continue;
+        }
+
+        console.log("Submission data got successfully!")
+        
+        
 
 
-        // process_submission();
+        process_submission(user_submission);
 
+
+        // console.log("Just running test")
+        // await test()
         
     }
 }

@@ -24,13 +24,15 @@ export const getUsersHook = {
 export const createSubmissionHook = {
   ...userSwaggerTags,
   body: t.Object({
-    userId: t.String(),
-    code: t.String(),
-    lang: t.String(),
-    problemId: t.String(),
+    user_id: t.Integer(),
+    source_code: t.String(),
+    language: t.String(),
+    problem_id: t.Integer(),
   }),
-  bearer: bearer,
+  // bearer: bearer,
 };
+
+
 
 export const getLanguagesHook = {
   ...userSwaggerTags,

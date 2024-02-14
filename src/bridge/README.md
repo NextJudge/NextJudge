@@ -4,10 +4,10 @@ Welcome to the NextJudge Bridge! This is the "middleman" application that connec
 
 ## Setup
 
-1. Install [Docker & Docker Compose](https://www.docker.com/products/docker-desktop)
-2. Install [Bun](https://bun.sh)
+- Install [Docker & Docker Compose](https://www.docker.com/products/docker-desktop)
 
-**Optional**: Golang (to build the database locally)
+
+**Optional**: Golang (to build the database locally), as well as [Bun](https://bun.sh)
 
 ## Running the Bridge
 
