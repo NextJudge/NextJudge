@@ -48,6 +48,7 @@ type NextJudgeDB interface {
 	GetTestCases(problemId int) ([]*TestCase, error)
 	CreateSubmission(submission *Submission) (*Submission, error)
 	GetSubmission(submissionId int) (*Submission, error)
+	UpdateSubmission(submissionId int, status string, failedTestCaseId int) error
 }
 
 func NewDatabase() (*Database, error) {
@@ -159,7 +160,7 @@ func (d Database) GetUserByUsername(username string) (*User, error) {
 }
 
 func (d Database) UpdateUser(user *User) error {
-	sqlStatement := `SELECT "user" 
+	sqlStatement := `UPDATE "user" 
 	SET username = $2, password_hash = $3, is_admin = $4
 	WHERE id = $1`
 	_, err := db.NextJudgeDB.Exec(sqlStatement, user.ID, user.Username, user.PasswordHash, user.IsAdmin)
@@ -342,4 +343,27 @@ func (d Database) GetSubmission(submissionId int) (*Submission, error) {
 	}
 
 	return &res, nil
+}
+
+func (d Database) UpdateSubmission(submissionId int, status string, failedTestCaseId int) error {
+	sqlStatement := `UPDATE "submission" 
+	SET status = $2, failed_test_case_id = $3
+	WHERE id = $1`
+
+	nullableFailedTestCaseID := sql.NullInt64{
+		Int64: int64(failedTestCaseId),
+		Valid: false,
+	}
+
+	if failedTestCaseId != 0 {
+		nullableFailedTestCaseID.Valid = true
+	}
+
+	_, err := db.NextJudgeDB.Exec(sqlStatement, submissionId, status, nullableFailedTestCaseID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

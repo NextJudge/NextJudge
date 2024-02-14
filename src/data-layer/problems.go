@@ -20,6 +20,7 @@ func addProblemRoutes(mux *goji.Mux) {
 }
 
 // TODO: get user id from jwt, check for existing user
+// TODO: make a transaction so the problem cant be inserted if the test cases fail to inser
 func postProblem(w http.ResponseWriter, r *http.Request) {
 	reqData := new(Problem)
 	reqBodyBytes, err := io.ReadAll(r.Body)
