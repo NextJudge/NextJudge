@@ -7,6 +7,11 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useCollapse } from "react-collapsed";
 import Split from "react-split";
 
+
+const BRIDGE_ENDPOINT = `http://${import.meta.env.VITE_BRIDGE_HOST}:${import.meta.env.VITE_BRIDGE_PORT}`
+console.log("BRIDGE_ENDPOINT")
+console.log(BRIDGE_ENDPOINT)
+
 function EditorComponent() {
   const [code, setCode] = useState(`/**
     * @param {string}
@@ -86,7 +91,7 @@ function EditorComponent() {
   useEffect(() => {
     const fetchLanguages = async () => {
       try {
-        const response = await fetch("http://localhost:3000/languages", {
+        const response = await fetch(`${BRIDGE_ENDPOINT}/languages`, {
             method: "GET",
             // headers: {
               // "Content-Type": "application/json",
@@ -154,7 +159,7 @@ function EditorComponent() {
     console.log(submission)
     console.log(body_payload)
 
-    const response = await fetch("http://localhost:3000/submission", {
+    const response = await fetch(`${BRIDGE_ENDPOINT}/submission`, {
           method: "POST",
           body: body_payload,
           headers: {
@@ -188,14 +193,14 @@ function EditorComponent() {
       }
 
       try {
-        const response = await fetch(`http://localhost:3000/submission/${submissionId}`, {
+        const response = await fetch(`${BRIDGE_ENDPOINT}/submission/${submissionId}`, {
             method: "GET",
         });
 
         const data = await response.json()
         console.log(data)
 
-        if(data.status === "SUCCESS"){
+        if(data.status !== ""){
           clearInterval(interval)
         }
 
