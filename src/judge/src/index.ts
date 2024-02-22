@@ -95,6 +95,27 @@ export function compare_input_output(expected: string, real: string): boolean
     return true;
 }
 
+
+async function submit_judgement(submission: Submission, success: boolean)
+{
+    const body = JSON.stringify({
+        submission_id: submission.id,
+        success: success ? "SUCCESS" : "FAIL"
+    });
+
+    console.log("Submitting judgement to bridge")
+    console.log(body);
+
+    // Send a response to the bridge saying we are done
+    const send = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/judging_complete`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: body
+    });
+}
+
 async function process_submission(submission: Submission)
 {
     // First, fetch all testcases
@@ -108,12 +129,6 @@ async function process_submission(submission: Submission)
     const testcases = final_submission_data.test_cases as TestCase[];
 
 
-    // // TODO: pass real data from the testcase
-    // const testcases: TestCase[] = [
-    //     {input: "TRUE", output: "FALSE"},
-    //     {input: "FALSE", output: "TRUE"},
-    // ]
-
     // Ensure relevent directories exist
     Bun.spawnSync({
         cmd: ["mkdir", "-p", BUILD_DIRECTORY]
@@ -124,10 +139,10 @@ async function process_submission(submission: Submission)
     });
 
 
-    // TODO: Get information from the submission
-
     if(!compile_in_jail(submission)){
-        return
+        // Compile-time error
+        submit_judgement(submission, false);
+        return;
     }
 
 
@@ -143,20 +158,7 @@ async function process_submission(submission: Submission)
     // Delete run directory 
     fs.rmSync(RUN_DIRECTORY, { recursive: true, force: true });
 
-    const body = JSON.stringify({
-        submission_id: submission.id,
-        success: success ? "SUCCESS" : "FAIL"
-    });
-
-    console.log(body, body);
-    // Send a response to the bridge saying we are done
-    const send = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/judging_complete`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: body
-    });
+    submit_judgement(submission, success);
 }
 
 // Convert a submission into a form that can be run - either an executable or 
@@ -248,7 +250,6 @@ function compile_in_jail(submission: Submission): boolean
 function run_single_test_case(testcase: TestCase): boolean
 {
 
-
     fs.chmodSync(RUN_SCRIPT_PATH, "755");
     fs.chownSync(RUN_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID);
     fs.chownSync(RUN_SCRIPT_PATH, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID);
@@ -309,11 +310,9 @@ function run_single_test_case(testcase: TestCase): boolean
         console.log("Program is incorrect!!")
     }
 
-
-    console.log("Done running it!")
+    console.log("Done running testcase!")
     return success;
 }
-
 
 
 const example = `
@@ -333,14 +332,6 @@ int main()
 }
 
 `
-async function test()
-{
-
-    process_submission({
-        code:example,
-        language:"cpp",
-    } as any)
-}
 
 async function connect_to_redis()
 {
@@ -422,17 +413,10 @@ async function main()
 
         console.log("Submission data got successfully!")
         
-        
-
-
         process_submission(user_submission);
 
-
-        // console.log("Just running test")
-        // await test()
         
     }
 }
 
 main()
-// test()

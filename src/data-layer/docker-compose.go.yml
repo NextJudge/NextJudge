@@ -1,0 +1,11 @@
+version: '3.9'
+services:
+  nextjudge-data-layer:
+    build: .
+    ports:
+      - 5000:5000
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=example
