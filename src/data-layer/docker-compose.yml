@@ -1,35 +1,16 @@
 version: '3.9'
 services:
   nextjudge-data-layer:
-    build: .
-    ports:
-      - 5000:5000
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USERNAME=postgres
-      - DB_PASSWORD=example
+    extends:
+      file: docker-compose.go.yml
+      service: nextjudge-data-layer
     depends_on:
       db:
         condition: service_healthy
   db:
-    image: postgres
-    expose:
-      - 5432
-    # ports: # This would expose port to host
-      # - 5432:5432
-    environment:
-      - POSTGRES_DB=nextjudge
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=example
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./nextjudge.sql:/docker-entrypoint-initdb.d/nextjudge.sql # To instantiate the database
-    healthcheck:
-      test: pg_isready -U $$POSTGRES_USER
-      interval: 2s
-      timeout: 2s
-      retries: 10
-      
+    extends:
+      file: docker-compose.db.yml
+      service: db
+
 volumes:
   postgres_data:

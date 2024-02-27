@@ -12,9 +12,6 @@ NextJudge is a code execution engine, database, api gateway, and web application
 
 The top-level `docker-compose.yml` will instantiate all modules.
 
-First, you must go into the `/src/bridge` module and define the .env file. Copy the `template.env` into a `.env` file and fill the values appropriately.
-
-Then, use the following command:
 ```sh
 docker-compose up --build
 ```
