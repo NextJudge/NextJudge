@@ -170,8 +170,8 @@ function EditorComponent() {
       }
 
       const data = await response.text();
-      console.log("SUVMISSION ID GOT", +data)
-      setSubmissionId(+data);
+      console.log("SUBMISSION ID GOT", + data)
+      setSubmissionId(+ data);
 
     console.log("Submission:", submission);
 
@@ -192,7 +192,11 @@ function EditorComponent() {
             method: "GET",
         });
 
-        const data = await response.json()
+        interface SubmissionResponse {
+          status: 'SUCCESS' | 'FAIL' | 'LOADING';
+        }
+        
+        const data = await response.json() as SubmissionResponse;
         console.log(data)
 
         if(data.status === "SUCCESS"){
