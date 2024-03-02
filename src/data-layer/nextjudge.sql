@@ -62,6 +62,8 @@ CREATE TABLE "language" (
   "version" varchar
 );
 
+ALTER TABLE "problem" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
+
 ALTER TABLE "submission" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
 
 ALTER TABLE "submission" ADD FOREIGN KEY ("problem_id") REFERENCES "problem" ("id");
