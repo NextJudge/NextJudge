@@ -2,35 +2,36 @@
 import { createClient } from 'redis';
 import { commandOptions } from 'redis';
 import * as fs from 'fs';
+import { spawnSync } from 'bun';
 
 const { REDIS_HOST, REDIS_PORT, BRIDGE_HOST, BRIDGE_PORT } = process.env
 
 const NEXTJUDGE_USER_ID = 99999
-const BUILD_DIRECTORY = "/build_dir"
-const RUN_DIRECTORY = "/run_dir"
+const BUILD_DIRECTORY = "/chroot/build_dir"
+const RUN_DIRECTORY = "/chroot/run_dir"
 
 const BUILD_SCRIPT_PATH = `${BUILD_DIRECTORY}/build.sh`
 const RUN_SCRIPT_PATH = `${RUN_DIRECTORY}/main`
 
 
-const BASE_NSJAIL_COMMANDLINE = [
-    "nsjail",
-    "--mode", "o",
-    "--time_limit", `${10}`,
-    "--max_cpus", `${1}`, 
-    "--rlimit_as", `${512}`, // Max virtual memory space
-    "--rlimit_cpu", `${10}`, // Max CPU time
-    "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
-    "--nice_level", "-20", // High priority
-    // "--seccomp_policy", "Path to file containined seccomp-bpf policy. _string for string" // Allowed syscalls 
-    "--persona_addr_no_randomize", // Disable ASLR
-    "--user", `${NEXTJUDGE_USER_ID}`,
-    "--group", `${NEXTJUDGE_USER_ID}`,
-];
-
+// const BASE_NSJAIL_COMMANDLINE = [
+//     "nsjail",
+//     "--mode", "o",
+//     "--time_limit", `${10}`,
+//     "--max_cpus", `${1}`, 
+//     "--rlimit_as", `${512}`, // Max virtual memory space
+//     "--rlimit_cpu", `${10}`, // Max CPU time
+//     "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
+//     "--nice_level", "-20", // High priority
+//     // "--seccomp_policy", "Path to file containined seccomp-bpf policy. _string for string" // Allowed syscalls 
+//     "--persona_addr_no_randomize", // Disable ASLR
+//     "--user", `${NEXTJUDGE_USER_ID}`,
+//     "--group", `${NEXTJUDGE_USER_ID}`,
+// ];
+//    
 const BUILD_SCRIPTS = {
     'cpp': `#!/bin/sh
-        g++ {IN_FILE} -o main
+        g++ {IN_FILE} -o main 
     `,
     'py': `#!/bin/sh
         echo "#!/bin/sh" >> main
@@ -179,13 +180,21 @@ function compile_in_jail(submission: Submission): boolean
 
     const INPUT_FILE_PATH = `${BUILD_DIRECTORY}/input.${extension}`
 
+    console.log("Writing to:")
+    console.log(INPUT_FILE_PATH)
+    
     fs.writeFileSync(INPUT_FILE_PATH, code);
 
 
 
     let build_script: string = BUILD_SCRIPTS[extension];
 
-    build_script = build_script.replace("{IN_FILE}", INPUT_FILE_PATH);
+
+    const LOCAL_BUILD_DIR = "/build_dir"
+    const LOCAL_BUILD_SCRIPT_PATH = `${LOCAL_BUILD_DIR}/build.sh`
+
+
+    build_script = build_script.replace("{IN_FILE}", `${LOCAL_BUILD_DIR}/input.${extension}`);
 
     console.log("Build script")
     console.log(build_script)
@@ -201,6 +210,15 @@ function compile_in_jail(submission: Submission): boolean
 
     console.log("Compiling")
 
+
+
+    spawnSync(["ls","-pla", "/chroot/"])
+    spawnSync(["ls","-pla", "/build_dir/"])
+
+    console.log(LOCAL_BUILD_DIR)
+    console.log(LOCAL_BUILD_SCRIPT_PATH)
+    // const RUN_DIRECTORY = "/chroot/run_dir"
+
     const compile_result = Bun.spawnSync({
         cmd: [
             "nsjail",
@@ -213,15 +231,16 @@ function compile_in_jail(submission: Submission): boolean
             "--user", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
             "--group", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
 
-            "--bindmount_ro", "/:/", // Map root file system readonly
-            "--chroot", `/`, // Chroot entire file system
+            // "--bindmount_ro", "/chroot:/", // Map root file system readonly
+            "--chroot", `/chroot/`, // Chroot entire file system
             
-            "--bindmount", `${BUILD_DIRECTORY}:${BUILD_DIRECTORY}`, // Map build dir as read/write
-            "--cwd", `${BUILD_DIRECTORY}`,
+            "--bindmount", `${BUILD_DIRECTORY}:${LOCAL_BUILD_DIR}`, // Map build dir as read/write
+            "--cwd", `${LOCAL_BUILD_DIR}`,
+            "--tmpfsmount", "/tmp",
 
-            "--env", `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`, // Map entire file system
+            "--env", `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`,
 
-            "--exec_file",`${BUILD_SCRIPT_PATH}`,
+            "--exec_file",`${LOCAL_BUILD_SCRIPT_PATH}`,
             "--really_quiet"
         ],
         stderr: "pipe",
@@ -229,6 +248,9 @@ function compile_in_jail(submission: Submission): boolean
     });
 
 
+    // Need to determine this much better
+    // TODO: investigate if it passes the error through - how to differentiate
+    // between our error, and compile time error
     const compile_error = compile_result.stderr.toString();
     if(compile_error){
         console.log("Error in compilation!", compile_error);
@@ -274,15 +296,15 @@ function run_single_test_case(testcase: TestCase): boolean
             "--user", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
             "--group", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
 
-            "--bindmount_ro", "/:/", // Map root file system readonly
-            "--chroot", `/`, // Chroot entire file system
+            // "--bindmount_ro", "/:/chroot", // Map root file system readonly
+            "--chroot", `/chroot`, // Chroot entire file system
             
-            "--bindmount", `${RUN_DIRECTORY}:${RUN_DIRECTORY}`, // Map build dir as read/write
-            "--cwd", `${RUN_DIRECTORY}`,
+            "--bindmount", `${RUN_DIRECTORY}:/run_dir`, // Map build dir as read/write
+            "--cwd", `/run_dir`,
 
             "--env", `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`, // Map entire file system
 
-            "--exec_file",`${RUN_SCRIPT_PATH}`,
+            "--exec_file",`/run_dir/main`,
             "--really_quiet"
         ],
         stderr: "pipe",
@@ -422,5 +444,14 @@ async function main()
     }
 }
 
+console.log("Hello")
+console.log(`
+${BUILD_DIRECTORY}
+${RUN_DIRECTORY}
+${BUILD_SCRIPT_PATH}
+${RUN_SCRIPT_PATH}
+`)
+
 console.log("Judge booted")
+console.log("Judge booted2")
 main()

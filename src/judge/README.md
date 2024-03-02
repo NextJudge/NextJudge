@@ -24,7 +24,7 @@ If you wish to create a judge that can support additional compilers, all you sim
 First, build the base image locally
 
 ```sh
-docker build . -t base-judge
+docker build -f Dockerfile.base -t basejudge .
 ```
 
 Then, specify it as the base image, and install any packages necessary to support the compiler you want to add. The base image is `Ubuntu` based.

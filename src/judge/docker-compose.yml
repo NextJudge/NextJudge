@@ -1,7 +1,9 @@
 # version: '3.9'
 services:
   nextjudge-judge:
-    build: .
+    build: 
+      dockerfile: ./Dockerfile.monolith
+      context: .
     privileged: true
     environment:
       - REDIS_HOST=redis

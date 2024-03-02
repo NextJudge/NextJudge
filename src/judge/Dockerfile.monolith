@@ -1,0 +1,7 @@
+FROM ubuntu:latest as BUILD
+RUN apt-get update -y
+RUN apt-get install -y g++
+
+
+FROM basejudge
+COPY --from=BUILD / /chroot
