@@ -68,15 +68,13 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := db.CreateProblem(reqData)
+	newProblem, err := db.CreateProblem(reqData)
 	if err != nil {
 		logrus.WithError(err).Error("error inserting problem into db")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"error inserting problem into db"}`)
 		return
 	}
-	reqData.ID = response.ID
-	reqData.UploadDate = response.UploadDate
 
 	for i, testCase := range reqData.TestCases {
 		res, err := db.CreateTestcase(&testCase, reqData.ID)
@@ -86,18 +84,17 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, `{"code":"500", "message":"error inserting testcase into db"}`)
 			return
 		}
-		reqData.TestCases[i].ID = res.ID
+		newProblem.TestCases[i].ID = res.ID
 	}
 
-	respJSON, err := json.Marshal(reqData)
+	respJSON, err := json.Marshal(newProblem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }
 
 func getProblem(w http.ResponseWriter, r *http.Request) {
@@ -143,8 +140,7 @@ func getProblem(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }
 
 func getProblems(w http.ResponseWriter, r *http.Request) {
@@ -175,6 +171,5 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }

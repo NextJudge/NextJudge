@@ -72,23 +72,20 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 
 	response, err := db.CreateSubmission(reqData)
 	if err != nil {
-		logrus.WithError(err).Error("error inserting problem into db")
+		logrus.WithError(err).Error("error inserting submission into db")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error inserting problem into db"}`)
+		fmt.Fprint(w, `{"code":"500", "message":"error inserting submission into db"}`)
 		return
 	}
-	reqData.ID = response.ID
-	reqData.SubmitTime = response.SubmitTime
 
-	respJSON, err := json.Marshal(reqData)
+	respJSON, err := json.Marshal(response)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }
 
 func getSubmission(w http.ResponseWriter, r *http.Request) {
@@ -104,15 +101,15 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 
 	submission, err := db.GetSubmission(submissionId)
 	if err != nil {
-		logrus.WithError(err).Error("error retrieving problem")
+		logrus.WithError(err).Error("error retrieving submission")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving submission"}`)
 		return
 	}
 	if submission == nil {
 		logrus.Warn("submission not found")
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		fmt.Fprint(w, `{"code":"404", "message":"submission not found"}`)
 		return
 	}
 
@@ -123,8 +120,7 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }
 
 // TODO: check if the status is failed, otherwise return 400 bad request if the failed test case id is populated

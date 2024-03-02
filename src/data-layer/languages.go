@@ -63,7 +63,7 @@ func postLanguage(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
+	fmt.Fprint(w, string(respJSON))
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -82,6 +82,5 @@ func getLanguages(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }
