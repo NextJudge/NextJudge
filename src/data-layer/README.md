@@ -4,9 +4,7 @@
 
 ### Users
 
-#### /v1/users
-
-##### Get
+#### GET /v1/users
 
 Response body:
 
@@ -22,7 +20,7 @@ Response body:
 ]
 ```
 
-##### Post
+#### POST /v1/users
 
 Request Body:
 
@@ -46,9 +44,7 @@ Response Body:
 }
 ```
 
-#### /v1/users/{user_id}
-
-##### Get
+#### GET /v1/users/{user_id}
 
 Response Body:
 
@@ -62,11 +58,11 @@ Response Body:
 }
 ```
 
-##### Delete
+#### DELETE /v1/users/{user_id}
 
 There are no post or response bodies for this endpoint.
 
-##### Put
+#### PUT /v1/users/{user_id}
 
 Request Body:
 
@@ -93,9 +89,7 @@ Response Body:
 
 ### Problems
 
-#### /v1/problems
-
-##### Get
+#### GET /v1/problems
 
 Response Body:
 
@@ -119,7 +113,7 @@ Response Body:
 ]
 ```
 
-##### Post
+#### POST /v1/problems
 
 Request Body:
 
@@ -158,9 +152,7 @@ Response Body:
 }
 ```
 
-#### /v1/problems/:problem_id
-
-##### Get
+#### GET /v1/problems/:problem_id
 
 Response Body:
 
@@ -184,9 +176,7 @@ Response Body:
 
 ### Submissions
 
-#### /v1/submissions
-
-##### Post
+#### POST /v1/submissions
 
 Request Body:
 
@@ -214,9 +204,7 @@ Response Body:
 }
 ```
 
-#### /v1/submissions/:submission_id
-
-##### Patch
+#### PATCH /v1/submissions/:submission_id
 
 Request Body
 
@@ -227,7 +215,7 @@ Request Body
 }
 ```
 
-##### Get
+#### GET /v1/submissions/:submission_id
 
 Response Body:
 
@@ -247,9 +235,7 @@ Response Body:
 
 ### Languages
 
-#### /v1/languages
-
-##### Post
+#### POST /v1/languages
 
 Request Body:
 
@@ -261,7 +247,7 @@ Request Body:
 }
 ```
 
-##### Get
+#### GET /v1/languages
 
 Response Body:
 
