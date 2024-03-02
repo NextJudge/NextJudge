@@ -55,6 +55,13 @@ CREATE TABLE "competition_user" (
   PRIMARY KEY("user_id", "competition_id")
 );
 
+CREATE TABLE "language" (
+  "id" SERIAL PRIMARY KEY,
+  "name" varchar,
+  "extension" varchar,
+  "version" varchar
+);
+
 ALTER TABLE "submission" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
 
 ALTER TABLE "submission" ADD FOREIGN KEY ("problem_id") REFERENCES "problem" ("id");

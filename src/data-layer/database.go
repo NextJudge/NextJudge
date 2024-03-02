@@ -42,6 +42,7 @@ type NextJudgeDB interface {
 	UpdateUser(user *User)
 	DeleteUser(userId int)
 	CreateProblem(problem *Problem) (*Problem, error)
+	GetProblems() ([]Problem, error)
 	CreateTestcase(testcase *TestCase, problemId int) (*TestCase, error)
 	GetProblemByID(problemId int) (*Problem, error)
 	GetProblemByTitle(title string) (*Problem, error)
@@ -49,6 +50,9 @@ type NextJudgeDB interface {
 	CreateSubmission(submission *Submission) (*Submission, error)
 	GetSubmission(submissionId int) (*Submission, error)
 	UpdateSubmission(submissionId int, status string, failedTestCaseId int) error
+	CreateLanguage(language *Language) (*Language, error)
+	GetLanguages() ([]Language, error)
+	GetLanguageByNameAndVersion(name string, version string) (*Language, error)
 }
 
 func NewDatabase() (*Database, error) {
@@ -226,6 +230,32 @@ func (d Database) CreateTestcase(testcase *TestCase, problemId int) (*TestCase, 
 	return res, nil
 }
 
+func (d Database) GetProblems() ([]Problem, error) {
+	sqlStatement := `SELECT * FROM "problem"`
+	rows, err := db.NextJudgeDB.Query(sqlStatement)
+	if err != nil {
+		return nil, err
+	}
+
+	res := []Problem{}
+
+	defer rows.Close()
+	for rows.Next() {
+		var u Problem
+		err := rows.Scan(&u.ID, &u.Title, &u.Prompt, &u.Timeout, &u.UserID, &u.UploadDate)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, u)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func (d Database) GetProblemByID(problemId int) (*Problem, error) {
 	sqlStatement := `SELECT * FROM "problem" WHERE id = $1`
 	row := db.NextJudgeDB.QueryRow(sqlStatement, problemId)
@@ -366,4 +396,66 @@ func (d Database) UpdateSubmission(submissionId int, status string, failedTestCa
 	}
 
 	return nil
+}
+
+func (d Database) CreateLanguage(language *Language) (*Language, error) {
+	sqlStatement := `
+	INSERT INTO "language" (name, version, extension)
+	VALUES ($1, $2, $3)
+	RETURNING id`
+
+	res := &Language{
+		Name:      language.Name,
+		Extension: language.Extension,
+		Version:   language.Version,
+	}
+
+	err := d.NextJudgeDB.QueryRow(sqlStatement, language.Name, language.Version, language.Extension).Scan(&res.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (d Database) GetLanguages() ([]Language, error) {
+	sqlStatement := `SELECT * FROM "language"`
+	rows, err := db.NextJudgeDB.Query(sqlStatement)
+	if err != nil {
+		return nil, err
+	}
+
+	res := []Language{}
+
+	defer rows.Close()
+	for rows.Next() {
+		var u Language
+		err := rows.Scan(&u.ID, &u.Name, &u.Extension, &u.Version)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, u)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (d Database) GetLanguageByNameAndVersion(name string, version string) (*Language, error) {
+	sqlStatement := `SELECT * FROM "language" WHERE (name = $1 AND version = $2)`
+	row := db.NextJudgeDB.QueryRow(sqlStatement, name, version)
+
+	res := Language{}
+	err := row.Scan(&res.ID, &res.Name, &res.Extension, &res.Version)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &res, nil
 }

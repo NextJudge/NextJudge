@@ -48,3 +48,10 @@ type Competition struct {
 	Problems     []Problem `json:"problems"`
 	Participants []User    `json:"participants"`
 }
+
+type Language struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Extension string `json:"extension"`
+	Version   string `json:"version"`
+}

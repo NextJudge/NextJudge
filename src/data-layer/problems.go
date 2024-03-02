@@ -16,6 +16,7 @@ import (
 
 func addProblemRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/problems"), postProblem)
+	mux.HandleFunc(pat.Get("/v1/problems"), getProblems)
 	mux.HandleFunc(pat.Get("/v1/problems/:problem_id"), getProblem)
 }
 
@@ -136,6 +137,38 @@ func getProblem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respJSON, err := json.Marshal(problem)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprintf(w, string(respJSON))
+	w.WriteHeader(http.StatusOK)
+}
+
+func getProblems(w http.ResponseWriter, r *http.Request) {
+	problems, err := db.GetProblems()
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving problems")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems"}`)
+		return
+	}
+	for i, problem := range problems {
+		testCases, err := db.GetTestCases(problem.ID)
+		if err != nil {
+			logrus.WithError(err).Error("error retrieving test cases")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error retrieving test cases"}`)
+			return
+		}
+
+		for _, testCase := range testCases {
+			problems[i].TestCases = append(problems[i].TestCases, *testCase)
+		}
+	}
+	respJSON, err := json.Marshal(problems)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
 		w.WriteHeader(http.StatusInternalServerError)

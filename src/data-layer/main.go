@@ -42,6 +42,7 @@ func main() {
 	addUserRoutes(mux)
 	addProblemRoutes(mux)
 	addSubmissionRoutes(mux)
+	addLanguageRoutes(mux)
 
 	addr := ":" + *port
 	err = http.ListenAndServe(addr, mux)
