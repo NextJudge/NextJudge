@@ -33,7 +33,7 @@ type Submission struct {
 	TimeElapsed      int       `json:"time_elapsed"`
 	Language         string    `json:"language"`
 	Status           string    `json:"status"`
-	FailedTestCaseID int       `json:"failed_test_case_id"`
+	FailedTestCaseID *int      `json:"failed_test_case_id,omitempty"`
 	SubmitTime       time.Time `json:"submit_time"`
 	SourceCode       string    `json:"source_code"`
 }

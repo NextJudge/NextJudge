@@ -320,33 +320,24 @@ func (d Database) GetTestCases(problemId int) ([]*TestCase, error) {
 
 func (d Database) CreateSubmission(submission *Submission) (*Submission, error) {
 	sqlStatement := `
-	INSERT INTO "submission" (user_id, problem_id, time_elapsed, language, status, failed_test_case_id, submit_time, source_code)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	INSERT INTO "submission" (user_id, problem_id, language, submit_time, source_code, status, time_elapsed)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
 	RETURNING id`
 
-	createTime := time.Now()
+	submitTime := time.Now()
 
 	res := &Submission{
-		UserID:           submission.UserID,
-		ProblemID:        submission.ProblemID,
-		TimeElapsed:      submission.TimeElapsed,
-		Language:         submission.Language,
-		Status:           submission.Status,
-		FailedTestCaseID: submission.FailedTestCaseID,
-		SubmitTime:       createTime,
+		UserID:      submission.UserID,
+		ProblemID:   submission.ProblemID,
+		Language:    submission.Language,
+		SubmitTime:  submitTime,
+		SourceCode:  submission.SourceCode,
+		Status:      "pending",
+		TimeElapsed: 0,
 	}
 
-	failedTestCaseID := sql.NullInt64{
-		Int64: int64(submission.FailedTestCaseID),
-		Valid: false,
-	}
-
-	if submission.FailedTestCaseID != 0 {
-		failedTestCaseID.Valid = true
-	}
-
-	err := d.NextJudgeDB.QueryRow(sqlStatement, submission.UserID, submission.ProblemID, submission.TimeElapsed,
-		submission.Language, submission.Status, failedTestCaseID, createTime, submission.SourceCode).Scan(&res.ID)
+	err := d.NextJudgeDB.QueryRow(sqlStatement, submission.UserID, submission.ProblemID,
+		submission.Language, submitTime, submission.SourceCode, res.Status, res.TimeElapsed).Scan(&res.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -368,9 +359,7 @@ func (d Database) GetSubmission(submissionId int) (*Submission, error) {
 		return nil, err
 	}
 
-	if failedTestCaseId != nil {
-		res.FailedTestCaseID = *failedTestCaseId
-	}
+	res.FailedTestCaseID = failedTestCaseId
 
 	return &res, nil
 }
