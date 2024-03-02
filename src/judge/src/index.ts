@@ -368,12 +368,15 @@ async function connect_to_redis()
 
 async function main()
 {
+    console.log("Judge started")
     const redis_connection = await connect_to_redis();
     if(!redis_connection){
         console.log("Could not connect to redis");
         process.exit(1);
     }
 
+    console.log("Judge connected to redis")
+    
     while(true){
         // Continously listen for new jobs on the queue!
         // The queue contains submission_id's\
@@ -419,4 +422,5 @@ async function main()
     }
 }
 
+console.log("Judge booted")
 main()
