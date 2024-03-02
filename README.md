@@ -25,7 +25,6 @@ For quick iteration, we provide two different methods of setting up a local depl
 The first method attempts to install the following tools locally:
 
 ```sh
-postgres
 redis
 go
 bun
