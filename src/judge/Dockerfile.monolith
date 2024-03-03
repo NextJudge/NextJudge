@@ -1,7 +1,45 @@
 FROM ubuntu:latest as BUILD
+
 RUN apt-get update -y
+RUN apt-get install -y curl
 RUN apt-get install -y g++
+RUN apt-get install -y python3
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 
 FROM basejudge
 COPY --from=BUILD / /chroot
+RUN chown -R 99999:99999 /chroot/root
+
+
+COPY <<EOF /app/languages.toml
+[[language]]
+name = "c++"
+version = "0"
+extension = "cpp"
+script= """
+#!/bin/sh
+g++ {IN_FILE} -o main 
+"""
+
+[[language]]
+name = "python"
+version = "3.12"
+extension = "py"
+script="""
+#!/bin/sh
+echo "#!/bin/sh" >> main
+echo "python3 {IN_FILE}" >> main
+chmod +x main
+"""
+
+[[language]]
+name = "rust"
+version = "0"
+extension = "rs"
+script="""
+#!/bin/sh
+/root/.cargo/bin/rustc {IN_FILE} -o main
+"""
+EOF

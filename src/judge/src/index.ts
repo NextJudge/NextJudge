@@ -3,8 +3,14 @@ import { createClient } from 'redis';
 import { commandOptions } from 'redis';
 import * as fs from 'fs';
 import { spawnSync } from 'bun';
+import toml from "toml";
 
-const { REDIS_HOST, REDIS_PORT, BRIDGE_HOST, BRIDGE_PORT } = process.env
+
+console.log("Reading languages.toml file")
+const language_data = toml.parse(await Bun.file("languages.toml").text())
+console.log(language_data)
+
+const { REDIS_HOST, REDIS_PORT, BRIDGE_HOST, BRIDGE_PORT, DEBUG } = process.env
 
 const NEXTJUDGE_USER_ID = 99999
 const BUILD_DIRECTORY = "/chroot/build_dir"
@@ -14,44 +20,36 @@ const BUILD_SCRIPT_PATH = `${BUILD_DIRECTORY}/build.sh`
 const RUN_SCRIPT_PATH = `${RUN_DIRECTORY}/main`
 
 
-// const BASE_NSJAIL_COMMANDLINE = [
-//     "nsjail",
-//     "--mode", "o",
-//     "--time_limit", `${10}`,
-//     "--max_cpus", `${1}`, 
-//     "--rlimit_as", `${512}`, // Max virtual memory space
-//     "--rlimit_cpu", `${10}`, // Max CPU time
 //     "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
 //     "--nice_level", "-20", // High priority
 //     // "--seccomp_policy", "Path to file containined seccomp-bpf policy. _string for string" // Allowed syscalls 
-//     "--persona_addr_no_randomize", // Disable ASLR
-//     "--user", `${NEXTJUDGE_USER_ID}`,
-//     "--group", `${NEXTJUDGE_USER_ID}`,
-// ];
-//    
-const BUILD_SCRIPTS = {
-    'cpp': `#!/bin/sh
-        g++ {IN_FILE} -o main 
-    `,
-    'py': `#!/bin/sh
-        echo "#!/bin/sh" >> main
-        echo "python3 {IN_FILE}" >> main
-        chmod +x main
-    `,
+
+
+function get_build_script(submission_lang: string): string | null {
+    
+    for(const lang of language_data.language){
+        const { name, script } = lang;
+
+        if(name == submission_lang){
+            return script;
+        }
+    }
+
+    return null;
 }
 
+// Temp
+function get_extension(submission_lang: string): string | null {
+    for(const lang of language_data.language){
+        const { name } = lang;
 
-export const LANG_TO_EXTENSION = {
-    "C++": "cpp",
-    Python: "py",
-    Go: "go",
-    Java: "java",
-    Node: "ts",
-} as const;
+        if(name == submission_lang){
+            return lang.extension;
+        }
+    }
 
-  
-
-type Languages = 'C++' | 'Python'
+    return null;
+}
 
 interface Submission {
     source_code: string,
@@ -59,7 +57,7 @@ interface Submission {
     user_id: number;
     problem_id: number;
     time_elapsed: number;
-    language: Languages;
+    language: string; // TODO CHANGE THIS
     failed_test_case_id: number
     submit_time: string,
 }
@@ -142,6 +140,11 @@ async function process_submission(submission: Submission)
 
     if(!compile_in_jail(submission)){
         // Compile-time error
+            
+        // Delete build directory 
+        // TODO: make this occur only in one spot
+        fs.rmSync(BUILD_DIRECTORY, { recursive: true, force: true });
+
         submit_judgement(submission, false);
         return;
     }
@@ -159,6 +162,10 @@ async function process_submission(submission: Submission)
     // Delete run directory 
     fs.rmSync(RUN_DIRECTORY, { recursive: true, force: true });
 
+        
+    // Delete build directory 
+    fs.rmSync(BUILD_DIRECTORY, { recursive: true, force: true });
+
     submit_judgement(submission, success);
 }
 
@@ -168,26 +175,27 @@ function compile_in_jail(submission: Submission): boolean
 {
     // Compile in an nsjail
 
-    if(!(submission.language in LANG_TO_EXTENSION)){
-        console.log("Unsupported language",submission.language)
-        console.log(LANG_TO_EXTENSION)
+    const code = submission.source_code;
+
+    let build_script = get_build_script(submission.language)
+    
+    if(build_script == null){
+        console.log(`No build script for language ${submission.language}`);
         return false;
     }
 
-    const code = submission.source_code;
-
-    const extension = LANG_TO_EXTENSION[submission.language]
+    // Temporary
+    const extension = get_extension(submission.language)
+    if(extension == null){
+        console.log(`No extension for language ${submission.language}`);
+        return false;
+    }
 
     const INPUT_FILE_PATH = `${BUILD_DIRECTORY}/input.${extension}`
 
-    console.log("Writing to:")
-    console.log(INPUT_FILE_PATH)
+    console.log(`Writing code to ${INPUT_FILE_PATH}`)
     
     fs.writeFileSync(INPUT_FILE_PATH, code);
-
-
-
-    let build_script: string = BUILD_SCRIPTS[extension];
 
 
     const LOCAL_BUILD_DIR = "/build_dir"
@@ -210,14 +218,21 @@ function compile_in_jail(submission: Submission): boolean
 
     console.log("Compiling")
 
-
-
     spawnSync(["ls","-pla", "/chroot/"])
     spawnSync(["ls","-pla", "/build_dir/"])
 
     console.log(LOCAL_BUILD_DIR)
     console.log(LOCAL_BUILD_SCRIPT_PATH)
     // const RUN_DIRECTORY = "/chroot/run_dir"
+
+
+
+    // if(!DEBUG){
+        
+    // }
+
+
+    // const nsjail_error_file = fs.openSync("/tmp/nsjail_output_file", "w+")
 
     const compile_result = Bun.spawnSync({
         cmd: [
@@ -228,6 +243,8 @@ function compile_in_jail(submission: Submission): boolean
             "--max_cpus", `${1}`, 
             "--rlimit_as", `${512}`, // Max virtual memory space
             "--rlimit_cpu", `${10}`, // Max CPU time
+            "--rlimit_fsize", `${32}`, // Max file size in MB
+            
             "--user", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
             "--group", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
 
@@ -239,14 +256,21 @@ function compile_in_jail(submission: Submission): boolean
             "--tmpfsmount", "/tmp",
 
             "--env", `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`,
+            "--env", `HOME=/root`, // User is not really root, but some Dockerfile commands add important files to root home
 
             "--exec_file",`${LOCAL_BUILD_SCRIPT_PATH}`,
+            
+            // "--log/_fd", `${nsjail_error_file}`,
             "--really_quiet"
         ],
         stderr: "pipe",
         stdout: "pipe"
     });
 
+    // fs.closeSync(nsjail_error_file);
+    // const nsjail_output = fs.readFileSync("/tmp/nsjail_output_file", "utf8");
+    // console.log("NSJAIL_OUTPUT");
+    // console.log(nsjail_output);
 
     // Need to determine this much better
     // TODO: investigate if it passes the error through - how to differentiate
@@ -259,9 +283,7 @@ function compile_in_jail(submission: Submission): boolean
 
     // Copy file from build directory to run directory
     fs.copyFileSync(`${BUILD_DIRECTORY}/main`, `${RUN_SCRIPT_PATH}`);
-    
-    // Delete build directory 
-    fs.rmSync(BUILD_DIRECTORY, { recursive: true, force: true });
+
 
     console.log("Done! Compile succeeded")
     return true;
@@ -302,7 +324,7 @@ function run_single_test_case(testcase: TestCase): boolean
             "--bindmount", `${RUN_DIRECTORY}:/run_dir`, // Map build dir as read/write
             "--cwd", `/run_dir`,
 
-            "--env", `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`, // Map entire file system
+            "--env", `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`,
 
             "--exec_file",`/run_dir/main`,
             "--really_quiet"
@@ -337,23 +359,7 @@ function run_single_test_case(testcase: TestCase): boolean
 }
 
 
-const example = `
-#include <iostream>
 
-using namespace std;
-
-int main()
-{
-    string input;
-    cin >> input;
-    if(input == "TRUE"){
-        cout << "FALSE" << endl;;        
-    } else {
-        cout << "TRUE" << endl;        
-    }
-}
-
-`
 
 async function connect_to_redis()
 {
@@ -390,6 +396,8 @@ async function connect_to_redis()
 
 async function main()
 {
+
+
     console.log("Judge started")
     const redis_connection = await connect_to_redis();
     if(!redis_connection){
@@ -444,7 +452,6 @@ async function main()
     }
 }
 
-console.log("Hello")
 console.log(`
 ${BUILD_DIRECTORY}
 ${RUN_DIRECTORY}
@@ -453,5 +460,4 @@ ${RUN_SCRIPT_PATH}
 `)
 
 console.log("Judge booted")
-console.log("Judge booted2")
 main()

@@ -16,8 +16,8 @@ services:
       - ./init_test_data.sql:/docker-entrypoint-initdb.d/1_init_test_data.sql # To seed the database
     healthcheck:
       test: pg_isready -U $$POSTGRES_USER
-      interval: 2s
-      timeout: 2s
+      interval: 1s
+      timeout: 1s
       retries: 10
       
 volumes:
