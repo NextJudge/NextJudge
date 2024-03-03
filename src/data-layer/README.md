@@ -184,7 +184,7 @@ Request Body:
 {
     "user_id": 1,
     "problem_id": 1,
-    "language": "C++",
+    "language_id": 1,
     "source_code": "int main() { return 0 }"
 }
 ```
@@ -197,7 +197,7 @@ Response Body:
     "user_id": 1,
     "problem_id": 1,
     "time_elapsed": 0,
-    "language": "C++",
+    "language_id": 1,
     "status": "pending",
     "submit_time": "2024-03-02T02:39:19.564713178Z",
     "source_code": "int main() { return 0 }"
@@ -225,7 +225,7 @@ Response Body:
     "user_id": 1,
     "problem_id": 1,
     "time_elapsed": 0,
-    "language": "C++",
+    "language_id": 1,
     "status": "failed",
     "failed_test_case_id": 2,
     "submit_time": "2024-03-02T02:45:09.603556Z",
