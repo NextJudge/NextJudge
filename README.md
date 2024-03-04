@@ -10,10 +10,10 @@ NextJudge is a code execution engine, database, api gateway, and web application
 
 ### Quickly deploy
 
-The top-level `docker-compose.yml` will instantiate all modules.
+The top-level `./deploy.sh` will instantiate all modules using Docker compose internally.
 
 ```sh
-docker-compose up --build
+./deploy.sh
 ```
 
 ## Developing
