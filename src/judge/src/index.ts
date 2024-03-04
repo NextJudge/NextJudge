@@ -6,10 +6,6 @@ import { spawnSync } from 'bun';
 import toml from "toml";
 
 
-console.log("Reading languages.toml file")
-const language_data = toml.parse(await Bun.file("languages.toml").text())
-console.log(language_data)
-
 const { REDIS_HOST, REDIS_PORT, BRIDGE_HOST, BRIDGE_PORT, DEBUG } = process.env
 
 const NEXTJUDGE_USER_ID = 99999
@@ -25,12 +21,15 @@ const RUN_SCRIPT_PATH = `${RUN_DIRECTORY}/main`
 //     // "--seccomp_policy", "Path to file containined seccomp-bpf policy. _string for string" // Allowed syscalls 
 
 
-function get_build_script(submission_lang: string): string | null {
-    
-    for(const lang of language_data.language){
-        const { name, script } = lang;
 
-        if(name == submission_lang){
+const LANGUAGES: {name: string, script: string, extension: string, id: number}[] = []
+
+function get_build_script(language_id: number): string | null {
+    
+    for(const lang of LANGUAGES){
+        const { id, script } = lang;
+
+        if(id == language_id){
             return script;
         }
     }
@@ -39,11 +38,11 @@ function get_build_script(submission_lang: string): string | null {
 }
 
 // Temp
-function get_extension(submission_lang: string): string | null {
-    for(const lang of language_data.language){
-        const { name } = lang;
+function get_extension(language_id: number): string | null {
+    for(const lang of LANGUAGES){
+        const { id } = lang;
 
-        if(name == submission_lang){
+        if(id == language_id){
             return lang.extension;
         }
     }
@@ -51,13 +50,14 @@ function get_extension(submission_lang: string): string | null {
     return null;
 }
 
+
 interface Submission {
     source_code: string,
     id: number;
     user_id: number;
     problem_id: number;
     time_elapsed: number;
-    language: string; // TODO CHANGE THIS
+    language_id: string; // TODO CHANGE THIS
     failed_test_case_id: number
     submit_time: string,
 }
@@ -177,17 +177,17 @@ function compile_in_jail(submission: Submission): boolean
 
     const code = submission.source_code;
 
-    let build_script = get_build_script(submission.language)
+    let build_script = get_build_script(submission.language_id)
     
     if(build_script == null){
-        console.log(`No build script for language ${submission.language}`);
+        console.log(`No build script for language ${submission.language_id}`);
         return false;
     }
 
     // Temporary
-    const extension = get_extension(submission.language)
+    const extension = get_extension(submission.language_id)
     if(extension == null){
-        console.log(`No extension for language ${submission.language}`);
+        console.log(`No extension for language ${submission.language_id}`);
         return false;
     }
 
@@ -396,6 +396,36 @@ async function connect_to_redis()
 
 async function main()
 {
+
+    // Parse language data
+    console.log("Reading languages.toml file")
+    const language_data = toml.parse(await Bun.file("languages.toml").text())
+    console.log(language_data)
+
+    // Get languages from the bridge
+    console.log("Reaching out to the bridge for languages")    
+    const submission_data = await fetch(`http://${BRIDGE_HOST}:${BRIDGE_PORT}/languages`);
+
+    const languages_list = await submission_data.json()
+    console.log(languages_list)
+
+    for(const b_lang of languages_list){
+        for(const lang of language_data.language){
+            if(lang.name == b_lang.name){
+                LANGUAGES.push({
+                    name: lang.name,
+                    extension: lang.extension,
+                    script:lang.script,
+                    id:b_lang.id
+                });
+
+                break;
+            }
+        }
+    }
+
+    console.log("LANGUAGES")
+    console.log(LANGUAGES)
 
 
     console.log("Judge started")

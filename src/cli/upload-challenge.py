@@ -20,15 +20,6 @@ dir = args.directory_to_problem
 with open(f"{dir}/problem.yaml", 'r') as file:
     problem_description = yaml.safe_load(file)
 
-"""
-source: 2023 ICPC North America Regional Programming Contests (February 24, 2024)
-license: cc by-sa
-name: Magic Cube
-author: Yingying Wu
-limits:
-  time_multiplier: 1.5
-  memory: 2048
-"""
 title = problem_description["name"]
 
 try:

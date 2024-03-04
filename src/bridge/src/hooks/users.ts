@@ -25,9 +25,9 @@ export const createSubmissionHook = {
   ...userSwaggerTags,
   body: t.Object({
     user_id: t.Integer(),
-    source_code: t.String(),
-    language: t.String(),
+    language_id: t.Integer(),
     problem_id: t.Integer(),
+    source_code: t.String(),
   }),
   // bearer: bearer,
 };

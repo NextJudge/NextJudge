@@ -1,7 +1,9 @@
 INSERT INTO "language" (name, extension, version)
 VALUES
-('C++',     '.cpp',     '14'),
-('python',  '.py',      '3.12');
+('c++',     '.cpp',     '14'),
+('c',     '.c',     '-1'),
+('python',  '.py',      '3.12'),
+('rust',  '.rs',      '1.71.0');
 
 INSERT INTO "user" (username, password_hash, join_date, is_admin)
 VALUES 
