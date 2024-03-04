@@ -239,7 +239,7 @@ function compile_in_jail(submission: Submission): boolean
             "nsjail",
             "--mode", "o",
 
-            "--time_limit", `${10}`,
+            "--time_limit", `${10}`, // Max wall time
             "--max_cpus", `${1}`, 
             "--rlimit_as", `${512}`, // Max virtual memory space
             "--rlimit_cpu", `${10}`, // Max CPU time
