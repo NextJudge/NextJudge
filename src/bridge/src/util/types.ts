@@ -1,7 +1,7 @@
 export interface SubmissionRequest {
   submission_id: string;
   source_code: string;
-  language: string;
+  language_id: number;
   problem_id: number;
   user_id: number;
 }

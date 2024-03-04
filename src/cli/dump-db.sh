@@ -11,6 +11,6 @@ else
     then 
         docker exec nextjudge-db-1 psql -U postgres nextjudge -c "\dt"
     else
-        docker exec nextjudge-db-1 pg_dump -U postgres nextjudge --table "$1"
+        docker exec nextjudge-db-1 psql -U postgres nextjudge -c "SELECT * FROM $1"
     fi
 fi
