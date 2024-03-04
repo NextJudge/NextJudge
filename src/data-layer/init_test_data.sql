@@ -20,7 +20,7 @@ VALUES
 (2,     '2 1',      '3'),
 (2,     '10 10',    '20');
 
-INSERT INTO "submission" (user_id, problem_id, time_elapsed, language, status, failed_test_case_id, submit_time, source_code)
+INSERT INTO "submission" (user_id, problem_id, time_elapsed, language_id, status, failed_test_case_id, submit_time, source_code)
 VALUES
-(1,     1,  2,  'C++',  'compile_error',    NULL,   timestamp '2024-03-07 10:00:00',    'int main2(){}'),
-(2,     2,  2,  'C++',  'failed',           3,      timestamp '2024-03-08 10:00:00',    'int main(){ return 0; }');
+(1,     1,  2,  2,  'compile_error',    NULL,   timestamp '2024-03-07 10:00:00',    'int main2(){}'),
+(2,     2,  2,  1,  'failed',           3,      timestamp '2024-03-08 10:00:00',    'int main(){ return 0; }');

@@ -20,7 +20,7 @@ func addSubmissionRoutes(mux *goji.Mux) {
 
 type UpdateSubmissionStatusPatchBody struct {
 	Status           string `json:"status"`
-	FailedTestCaseID int    `json:"failed_test_case_id"`
+	FailedTestCaseID *int   `json:"failed_test_case_id,omitempty"`
 }
 
 // TODO: verify that the failed test case IS for the specific problem
@@ -53,6 +53,20 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		logrus.Warn("problem does not exist")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, `{"code":"404", "message":"problem does not exist"}`)
+		return
+	}
+
+	language, err := db.GetLanguage(reqData.LanguageID)
+	if err != nil {
+		logrus.WithError(err).Error("error checking for language")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing problem"}`)
+		return
+	}
+	if language == nil {
+		logrus.Warn("language does not exist")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"404", "message":"language does not exist"}`)
 		return
 	}
 
@@ -124,7 +138,6 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 }
 
 // TODO: check if the status is failed, otherwise return 400 bad request if the failed test case id is populated
-// TODO: verify that the failed test case IS for the specific problem
 func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 	submissionIdParam := pat.Param(r, "submission_id")
 
@@ -138,15 +151,15 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 
 	submission, err := db.GetSubmission(submissionId)
 	if err != nil {
-		logrus.WithError(err).Error("error retrieving problem")
+		logrus.WithError(err).Error("error retrieving submission")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving submission"}`)
 		return
 	}
 	if submission == nil {
 		logrus.Warn("submission not found")
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		fmt.Fprint(w, `{"code":"404", "message":"submission not found"}`)
 		return
 	}
 
@@ -165,6 +178,37 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
+	}
+
+	// TODO: just get the test case by its id, then check if the problem id matches
+	if reqData.FailedTestCaseID != nil && *reqData.FailedTestCaseID != 0 {
+		testCases, err := db.GetTestCases(submission.ProblemID)
+		if err != nil {
+			logrus.WithError(err).Error("error retrieving test cases for this problem")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error retrieving test cases for this problem"}`)
+			return
+		}
+		if testCases == nil {
+			logrus.Warn("test cases not found")
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, `{"code":"404", "message":"test cases not found"}`)
+			return
+		}
+
+		testCaseIsForProblem := false
+		for _, testCase := range testCases {
+			if testCase.ID == *reqData.FailedTestCaseID {
+				testCaseIsForProblem = true
+				break
+			}
+		}
+		if !testCaseIsForProblem {
+			logrus.Warn("test case is not for this problem")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"404", "message":"test case is not for this problem"}`)
+			return
+		}
 	}
 
 	err = db.UpdateSubmission(submissionId, reqData.Status, reqData.FailedTestCaseID)

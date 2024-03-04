@@ -20,7 +20,7 @@ CREATE TABLE "submission" (
   "user_id" integer,
   "problem_id" integer,
   "time_elapsed" integer,
-  "language" varchar,
+  "language_id" integer,
   "status" varchar,
   "failed_test_case_id" integer,
   "submit_time" timestamp,
@@ -67,6 +67,8 @@ ALTER TABLE "problem" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
 ALTER TABLE "submission" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
 
 ALTER TABLE "submission" ADD FOREIGN KEY ("problem_id") REFERENCES "problem" ("id");
+
+ALTER TABLE "submission" ADD FOREIGN KEY ("language_id") REFERENCES "language" ("id");
 
 ALTER TABLE "test_case" ADD FOREIGN KEY ("problem_id") REFERENCES "problem" ("id");
 

@@ -129,9 +129,7 @@ func getProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, testCase := range testCases {
-		problem.TestCases = append(problem.TestCases, *testCase)
-	}
+	problem.TestCases = append(problem.TestCases, testCases...)
 
 	respJSON, err := json.Marshal(problem)
 	if err != nil {
@@ -160,9 +158,7 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		for _, testCase := range testCases {
-			problems[i].TestCases = append(problems[i].TestCases, *testCase)
-		}
+		problems[i].TestCases = append(problems[i].TestCases, testCases...)
 	}
 	respJSON, err := json.Marshal(problems)
 	if err != nil {
