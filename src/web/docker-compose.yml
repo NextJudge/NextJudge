@@ -1,6 +1,0 @@
-version: '3'
-services:
-  nextjudge-frontend:
-    build: .
-    ports:
-      - 8080:8080
