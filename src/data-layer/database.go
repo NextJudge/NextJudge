@@ -189,9 +189,14 @@ func (d Database) DeleteUser(userId int) error {
 }
 
 func (d Database) CreateProblem(problem *Problem) (*Problem, error) {
-	sqlStatement := `
+	problemSqlStatement := `
 	INSERT INTO "problem" (title, prompt, timeout, user_id, upload_date) 
 	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id`
+
+	testCaseSqlStatement := `
+	INSERT INTO "test_case" (problem_id, input, expected_output) 
+	VALUES ($1, $2, $3)
 	RETURNING id`
 
 	uploadDate := time.Now()
@@ -202,9 +207,37 @@ func (d Database) CreateProblem(problem *Problem) (*Problem, error) {
 		Timeout:    problem.Timeout,
 		UserID:     problem.UserID,
 		UploadDate: uploadDate,
+		TestCases:  problem.TestCases,
 	}
 
-	err := d.NextJudgeDB.QueryRow(sqlStatement, problem.Title, problem.Prompt, problem.Timeout, problem.UserID, uploadDate).Scan(&res.ID)
+	tx, err := d.NextJudgeDB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	problemStmt, err := tx.Prepare(problemSqlStatement)
+	if err != nil {
+		return nil, err
+	}
+
+	err = problemStmt.QueryRow(problem.Title, problem.Prompt, problem.Timeout, problem.UserID, uploadDate).Scan(&res.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	testCaseStmt, err := tx.Prepare(testCaseSqlStatement)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, testCase := range problem.TestCases {
+		err = testCaseStmt.QueryRow(res.ID, testCase.Input, testCase.ID).Scan(&problem.TestCases[i].ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -275,6 +308,9 @@ func (d Database) GetProblemByID(problemId int) (*Problem, error) {
 		var tc TestCase
 		err := rows.Scan(&res.ID, &res.Title, &res.Prompt, &res.Timeout, &res.UserID, &res.UploadDate, &tc.ID, &tc.Input, &tc.ExpectedOutput)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
 			return nil, err
 		}
 		res.TestCases = append(res.TestCases, tc)
@@ -282,6 +318,10 @@ func (d Database) GetProblemByID(problemId int) (*Problem, error) {
 	err = rows.Err()
 	if err != nil {
 		return nil, err
+	}
+
+	if res.ID == 0 {
+		return nil, nil
 	}
 
 	return res, nil
@@ -307,9 +347,6 @@ func (d Database) GetTestCases(problemId int) ([]TestCase, error) {
 	sqlStatement := `SELECT id, input, expected_output FROM "test_case" WHERE problem_id = $1`
 	rows, err := db.NextJudgeDB.Query(sqlStatement, problemId)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
 	defer rows.Close()
@@ -320,14 +357,20 @@ func (d Database) GetTestCases(problemId int) ([]TestCase, error) {
 		row := TestCase{}
 		err = rows.Scan(&row.ID, &row.Input, &row.ExpectedOutput)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
 			return nil, err
 		}
 		res = append(res, row)
 	}
-
 	err = rows.Err()
 	if err != nil {
 		return nil, err
+	}
+
+	if len(res) == 0 {
+		return nil, nil
 	}
 
 	return res, nil

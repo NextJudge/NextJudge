@@ -75,17 +75,6 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, testCase := range reqData.TestCases {
-		res, err := db.CreateTestcase(&testCase, newProblem.ID)
-		if err != nil {
-			logrus.WithError(err).Error("error inserting testcase into db")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error inserting testcase into db"}`)
-			return
-		}
-		newProblem.TestCases = append(newProblem.TestCases, *res)
-	}
-
 	respJSON, err := json.Marshal(newProblem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
