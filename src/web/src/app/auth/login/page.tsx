@@ -25,6 +25,7 @@ export default function LoginPage() {
                 Sign in to continue
               </p>
             </div>
+            {/* Login Form */}
             <UserAuthFormLogin />
           </div>
         </div>
@@ -32,13 +33,13 @@ export default function LoginPage() {
           href="/auth/signup"
           className={cn(
             buttonVariants({ variant: "ghost" }),
-            "absolute right-4 top-4 md:right-8 md:top-8 z-50"
+            "absolute right-4 top-4 md:right-8 md:top-8 z-50 dark:text-white text-white"
           )}
         >
           Sign Up
         </Link>
         <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
-          <div className="absolute inset-0 bg-zinc-900" />
+          <div className="absolute inset-0 bg-zinc-900 h-[100dvh]" />
           <div className="relative z-20 flex items-center text-lg font-medium">
             <Icons.logo className="mr-2 h-6 w-6" />
             NextJudge

@@ -67,7 +67,7 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
+	fmt.Fprint(w, string(respJSON))
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -87,8 +87,7 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
@@ -123,8 +122,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }
 
 func updateUser(w http.ResponseWriter, r *http.Request) {

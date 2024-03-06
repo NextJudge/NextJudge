@@ -39,9 +39,11 @@ func main() {
 	})
 	mux.Use(c.Handler)
 
+	// TODO: Add automated API tests
 	addUserRoutes(mux)
 	addProblemRoutes(mux)
 	addSubmissionRoutes(mux)
+	addLanguageRoutes(mux)
 
 	addr := ":" + *port
 	err = http.ListenAndServe(addr, mux)

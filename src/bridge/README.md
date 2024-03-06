@@ -19,11 +19,9 @@ Before running the Bridge, you will need to ensure the data layer is running. Na
 docker-compose up -d
 ```
 
-By default, the `docker-compose.yml` file will read environment variables from the `.env` file and pass them to the docker container. See the `./template.env` file for the format.
-
 ### Host
 
-To successfully run the bridge on the host, you will need to have a `.env` file in the root of the project. Additionally, you will need to make sure the data layer running.
+To successfully run the bridge on the host, you will need to make sure the data layer running.
 
 You can start the bridge running the following commands:
 
@@ -45,8 +43,6 @@ This will install the necessary dependencies and start the bridge server.
 
 ## TODO:
 
-- [ ] Add a `Makefile` to the bridge
-- [ ] Finish the `README.md` with the necessary commands to run the bridge
 - [ ] Inquire about duplicates in users
 - [ ] Work on API Gateway
 - [ ] Explain Usage

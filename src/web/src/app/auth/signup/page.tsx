@@ -25,16 +25,17 @@ export default function SignUpPage() {
                 Sign up to get started with NextJudge
               </p>
             </div>
+            {/* Sign Up Form */}
             <UserAuthFormSignUp />
           </div>
         </div>
-        <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
-          <div className="absolute inset-0 bg-zinc-900" />
+        <div className="relative hidden h-full flex-col bg-muted px-10 pt-10 text-white lg:flex dark:border-r">
+          <div className="absolute inset-0 bg-zinc-900 h-[100dvh]" />
           <Link
             href="/auth/login"
             className={cn(
               buttonVariants({ variant: "ghost" }),
-              "absolute right-4 top-4 md:right-8 md:top-8 z-50"
+              "absolute right-4 top-4 md:right-8 md:top-8 z-50 dark:text-white text-white"
             )}
           >
             Already have an account? Login

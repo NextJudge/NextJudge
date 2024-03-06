@@ -1,0 +1,16 @@
+# version: '3.9'
+services:
+  nextjudge-judge:
+    build: 
+      dockerfile: ./Dockerfile.monolith
+      context: .
+      args:
+        - USAGE=dev
+    privileged: true
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BRIDGE_HOST=nextjudge-bridge
+      - BRIDGE_PORT=3000
+    volumes:
+      - ./src/index.ts:/app/src/index.ts:ro

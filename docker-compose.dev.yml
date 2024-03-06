@@ -1,0 +1,52 @@
+version: '3.9'
+services:
+  nextjudge-frontend:
+    extends: 
+      file: src/web/docker-compose.yml
+      service: nextjudge-frontend
+    environment:
+      - VITE_BRIDGE_HOST=localhost # these are passed to the build in the form of import.meta.env
+      - VITE_BRIDGE_PORT=3000
+
+  nextjudge-bridge:
+    extends: 
+      file: src/bridge/docker-compose.yml
+      service: nextjudge-bridge
+    environment:
+      - DATABASE_HOST=nextjudge-data-layer
+    depends_on:
+      - nextjudge-data-layer
+    
+  redis:
+    extends: 
+      file: src/bridge/docker-compose.yml
+      service: redis
+      
+  nextjudge-data-layer:
+    extends: 
+      file: src/data-layer/docker-compose.go.yml
+      service: nextjudge-data-layer
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    extends: 
+      file: src/data-layer/docker-compose.db.yml
+      service: db
+
+  nextjudge-judge:
+    extends: 
+      file: src/judge/docker-compose.dev.yml
+      service: nextjudge-judge
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BRIDGE_HOST=nextjudge-bridge
+      - BRIDGE_PORT=3000
+    depends_on:
+      - nextjudge-bridge
+      
+volumes: 
+  postgres_data:
+  
+  

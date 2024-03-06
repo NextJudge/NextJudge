@@ -16,10 +16,10 @@ import (
 
 func addProblemRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/problems"), postProblem)
+	mux.HandleFunc(pat.Get("/v1/problems"), getProblems)
 	mux.HandleFunc(pat.Get("/v1/problems/:problem_id"), getProblem)
 }
 
-// TODO: get user id from jwt, check for existing user
 // TODO: make a transaction so the problem cant be inserted if the test cases fail to inser
 func postProblem(w http.ResponseWriter, r *http.Request) {
 	reqData := new(Problem)
@@ -67,36 +67,22 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := db.CreateProblem(reqData)
+	newProblem, err := db.CreateProblem(reqData)
 	if err != nil {
 		logrus.WithError(err).Error("error inserting problem into db")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"error inserting problem into db"}`)
 		return
 	}
-	reqData.ID = response.ID
-	reqData.UploadDate = response.UploadDate
 
-	for i, testCase := range reqData.TestCases {
-		res, err := db.CreateTestcase(&testCase, reqData.ID)
-		if err != nil {
-			logrus.WithError(err).Error("error inserting testcase into db")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error inserting testcase into db"}`)
-			return
-		}
-		reqData.TestCases[i].ID = res.ID
-	}
-
-	respJSON, err := json.Marshal(reqData)
+	respJSON, err := json.Marshal(newProblem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }
 
 func getProblem(w http.ResponseWriter, r *http.Request) {
@@ -123,18 +109,6 @@ func getProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	testCases, err := db.GetTestCases(problemId)
-	if err != nil {
-		logrus.WithError(err).Error("error retrieving test cases")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving test cases"}`)
-		return
-	}
-
-	for _, testCase := range testCases {
-		problem.TestCases = append(problem.TestCases, *testCase)
-	}
-
 	respJSON, err := json.Marshal(problem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
@@ -142,6 +116,24 @@ func getProblem(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
+}
+
+func getProblems(w http.ResponseWriter, r *http.Request) {
+	problems, err := db.GetProblems()
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving problems")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems"}`)
+		return
+	}
+
+	respJSON, err := json.Marshal(problems)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
 }

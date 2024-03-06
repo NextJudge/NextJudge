@@ -1,0 +1,24 @@
+version: '3.9'
+services:
+  db:
+    image: postgres
+    expose:
+      - 5432
+    ports: # This would expose port to host
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=nextjudge
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=example
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./nextjudge.sql:/docker-entrypoint-initdb.d/0_nextjudge.sql # To instantiate the database
+      - ./init_test_data.sql:/docker-entrypoint-initdb.d/1_init_test_data.sql # To seed the database
+    healthcheck:
+      test: pg_isready -U $$POSTGRES_USER
+      interval: 1s
+      timeout: 1s
+      retries: 10
+      
+volumes:
+  postgres_data:

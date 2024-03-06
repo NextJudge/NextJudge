@@ -10,14 +10,51 @@ NextJudge is a code execution engine, database, api gateway, and web application
 
 ### Quickly deploy
 
-The top-level `docker-compose.yml` will instantiate all modules.
+The top-level `./deploy.sh` will instantiate all modules using Docker compose internally.
 
-First, you must go into the `/src/bridge` module and define the .env file. Copy the `template.env` into a `.env` file and fill the values appropriately.
-
-Then, use the following command:
 ```sh
-docker-compose up --build
+./deploy.sh
 ```
+
+## Developing
+
+For quick iteration, we provide two different methods of setting up a local deployment.
+
+### 1. Running everything on host
+
+The first method attempts to install the following tools locally:
+
+```sh
+redis
+go
+bun
+node
+```
+
+We still run postgres & the judge in the Docker container. Run the `./dev-host-init.sh` script to set these up.
+
+```sh
+./init-dev-host.sh
+```
+
+Now, start it with:
+```sh
+./start-dev-host.sh
+```
+
+To bring it all down, run:
+```sh
+./kill-dev-host.sh
+```
+
+### 2. Docker with hot reload
+
+The second option will use Docker, but will mount folders containing applications data, allowing for hot reload when changing the files on the host. This prevents the need to install the compilers and runtime tools onto the host (Bun, Rust, Go), while still allowing rapid development, avoiding the need to restart the Docker containers constantly.
+
+```sh
+./dev-docker-run.sh
+```
+
 
 ### Prerequisites
 

@@ -15,7 +15,7 @@ export const createSubmission = async ({
   body,
 }: {
   bearer: string;
-  body: { user_id: number; source_code: string; language: string; problem_id: number };
+  body: { user_id: number; source_code: string; language_id: number; problem_id: number };
 }) => {
   try {
     // const [isValid, user] = await isValidToken(bearer, body.userId);

@@ -1,0 +1,101 @@
+# prod or dev
+ARG USAGE
+
+FROM ubuntu:latest as BUILD
+
+RUN apt-get update -y
+RUN apt-get install -y curl
+RUN apt-get install -y g++
+RUN apt-get install -y gcc
+RUN apt-get install -y python3
+RUN apt-get install -y tar
+RUN apt-get install -y wget
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+RUN wget https://go.dev/dl/go1.22.1.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.22.1.linux-amd64.tar.gz
+# Make go compile the stdlib now, and not on the first use of the go build command
+RUN /usr/local/go/bin/go install std
+
+
+# Node
+ENV NODE_VERSION=21.6.2
+RUN wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+ENV NVM_DIR=/root/.nvm
+RUN \. "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION} && nvm use ${NODE_VERSION} && nvm alias default ${NODE_VERSION}
+
+FROM basejudge:"$USAGE"
+
+COPY --from=BUILD / /chroot
+# RUN mkdir -p /chroot/root/.cache
+RUN chown -R 99999:99999 /chroot/root
+RUN chown -R 99999:99999 /chroot/usr
+RUN chown -R 99999:99999 /chroot/dev
+
+
+
+
+COPY <<EOF /app/languages.toml
+[[language]]
+name = "c++"
+version = "0"
+extension = "cpp"
+script= """
+#!/bin/sh
+g++ {IN_FILE} -o main 
+"""
+
+[[language]]
+name = "c"
+version = "0"
+extension = "c"
+script= """
+#!/bin/sh
+gcc {IN_FILE} -o main 
+"""
+
+[[language]]
+name = "python"
+version = "3.12"
+extension = "py"
+script="""
+#!/bin/sh
+echo "#!/bin/sh" >> main
+echo "python3 {IN_FILE}" >> main
+chmod +x main
+"""
+
+[[language]]
+name = "rust"
+version = "0"
+extension = "rs"
+script="""
+#!/bin/sh
+/root/.cargo/bin/rustc {IN_FILE} -o main
+"""
+
+[[language]]
+name = "go"
+version = "0"
+extension = "go"
+script= """
+#!/bin/sh
+/usr/local/go/bin/go build -o main {IN_FILE}
+"""
+
+
+[[language]]
+name = "javascript"
+version = "0"
+extension = "js"
+script= """
+#!/bin/sh
+echo "#!/bin/sh" >> main
+echo 'export PATH="/root/.nvm/versions/node/v21.6.2/bin/:$PATH"' >> main
+echo "node {IN_FILE}" >> main
+chmod +x main
+"""
+
+
+
+
+EOF

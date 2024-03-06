@@ -10,5 +10,6 @@ bin/data-layer: *.go go.mod go.sum
 	go build -o bin/data-layer
 
 postgres: 
-	# docker exec -i data-layer-db-1 psql -U postgres -c 'CREATE DATABASE nextjudge'
+	docker exec -i data-layer-db-1 psql -U postgres -c 'CREATE DATABASE nextjudge'
 	docker exec -i data-layer-db-1 psql -U postgres nextjudge < nextjudge.sql
+	docker exec -i data-layer-db-1 psql -U postgres nextjudge < init_test_data.sql

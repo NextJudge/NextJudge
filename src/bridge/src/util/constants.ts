@@ -8,11 +8,3 @@ export const {
   REDIS_HOST,
   REDIS_PORT,
 } = process.env
-
-export const LANG_TO_EXTENSION: Record<string, string> = {
-  "C++": "cpp",
-  Python: "py",
-  Go: "go",
-  Java: "java",
-  Node: "ts",
-};

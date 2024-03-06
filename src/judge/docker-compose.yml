@@ -1,10 +1,14 @@
 # version: '3.9'
 services:
   nextjudge-judge:
-    build: .
+    build: 
+      dockerfile: ./Dockerfile.monolith
+      context: .
+      args:
+        - USAGE=prod
     privileged: true
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - BRIDGE_HOST=nextjudge-bridge # This override is not working - bug in Docker compose?
+      - BRIDGE_HOST=nextjudge-bridge
       - BRIDGE_PORT=3000

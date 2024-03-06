@@ -1,0 +1,9 @@
+version: '3'
+services:
+  nextjudge-frontend:
+    build: .
+    ports:
+      - 8080:8080
+    environment:
+      - VITE_BRIDGE_HOST=localhost # these are passed to the build in the form of import.meta.env
+      - VITE_BRIDGE_PORT=3000

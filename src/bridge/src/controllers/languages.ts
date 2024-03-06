@@ -1,8 +1,11 @@
-import { LANG_TO_EXTENSION } from "@util/constants";
+import { DATABASE_HOST, DATABASE_PORT } from "@util/constants";
+import ApiService from "@classes/ApiService";
 
-export default function getLanguages() {
-  return Object.entries(LANG_TO_EXTENSION).map(([language, extension]) => ({
-    language,
-    extension,
-  }));
+export default async function getLanguages() {
+  
+  const response = await ApiService.get(
+    `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/languages`,
+  );
+
+  return await response.json()
 }

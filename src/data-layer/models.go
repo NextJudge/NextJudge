@@ -2,6 +2,18 @@ package main
 
 import "time"
 
+type Status string
+
+const (
+	Pending             Status = "PENDING"
+	Accepted            Status = "ACCEPTED"
+	WrongAnswer         Status = "WRONG_ANSWER"
+	TimeLimitExceeded   Status = "TIME_LIMIT_EXCEEDED"
+	MemoryLimitExceeded Status = "MEMORY_LIMIT_EXCEEDED"
+	RuntimError         Status = "RUNTIME_ERROR"
+	CompileTimeError    Status = "COMPILE_TIME_ERROR"
+)
+
 type User struct {
 	ID           int       `json:"id"`
 	Username     string    `json:"username"`
@@ -17,7 +29,7 @@ type Problem struct {
 	Timeout    int        `json:"timeout"`
 	UserID     int        `json:"user_id"`
 	UploadDate time.Time  `json:"upload_date"`
-	TestCases  []TestCase `json:"test_cases"`
+	TestCases  []TestCase `json:"test_cases,omitempty"`
 }
 
 type TestCase struct {
@@ -31,9 +43,9 @@ type Submission struct {
 	UserID           int       `json:"user_id"`
 	ProblemID        int       `json:"problem_id"`
 	TimeElapsed      int       `json:"time_elapsed"`
-	Language         string    `json:"language"`
-	Status           string    `json:"status"`
-	FailedTestCaseID int       `json:"failed_test_case_id"`
+	LanguageID       int       `json:"language_id"`
+	Status           Status    `json:"status"`
+	FailedTestCaseID *int      `json:"failed_test_case_id,omitempty"`
 	SubmitTime       time.Time `json:"submit_time"`
 	SourceCode       string    `json:"source_code"`
 }
@@ -47,4 +59,11 @@ type Competition struct {
 	Title        string    `json:"title"`
 	Problems     []Problem `json:"problems"`
 	Participants []User    `json:"participants"`
+}
+
+type Language struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Extension string `json:"extension"`
+	Version   string `json:"version"`
 }

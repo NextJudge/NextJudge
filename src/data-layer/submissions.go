@@ -19,11 +19,10 @@ func addSubmissionRoutes(mux *goji.Mux) {
 }
 
 type UpdateSubmissionStatusPatchBody struct {
-	Status           string `json:"status"`
-	FailedTestCaseID int    `json:"failed_test_case_id"`
+	Status           Status `json:"status"`
+	FailedTestCaseID *int   `json:"failed_test_case_id,omitempty"`
 }
 
-// TODO: verify that the failed test case IS for the specific problem
 func postSubmission(w http.ResponseWriter, r *http.Request) {
 	reqData := new(Submission)
 	reqBodyBytes, err := io.ReadAll(r.Body)
@@ -56,6 +55,20 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	language, err := db.GetLanguage(reqData.LanguageID)
+	if err != nil {
+		logrus.WithError(err).Error("error checking for language")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing problem"}`)
+		return
+	}
+	if language == nil {
+		logrus.Warn("language does not exist")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"404", "message":"language does not exist"}`)
+		return
+	}
+
 	user, err := db.GetUserByID(reqData.UserID)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing user")
@@ -72,23 +85,20 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 
 	response, err := db.CreateSubmission(reqData)
 	if err != nil {
-		logrus.WithError(err).Error("error inserting problem into db")
+		logrus.WithError(err).Error("error inserting submission into db")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error inserting problem into db"}`)
+		fmt.Fprint(w, `{"code":"500", "message":"error inserting submission into db"}`)
 		return
 	}
-	reqData.ID = response.ID
-	reqData.SubmitTime = response.SubmitTime
 
-	respJSON, err := json.Marshal(reqData)
+	respJSON, err := json.Marshal(response)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }
 
 func getSubmission(w http.ResponseWriter, r *http.Request) {
@@ -104,15 +114,15 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 
 	submission, err := db.GetSubmission(submissionId)
 	if err != nil {
-		logrus.WithError(err).Error("error retrieving problem")
+		logrus.WithError(err).Error("error retrieving submission")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving submission"}`)
 		return
 	}
 	if submission == nil {
 		logrus.Warn("submission not found")
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		fmt.Fprint(w, `{"code":"404", "message":"submission not found"}`)
 		return
 	}
 
@@ -123,12 +133,9 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprintf(w, string(respJSON))
-	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(respJSON))
 }
 
-// TODO: check if the status is failed, otherwise return 400 bad request if the failed test case id is populated
-// TODO: verify that the failed test case IS for the specific problem
 func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 	submissionIdParam := pat.Param(r, "submission_id")
 
@@ -142,15 +149,15 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 
 	submission, err := db.GetSubmission(submissionId)
 	if err != nil {
-		logrus.WithError(err).Error("error retrieving problem")
+		logrus.WithError(err).Error("error retrieving submission")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving submission"}`)
 		return
 	}
 	if submission == nil {
 		logrus.Warn("submission not found")
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		fmt.Fprint(w, `{"code":"404", "message":"submission not found"}`)
 		return
 	}
 
@@ -169,6 +176,33 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
+	}
+
+	if (reqData.Status != WrongAnswer && reqData.FailedTestCaseID != nil) ||
+		(reqData.Status == WrongAnswer && reqData.FailedTestCaseID == nil) {
+		logrus.Warn("status must be WRONG_ANSWER if and only if there is a failed test case")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"status must be WRONG_ANSWER if and only if there is a failed test case"}`)
+		return
+	}
+
+	if reqData.FailedTestCaseID != nil && *reqData.FailedTestCaseID != 0 {
+		problemId, err := db.GetProblemIDForTestCase(*reqData.FailedTestCaseID)
+		if err != nil {
+			logrus.WithError(err).Error("error checking test case's problem")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error checking test case's problem"}`)
+			return
+		}
+		if *problemId != submission.ProblemID {
+			logrus.WithFields(logrus.Fields{
+				"test_case_problem_id":  problemId,
+				"submission_problem_id": submission.ProblemID,
+			}).Warn("test case is not for this problem")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"test case is not for this problem"}`)
+			return
+		}
 	}
 
 	err = db.UpdateSubmission(submissionId, reqData.Status, reqData.FailedTestCaseID)
