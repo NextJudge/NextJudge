@@ -49,7 +49,7 @@ type NextJudgeDB interface {
 	GetTestCases(problemId int) ([]TestCase, error)
 	CreateSubmission(submission *Submission) (*Submission, error)
 	GetSubmission(submissionId int) (*Submission, error)
-	UpdateSubmission(submissionId int, status string, failedTestCaseId int) error
+	UpdateSubmission(submissionId int, status Status, failedTestCaseId int) error
 	CreateLanguage(language *Language) (*Language, error)
 	GetLanguages() ([]Language, error)
 	GetLanguageByNameAndVersion(name string, version string) (*Language, error)
@@ -188,7 +188,6 @@ func (d Database) DeleteUser(userId int) error {
 }
 
 func (d Database) CreateProblem(problem *Problem) (*Problem, error) {
-	// TODO: get user_id of uploader via jwt token
 	sqlStatement := `
 	INSERT INTO "problem" (title, prompt, timeout, user_id, upload_date) 
 	VALUES ($1, $2, $3, $4, $5)
@@ -334,7 +333,7 @@ func (d Database) CreateSubmission(submission *Submission) (*Submission, error) 
 		LanguageID:  submission.LanguageID,
 		SubmitTime:  submitTime,
 		SourceCode:  submission.SourceCode,
-		Status:      "pending",
+		Status:      Pending,
 		TimeElapsed: 0,
 	}
 
@@ -366,7 +365,7 @@ func (d Database) GetSubmission(submissionId int) (*Submission, error) {
 	return res, nil
 }
 
-func (d Database) UpdateSubmission(submissionId int, status string, failedTestCaseId *int) error {
+func (d Database) UpdateSubmission(submissionId int, status Status, failedTestCaseId *int) error {
 	sqlStatement := `UPDATE "submission" 
 	SET status = $2, failed_test_case_id = $3
 	WHERE id = $1`

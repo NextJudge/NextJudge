@@ -1,3 +1,13 @@
+CREATE TYPE status AS ENUM(
+  'ACCEPTED',
+  'WRONG_ANSWER',
+  'TIME_LIMIT_EXCEEDED',
+  'MEMORY_LIMIT_EXCEEDED',
+  'RUNTIME_ERROR',
+  'COMPILE_TIME_ERROR',
+  'PENDING'
+);
+
 CREATE TABLE "user" (
   "id" SERIAL PRIMARY KEY,
   "username" varchar,
@@ -21,7 +31,7 @@ CREATE TABLE "submission" (
   "problem_id" integer,
   "time_elapsed" integer,
   "language_id" integer,
-  "status" varchar,
+  "status" status,
   "failed_test_case_id" integer,
   "submit_time" timestamp,
   "source_code" varchar

@@ -1,9 +1,9 @@
 INSERT INTO "language" (name, extension, version)
 VALUES
 ('c++',     '.cpp',     '14'),
-('c',     '.c',     '-1'),
+('c',       '.c',       '-1'),
 ('python',  '.py',      '3.12'),
-('rust',  '.rs',      '1.71.0');
+('rust',    '.rs',      '1.71.0');
 
 INSERT INTO "user" (username, password_hash, join_date, is_admin)
 VALUES 
@@ -24,5 +24,5 @@ VALUES
 
 INSERT INTO "submission" (user_id, problem_id, time_elapsed, language_id, status, failed_test_case_id, submit_time, source_code)
 VALUES
-(1,     1,  2,  2,  'compile_error',    NULL,   timestamp '2024-03-07 10:00:00',    'int main2(){}'),
-(2,     2,  2,  1,  'failed',           3,      timestamp '2024-03-08 10:00:00',    'int main(){ return 0; }');
+(1,     1,  2,  2,  'COMPILE_TIME_ERROR',    NULL,   timestamp '2024-03-07 10:00:00',    'int main2(){}'),
+(2,     2,  2,  1,  'WRONG_ANSWER',          3,      timestamp '2024-03-08 10:00:00',    'int main(){ return 0; }');
