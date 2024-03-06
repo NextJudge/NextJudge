@@ -19,11 +19,10 @@ func addSubmissionRoutes(mux *goji.Mux) {
 }
 
 type UpdateSubmissionStatusPatchBody struct {
-	Status           string `json:"status"`
+	Status           Status `json:"status"`
 	FailedTestCaseID *int   `json:"failed_test_case_id,omitempty"`
 }
 
-// TODO: verify that the failed test case IS for the specific problem
 func postSubmission(w http.ResponseWriter, r *http.Request) {
 	reqData := new(Submission)
 	reqBodyBytes, err := io.ReadAll(r.Body)
@@ -137,7 +136,6 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(respJSON))
 }
 
-// TODO: check if the status is failed, otherwise return 400 bad request if the failed test case id is populated
 func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 	submissionIdParam := pat.Param(r, "submission_id")
 
@@ -180,33 +178,29 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: just get the test case by its id, then check if the problem id matches
-	if reqData.FailedTestCaseID != nil && *reqData.FailedTestCaseID != 0 {
-		testCases, err := db.GetTestCases(submission.ProblemID)
-		if err != nil {
-			logrus.WithError(err).Error("error retrieving test cases for this problem")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error retrieving test cases for this problem"}`)
-			return
-		}
-		if testCases == nil {
-			logrus.Warn("test cases not found")
-			w.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(w, `{"code":"404", "message":"test cases not found"}`)
-			return
-		}
+	if (reqData.Status != WrongAnswer && reqData.FailedTestCaseID != nil) ||
+		(reqData.Status == WrongAnswer && reqData.FailedTestCaseID == nil) {
+		logrus.Warn("status must be WRONG_ANSWER if and only if there is a failed test case")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"status must be WRONG_ANSWER if and only if there is a failed test case"}`)
+		return
+	}
 
-		testCaseIsForProblem := false
-		for _, testCase := range testCases {
-			if testCase.ID == *reqData.FailedTestCaseID {
-				testCaseIsForProblem = true
-				break
-			}
+	if reqData.FailedTestCaseID != nil && *reqData.FailedTestCaseID != 0 {
+		problemId, err := db.GetProblemIDForTestCase(*reqData.FailedTestCaseID)
+		if err != nil {
+			logrus.WithError(err).Error("error checking test case's problem")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error checking test case's problem"}`)
+			return
 		}
-		if !testCaseIsForProblem {
-			logrus.Warn("test case is not for this problem")
+		if *problemId != submission.ProblemID {
+			logrus.WithFields(logrus.Fields{
+				"test_case_problem_id":  problemId,
+				"submission_problem_id": submission.ProblemID,
+			}).Warn("test case is not for this problem")
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, `{"code":"404", "message":"test case is not for this problem"}`)
+			fmt.Fprint(w, `{"code":"400", "message":"test case is not for this problem"}`)
 			return
 		}
 	}

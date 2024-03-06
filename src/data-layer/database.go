@@ -49,11 +49,12 @@ type NextJudgeDB interface {
 	GetTestCases(problemId int) ([]TestCase, error)
 	CreateSubmission(submission *Submission) (*Submission, error)
 	GetSubmission(submissionId int) (*Submission, error)
-	UpdateSubmission(submissionId int, status string, failedTestCaseId int) error
+	UpdateSubmission(submissionId int, status Status, failedTestCaseId int) error
 	CreateLanguage(language *Language) (*Language, error)
 	GetLanguages() ([]Language, error)
 	GetLanguageByNameAndVersion(name string, version string) (*Language, error)
 	GetLanguage(id int) (*Language, error)
+	GetProblemIDForTestCase(testcaseId int) (int, error)
 }
 
 func NewDatabase() (*Database, error) {
@@ -188,10 +189,14 @@ func (d Database) DeleteUser(userId int) error {
 }
 
 func (d Database) CreateProblem(problem *Problem) (*Problem, error) {
-	// TODO: get user_id of uploader via jwt token
-	sqlStatement := `
+	problemSqlStatement := `
 	INSERT INTO "problem" (title, prompt, timeout, user_id, upload_date) 
 	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id`
+
+	testCaseSqlStatement := `
+	INSERT INTO "test_case" (problem_id, input, expected_output) 
+	VALUES ($1, $2, $3)
 	RETURNING id`
 
 	uploadDate := time.Now()
@@ -202,9 +207,37 @@ func (d Database) CreateProblem(problem *Problem) (*Problem, error) {
 		Timeout:    problem.Timeout,
 		UserID:     problem.UserID,
 		UploadDate: uploadDate,
+		TestCases:  problem.TestCases,
 	}
 
-	err := d.NextJudgeDB.QueryRow(sqlStatement, problem.Title, problem.Prompt, problem.Timeout, problem.UserID, uploadDate).Scan(&res.ID)
+	tx, err := d.NextJudgeDB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	problemStmt, err := tx.Prepare(problemSqlStatement)
+	if err != nil {
+		return nil, err
+	}
+
+	err = problemStmt.QueryRow(problem.Title, problem.Prompt, problem.Timeout, problem.UserID, uploadDate).Scan(&res.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	testCaseStmt, err := tx.Prepare(testCaseSqlStatement)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, testCase := range problem.TestCases {
+		err = testCaseStmt.QueryRow(res.ID, testCase.Input, testCase.ID).Scan(&problem.TestCases[i].ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -257,18 +290,38 @@ func (d Database) GetProblems() ([]Problem, error) {
 	return res, nil
 }
 
-// TODO: Use joins to get problems and test cases
 func (d Database) GetProblemByID(problemId int) (*Problem, error) {
-	sqlStatement := `SELECT * FROM "problem" WHERE id = $1`
-	row := db.NextJudgeDB.QueryRow(sqlStatement, problemId)
+	sqlStatement := `SELECT problem.id, problem.title, problem.prompt, problem.timeout, problem.user_id, problem.upload_date, test_case.id, test_case.input, test_case.expected_output 
+	FROM "problem" 
+	LEFT JOIN "test_case" 
+	ON test_case.problem_id=problem.id 
+	WHERE problem.id = $1`
+	rows, err := db.NextJudgeDB.Query(sqlStatement, problemId)
+	if err != nil {
+		return nil, err
+	}
 
 	res := &Problem{}
-	err := row.Scan(&res.ID, &res.Title, &res.Prompt, &res.Timeout, &res.UserID, &res.UploadDate)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
+
+	defer rows.Close()
+	for rows.Next() {
+		var tc TestCase
+		err := rows.Scan(&res.ID, &res.Title, &res.Prompt, &res.Timeout, &res.UserID, &res.UploadDate, &tc.ID, &tc.Input, &tc.ExpectedOutput)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, err
 		}
+		res.TestCases = append(res.TestCases, tc)
+	}
+	err = rows.Err()
+	if err != nil {
 		return nil, err
+	}
+
+	if res.ID == 0 {
+		return nil, nil
 	}
 
 	return res, nil
@@ -294,9 +347,6 @@ func (d Database) GetTestCases(problemId int) ([]TestCase, error) {
 	sqlStatement := `SELECT id, input, expected_output FROM "test_case" WHERE problem_id = $1`
 	rows, err := db.NextJudgeDB.Query(sqlStatement, problemId)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
 	defer rows.Close()
@@ -307,14 +357,20 @@ func (d Database) GetTestCases(problemId int) ([]TestCase, error) {
 		row := TestCase{}
 		err = rows.Scan(&row.ID, &row.Input, &row.ExpectedOutput)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
 			return nil, err
 		}
 		res = append(res, row)
 	}
-
 	err = rows.Err()
 	if err != nil {
 		return nil, err
+	}
+
+	if len(res) == 0 {
+		return nil, nil
 	}
 
 	return res, nil
@@ -334,7 +390,7 @@ func (d Database) CreateSubmission(submission *Submission) (*Submission, error) 
 		LanguageID:  submission.LanguageID,
 		SubmitTime:  submitTime,
 		SourceCode:  submission.SourceCode,
-		Status:      "pending",
+		Status:      Pending,
 		TimeElapsed: 0,
 	}
 
@@ -366,7 +422,7 @@ func (d Database) GetSubmission(submissionId int) (*Submission, error) {
 	return res, nil
 }
 
-func (d Database) UpdateSubmission(submissionId int, status string, failedTestCaseId *int) error {
+func (d Database) UpdateSubmission(submissionId int, status Status, failedTestCaseId *int) error {
 	sqlStatement := `UPDATE "submission" 
 	SET status = $2, failed_test_case_id = $3
 	WHERE id = $1`
@@ -456,6 +512,22 @@ func (d Database) GetLanguage(id int) (*Language, error) {
 
 	res := &Language{}
 	err := row.Scan(&res.ID, &res.Name, &res.Extension, &res.Version)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (d Database) GetProblemIDForTestCase(testcaseId int) (*int, error) {
+	sqlStatement := `SELECT problem_id FROM "test_case" WHERE id = $1`
+	row := db.NextJudgeDB.QueryRow(sqlStatement, testcaseId)
+
+	var res *int
+	err := row.Scan(&res)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil

@@ -20,7 +20,6 @@ func addProblemRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Get("/v1/problems/:problem_id"), getProblem)
 }
 
-// TODO: get user id from jwt, check for existing user
 // TODO: make a transaction so the problem cant be inserted if the test cases fail to inser
 func postProblem(w http.ResponseWriter, r *http.Request) {
 	reqData := new(Problem)
@@ -76,17 +75,6 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, testCase := range reqData.TestCases {
-		res, err := db.CreateTestcase(&testCase, newProblem.ID)
-		if err != nil {
-			logrus.WithError(err).Error("error inserting testcase into db")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error inserting testcase into db"}`)
-			return
-		}
-		newProblem.TestCases = append(newProblem.TestCases, *res)
-	}
-
 	respJSON, err := json.Marshal(newProblem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
@@ -121,16 +109,6 @@ func getProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	testCases, err := db.GetTestCases(problemId)
-	if err != nil {
-		logrus.WithError(err).Error("error retrieving test cases")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving test cases"}`)
-		return
-	}
-
-	problem.TestCases = append(problem.TestCases, testCases...)
-
 	respJSON, err := json.Marshal(problem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
@@ -149,17 +127,7 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems"}`)
 		return
 	}
-	for i, problem := range problems {
-		testCases, err := db.GetTestCases(problem.ID)
-		if err != nil {
-			logrus.WithError(err).Error("error retrieving test cases")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error retrieving test cases"}`)
-			return
-		}
 
-		problems[i].TestCases = append(problems[i].TestCases, testCases...)
-	}
 	respJSON, err := json.Marshal(problems)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
