@@ -38,6 +38,10 @@ const routeList: RouteProps[] = [
     href: "/auth/login",
     label: "Login",
   },
+  {
+    href: "/home",
+    label: "Home",
+  },
 ];
 
 export default function Navbar() {
