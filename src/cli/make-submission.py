@@ -48,7 +48,7 @@ if language_id is None:
 
 
 
-r = requests.post(
+submit = requests.post(
     f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/submission",
     json = {
         "user_id": 1,
@@ -58,21 +58,24 @@ r = requests.post(
     }
 )
 
-print(r.status_code, r.text)
+print(submit.status_code, submit.text)
 
-if(r.status_code != 200):
+if(submit.status_code != 200):
     sys.exit(1)
 
+start_time = time.time()
 # Poll
 for i in range(20):
     time.sleep(.2)
 
-    r = requests.get(
-        f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/submission/{r.text}",
+    verdict = requests.get(
+        f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/submission/{submit.text}",
     )
 
-    print(r.json())
+    result = verdict.json()
 
-    if r.json()["status"] != "":
+    if result["status"] != "pending" and result["status"] != "":
+        print(f"Verdict: {result['status']}")
+        print(time.time() - start_time)
         break
 

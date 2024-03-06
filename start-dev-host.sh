@@ -1,6 +1,6 @@
 # #!/bin/sh
 
-# # Instatiates all systems on the host
+# # Instantiates all systems on the host
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 

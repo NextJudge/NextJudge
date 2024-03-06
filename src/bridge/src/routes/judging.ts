@@ -20,7 +20,7 @@ const postJudgeComplete = async ({
       `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions/${body.submission_id}`,
       {
         status:body.success,
-        failed_test_case_id:1
+        // failed_test_case_id:1
       }
     );
 

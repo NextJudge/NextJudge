@@ -34,14 +34,12 @@ COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
 # copy production dependencies and source code into final image
-FROM base AS release
-
+FROM nextjudge-jail as dev
 # Create final image
-FROM nextjudge-jail as final
+
 WORKDIR /app
 
 COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /app .
 COPY --from=prerelease /app/package.json .
 
 # Create the user that runs the compilation scripts
@@ -52,5 +50,10 @@ RUN mkdir /build_chroot
 
 ENV PATH="${PATH}:/root/.bun/bin"
 
+CMD [ "bun", "--watch", "run", "src/index.ts" ]
+
+FROM dev as prod
+COPY --from=prerelease /app .
 CMD [ "bun", "run", "src/index.ts" ]
+
 
