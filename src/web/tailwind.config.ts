@@ -1,11 +1,12 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
+import type { Config } from "tailwindcss";
+
+const config = {
   darkMode: ["class"],
   content: [
-    './pages/**/*.{ts,tsx}',
-    './components/**/*.{ts,tsx}',
-    './app/**/*.{ts,tsx}',
-    './src/**/*.{ts,tsx}',
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
   ],
   prefix: "",
   theme: {
@@ -16,8 +17,28 @@ module.exports = {
         "2xl": "1400px",
       },
     },
+    // <span className="inline bg-gradient-to-r from-[#F596D3]  to-[#D247BF] text-transparent bg-clip-text">
+    //       Egronomic
+    //     </span>{" "}
+    //     Code Judge
+    //   </h1>{" "}
+    //   for{" "}
+    //   <h2 className="inline">
+    //     <span className="inline bg-gradient-to-r from-[#61DAFB] via-[#1fc0f1] to-[#03a3d7] text-transparent bg-clip-text">
+    //       Competitive
+    //     </span>{" "}
     extend: {
+      boxShadow: {
+        purple: "0 35px 75px -15px rgba(90,0,170,0.475)",
+        skyblue: "0 35px 75px -15px rgba(0, 170, 255, 0.475)",
+        osu: "0 35px 75px -45px rgba(255, 102, 0, 0.175)",
+        osubrown: "0 35px 35px -15px rgba(102, 51, 0, 0.475)",
+        osublack: "0 35px 75px -15px rgba(0, 0, 0, 0.475)",
+        osuw: "0 35px 75px -55px rgba(255, 255, 255, 0.475)",
+      },
       colors: {
+        osu: "rgba(255, 102, 0, 1)",
+        osubrown: "rgba(202, 61, 0, 1)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -74,4 +95,6 @@ module.exports = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-}
+} satisfies Config;
+
+export default config;
