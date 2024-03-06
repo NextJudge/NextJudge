@@ -335,9 +335,20 @@ function run_single_test_case(testcase: TestCase): boolean
     });
 
     console.log("Program done");
+    console.log(`Exit code: ${run_result.exitCode}`)
 
+
+
+    // Temporarily get any errors from the output log of nsjail
     const run_error = run_result.stderr.toString();
     if(run_error){
+        // if(run_error.includes("time >= time limit")){
+        //     // Time limit exceeded!
+        //     return false;
+        // } else if(run_error.includes()){
+
+        // }
+
         console.log("Error in runtime (?)!", run_error)
         return false;
     }
