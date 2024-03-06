@@ -120,16 +120,6 @@ func getProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	testCases, err := db.GetTestCases(problemId)
-	if err != nil {
-		logrus.WithError(err).Error("error retrieving test cases")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving test cases"}`)
-		return
-	}
-
-	problem.TestCases = append(problem.TestCases, testCases...)
-
 	respJSON, err := json.Marshal(problem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
@@ -148,17 +138,7 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems"}`)
 		return
 	}
-	for i, problem := range problems {
-		testCases, err := db.GetTestCases(problem.ID)
-		if err != nil {
-			logrus.WithError(err).Error("error retrieving test cases")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error retrieving test cases"}`)
-			return
-		}
 
-		problems[i].TestCases = append(problems[i].TestCases, testCases...)
-	}
 	respJSON, err := json.Marshal(problems)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")

@@ -54,6 +54,7 @@ type NextJudgeDB interface {
 	GetLanguages() ([]Language, error)
 	GetLanguageByNameAndVersion(name string, version string) (*Language, error)
 	GetLanguage(id int) (*Language, error)
+	GetProblemIDForTestCase(testcaseId int) (int, error)
 }
 
 func NewDatabase() (*Database, error) {
@@ -256,17 +257,30 @@ func (d Database) GetProblems() ([]Problem, error) {
 	return res, nil
 }
 
-// TODO: Use joins to get problems and test cases
 func (d Database) GetProblemByID(problemId int) (*Problem, error) {
-	sqlStatement := `SELECT * FROM "problem" WHERE id = $1`
-	row := db.NextJudgeDB.QueryRow(sqlStatement, problemId)
+	sqlStatement := `SELECT problem.id, problem.title, problem.prompt, problem.timeout, problem.user_id, problem.upload_date, test_case.id, test_case.input, test_case.expected_output 
+	FROM "problem" 
+	LEFT JOIN "test_case" 
+	ON test_case.problem_id=problem.id 
+	WHERE problem.id = $1`
+	rows, err := db.NextJudgeDB.Query(sqlStatement, problemId)
+	if err != nil {
+		return nil, err
+	}
 
 	res := &Problem{}
-	err := row.Scan(&res.ID, &res.Title, &res.Prompt, &res.Timeout, &res.UserID, &res.UploadDate)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
+
+	defer rows.Close()
+	for rows.Next() {
+		var tc TestCase
+		err := rows.Scan(&res.ID, &res.Title, &res.Prompt, &res.Timeout, &res.UserID, &res.UploadDate, &tc.ID, &tc.Input, &tc.ExpectedOutput)
+		if err != nil {
+			return nil, err
 		}
+		res.TestCases = append(res.TestCases, tc)
+	}
+	err = rows.Err()
+	if err != nil {
 		return nil, err
 	}
 
@@ -455,6 +469,22 @@ func (d Database) GetLanguage(id int) (*Language, error) {
 
 	res := &Language{}
 	err := row.Scan(&res.ID, &res.Name, &res.Extension, &res.Version)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (d Database) GetProblemIDForTestCase(testcaseId int) (*int, error) {
+	sqlStatement := `SELECT problem_id FROM "test_case" WHERE id = $1`
+	row := db.NextJudgeDB.QueryRow(sqlStatement, testcaseId)
+
+	var res *int
+	err := row.Scan(&res)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil

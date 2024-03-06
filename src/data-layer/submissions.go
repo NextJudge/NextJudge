@@ -186,33 +186,21 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: just get the test case by its id, then check if the problem id matches
 	if reqData.FailedTestCaseID != nil && *reqData.FailedTestCaseID != 0 {
-		testCases, err := db.GetTestCases(submission.ProblemID)
+		problemId, err := db.GetProblemIDForTestCase(*reqData.FailedTestCaseID)
 		if err != nil {
-			logrus.WithError(err).Error("error retrieving test cases for this problem")
+			logrus.WithError(err).Error("error checking test case's problem")
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error retrieving test cases for this problem"}`)
+			fmt.Fprint(w, `{"code":"500", "message":"error checking test case's problem"}`)
 			return
 		}
-		if testCases == nil {
-			logrus.Warn("test cases not found")
-			w.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(w, `{"code":"404", "message":"test cases not found"}`)
-			return
-		}
-
-		testCaseIsForProblem := false
-		for _, testCase := range testCases {
-			if testCase.ID == *reqData.FailedTestCaseID {
-				testCaseIsForProblem = true
-				break
-			}
-		}
-		if !testCaseIsForProblem {
-			logrus.Warn("test case is not for this problem")
+		if *problemId != submission.ProblemID {
+			logrus.WithFields(logrus.Fields{
+				"test_case_problem_id":  problemId,
+				"submission_problem_id": submission.ProblemID,
+			}).Warn("test case is not for this problem")
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, `{"code":"404", "message":"test case is not for this problem"}`)
+			fmt.Fprint(w, `{"code":"400", "message":"test case is not for this problem"}`)
 			return
 		}
 	}

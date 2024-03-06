@@ -29,7 +29,7 @@ type Problem struct {
 	Timeout    int        `json:"timeout"`
 	UserID     int        `json:"user_id"`
 	UploadDate time.Time  `json:"upload_date"`
-	TestCases  []TestCase `json:"test_cases"`
+	TestCases  []TestCase `json:"test_cases,omitempty"`
 }
 
 type TestCase struct {
