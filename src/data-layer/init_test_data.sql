@@ -3,7 +3,10 @@ VALUES
 ('c++',     '.cpp',     '14'),
 ('c',       '.c',       '-1'),
 ('python',  '.py',      '3.12'),
-('rust',    '.rs',      '1.71.0');
+('rust',  '.rs',      '1.71.0'),
+('go',  '.go',      '-1'),
+('javascript',  '.js',      '-1');
+
 
 INSERT INTO "user" (username, password_hash, join_date, is_admin)
 VALUES 

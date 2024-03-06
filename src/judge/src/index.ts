@@ -2,9 +2,7 @@
 import { createClient } from 'redis';
 import { commandOptions } from 'redis';
 import * as fs from 'fs';
-import { spawnSync } from 'bun';
 import toml from "toml";
-
 
 const { REDIS_HOST, REDIS_PORT, BRIDGE_HOST, BRIDGE_PORT, DEBUG } = process.env
 
@@ -218,21 +216,19 @@ function compile_in_jail(submission: Submission): boolean
 
     console.log("Compiling")
 
-    spawnSync(["ls","-pla", "/chroot/"])
-    spawnSync(["ls","-pla", "/build_dir/"])
+    Bun.spawnSync(["ls","-pla", "/chroot/"])
+    Bun.spawnSync(["ls","-pla", "/build_dir/"])
 
     console.log(LOCAL_BUILD_DIR)
     console.log(LOCAL_BUILD_SCRIPT_PATH)
     // const RUN_DIRECTORY = "/chroot/run_dir"
 
-
-
     // if(!DEBUG){
         
     // }
 
-
-    // const nsjail_error_file = fs.openSync("/tmp/nsjail_output_file", "w+")
+    const tempFilePath = "/tmp/error_output.txt"
+    const fd = fs.openSync(tempFilePath, "w+")
 
     const compile_result = Bun.spawnSync({
         cmd: [
@@ -241,36 +237,48 @@ function compile_in_jail(submission: Submission): boolean
 
             "--time_limit", `${10}`, // Max wall time
             "--max_cpus", `${1}`, 
-            "--rlimit_as", `${512}`, // Max virtual memory space
+
+            "--rlimit_nofile", `${128}`, // Max file descriptor number (32)
+            "--rlimit_as", `${1024}`, // Max virtual memory space
             "--rlimit_cpu", `${10}`, // Max CPU time
-            "--rlimit_fsize", `${32}`, // Max file size in MB
+            "--rlimit_fsize", `${512}`, // Max file size in MB (1)
             
             "--user", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
             "--group", `${NEXTJUDGE_USER_ID}:${NEXTJUDGE_USER_ID}`,
 
             // "--bindmount_ro", "/chroot:/", // Map root file system readonly
             "--chroot", `/chroot/`, // Chroot entire file system
-            
+
+            // Read/write mounts
             "--bindmount", `${BUILD_DIRECTORY}:${LOCAL_BUILD_DIR}`, // Map build dir as read/write
+            "--bindmount", `/chroot/root/.cache:/root/.cache`, // Map build dir as read/write
+
+            // Readonly mounts
+            // "--bindmount_ro", `/dev/urandom:/dev/urandom`,
+            // "--bindmount_ro", `/dev/zero:/dev/zero`,
+            "--bindmount_ro", `/dev/null`,
+
             "--cwd", `${LOCAL_BUILD_DIR}`,
-            "--tmpfsmount", "/tmp",
+
+            // "--tmpfsmount", "/tmp",
+            '--mount', 'none:/tmp:tmpfs:size=419430400', // Mount /tmp as tmpfs, make it larger than default (4194304)
 
             "--env", `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`,
-            "--env", `HOME=/root`, // User is not really root, but some Dockerfile commands add important files to root home
-
+            "--env", `HOME=/root`, // User is not really root, but some Dockerfile commands for compilers/runtimes add application files to root home
+            
             "--exec_file",`${LOCAL_BUILD_SCRIPT_PATH}`,
             
-            // "--log/_fd", `${nsjail_error_file}`,
+            "--log_fd", `${fd}`,
             "--really_quiet"
         ],
         stderr: "pipe",
-        stdout: "pipe"
+        stdout: "pipe",
     });
 
-    // fs.closeSync(nsjail_error_file);
-    // const nsjail_output = fs.readFileSync("/tmp/nsjail_output_file", "utf8");
-    // console.log("NSJAIL_OUTPUT");
-    // console.log(nsjail_output);
+
+    const nsjail_output = fs.readFileSync(fd, 'utf-8');
+    console.log("NSJAIL_OUTPUT");
+    console.log(nsjail_output);
 
     // Need to determine this much better
     // TODO: investigate if it passes the error through - how to differentiate
@@ -298,8 +306,10 @@ function run_single_test_case(testcase: TestCase): boolean
     fs.chownSync(RUN_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID);
     fs.chownSync(RUN_SCRIPT_PATH, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID);
 
-    Bun.spawnSync(["file", RUN_SCRIPT_PATH])
-    
+    console.log("ls -pla")
+    const s = Bun.spawnSync(["ls", "-pla",RUN_DIRECTORY])
+    console.log(s.stdout.toString())
+
     console.log("Running")
 
     // Run the program
@@ -309,7 +319,7 @@ function run_single_test_case(testcase: TestCase): boolean
             "--mode", "o",
             "--time_limit", `${10}`,
             "--max_cpus", `${1}`, 
-            "--rlimit_as", `${512}`, // Max virtual memory space
+            "--rlimit_as", `${1024}`, // Max virtual memory space
             "--rlimit_cpu", `${10}`, // Max CPU time
             // "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
             "--nice_level", "-20", // High priority
