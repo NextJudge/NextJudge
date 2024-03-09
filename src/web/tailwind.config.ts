@@ -17,16 +17,6 @@ const config = {
         "2xl": "1400px",
       },
     },
-    // <span className="inline bg-gradient-to-r from-[#F596D3]  to-[#D247BF] text-transparent bg-clip-text">
-    //       Egronomic
-    //     </span>{" "}
-    //     Code Judge
-    //   </h1>{" "}
-    //   for{" "}
-    //   <h2 className="inline">
-    //     <span className="inline bg-gradient-to-r from-[#61DAFB] via-[#1fc0f1] to-[#03a3d7] text-transparent bg-clip-text">
-    //       Competitive
-    //     </span>{" "}
     extend: {
       boxShadow: {
         purple: "0 35px 75px -15px rgba(90,0,170,0.475)",
@@ -39,6 +29,18 @@ const config = {
       colors: {
         osu: "rgba(255, 102, 0, 1)",
         osubrown: "rgba(202, 61, 0, 1)",
+        python: "rgba(75, 135, 185, 1)",
+        javascript: "rgba(241, 212, 86, 1)",
+        java: "rgba(176, 114, 25, 1)",
+        c: "rgba(72, 118, 255, 1)",
+        "c++": "rgba(51, 102, 153, 1)",
+        "c#": "rgba(100, 100, 100, 1)",
+        go: "rgba(0, 102, 153, 1)",
+        kotlin: "rgba(230, 0, 0, 1)",
+        ruby: "rgba(204, 0, 0, 1)",
+        rust: "rgba(153, 102, 51, 1)",
+        swift: "rgba(255, 153, 0, 1)",
+        typescript: "rgba(43, 116, 180, 1)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -78,6 +80,12 @@ const config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "text-focus-in":
+          "text-focus-in 1s cubic-bezier(0.550, 0.085, 0.680, 0.530) both",
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -89,19 +97,14 @@ const config = {
         },
         "text-focus-in": {
           "0%": {
-              filter: "blur(12px)",
-              opacity: "0"
+            filter: "blur(12px)",
+            opacity: "0",
           },
           to: {
-              filter: "blur(0)",
-              opacity: "1"
-            },
+            filter: "blur(0)",
+            opacity: "1",
           },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "text-focus-in": "text-focus-in 1s cubic-bezier(0.550, 0.085, 0.680, 0.530)   both",
+        },
       },
     },
   },
