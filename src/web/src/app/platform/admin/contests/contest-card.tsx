@@ -31,8 +31,8 @@ import { EditIcon } from "lucide-react";
 
 type ContestCardProps = {
   className?: string;
-  contest: Competition;
-  deleteContest: (id: number) => void;
+  contest: Competition | any;
+  deleteContest?: (id: number) => void;
 };
 
 export function ContestCard({
@@ -68,7 +68,9 @@ export function ContestCard({
             >
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => deleteContest(contest.id)}>
+              <DropdownMenuItem
+                onClick={() => deleteContest && deleteContest(contest.id)}
+              >
                 Delete
               </DropdownMenuItem>
               <DropdownMenuSeparator />
