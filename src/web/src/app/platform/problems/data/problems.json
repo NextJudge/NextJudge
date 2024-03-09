@@ -1,0 +1,42 @@
+[
+  {
+    "id": "problem-1",
+    "title": "Array Manipulation",
+    "description": "Given an array of integers, perform various operations on it.",
+    "status": "open",
+    "submissions": 10,
+    "author": "Alice"
+  },
+  {
+    "id": "problem-2",
+    "title": "String Reversal",
+    "description": "Write a function to reverse a given string.",
+    "status": "closed",
+    "submissions": 20,
+    "author": "Bob"
+  },
+  {
+    "id": "problem-3",
+    "title": "Palindrome Checker",
+    "description": "Determine if a given string is a palindrome or not.",
+    "status": "open",
+    "submissions": 15,
+    "author": "Charlie"
+  },
+  {
+    "id": "problem-4",
+    "title": "Linked List Implementation",
+    "description": "Implement a linked list data structure.",
+    "status": "open",
+    "submissions": 8,
+    "author": "David"
+  },
+  {
+    "id": "problem-5",
+    "title": "Binary Search Tree",
+    "description": "Implement operations on a binary search tree.",
+    "status": "closed",
+    "submissions": 25,
+    "author": "Eve"
+  }
+]
