@@ -1,6 +1,6 @@
 "use client";
 
-import { ProblemsTable } from "@/components/problems-table";
+import { ProblemsTable } from "@/components/admin-problems-table";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/toaster";
