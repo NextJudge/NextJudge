@@ -17,7 +17,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
 import {
   ChevronDownIcon,
   CircleIcon,
@@ -27,7 +26,7 @@ import {
 
 import { Competition } from "@/types";
 import { format } from "date-fns";
-import { EditIcon } from "lucide-react";
+import { Clock, EditIcon } from "lucide-react";
 
 type ContestCardProps = {
   className?: string;
@@ -44,15 +43,14 @@ export function ContestCard({
   const contestDescription = contest?.description;
   const startTime = contest?.startTime;
   const endTime = contest?.endTime;
-  const participants = contest?.participants?.length;
   return (
-    <Card className={cn("shadow-sm", className)}>
+    <Card className="max-w-[105%]">
       <CardHeader className="grid grid-cols-[1fr_auto] items-start gap-4 space-y-0">
         <div className="space-y-4">
           <CardTitle>{contestName}</CardTitle>
           <CardDescription>{contestDescription}</CardDescription>
         </div>
-        <div className="flex items-center rounded-md bg-secondary text-secondary-foreground">
+        <div className="flex items-center rounded-md bg-secondary text-secondary-foreground w-full">
           <Separator orientation="vertical" className="h-[20px]" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -85,19 +83,24 @@ export function ContestCard({
           </DropdownMenu>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex space-x-4 text-sm text-muted-foreground">
-          <div className="flex items-center">
-            <CircleIcon className="mr-1 h-3 w-3 fill-sky-400 text-sky-400" />
-            {contest.problems?.length} Problems
-          </div>
-          <div className="flex items-center">
-            <PersonIcon className="mr-1 h-3 w-3" />
-            {contest.participants?.length} Participants
-          </div>
-
-          <div>
-            Begins {format(new Date(contest.startTime), "MMMM do, yyyy")}
+      <CardContent className="w-full">
+        <div className="flex flex-row items-center gap-6 text-sm text-muted-foreground">
+          <div className="flex flex-row items-center gap-6">
+            <div className="flex items-center flex-row">
+              <CircleIcon className="mr-1 h-3 w-3 fill-osu text-osu" />
+              <p>{contest.problems?.length} Problems</p>
+            </div>
+            <div className="flex items-center">
+              <PersonIcon className="mr-1 h-3 w-3" />
+              <p>{contest.participants?.length} Participants</p>
+            </div>
+            <div className="flex items-center">
+              <Clock className="mr-1 size-4 md:mr-2 md:size-4" />
+              <p className="w-[200%] md:w-full">
+                {format(new Date(startTime), "MMM d, h:mm a")} -{" "}
+                {format(new Date(endTime), "MMM d, h:mm a")}
+              </p>
+            </div>
           </div>
         </div>
       </CardContent>

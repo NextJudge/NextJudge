@@ -1,51 +1,33 @@
 "use client";
 
 import "@/app/globals.css";
-import { Button } from "@/components/ui/button";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import Editor, { loader } from "@monaco-editor/react";
+import "katex/dist/katex.min.css";
 import { useTheme } from "next-themes";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useCollapse } from "react-collapsed";
-import Latex from "react-latex";
-import Split from "react-split";
 
 const problemStatement = `
-Given a general quadratic equation of the form
-$$ax^{2} + bx + c = 0$$
-with $x$ representing an unknown, with $a$, $b$ and $c$ representing constants, and with $a \\ne 0$, the quadratic formula is:
-$$x = \\frac{-b \\pm \\sqrt{b^{2} - 4ac}}{2a}$$
-
+Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
 `;
-const BRIDGE_ENDPOINT = `http://localhost:8080/api/v1`;
 
+// const BRIDGE_ENDPOINT = `http://localhost:8080/api/v1`;
 export default function EditorComponent() {
-  const [code, setCode] = useState(`/**
-    * @param {string}
-    * @return {boolean}
-    */
-
-    var isPathCrossing = function(path) {
-        let x = 0;
-        let y = 0;
-        const set = new Set();
-        set.add(x + "," + y);
-        for (let i = 0; i < path.length; i++) {
-            if (path[i] === "N") {
-                y++;
-            } else if (path[i] === "S") {
-                y--;
-            } else if (path[i] === "E") {
-                x++;
-            } else if (path[i] === "W") {
-                x--;
-            }
-            if (set.has(x + "," + y)) {
-                return true;
-            }
-            set.add(x + "," + y);
-        }
-        return false;
-    };`);
+  const [code, setCode] = useState(`// Write your code below
+const twoSum = (nums: number[], target: number) => {
+    const map = new Map();
+    for (let i = 0; i < nums.length; i++) {
+        const complement = target - nums[i];
+        if (map.has(complement)) return [map.get(complement), i];
+        map.set(nums[i], i);
+    }
+};
+    `);
   const editorRef = useRef<any>();
   const [languages, setLanguages] = useState<any>([]);
   const [isExpanded, setExpanded] = useState(true);
@@ -84,38 +66,37 @@ export default function EditorComponent() {
   };
 
   return (
-    <>
-      <Split
-        sizes={[20, 90]}
-        minSize={450}
-        maxSize={1000}
-        expandToMin={false}
-        gutterSize={20}
-        className="split"
-        direction="horizontal"
-      >
-        <div className="panel sum max-h-[calc(100vh-4rem)] overflow-y-auto max-w-full p-4">
-          <div>
-            <Latex>{problemStatement}</Latex>
-          </div>
-        </div>
-        <div className="panel mx-auto p-4">
-          <div className="flex w-full flex-row justify-between space-x-4 rounded-md border-1 border-neutral-600 px-12 text-center">
-            <div className="flex flex-col items-center justify-center gap-12 align-middle my-2">
-              <Button onClick={() => {}}>Submit</Button>
+    <div className="w-full h-full">
+      <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel maxSize={40} defaultSize={30}>
+          {/* problem details */}
+          <div className="w-full h-full p-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold">Problem Statement</h1>
+              <div className="flex items-center space-x-4">
+                <button className="btn btn-primary">Submit</button>
+                <button className="btn btn-secondary">Reset</button>
+              </div>
+            </div>
+            <div className="prose">
+              <p>{problemStatement}</p>
             </div>
           </div>
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel maxSize={80} defaultSize={60}>
+          {/* editor */}
           <Editor
             language={"cpp"}
-            defaultLanguage="cpp"
+            defaultLanguage="typescript"
             loading={<div>Loading...</div>}
             theme={theme === "dark" ? "myTheme" : "vs-light"}
             value={code}
-            className={`panel min-h-[calc(100vh-10rem)] min-w-[100%] rounded-md border-2 border-slate-600/25`}
+            className={`min-h-[85dvh] w-[100%]`}
             options={{
               formatOnPaste: true,
               formatOnType: true,
-              fontSize: 14,
+              fontSize: 16,
               cursorStyle: "line",
               cursorSmoothCaretAnimation: "on",
               cursorBlinking: "smooth",
@@ -128,8 +109,8 @@ export default function EditorComponent() {
             onChange={handleCodeChange}
             onMount={handleEditorDidMount}
           />
-        </div>
-      </Split>
-    </>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </div>
   );
 }

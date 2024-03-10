@@ -1,40 +1,8 @@
-import { cn } from "@/lib/utils";
 import { ContestCard } from "./admin/contests/contest-card";
+import { RecentSubmissionCard } from "./problems/components/recent-submissions";
+import { recentSubmissions } from "./problems/data/data";
 
 export default async function PlatformHome() {
-  const recentSubmissions = [
-    {
-      id: 1,
-      status: "FAILED",
-      language: "C++",
-      problem: "A. Way Too Long Words",
-    },
-    {
-      id: 2,
-      status: "PENDING",
-      language: "Python",
-      problem: "B. Watermelon",
-    },
-    {
-      id: 3,
-      status: "ACCEPTED",
-      language: "C++",
-      problem: "C. Two Arrays",
-    },
-    {
-      id: 4,
-      status: "ACCEPTED",
-      language: "C++",
-      problem: "D. Omkar and Bed Wars",
-    },
-    {
-      id: 5,
-      status: "PENDING",
-      language: "Python",
-      problem: "E. Omkar and Password",
-    },
-  ];
-
   const recentContests = [
     {
       id: 1,
@@ -98,7 +66,7 @@ export default async function PlatformHome() {
     console.log("Deleting contest with id: ", id);
   };
   return (
-    <div className="flex flex-1 flex-col lg:flex-row md:space-x-20 lg:space-y-0 px-12 justify-center items-start">
+    <div className="max-w-7xl w-full flex-1 flex-col space-y-8 p-8 mx-8 md:flex">
       {/* Contests */}
       <div className="flex flex-col space-y-4">
         <div className="flex items-center justify-between gap-8">
@@ -109,7 +77,7 @@ export default async function PlatformHome() {
         </div>
 
         {/* Contest Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 max-w-4xl gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {recentContests.map((contest, idx) => (
             <ContestCard key={idx} contest={contest} />
           ))}
@@ -126,35 +94,9 @@ export default async function PlatformHome() {
         </div>
 
         {/* Submission Cards */}
-        <div className="space-y-3 min-w-64">
+        <div className="grid grid-cols-1 gap-4">
           {recentSubmissions.map((submission) => (
-            <div
-              key={submission.id}
-              className="hover:bg-neutral-900 transition-colors duration-100 ease-in-out rounded-md cursor-pointer"
-            >
-              <div className="flex items-center gap-4 p-4 border-[0.5px] rounded-md">
-                <div className="flex-1 space-y-4 min-w-64">
-                  <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm font-medium leading-none">
-                      {submission.problem}
-                    </p>
-                    <p
-                      className={cn(
-                        submission.status === "ACCEPTED" && "text-green-600",
-                        submission.status === "PENDING" && "text-yellow-600",
-                        submission.status === "FAILED" && "text-red-600",
-                        "text-sm font-light brightness-75 leading-none justify-self-end"
-                      )}
-                    >
-                      {submission.status}
-                    </p>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {submission.language}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <RecentSubmissionCard key={submission.id} submission={submission} />
           ))}
         </div>
       </div>

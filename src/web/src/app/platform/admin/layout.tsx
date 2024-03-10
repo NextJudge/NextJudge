@@ -3,52 +3,16 @@ import { Metadata } from "next";
 import { BreadcrumbWithDropdown } from "@/components/nav/crumb";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Separator } from "@/components/ui/separator";
+import { links, sidebarNavItems } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Admin",
   description: "Manage your various contests, problems, and submissions.",
 };
 
-export const sidebarNavItems = [
-  {
-    title: "Profile",
-    href: "/platform/admin",
-  },
-  {
-    title: "Problems",
-    href: "/platform/admin/problems",
-  },
-  {
-    title: "Contests",
-    href: "/platform/admin/contests",
-  },
-];
-
 interface SettingsLayoutProps {
   children: React.ReactNode;
 }
-
-const links = [
-  {
-    label: "Admin",
-    href: "/platform/admin",
-    dropdown: true,
-    dropdownLinks: [
-      {
-        label: "Profile",
-        href: "/platform/admin",
-      },
-      {
-        label: "Problems",
-        href: "/platform/admin/problems",
-      },
-      {
-        label: "Contests",
-        href: "/platform/admin/contests",
-      },
-    ],
-  },
-];
 
 export default function AdminLayout({ children }: SettingsLayoutProps) {
   return (

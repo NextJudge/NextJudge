@@ -77,7 +77,7 @@ export const columns: ColumnDef<Problem>[] = [
     cell: ({ row }) => {
       return (
         <div className="flex w-[100px] items-center">
-          <span className="flex-shrink-0 w-3 h-3 rounded-full bg-gray-300" />
+          <span className="flex-shrink-0 w-3 h-3 rounded-full bg-osu" />
           <span className="ml-2">{row.getValue("author")}</span>
         </div>
       );

@@ -1,3 +1,4 @@
+@import url("https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -78,43 +79,4 @@
     @apply antialiased;
     scroll-behavior: smooth;
   }
-}
-
-.split {
-  display: flex;
-  flex-direction: row;
-  margin: 0;
-}
-
-.split-2 {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-}
-
-.gutter {
-  background-repeat: no-repeat;
-  background-position: 50%;
-  margin: 0;
-}
-
-.gutter.gutter-horizontal {
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==");
-  cursor: col-resize;
-  margin: 0;
-}
-
-.gutter.gutter-vertical {
-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=");
-  cursor: row-resize;
-}
-
-.panel {
-  height: 100%;
-  margin: 0;
-}
-
-.panel-2 {
-  flex: 1;
-  margin: 0;
 }

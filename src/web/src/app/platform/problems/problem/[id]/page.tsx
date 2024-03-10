@@ -1,6 +1,10 @@
 import EditorComponent from "@/components/editor";
-import "../globals.css";
+import "@/app/globals.css";
 
 export default function Editor() {
-  return <EditorComponent />;
+  return (
+    <div className="flex flex-col h-full w-full max-h-screen">
+      <EditorComponent />
+    </div>
+  );
 }

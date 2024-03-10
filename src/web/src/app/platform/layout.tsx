@@ -15,7 +15,7 @@ export default function PlatformLayout({ children }: PlatformLayoutProps) {
   return (
     <>
       <PlatformNavbar />
-      <main className="flex flex-row items-center justify-center overflow-x-hidden py-10">
+      <main className="flex flex-row items-center justify-center overflow-x-hidden">
         {children}
       </main>
     </>
