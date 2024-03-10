@@ -17,7 +17,7 @@ interface SettingsLayoutProps {
 export default function AdminLayout({ children }: SettingsLayoutProps) {
   return (
     <>
-      <div className="hidden space-y-6 px-10 max-w-7xl md:block w-full">
+      <div className="hidden space-y-6 px-10 max-w-7xl md:block w-full py-10">
         <BreadcrumbWithDropdown crumbs={links} />
         <div className="space-y-0.5">
           <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
