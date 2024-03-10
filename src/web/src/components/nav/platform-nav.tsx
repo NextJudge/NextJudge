@@ -10,54 +10,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
+import { routeList } from "@/lib/constants";
 import { Menu, Pyramid } from "lucide-react";
-import { MainNavigationMenu, routeList } from "../navbar";
+import { MainNavigationMenu } from "../navbar";
 import { ModeToggle } from "../theme";
 import { Button, buttonVariants } from "../ui/button";
-
-const platformRoutes = [
-  {
-    href: "/platform",
-    label: "Home",
-  },
-  {
-    href: "/platform/contests",
-    label: "Contests",
-  },
-  {
-    href: "/platform/problems",
-    label: "Problems",
-  },
-  {
-    href: "/platform/admin",
-    label: "Admin",
-  },
-];
-
-const directoryRoutes = {
-  infosNav: [
-    {
-      title: "Directory",
-      items: [
-        {
-          title: "Recent Submissions",
-          href: "/platform/problems#submissions",
-          description: "Tried submitting a solution? Here's your latest.",
-        },
-        {
-          title: "Upcoming Contests",
-          href: "/platform/contests",
-          description: "Check out the upcoming contests.",
-        },
-        {
-          title: "Editorials",
-          href: "/platform/editorials",
-          description: "Read the editorials for the problems.",
-        },
-      ],
-    },
-  ],
-};
 
 export default function PlatformNavbar() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -69,9 +26,6 @@ export default function PlatformNavbar() {
           <a href="/" className=" font-bold text-xl">
             NextJudge
           </a>
-          <div className="hidden md:flex">
-            <ModeToggle />
-          </div>
         </div>
 
         {/* mobile */}
@@ -106,6 +60,7 @@ export default function PlatformNavbar() {
 
         <div className="hidden md:flex flex-row gap-4 justify-center items-center mx-12">
           <MainNavigationMenu />
+          <ModeToggle />
         </div>
       </div>
     </header>
