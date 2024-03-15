@@ -1,3 +1,4 @@
+import EditorNavbar from "@/components/editor-nav";
 import PlatformNavbar from "@/components/nav/platform-nav";
 import { Metadata } from "next";
 
@@ -11,7 +12,7 @@ interface PlatformLayoutProps {
   children: React.ReactNode;
 }
 
-export default function PlatformLayout({ children }: PlatformLayoutProps) {
+export default function EditorLayout({ children }: PlatformLayoutProps) {
   return (
     <>
       <main className="flex flex-col items-center justify-center overflow-x-hidden">

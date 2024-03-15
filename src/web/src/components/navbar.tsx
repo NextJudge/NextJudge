@@ -28,7 +28,7 @@ import { buttonVariants } from "./ui/button";
 
 // having three nav components in this file is kinda confusing we'll need to refactor this later
 
-export default function Navbar() {
+export function Navbar() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   return (
     <header className="sticky border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-neutral-500/40 dark:bg-background">
@@ -109,7 +109,7 @@ export function MainNavigationMenu() {
   const infos = directoryRoutes.infosNav[0];
   return (
     <NavigationMenu>
-      <NavigationMenuList className="flex gap-0 max-w-screen">
+      <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuTrigger>{infos.title}</NavigationMenuTrigger>
           <NavigationMenuContent>
@@ -129,21 +129,21 @@ export function MainNavigationMenu() {
                 </a>
               </li>
               {infos.items?.map((info) => (
-                <ListItem key={info.title} {...info} />
+                <li key={info.title}>
+                  <ListItem key={info.title} {...info} />
+                </li>
               ))}
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>
         {/* holy hack */}
-        <li className="flex">
-          {platformRoutes.map((link) => (
-            <NavigationMenuItem key={link.label}>
-              <a href={link.href} className={navigationMenuTriggerStyle()}>
-                {link.label}
-              </a>
-            </NavigationMenuItem>
-          ))}
-        </li>
+        {platformRoutes.map((link) => (
+          <NavigationMenuItem key={link.label}>
+            <a href={link.href} className={navigationMenuTriggerStyle()}>
+              {link.label}
+            </a>
+          </NavigationMenuItem>
+        ))}
       </NavigationMenuList>
     </NavigationMenu>
   );
@@ -159,25 +159,23 @@ const ListItem: React.FC<any> = ({
   const target = external ? "_blank" : undefined;
 
   return (
-    <li>
-      <a
-        href={disabled ? undefined : href}
-        target={target}
-        className={cn(
-          "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-          disabled
-            ? "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-            : ""
-        )}
-      >
-        <div className="flex items-center justify-between">
-          <span className="mr-2">{title}</span>
-        </div>
-        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-          {description}
-        </p>
-      </a>
-    </li>
+    <a
+      href={disabled ? undefined : href}
+      target={target}
+      className={cn(
+        "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+        disabled
+          ? "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+          : ""
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <span className="mr-2">{title}</span>
+      </div>
+      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+        {description}
+      </p>
+    </a>
   );
 };
 

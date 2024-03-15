@@ -1,4 +1,4 @@
-import Navbar from "@/components/navbar";
+import { Navbar } from "@/components/navbar";
 import * as React from "react"
 
 // Import setup for creating a data table for user activities

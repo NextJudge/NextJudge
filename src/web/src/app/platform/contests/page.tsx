@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { ContestCard } from "../admin/contests/contest-card";
+import PlatformNavbar from "@/components/nav/platform-nav";
 
 export const metadata: Metadata = {
   title: "NextJudge - Problems",
@@ -99,6 +100,7 @@ export default async function ProblemsPage() {
   const upcomingContests = await getThreeMostRecentContests();
   return (
     <>
+      <PlatformNavbar />
       <div className="max-w-7xl w-full flex-1 flex-col space-y-4 p-8 mx-8 md:flex">
         <div className="flex items-center justify-between space-y-4">
           <div className="space-y-2">
