@@ -26,8 +26,8 @@
         "@radix-ui/react-slot": "^1.0.2",
         "@radix-ui/react-tabs": "^1.0.4",
         "@radix-ui/react-toast": "^1.1.5",
+        "@radix-ui/react-tooltip": "^1.0.7",
         "@tanstack/react-table": "^8.13.2",
-        "@types/katex": "^0.16.7",
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.0",
         "cmdk": "^0.2.1",
@@ -50,10 +50,12 @@
         "react-split": "^2.0.14",
         "tailwind-merge": "^2.2.1",
         "tailwindcss-animate": "^1.0.7",
-        "zod": "^3.22.4"
+        "zod": "^3.22.4",
+        "zustand": "^4.5.2"
     },
     "devDependencies": {
-        "@types/node": "^20",
+        "@types/katex": "^0.16.7",
+        "@types/node": "^20.11.27",
         "@types/react": "^18",
         "@types/react-dom": "^18",
         "@types/react-latex": "^2.0.3",
