@@ -53,12 +53,12 @@ export function EditorThemeSelector({
   //     })();
   //   }, []);
 
-  console.log({
-    themes,
-    selectedTheme,
-    onSelect,
-    value,
-  });
+  //   console.log({
+  //     themes,
+  //     selectedTheme,
+  //     onSelect,
+  //     value,
+  //   });
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

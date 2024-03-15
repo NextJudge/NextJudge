@@ -134,7 +134,7 @@ const twoSum = (nums: number[], target: number) => {
               )}
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel mma>
+            <ResizablePanel>
               <div className="h-full w-full flex items-center justify-between p-4">
                 <div className="flex items-center space-x-4">
                   <Button

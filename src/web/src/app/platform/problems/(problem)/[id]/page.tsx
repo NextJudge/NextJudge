@@ -50,19 +50,12 @@ export default function Editor() {
     }
   };
 
-  console.log({
-    getColorScheme: getColorScheme(),
-    resolvedTheme,
-    selectedTheme,
-    defaultColorScheme,
-  });
-
   useLayoutEffect(() => {
     if (selectedTheme?.name !== getColorScheme() && selectedTheme) {
       (async () => {
         fetch(selectedTheme.fetch).then(async (response) => {
           const data = await response.json();
-          console.log(data, "This is the data");
+          //   console.log(data, "This is the data");
           loader.init().then((monaco) => {
             monaco.editor.defineTheme(selectedTheme.name!, {
               ...data,
