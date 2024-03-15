@@ -6,33 +6,42 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import Editor, { loader } from "@monaco-editor/react";
+import { cn } from "@/lib/utils";
+import { loader } from "@monaco-editor/react";
 import "katex/dist/katex.min.css";
 import { useTheme } from "next-themes";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useCollapse } from "react-collapsed";
+import { ImperativePanelHandle } from "react-resizable-panels";
+import CodeEditor from "./code-editor";
+
+import { EditorSkeleton } from "@/components/editor-skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 const problemStatement = `
 Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
 `;
 
 // const BRIDGE_ENDPOINT = `http://localhost:8080/api/v1`;
-export default function EditorComponent() {
-  const [code, setCode] = useState(`// Write your code below
-const twoSum = (nums: number[], target: number) => {
-    const map = new Map();
-    for (let i = 0; i < nums.length; i++) {
-        const complement = target - nums[i];
-        if (map.has(complement)) return [map.get(complement), i];
-        map.set(nums[i], i);
-    }
-};
-    `);
+export default function EditorComponent({
+  themes,
+  onSelect,
+  selectedTheme,
+  isThemeLoaded,
+  setIsThemeLoaded,
+}: any) {
   const editorRef = useRef<any>();
   const [languages, setLanguages] = useState<any>([]);
   const [isExpanded, setExpanded] = useState(true);
   const [submissionId, setSubmissionId] = useState(0);
-
+  const [loading, setLoading] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const ref = useRef<ImperativePanelHandle>(null);
   const { getCollapseProps, getToggleProps } = useCollapse({ isExpanded });
   const [submissionStatus, setSubmissionStatus] = useState("Loading");
   const supportedLanguages = [
@@ -46,14 +55,7 @@ const twoSum = (nums: number[], target: number) => {
   const { theme } = useTheme();
   useLayoutEffect(() => {
     loader.init().then((monaco) => {
-      monaco.editor.defineTheme("myTheme", {
-        base: "vs-dark",
-        inherit: true,
-        rules: [],
-        colors: {
-          "editor.background": "#1e1e1e",
-        },
-      });
+      setLoading(false);
     });
   }, []);
 
@@ -61,56 +63,116 @@ const twoSum = (nums: number[], target: number) => {
     editorRef.current = editor;
   }
 
-  const handleCodeChange = (ev: any) => {
-    setCode(ev.target.value);
-  };
+  const collapse = useCallback(() => {
+    if (ref.current) {
+      ref.current.collapse();
+      setIsCollapsed(true);
+    }
+  }, [ref]);
+
+  const expand = useCallback(() => {
+    if (ref.current) {
+      ref.current.expand();
+      setIsCollapsed(false);
+    }
+  }, [ref]);
 
   return (
-    <div className="w-full h-full">
-      <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel maxSize={40} defaultSize={30}>
-          {/* problem details */}
-          <div className="w-full h-full p-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">Problem Statement</h1>
-              <div className="flex items-center space-x-4">
-                <button className="btn btn-primary">Submit</button>
-                <button className="btn btn-secondary">Reset</button>
+    <TooltipProvider delayDuration={0}>
+      <div>
+        <ResizablePanelGroup
+          direction="horizontal"
+          className={cn(
+            "relative max-w-screen rounded-lg border max-h-screen w-full"
+          )}
+        >
+          {/* Problem Statement Section */}
+          <ResizablePanel
+            defaultSize={25}
+            className={cn("min-h-[calc(100vh-4rem)] w-full", {
+              "transition-all duration-100": !isCollapsed,
+              "transition-all duration-75": isCollapsed,
+            })}
+            style={{ overflow: "auto" }}
+            ref={ref}
+            collapsible
+            minSize={10}
+            onCollapse={collapse}
+          >
+            <div className="overflow-auto">
+              <div className=" p-4 overflow-auto">
+                <div className="flex flex-col min-w-72 max-w-full gap-1">
+                  <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-bold">Problem Statement</h1>
+                  </div>
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex flex-col">
+                      <p className="text-lg">{problemStatement}</p>
+                    </div>
+                  </div>
+                  <div>{/* Render Latex */}</div>
+                </div>
               </div>
             </div>
-            <div className="prose">
-              <p>{problemStatement}</p>
-            </div>
+            {/* Collapsed */}
+          </ResizablePanel>
+          <div className="flex flex-col dark:border-r border-r dark:border-neutral-800 items-center justify-center border-secondary-muted">
+            <Tooltip>
+              <TooltipTrigger>
+                <ResizableHandle
+                  withHandle
+                  className={cn({
+                    "transform translate-x-2 z-50": isCollapsed,
+                  })}
+                  onClickCapture={() => {
+                    if (isCollapsed) {
+                      expand();
+                    } else {
+                      collapse();
+                    }
+                  }}
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Resize</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel maxSize={80} defaultSize={60}>
-          {/* editor */}
-          <Editor
-            language={"cpp"}
-            defaultLanguage="typescript"
-            loading={<div>Loading...</div>}
-            theme={theme === "dark" ? "myTheme" : "vs-light"}
-            value={code}
-            className={`min-h-[85dvh] w-[100%]`}
-            options={{
-              formatOnPaste: true,
-              formatOnType: true,
-              fontSize: 16,
-              cursorStyle: "line",
-              cursorSmoothCaretAnimation: "on",
-              cursorBlinking: "smooth",
-              cursorWidth: 1,
-              cursorSurroundingLines: 1,
-              multiCursorModifier: "ctrlCmd",
-              scrollBeyondLastLine: false,
-            }}
-            beforeMount={handleEditorDidMount}
-            onChange={handleCodeChange}
-            onMount={handleEditorDidMount}
-          />
-        </ResizablePanel>
-      </ResizablePanelGroup>
-    </div>
+          <ResizablePanel
+            defaultSize={75}
+            className="w-[70dvw] max-w-screen-2xl"
+          >
+            <ResizablePanelGroup direction="vertical" className="h-full w-full">
+              <ResizablePanel
+                defaultSize={80}
+                minSize={40}
+                className="min-w-full"
+              >
+                <div className="flex w-full h-full items-center justify-center overflow-y-scroll">
+                  {loading && <EditorSkeleton />}
+                  {!loading && (
+                    <CodeEditor
+                      themes={themes}
+                      onSelect={onSelect}
+                      selectedTheme={selectedTheme}
+                      isThemeLoaded={isThemeLoaded}
+                      setIsThemeLoaded={setIsThemeLoaded}
+                    />
+                  )}
+                </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={10}>
+                <div className="flex h-full items-center justify-center p-6">
+                  <div className="flex flex-col gap-4">
+                    <h3 className="text-lg font-bold">Submission Status</h3>
+                  </div>
+                </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+    </TooltipProvider>
   );
 }
