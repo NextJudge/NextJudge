@@ -53,3 +53,8 @@ export interface Language {
   extension: string;
   version: string;
 }
+
+export type Theme = {
+  name: string;
+  fetch: string;
+};

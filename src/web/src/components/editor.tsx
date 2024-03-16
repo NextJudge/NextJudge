@@ -7,75 +7,47 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
-import { loader } from "@monaco-editor/react";
 import "katex/dist/katex.min.css";
-import { useTheme } from "next-themes";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { useCollapse } from "react-collapsed";
-import { ImperativePanelHandle } from "react-resizable-panels";
+import { useContext } from "react";
 import CodeEditor from "./code-editor";
-
+import markdownFile from "@/md/twosum.md";
 import { EditorSkeleton } from "@/components/editor-skeleton";
+import { useEditorCollapse } from "@/hooks/useEditorCollapse";
+import { useEditorTheme } from "@/hooks/useEditorTheme";
+import { useThemesLoader } from "@/hooks/useThemeLoader";
+import { ThemeContext } from "@/providers/editor-theme";
+import { Theme } from "@/types";
+import { useTheme } from "next-themes";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import MarkdownRenderer from "./markdown-renderer";
 
 const problemStatement = `
 Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
 `;
 
+const darkDefault: Theme = {
+  name: "brilliance-black",
+  fetch: "/themes/Brilliance Black.json",
+};
+const lightDefault: Theme = {
+  name: "github-light",
+  fetch: "/themes/GitHub Light.json".replace(" ", "%20"),
+};
+
 // const BRIDGE_ENDPOINT = `http://localhost:8080/api/v1`;
-export default function EditorComponent({
-  themes,
-  onSelect,
-  selectedTheme,
-  isThemeLoaded,
-  setIsThemeLoaded,
-}: any) {
-  const editorRef = useRef<any>();
-  const [languages, setLanguages] = useState<any>([]);
-  const [isExpanded, setExpanded] = useState(true);
-  const [submissionId, setSubmissionId] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const ref = useRef<ImperativePanelHandle>(null);
-  const { getCollapseProps, getToggleProps } = useCollapse({ isExpanded });
-  const [submissionStatus, setSubmissionStatus] = useState("Loading");
-  const supportedLanguages = [
-    { language: "C++", extension: "cpp" },
-    { language: "Python", extension: "py" },
-    { language: "Go", extension: "go" },
-    { language: "Java", extension: "java" },
-    { language: "Node", extension: "ts" },
-  ];
-
-  const { theme } = useTheme();
-  useLayoutEffect(() => {
-    loader.init().then((monaco) => {
-      setLoading(false);
-    });
-  }, []);
-
-  function handleEditorDidMount(editor: any) {
-    editorRef.current = editor;
-  }
-
-  const collapse = useCallback(() => {
-    if (ref.current) {
-      ref.current.collapse();
-      setIsCollapsed(true);
-    }
-  }, [ref]);
-
-  const expand = useCallback(() => {
-    if (ref.current) {
-      ref.current.expand();
-      setIsCollapsed(false);
-    }
-  }, [ref]);
+export default function EditorComponent({}: any) {
+  const { isCollapsed, ref, collapse, expand } = useEditorCollapse();
+  const { resolvedTheme } = useTheme();
+  const defaultColorScheme =
+    resolvedTheme === "dark" ? darkDefault : lightDefault;
+  const { setTheme } = useContext(ThemeContext);
+  const { themes, loading } = useThemesLoader();
+  const { onSelect } = useEditorTheme(resolvedTheme, defaultColorScheme);
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -89,10 +61,7 @@ export default function EditorComponent({
           {/* Problem Statement Section */}
           <ResizablePanel
             defaultSize={25}
-            className={cn("min-h-[calc(100vh-4rem)] w-full", {
-              "transition-all duration-100": !isCollapsed,
-              "transition-all duration-75": isCollapsed,
-            })}
+            className={cn("min-h-[calc(100vh-4rem)] w-full")}
             style={{ overflow: "auto" }}
             ref={ref}
             collapsible
@@ -101,16 +70,11 @@ export default function EditorComponent({
           >
             <div className="overflow-auto">
               <div className=" p-4 overflow-auto">
-                <div className="flex flex-col min-w-72 max-w-full gap-1">
+                <div className="flex flex-col min-w-72 max-w-2xl gap-1">
                   <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold">Problem Statement</h1>
                   </div>
-                  <div className="flex flex-col space-y-4">
-                    <div className="flex flex-col">
-                      <p className="text-lg">{problemStatement}</p>
-                    </div>
-                  </div>
-                  <div>{/* Render Latex */}</div>
+                  <MarkdownRenderer markdown={markdownFile} />
                 </div>
               </div>
             </div>
@@ -150,15 +114,7 @@ export default function EditorComponent({
               >
                 <div className="flex w-full h-full items-center justify-center overflow-y-scroll">
                   {loading && <EditorSkeleton />}
-                  {!loading && (
-                    <CodeEditor
-                      themes={themes}
-                      onSelect={onSelect}
-                      selectedTheme={selectedTheme}
-                      isThemeLoaded={isThemeLoaded}
-                      setIsThemeLoaded={setIsThemeLoaded}
-                    />
-                  )}
+                  {!loading && <CodeEditor themes={themes} />}
                 </div>
               </ResizablePanel>
               <ResizableHandle withHandle />

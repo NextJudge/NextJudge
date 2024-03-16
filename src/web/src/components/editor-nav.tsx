@@ -17,7 +17,7 @@ import { routeList } from "@/lib/constants";
 import { Menu, Pyramid } from "lucide-react";
 
 // TODO: Feed these props from Zustand (global state solution)
-export default function EditorNavbar({ themes, onSelect, selectedTheme }: any) {
+export default function EditorNavbar() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   return (
     <header className="border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-neutral-500/40 dark:bg-background">

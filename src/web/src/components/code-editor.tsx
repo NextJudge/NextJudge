@@ -1,17 +1,11 @@
 "use client";
-import Editor, { loader } from "@monaco-editor/react";
+import { ThemeContext } from "@/providers/editor-theme";
+import Editor from "@monaco-editor/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useTheme } from "next-themes";
-import { useCallback, useLayoutEffect, useState } from "react";
-import { EditorThemeSelector, Theme } from "./editor-combo";
+import { useContext, useState } from "react";
+import { EditorThemeSelector } from "./editor-theme-select";
 
-export default function CodeEditor({
-  themes,
-  onSelect,
-  selectedTheme,
-  isThemeLoaded,
-  setIsThemeLoaded,
-}: any) {
+export default function CodeEditor({ themes }: any) {
   const [code, setCode] = useState(`"use strict";
 const printLine = (x: string) => {
   console.log(x);
@@ -50,6 +44,8 @@ const main = () => {
   const handleCodeChange = (value: string | undefined) => {
     setCode(value!);
   };
+  const { theme } = useContext(ThemeContext);
+
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editor.focus();
     // add support for process
@@ -61,18 +57,16 @@ const main = () => {
     );
   };
 
+  console.log({ theme });
+
   return (
     <>
       <div className="h-full overflow-y-scroll min-w-full">
         <div className="flex justify-end my-2 px-2">
-          <EditorThemeSelector
-            onSelect={onSelect}
-            themes={themes}
-            selectedTheme={selectedTheme}
-          />
+          <EditorThemeSelector themes={themes} />
         </div>
         <AnimatePresence mode="wait">
-          {isThemeLoaded && (
+          {theme?.name && (
             <motion.div
               key={submissionId}
               initial={{ y: 0, opacity: 0 }}
@@ -83,8 +77,8 @@ const main = () => {
               <Editor
                 language={"cpp"}
                 defaultLanguage="typescript"
-                theme={selectedTheme?.name}
                 value={code}
+                theme={theme.name}
                 className={`min-h-screen w-[100%] overflow-y-scroll`}
                 options={{
                   formatOnPaste: true,
