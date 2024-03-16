@@ -20,24 +20,39 @@ The top-level `./deploy.sh` will instantiate all modules using Docker compose in
 
 For quick iteration, we provide two different methods of setting up a local deployment.
 
-### 1. Running everything on host
+### 1. Docker with hot reload
 
-The first method attempts to install the following tools locally:
+The first option will use Docker, but will mount folders containing applications data, allowing for hot reload when changing the files on the host. This prevents the need to install the compilers and runtime tools onto the host (Bun, Rust, Go), while still allowing rapid development, avoiding the need to restart the Docker containers constantly.
 
 ```sh
-redis
-go
-bun
-node
+./dev-docker-run.sh
 ```
 
-We still run postgres & the judge in the Docker container. Run the `./dev-host-init.sh` script to set these up.
+To flush the database and remove all volumes (completely refreshing the Docker environments), run the following script:
+
+```sh
+./fully-reset.sh
+```
+
+### 2. Running everything on host
+
+The second involves running most tools on the host. It requires the following to be installed and accessible via the $PATH variable:
+
+```sh
+redis-server
+go
+bun
+node/npm
+docker
+```
+
+We still run postgres and the judge in the Docker container. Run the `./dev-host-init.sh` script for a one-time setup of these Docker containers.
 
 ```sh
 ./init-dev-host.sh
 ```
 
-Now, start it with:
+Now, whenever you want to start the service:
 ```sh
 ./start-dev-host.sh
 ```
@@ -47,13 +62,7 @@ To bring it all down, run:
 ./kill-dev-host.sh
 ```
 
-### 2. Docker with hot reload
 
-The second option will use Docker, but will mount folders containing applications data, allowing for hot reload when changing the files on the host. This prevents the need to install the compilers and runtime tools onto the host (Bun, Rust, Go), while still allowing rapid development, avoiding the need to restart the Docker containers constantly.
-
-```sh
-./dev-docker-run.sh
-```
 
 
 ### Prerequisites

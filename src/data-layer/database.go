@@ -231,7 +231,7 @@ func (d Database) CreateProblem(problem *Problem) (*Problem, error) {
 	}
 
 	for i, testCase := range problem.TestCases {
-		err = testCaseStmt.QueryRow(res.ID, testCase.Input, testCase.ID).Scan(&problem.TestCases[i].ID)
+		err = testCaseStmt.QueryRow(res.ID, testCase.Input, testCase.ExpectedOutput).Scan(&problem.TestCases[i].ID)
 		if err != nil {
 			return nil, err
 		}

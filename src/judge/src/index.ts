@@ -95,9 +95,10 @@ export function compare_input_output(expected: string, real: string): boolean
 
 async function submit_judgement(submission: Submission, success: boolean)
 {
+    // TODO: make the non-accepted case more specific
     const body = JSON.stringify({
         submission_id: submission.id,
-        success: success ? "SUCCESS" : "FAIL"
+        success: success ? "ACCEPTED" : "WRONG_ANSWER"
     });
 
     console.log("Submitting judgement to bridge")
@@ -121,6 +122,7 @@ async function process_submission(submission: Submission)
 
     const final_submission_data = await db_submission_request.json();
     
+    console.log("FINAL DATA HERE")
     console.log(final_submission_data)
 
     const testcases = final_submission_data.test_cases as TestCase[];
