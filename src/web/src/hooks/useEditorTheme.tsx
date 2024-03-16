@@ -23,7 +23,7 @@ export const useEditorTheme = (
 
   useLayoutEffect(() => {
     loader.init().then((monaco) => {
-      monaco.editor.setTheme(theme?.name);
+      if (theme) monaco.editor.setTheme(theme.name);
       onSelect(theme || defaultColorScheme);
     });
   }, [theme]);
