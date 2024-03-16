@@ -7,6 +7,10 @@ import os
 import sys
 import yaml
 
+DATABASE_HOST=os.getenv("HOST") or "localhost"
+DATABASE_PORT=os.getenv("PORT") or "5000"
+
+
 parser = argparse.ArgumentParser(
     prog='Upload challenge',
     description='Upload a challenge to the NextJudge system',
@@ -43,14 +47,10 @@ for name in testcase_names:
         "expected_output": test_output
     })
 
-# print(title)
-# print(testcase_names)
-# print(test_cases)
+print(f"Title: {title}")
+print(f"Number of testcases: {len(test_cases)}")
 
-DATABASE_HOST="localhost"
-DATABASE_PORT="5000"
-
-r = requests.post(
+submit_problem = requests.post(
     f"http://{DATABASE_HOST}:{DATABASE_PORT}/v1/problems",
     json = {
       "title": title,
@@ -61,4 +61,9 @@ r = requests.post(
     }
 )
 
-print(r.status_code, r.text)
+response_json = submit_problem.json()
+
+print(submit_problem.status_code)
+if submit_problem.status_code == 200:
+    print("Successfully upload problem")
+    print(f"Problem ID: {response_json['id']}")

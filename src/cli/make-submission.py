@@ -16,8 +16,9 @@ parser.add_argument("solution_file_path")
 parser.add_argument("problem_id", type=int)
 args = parser.parse_args()
 
-BRIDGE_HOST="localhost"
-BRIDGE_PORT="3000"
+
+BRIDGE_HOST=os.getenv("HOST") or "localhost"
+BRIDGE_PORT=os.getenv("PORT") or "3000"
 
 sol_path: str = args.solution_file_path
 problem_id: int = args.problem_id
@@ -73,9 +74,10 @@ for i in range(20):
     )
 
     result = verdict.json()
+    status = result["status"]
 
-    if result["status"] != "pending" and result["status"] != "":
-        print(f"Verdict: {result['status']}")
+    if status != "PENDING" and status != "":
+        print(f"Verdict: {status}")
         print(time.time() - start_time)
         break
 
