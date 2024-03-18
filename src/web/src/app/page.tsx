@@ -7,7 +7,14 @@ import { FAQ } from "@/components/landing/faq";
 import { ScrollToTop } from "@/components/landing/scroll-up";
 import { Services } from "@/components/landing/services";
 import { Navbar } from "@/components/navbar";
+import { Metadata } from "next";
 import Image from "next/image";
+
+export const metadata: Metadata = {
+  title: "NextJudge - Elevate your coding skills to the next level.",
+  description:
+    "An all-new, competitive programming platform built for organizers, developers, and participants.",
+};
 
 export default function Home() {
   return (
