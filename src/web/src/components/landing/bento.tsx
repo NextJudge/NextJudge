@@ -18,7 +18,7 @@ import { Card } from "../ui/card";
 export function WhyNextJudge() {
   return (
     <section id="features" className="py-12">
-      <h1 className="text-4xl font-medium font-sans text-center max-w-2xl mx-auto">
+      <h1 className="text-lg md:text-4xl font-medium font-sans text-center max-w-2xl mx-auto">
         NextJudge offers all the tools you need to
         <span className="bg-gradient-to-r from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
           {" "}
