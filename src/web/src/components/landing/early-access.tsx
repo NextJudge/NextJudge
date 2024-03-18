@@ -10,7 +10,7 @@ export default function EarlyAccess() {
   };
   return (
     <section
-      className="container py-24 sm:py-32 dark:bg-grid-white/[0.04] bg-grid-black/[0.05]"
+      className="container py-24 sm:py-24 dark:bg-grid-white/[0.04] bg-grid-black/[0.05]"
       id="early-access"
     >
       <div className="relative container flex flex-col items-center justify-center py-32 space-x-64 w-full">
@@ -22,17 +22,16 @@ export default function EarlyAccess() {
             <p className="text-xl text-muted-foreground text-center mt-4 mb-8">
               Subscribe to our newsletter and get notified when we launch.
             </p>
-
             <form
               onSubmit={handleSubmit}
-              className="mx-20 flex flex-col w-full md:flex-row gap-4 md:gap-4"
+              className="flex flex-col w-full md:flex-row gap-4 md:gap-4 justify-center items-center mx-auto"
             >
               <Input
                 placeholder="leomirandadev@gmail.com"
                 className="bg-muted/50 dark:bg-muted/80 w-full md:w-8/12"
                 aria-label="email"
               />
-              <Button className="w-1/6">Subscribe</Button>
+              <Button className="w-full md:w-1/6">Subscribe</Button>
             </form>
           </div>
           <img
