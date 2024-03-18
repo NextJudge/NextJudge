@@ -91,7 +91,7 @@ export const problems: Problem[] = [
   },
   {
     id: "problem-3",
-    title: "Palindrome Checker",
+    title: "Is Palindrome",
     description: "Determine if a given string is a palindrome or not.",
     status: "open",
     submissions: 15,
@@ -176,5 +176,36 @@ export const recentSubmissions: RecentSubmission[] = [
     problem: problems[4],
     language: "C",
     status: "rejected",
+  },
+];
+
+export const serverRenderRecents: RecentSubmission[] = [
+  {
+    id: "submission-1",
+    time: "2024-03-02T00:00:00Z" as unknown as Date,
+    problem: problems[3],
+    language: "Go",
+    status: "rejected",
+  },
+  {
+    id: "submission-4",
+    time: "2024-03-12T00:00:00Z" as unknown as Date,
+    problem: problems[2],
+    language: "Swift",
+    status: "accepted",
+  },
+  {
+    id: "submission-5",
+    time: "2024-02-22T00:00:00Z" as unknown as Date,
+    problem: problems[4],
+    language: "JavaScript",
+    status: "pending",
+  },
+  {
+    id: "submission-6",
+    time: "2024-03-17T00:00:00Z" as unknown as Date,
+    problem: problems[1],
+    language: "Rust",
+    status: "accepted",
   },
 ];
