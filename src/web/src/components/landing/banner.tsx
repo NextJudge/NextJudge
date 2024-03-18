@@ -37,13 +37,13 @@ export function LanguagesBanner() {
           <InfiniteMovingCards
             items={secondRowItems}
             direction="left"
-            speed="slow"
+            speed="normal"
             pauseOnHover={false}
           />
           <InfiniteMovingCards
             items={firstRowItems}
             direction="right"
-            speed="slow"
+            speed="normal"
             pauseOnHover={false}
           />
         </div>
