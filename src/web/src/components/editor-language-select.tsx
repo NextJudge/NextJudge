@@ -14,11 +14,6 @@ export type Language = {
   version: string;
 };
 
-interface EditorLanguageSelectProps {
-  languages: Language[];
-  setCurrentLanguage: (language: string) => void;
-}
-
 const defaultLanguages: Language[] = [
   {
     id: 1,
@@ -77,6 +72,7 @@ export function EditorLanguageSelect() {
                 value={language.name}
                 onSelect={() => {
                   setCurrentLanguage(language);
+                  console.log(language);
                   setOpen(false);
                 }}
               >
