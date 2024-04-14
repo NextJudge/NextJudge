@@ -7,11 +7,6 @@ import { EditorThemeSelector } from "./editor-theme-select";
 import { EditorLanguageSelect } from "./editor-language-select";
 import { lang } from "moment";
 
-const availableLanguages = [
-  // Placeholder for bridge to front end connection
-];
-
-
 export default function CodeEditor({ themes, languages }: any) {
   const [code, setCode] = useState(`"use strict";
 const printLine = (x: string) => {
