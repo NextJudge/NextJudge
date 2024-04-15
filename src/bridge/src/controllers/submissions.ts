@@ -4,7 +4,7 @@ import * as amqp from "amqplib/callback_api"
 import { isValidToken } from "@util/main";
 import { JudgeEvent, SubmissionRequest, SubmissionResult } from "@util/types";
 import { randomUUID } from "node:crypto";
-import { REDIS_HOST, REDIS_PORT, RABBITMQ_HOST, RABBITMQ_PORT, DATABASE_HOST, DATABASE_PORT } from '@util/constants';
+import { RABBITMQ_HOST, RABBITMQ_PORT, DATABASE_HOST, DATABASE_PORT } from '@util/constants';
 import { SubmissionService } from '@classes/SubmissionService';
 import { sleep, sleepSync } from 'bun';
 import ApiService from '@classes/ApiService';

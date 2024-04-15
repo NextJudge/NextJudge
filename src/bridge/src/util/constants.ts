@@ -5,8 +5,6 @@ export const {
   JWT_SECRET,
   DATABASE_HOST,
   DATABASE_PORT,
-  REDIS_HOST,
-  REDIS_PORT,
   RABBITMQ_HOST,
   RABBITMQ_PORT
 } = process.env

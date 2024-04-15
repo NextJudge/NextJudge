@@ -16,11 +16,6 @@ services:
       - DATABASE_HOST=nextjudge-data-layer
     depends_on:
       - nextjudge-data-layer
-    
-  redis:
-    extends: 
-      file: src/bridge/docker-compose.yml
-      service: redis
       
   nextjudge-data-layer:
     extends: 
@@ -39,8 +34,6 @@ services:
       file: src/judge/docker-compose.yml
       service: nextjudge-judge
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
       - BRIDGE_HOST=nextjudge-bridge
       - BRIDGE_PORT=3000
     depends_on:
