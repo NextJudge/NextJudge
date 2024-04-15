@@ -22,13 +22,18 @@ COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
 # copy production dependencies and source code into final image
-FROM base AS release
+FROM base AS dev
 COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /app .
 COPY --from=prerelease /app/package.json .
 
 # run the app
 USER bun
 
 EXPOSE 3000
-ENTRYPOINT [ "bun", "run", "src/index.ts" ]
+
+CMD [ "bun", "--watch", "run", "src/index.ts" ]
+
+
+FROM dev as prod
+COPY --from=prerelease /app .
+CMD [ "bun", "run", "src/index.ts" ]

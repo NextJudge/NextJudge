@@ -1,4 +1,3 @@
-# version: '3.9'
 services:
   nextjudge-judge:
     build: 
@@ -14,3 +13,4 @@ services:
       - BRIDGE_PORT=3000
     volumes:
       - ./src/index.ts:/app/src/index.ts:ro
+      - ./src/app.py:/app/app.py:ro
