@@ -13,6 +13,5 @@ echo "Killing node and postgres and redis process"
 pkill node
 pkill postgres
 pkill bun
-pkill redis-server
 # TODO - rename the Go binary something less generic
 pkill main

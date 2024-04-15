@@ -8,7 +8,5 @@ services:
         - USAGE=prod
     privileged: true
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
       - BRIDGE_HOST=nextjudge-bridge
       - BRIDGE_PORT=3000
