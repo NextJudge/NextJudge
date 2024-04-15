@@ -7,4 +7,6 @@ export const {
   DATABASE_PORT,
   REDIS_HOST,
   REDIS_PORT,
+  RABBITMQ_HOST,
+  RABBITMQ_PORT
 } = process.env

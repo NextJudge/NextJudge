@@ -1,27 +1,37 @@
-version: '3.9'
 services:
-  nextjudge-frontend:
-    extends: 
-      file: src/web/docker-compose.yml
-      service: nextjudge-frontend
-    environment:
-      - VITE_BRIDGE_HOST=localhost # these are passed to the build in the form of import.meta.env
-      - VITE_BRIDGE_PORT=3000
+  # nextjudge-frontend:
+  #   extends: 
+  #     file: src/web/docker-compose.yml
+  #     service: nextjudge-frontend
+  #   environment:
+  #     - VITE_BRIDGE_HOST=localhost # these are passed to the build in the form of import.meta.env
+  #     - VITE_BRIDGE_PORT=3000
 
   nextjudge-bridge:
     extends: 
-      file: src/bridge/docker-compose.yml
+      file: src/bridge/docker-compose.dev.yml
       service: nextjudge-bridge
     environment:
       - DATABASE_HOST=nextjudge-data-layer
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
     depends_on:
-      - nextjudge-data-layer
-    
-  redis:
-    extends: 
-      file: src/bridge/docker-compose.yml
-      service: redis
+      rabbitmq:
+        condition: service_healthy
+      nextjudge-data-layer:
+        condition: service_started
+  # redis:
+  #   extends: 
+  #     file: src/bridge/docker-compose.yml
+  #     service: redis
       
+  rabbitmq:
+    extends: 
+      file: src/bridge/docker-compose.dev.yml
+      service: rabbitmq
+    environment:
+      - RABBITMQ_LOGS="error"
+
   nextjudge-data-layer:
     extends: 
       file: src/data-layer/docker-compose.go.yml
@@ -43,8 +53,11 @@ services:
       - REDIS_PORT=6379
       - BRIDGE_HOST=nextjudge-bridge
       - BRIDGE_PORT=3000
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
     depends_on:
-      - nextjudge-bridge
+      rabbitmq:
+        condition: service_healthy
       
 volumes: 
   postgres_data:

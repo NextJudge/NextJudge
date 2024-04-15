@@ -2,7 +2,7 @@ services:
   nextjudge-bridge:
     build:
       context: .
-      target: prod
+      target: dev
     ports:
       - 3000:3000
     environment:
@@ -15,6 +15,9 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     init: true
+    volumes:
+      - ./src/:/app/src/:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
 
   redis:
     image: redis
