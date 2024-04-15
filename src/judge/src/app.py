@@ -160,6 +160,9 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
         )
 
         if not compile_in_jail(submission_data):
+            # Compile time error
+
+            # TODO: make this a seperate "cleanup" function
 
             shutil.rmtree(BUILD_DIRECTORY)
             await submit_judgement(submission_data, False)
@@ -399,12 +402,11 @@ async def connect_to_rabbitmq():
 
         except aio_pika.AMQPException as e:
             print(str(e))
+            connection_attempts += 1
             time.sleep(2)
 
-import sys
 async def main():
     print("Reading languages.toml file")
-    print(sys.version)
     language_data = tomllib.load(open("languages.toml","rb"))
     print(language_data)
 
@@ -412,6 +414,11 @@ async def main():
     if not connection:
         return
     
+    print("Successfully connected!")
+
+    # TODO:
+    # This RPC breaks if the other side is not there to respond
+    # Need another wait here to see that the rpc_queue is open
     # Setup RPC callbacks
     global rabbitmq
     rabbitmq = RabbitMQClient(connection)
@@ -429,8 +436,8 @@ async def main():
                 ))
                 print(supported_lang["script"])
 
-    rpc_channel = await connection.channel()
-    result_queue = await rpc_channel.declare_queue('', exclusive=True)
+    # rpc_channel = await connection.channel()
+    # result_queue = await rpc_channel.declare_queue('', exclusive=True)
 
 
     # Setup submission queue

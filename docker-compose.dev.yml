@@ -45,8 +45,6 @@ services:
       file: src/judge/docker-compose.dev.yml
       service: nextjudge-judge
     environment:
-      - BRIDGE_HOST=nextjudge-bridge
-      - BRIDGE_PORT=3000
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
     depends_on:
