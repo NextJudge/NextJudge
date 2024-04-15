@@ -1,4 +1,3 @@
-# version: '3.9'
 services:
   nextjudge-judge:
     build: 
@@ -7,6 +6,3 @@ services:
       args:
         - USAGE=prod
     privileged: true
-    environment:
-      - BRIDGE_HOST=nextjudge-bridge
-      - BRIDGE_PORT=3000

@@ -6,9 +6,5 @@ services:
       args:
         - USAGE=dev
     privileged: true
-    environment:
-      - BRIDGE_HOST=nextjudge-bridge
-      - BRIDGE_PORT=3000
     volumes:
-      - ./src/index.ts:/app/src/index.ts:ro
       - ./src/app.py:/app/app.py:ro
