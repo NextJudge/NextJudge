@@ -66,11 +66,11 @@ if(submit.status_code != 200):
 
 start_time = time.time()
 # Poll
-# for i in range(20):
-#     time.sleep(.2)
+for i in range(20):
+    time.sleep(.2)
 
-for i in range(1):
-    time.sleep(2)
+# for i in range(1):
+    # time.sleep(2)
     verdict = requests.get(
         f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/submission/{submit.text}",
     )

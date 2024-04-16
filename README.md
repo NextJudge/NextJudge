@@ -39,7 +39,6 @@ To flush the database and remove all volumes (completely refreshing the Docker e
 The second involves running most tools on the host. It requires the following to be installed and accessible via the $PATH variable:
 
 ```sh
-redis-server
 go
 bun
 node/npm

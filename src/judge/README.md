@@ -2,16 +2,16 @@
 
 This module is responsible for the actual code execution and judging of submissions.
 
-When a judge is spun up, it will start listening to a redis queue for submissions from the `bridge`. 
+When a judge is spun up, it will start listening to a RabbitMQ queue for submissions from the `bridge`. 
 
-To add another judge to your pool, all you need to do is instantiate another instance of the judge and point it at the redis queue.
+To add another judge to your pool, all you need to do is instantiate another instance of the judge and point it at the RabbitMQ server.
 
 To isolate the compilation and execution of submissions, we use `nsjail` - https://github.com/google/nsjail
 - Processes have limited resources (memory, CPU time, cores)
 - They cannot make network requests
 - During execution, they cannot read/write to files, and most syscalls are blocked
 
-The judge process listens to a redis queue. Upon receiving a submission to run, it pops it off the queue. 
+The judge process listens to a RabbitMQ queue. Upon receiving a submission to run, it pops it off the queue. 
 
 First, the user submission is compiled, and if the compilation succeeds, the process is executed. All testcases are passed in via `stdin`. An `nsjail` wraps both of these steps for security. 
 
