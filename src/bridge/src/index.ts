@@ -4,6 +4,7 @@ import { judgingRouter, languagesRouter, submissionsRouter, testcaseRouter, user
 import { DATABASE_HOST, DATABASE_PORT } from "@util/constants";
 import { Elysia, type ErrorHandler } from "elysia";
 import { cors } from '@elysiajs/cors'
+import { rabbitmq } from "./rabbitmq/rabbitmq";
 
 const PORT = Bun.env.PORT || 3000;
 
@@ -48,8 +49,11 @@ async function setupBridge() {
   // // Create basic user as a test
   const userService = new UserService();
   const users = await userService.getUsers();
-  if (users.length === 0) await userService.createUser("test", "test", true);
-  else console.log("[Main] Test user already exist...");
+  if (users.length === 0) {
+    await userService.createUser("test", "test", true);
+  } else {
+    console.log("[Main] Test user already exist...");
+  }
 
   console.log("Setting up dummy problem")
   const response = await ApiService.post(
@@ -72,17 +76,17 @@ async function setupBridge() {
     }
   );
 
-  console.log("Done with that")
   if(!response.ok){
-    console.log("ERROR")
-    console.error(response.status);
-    console.log(await response.json())
+    console.log("Dummy problem already exists")
   } else {
     console.log("Done created dummy problem");
     console.log(await response.json())
   }
-
 }
+
+// Establish RabbitMQ connection to submission queue and setup RPC listener
+await rabbitmq.setup()
+console.log("Connected to RabbitMQ")
 
 await setupBridge();
 
@@ -97,8 +101,12 @@ const app = new Elysia()
 
 app.onError(errorHandler);
 
+
+
 console.log(
   `[Main] Elysia is running at http://${app.server?.hostname}:${app.server?.port}\n\n\n`
 );
+
+
 
 export type App = typeof app;

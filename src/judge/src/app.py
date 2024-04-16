@@ -12,6 +12,7 @@ import tomllib
 import aio_pika
 import aio_pika.abc
 import shutil
+import time
 
 RABBITMQ_HOST=os.getenv("RABBITMQ_HOST", "localhost") 
 RABBITMQ_PORT=os.getenv("RABBITMQ_PORT", 5672) 
@@ -87,7 +88,7 @@ class RabbitMQClient(object):
     async def get_test_data(self, testcase_id: str):
         return await self.generic_call({"type":"test_data", "body":testcase_id})
 
-    async def send_judgement(self, body):
+    async def send_judgement(self, body: dict):
         return await self.generic_call({"type":"judgement", "body":body})
 
 
@@ -123,10 +124,10 @@ rabbitmq: RabbitMQClient = None
 async def submit_judgement(submission, success):
 
     # TODO: make the non-accepted case more specific
-    body = json.dumps({
+    body = {
         "submission_id": submission["id"],
         "success": "ACCEPTED" if success else "WRONG_ANSWER"
-    })
+    }
 
     print("Submitting judgement to bridge")
     print(body)
@@ -277,11 +278,12 @@ def compile_in_jail(submission):
         pass_fds=[nsjail_log_pipes[1]]
     )
 
-    print(nsjail_log_pipes)
     os.close(nsjail_log_pipes[1])
 
     print("Done!")
-    nsjail_errors = os.fdopen(nsjail_log_pipes[0]).read()
+    read_from = os.fdopen(nsjail_log_pipes[0])
+    nsjail_errors = read_from.read()
+    read_from.close()
     print("nsjail output")
     print(nsjail_errors)
 
@@ -306,8 +308,9 @@ def run_single_test_case(testcase):
 
     nsjail_log_pipes = os.pipe()
 
-    print(testcase["input"].encode("utf-8"))
-
+    # print(testcase["input"].encode("utf-8"))
+    print("Starting execution")
+    t = time.time()
     run_result = subprocess.run(
         [
             "nsjail",
@@ -340,14 +343,16 @@ def run_single_test_case(testcase):
         input=testcase["input"].encode("utf-8"),
         pass_fds=[nsjail_log_pipes[1]]
     )
-
-    print(nsjail_log_pipes)
     os.close(nsjail_log_pipes[1])
 
-    print("Program done!")
-    nsjail_errors = os.fdopen(nsjail_log_pipes[0]).read()
+    print("Program finished execution", time.time() - t)
+
+    read_from = os.fdopen(nsjail_log_pipes[0])
+    nsjail_errors = read_from.read()
+    read_from.close()
+
     print("nsjail output")
-    print(nsjail_errors)
+    # print(nsjail_errors)
 
     stderr = run_result.stderr
     if stderr or run_result.returncode:
@@ -358,7 +363,9 @@ def run_single_test_case(testcase):
     process_stdout = run_result.stdout.decode("utf-8")
     # print(process_stdout)
 
+    print("Starting to compare results")
     success = compare_input_output(testcase["expected_output"], process_stdout)
+    print("Done comparing results")
 
     if success:
         print("Program is correct!")

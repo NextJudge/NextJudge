@@ -9,7 +9,7 @@ docker container rm -f judge-quick
 cd $SCRIPT_DIR/src/data-layer
 docker-compose -f docker-compose.db.host.yml down
 
-echo "Killing node and postgres and redis process"
+echo "Killing node and postgres processes"
 pkill node
 pkill postgres
 pkill bun
