@@ -48,6 +48,9 @@ class RabbitMQClient(object):
         # For getting information from the bridge
         self.rpc_channel = await self.connection.channel()
 
+        # Ensure the bridge submission queue exists!
+        await self.rpc_channel.declare_queue(BRIDGE_QUEUE_NAME)
+
         self.callback_queue = await self.rpc_channel.declare_queue('', exclusive=True)
 
         await self.callback_queue.consume(self.on_response)
