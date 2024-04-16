@@ -20,7 +20,7 @@ services:
       - 5672:5672
       - 15672:15672
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 2s
-      timeout: 3s
-      retries: 5
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
