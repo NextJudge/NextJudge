@@ -1,0 +1,18 @@
+FROM nextjudge-judge-test
+
+WORKDIR /app
+
+RUN mkdir -p /app/src/
+RUN mv /app/languages.toml /app/app.py /app/src/
+RUN touch /app/src/__init__.py
+
+COPY test-requirements.txt ./
+RUN pip install -r test-requirements.txt --break-system-packages
+
+COPY tests ./tests
+RUN touch /app/tests/__init__.py 
+
+# CMD ["ls", "-pla"]
+ENV PYTEST_ADDOPTS="--color=yes"
+CMD [ "pytest", "-v", "-l" ]
+

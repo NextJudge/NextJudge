@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Callable
+from pathlib import Path
 import asyncio
 import os
 import uuid
@@ -23,6 +24,8 @@ BRIDGE_QUEUE_NAME="bridge_queue"
 NEXTJUDGE_USER_ID = 99999
 BUILD_DIRECTORY = "/chroot/build_dir"
 RUN_DIRECTORY = "/chroot/run_dir"
+
+TARGET_DIRECTORY = "/chroot/"
 
 BUILD_SCRIPT_PATH = f"{BUILD_DIRECTORY}/build.sh"
 RUN_SCRIPT_PATH = f"{RUN_DIRECTORY}/main"
@@ -102,24 +105,48 @@ class Language:
     extension: str
     id: int
 
-LANGUAGES: list[Language] = []
+@dataclass
+class Submission:
+    source_code: str
+    language_id: str
+    problem_id: str
+    id: int
+
+LOCAL_LANGUAGES: list[Language] = []
+LOCAL_LANGUAGES_MAP: dict[int, Language] = dict()
+def parse_languages():
+    path = Path(__file__).with_name("languages.toml")
+    filename = path.absolute()
+    language_data = tomllib.load(open(filename,"rb"))
+
+    id = 0
+    for supported_lang in language_data["language"]:
+        LOCAL_LANGUAGES.append(Language(
+            supported_lang["name"],
+            supported_lang["script"],
+            supported_lang["extension"],
+            id
+        ))
+        id += 1
+
+    for lang in LOCAL_LANGUAGES:
+        LOCAL_LANGUAGES_MAP[lang.id] = lang
 
 
-def get_build_script(language_id: int):
-    
-    for lang in LANGUAGES:
-        if(lang.id == language_id):
-            return lang.script
 
+def get_language(local_language_id: int) -> Language | None:
+    for lang in LOCAL_LANGUAGES:
+        if lang.id == local_language_id:
+            return lang
     return None
 
-# Temp
-def get_extension(language_id: int):
-    for lang in LANGUAGES:
-        if lang.id == language_id:
-            return lang.extension
+def get_language_by_extension(ext: str) -> Language | None:
+    for lang in LOCAL_LANGUAGES:
+        if lang.extension == ext:
+            return lang
     return None
 
+BRIDGE_LANG_ID_MAP: dict[int,int] = dict()
 
 rabbitmq: RabbitMQClient = None
 
@@ -138,6 +165,12 @@ async def submit_judgement(submission, success):
     r = await rabbitmq.send_judgement(body)
     print(r)
 
+# Used for testing. Compile and run code with no stdin
+def simple_compile_and_run(source_code: str, language: Language):
+    UUID = uuid.uuid4().hex
+
+
+
 
 async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
 
@@ -154,7 +187,7 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
         raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
         test_data = json.loads(raw_test_data)
 
-        # Can swap this with pathlib mkdir parents=true exist ok = true
+        Path.mkdir(ENV_DIRECTORY,parents=True,exist_ok=True)
         subprocess.run(
             ["mkdir","-p", BUILD_DIRECTORY]
         )
@@ -163,7 +196,13 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
             ["mkdir","-p", RUN_DIRECTORY]
         )
 
-        if not compile_in_jail(submission_data):
+        local_language_id = BRIDGE_LANG_ID_MAP.get(submission_data["language_id"])
+
+        if not local_language_id:
+            print("So such language!")
+            return
+
+        if not compile_in_jail(submission_data["source_code"], LOCAL_LANGUAGES_MAP[local_language_id]):
             # Compile time error
 
             # TODO: make this a seperate "cleanup" function
@@ -183,23 +222,17 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
 
         await submit_judgement(submission_data, success)
 
-def compile_in_jail(submission):
-    
-    source_code = submission["source_code"]
+
+def compile_in_jail(source_code: str, language: Language | None) -> bool:
+
+    if language is None:
+        return False    
 
     print("Source code")
     print(source_code)
-    build_script = get_build_script(submission["language_id"])
 
-    if not build_script:
-        print(f"No build script for language {submission['language_id']}")
-        return False
-
-    extension = get_extension(submission["language_id"])
-    if not extension:
-        print(f"No extension for language {submission['language_id']}")
-        return False
-
+    build_script = language.script
+    extension = language.extension
 
     INPUT_FILE_PATH = f"{BUILD_DIRECTORY}/input.{extension}"
 
@@ -231,7 +264,6 @@ def compile_in_jail(submission):
 
     # print(LOCAL_BUILD_DIR)
     # print(LOCAL_BUILD_SCRIPT_PATH)
-    
 
     nsjail_log_pipes = os.pipe()
 
@@ -417,8 +449,7 @@ async def connect_to_rabbitmq():
 
 async def main():
     print("Reading languages.toml file")
-    language_data = tomllib.load(open("languages.toml","rb"))
-    print(language_data)
+    parse_languages()
 
     connection = await connect_to_rabbitmq()
     if not connection:
@@ -435,20 +466,13 @@ async def main():
     await rabbitmq.setup()
     
     languages = await rabbitmq.get_languages()
-    for lang in languages:
-        for supported_lang in language_data["language"]:
-            if supported_lang["name"] == lang["name"]:
-                LANGUAGES.append(Language(
-                    supported_lang["name"],
-                    supported_lang["script"],
-                    supported_lang["extension"],
-                    lang["id"]
-                ))
-                print(supported_lang["script"])
+    for bridge_lang in languages:
+        for supported_lang in LOCAL_LANGUAGES:
+            if supported_lang.name == bridge_lang["name"]:
+                BRIDGE_LANG_ID_MAP[bridge_lang["id"]] = supported_lang.id
 
     # rpc_channel = await connection.channel()
     # result_queue = await rpc_channel.declare_queue('', exclusive=True)
-
 
     # Setup submission queue
     submission_channel = await connection.channel()
