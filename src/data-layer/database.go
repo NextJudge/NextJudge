@@ -1,37 +1,17 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"strconv"
 	"time"
 
 	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
-
-const (
-	DefaultUsersTable               = "user"
-	DefaultProblemsTable            = "problem"
-	DefaultSubmissionsTable         = "submission"
-	DefaultTestCasesTable           = "test_case"
-	DefaultCompetitionsTable        = "competition"
-	DefaultCompetitionProblemsTable = "competition_problem"
-	DefaultCompetitionUsersTable    = "competition_user"
-)
-
-type Tables struct {
-	Users               string
-	Problems            string
-	Submissions         string
-	TestCases           string
-	Competitions        string
-	CompetitionProblems string
-	CompetitionUsers    string
-}
 
 type Database struct {
-	NextJudgeDB *sql.DB
-	TableNames  Tables
+	NextJudgeDB *gorm.DB
 }
 
 type NextJudgeDB interface {
@@ -39,501 +19,211 @@ type NextJudgeDB interface {
 	CreateUser(user *User) (*User, error)
 	GetUserByID(userId int) (*User, error)
 	GetUserByUsername(username string) (*User, error)
-	UpdateUser(user *User)
-	DeleteUser(userId int)
+	UpdateUser(user *User) error
+	DeleteUser(user *User) error
 	CreateProblem(problem *Problem) (*Problem, error)
 	GetProblems() ([]Problem, error)
 	CreateTestcase(testcase *TestCase, problemId int) (*TestCase, error)
 	GetProblemByID(problemId int) (*Problem, error)
 	GetProblemByTitle(title string) (*Problem, error)
-	GetTestCases(problemId int) ([]TestCase, error)
 	CreateSubmission(submission *Submission) (*Submission, error)
 	GetSubmission(submissionId int) (*Submission, error)
-	UpdateSubmission(submissionId int, status Status, failedTestCaseId int) error
+	UpdateSubmission(submission *Submission) error
 	CreateLanguage(language *Language) (*Language, error)
 	GetLanguages() ([]Language, error)
 	GetLanguageByNameAndVersion(name string, version string) (*Language, error)
 	GetLanguage(id int) (*Language, error)
-	GetProblemIDForTestCase(testcaseId int) (int, error)
+	GetTestCase(testcaseId int) (*TestCase, error)
 }
 
 func NewDatabase() (*Database, error) {
-	var err error
-	db := &Database{
-		TableNames: Tables{
-			Users:               cfg.UsersTable,
-			Problems:            cfg.ProblemsTable,
-			Submissions:         cfg.SubmissionsTable,
-			TestCases:           cfg.TestCasesTable,
-			Competitions:        cfg.CompetitionsTable,
-			CompetitionProblems: cfg.CompetitionProblemsTable,
-			CompetitionUsers:    cfg.CompetitionUsersTable,
-		},
-	}
 	dataSource := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", cfg.Host, strconv.FormatInt(cfg.Port, 10), cfg.Username, cfg.Password, cfg.DBName)
-	db.NextJudgeDB, err = sql.Open(cfg.DBDriver, dataSource)
+	db, err := gorm.Open(postgres.Open(dataSource), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.NextJudgeDB.Ping()
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
+	return &Database{NextJudgeDB: db}, nil
 }
 
-func (d Database) CreateUser(user *User) (*User, error) {
-	sqlStatement := `
-	INSERT INTO "user" (username, password_hash, is_admin, join_date)
-	VALUES ($1, $2, $3, $4)
-	RETURNING id`
-
-	joinDate := time.Now()
-
-	res := &User{
-		Username:     user.Username,
-		PasswordHash: user.PasswordHash,
-		IsAdmin:      user.IsAdmin,
-		JoinDate:     joinDate,
-	}
-
-	err := d.NextJudgeDB.QueryRow(sqlStatement, user.Username, user.PasswordHash, user.IsAdmin, joinDate).Scan(&res.ID)
+func (d *Database) CreateUser(user *User) (*User, error) {
+	user.JoinDate = time.Now()
+	err := d.NextJudgeDB.Create(user).Error
 	if err != nil {
 		return nil, err
 	}
-
-	return res, nil
+	return user, nil
 }
 
-func (d Database) GetUsers() ([]User, error) {
-	sqlStatement := `SELECT * FROM "user"`
-	rows, err := db.NextJudgeDB.Query(sqlStatement)
+func (d *Database) GetUsers() ([]User, error) {
+	users := []User{}
+	err := d.NextJudgeDB.Find(&users).Error
 	if err != nil {
 		return nil, err
 	}
-
-	res := []User{}
-
-	defer rows.Close()
-	for rows.Next() {
-		var u User
-		err := rows.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.JoinDate, &u.IsAdmin)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, u)
-	}
-	err = rows.Err()
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+	return users, nil
 }
 
-func (d Database) GetUserByID(userId int) (*User, error) {
-	sqlStatement := `SELECT * FROM "user" WHERE id = $1`
-	row := db.NextJudgeDB.QueryRow(sqlStatement, userId)
-
-	res := &User{}
-	err := row.Scan(&res.ID, &res.Username, &res.PasswordHash, &res.JoinDate, &res.IsAdmin)
+func (d *Database) GetUserByID(userId int) (*User, error) {
+	user := &User{}
+	err := db.NextJudgeDB.First(user, userId).Error
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
 		return nil, err
 	}
-
-	return res, nil
+	return user, nil
 }
 
-func (d Database) GetUserByUsername(username string) (*User, error) {
-	sqlStatement := `SELECT * FROM "user" WHERE username = $1`
-	row := db.NextJudgeDB.QueryRow(sqlStatement, username)
-
-	res := &User{}
-	err := row.Scan(&res.ID, &res.Username, &res.PasswordHash, &res.JoinDate, &res.IsAdmin)
+func (d *Database) GetUserByUsername(username string) (*User, error) {
+	user := &User{}
+	err := db.NextJudgeDB.Where("username = ?", username).First(user).Error
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
 		return nil, err
 	}
-
-	return res, nil
+	return user, nil
 }
 
-func (d Database) UpdateUser(user *User) error {
-	sqlStatement := `UPDATE "user" 
-	SET username = $2, password_hash = $3, is_admin = $4
-	WHERE id = $1`
-	_, err := db.NextJudgeDB.Exec(sqlStatement, user.ID, user.Username, user.PasswordHash, user.IsAdmin)
-
+func (d *Database) UpdateUser(user *User) error {
+	err := db.NextJudgeDB.Save(user).Error
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (d Database) DeleteUser(userId int) error {
-	sqlStatement := `DELETE FROM "user" WHERE id = $1`
-	_, err := db.NextJudgeDB.Exec(sqlStatement, userId)
+func (d *Database) DeleteUser(user *User) error {
+	err := db.NextJudgeDB.Delete(user).Error
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (d Database) CreateProblem(problem *Problem) (*Problem, error) {
-	problemSqlStatement := `
-	INSERT INTO "problem" (title, prompt, timeout, user_id, upload_date) 
-	VALUES ($1, $2, $3, $4, $5)
-	RETURNING id`
-
-	testCaseSqlStatement := `
-	INSERT INTO "test_case" (problem_id, input, expected_output) 
-	VALUES ($1, $2, $3)
-	RETURNING id`
-
-	uploadDate := time.Now()
-
-	res := &Problem{
-		Prompt:     problem.Prompt,
-		Title:      problem.Title,
-		Timeout:    problem.Timeout,
-		UserID:     problem.UserID,
-		UploadDate: uploadDate,
-		TestCases:  problem.TestCases,
-	}
-
-	tx, err := d.NextJudgeDB.Begin()
+func (d *Database) CreateProblem(problem *Problem) (*Problem, error) {
+	problem.UploadDate = time.Now()
+	err := d.NextJudgeDB.Create(problem).Error
 	if err != nil {
 		return nil, err
 	}
-
-	problemStmt, err := tx.Prepare(problemSqlStatement)
-	if err != nil {
-		return nil, err
-	}
-
-	err = problemStmt.QueryRow(problem.Title, problem.Prompt, problem.Timeout, problem.UserID, uploadDate).Scan(&res.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	testCaseStmt, err := tx.Prepare(testCaseSqlStatement)
-	if err != nil {
-		return nil, err
-	}
-
-	for i, testCase := range problem.TestCases {
-		err = testCaseStmt.QueryRow(res.ID, testCase.Input, testCase.ExpectedOutput).Scan(&problem.TestCases[i].ID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+	return problem, nil
 }
 
-func (d Database) CreateTestcase(testcase *TestCase, problemId int) (*TestCase, error) {
-	sqlStatement := `
-	INSERT INTO "test_case" (problem_id, input, expected_output) 
-	VALUES ($1, $2, $3)
-	RETURNING id`
-
-	res := &TestCase{
-		Input:          testcase.Input,
-		ExpectedOutput: testcase.ExpectedOutput,
-	}
-
-	err := d.NextJudgeDB.QueryRow(sqlStatement, problemId, testcase.Input, testcase.ExpectedOutput).Scan(&res.ID)
+func (d *Database) GetProblems() ([]Problem, error) {
+	problems := []Problem{}
+	err := d.NextJudgeDB.Find(&problems).Error
 	if err != nil {
 		return nil, err
 	}
-
-	return res, nil
+	return problems, nil
 }
 
-func (d Database) GetProblems() ([]Problem, error) {
-	sqlStatement := `SELECT * FROM "problem"`
-	rows, err := db.NextJudgeDB.Query(sqlStatement)
+func (d *Database) GetProblemByID(problemId int) (*Problem, error) {
+	problem := &Problem{}
+	err := d.NextJudgeDB.Model(&Problem{}).Preload("TestCases").First(problem, problemId).Error
 	if err != nil {
-		return nil, err
-	}
-
-	res := []Problem{}
-
-	defer rows.Close()
-	for rows.Next() {
-		var u Problem
-		err := rows.Scan(&u.ID, &u.Title, &u.Prompt, &u.Timeout, &u.UserID, &u.UploadDate)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, u)
-	}
-	err = rows.Err()
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
-func (d Database) GetProblemByID(problemId int) (*Problem, error) {
-	sqlStatement := `SELECT problem.id, problem.title, problem.prompt, problem.timeout, problem.user_id, problem.upload_date, test_case.id, test_case.input, test_case.expected_output 
-	FROM "problem" 
-	LEFT JOIN "test_case" 
-	ON test_case.problem_id=problem.id 
-	WHERE problem.id = $1`
-	rows, err := db.NextJudgeDB.Query(sqlStatement, problemId)
-	if err != nil {
-		return nil, err
-	}
-
-	res := &Problem{}
-
-	defer rows.Close()
-	for rows.Next() {
-		var tc TestCase
-		err := rows.Scan(&res.ID, &res.Title, &res.Prompt, &res.Timeout, &res.UserID, &res.UploadDate, &tc.ID, &tc.Input, &tc.ExpectedOutput)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-			return nil, err
-		}
-		res.TestCases = append(res.TestCases, tc)
-	}
-	err = rows.Err()
-	if err != nil {
-		return nil, err
-	}
-
-	if res.ID == 0 {
-		return nil, nil
-	}
-
-	return res, nil
-}
-
-func (d Database) GetProblemByTitle(title string) (*Problem, error) {
-	sqlStatement := `SELECT * FROM "problem" WHERE title = $1`
-	row := db.NextJudgeDB.QueryRow(sqlStatement, title)
-
-	res := &Problem{}
-	err := row.Scan(&res.ID, &res.Title, &res.Prompt, &res.Timeout, &res.UserID, &res.UploadDate)
-	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
 		return nil, err
 	}
-
-	return res, nil
+	return problem, nil
 }
 
-func (d Database) GetTestCases(problemId int) ([]TestCase, error) {
-	sqlStatement := `SELECT id, input, expected_output FROM "test_case" WHERE problem_id = $1`
-	rows, err := db.NextJudgeDB.Query(sqlStatement, problemId)
+func (d *Database) GetProblemByTitle(title string) (*Problem, error) {
+	problem := &Problem{}
+	err := d.NextJudgeDB.Model(&Problem{}).Preload("TestCases").Where("title = ?", title).First(problem).Error
 	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	res := []TestCase{}
-
-	for rows.Next() {
-		row := TestCase{}
-		err = rows.Scan(&row.ID, &row.Input, &row.ExpectedOutput)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-			return nil, err
-		}
-		res = append(res, row)
-	}
-	err = rows.Err()
-	if err != nil {
-		return nil, err
-	}
-
-	if len(res) == 0 {
-		return nil, nil
-	}
-
-	return res, nil
-}
-
-func (d Database) CreateSubmission(submission *Submission) (*Submission, error) {
-	sqlStatement := `
-	INSERT INTO "submission" (user_id, problem_id, language_id, submit_time, source_code, status, time_elapsed)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
-	RETURNING id`
-
-	submitTime := time.Now()
-
-	res := &Submission{
-		UserID:      submission.UserID,
-		ProblemID:   submission.ProblemID,
-		LanguageID:  submission.LanguageID,
-		SubmitTime:  submitTime,
-		SourceCode:  submission.SourceCode,
-		Status:      Pending,
-		TimeElapsed: 0,
-	}
-
-	err := d.NextJudgeDB.QueryRow(sqlStatement, submission.UserID, submission.ProblemID,
-		submission.LanguageID, submitTime, submission.SourceCode, res.Status, res.TimeElapsed).Scan(&res.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
-func (d Database) GetSubmission(submissionId int) (*Submission, error) {
-	sqlStatement := `SELECT * FROM "submission" WHERE id = $1`
-	row := db.NextJudgeDB.QueryRow(sqlStatement, submissionId)
-
-	res := &Submission{}
-	var failedTestCaseId *int
-	err := row.Scan(&res.ID, &res.UserID, &res.ProblemID, &res.TimeElapsed, &res.LanguageID, &res.Status, &failedTestCaseId, &res.SubmitTime, &res.SourceCode)
-	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
 		return nil, err
 	}
-
-	res.FailedTestCaseID = failedTestCaseId
-
-	return res, nil
+	return problem, nil
 }
 
-func (d Database) UpdateSubmission(submissionId int, status Status, failedTestCaseId *int) error {
-	sqlStatement := `UPDATE "submission" 
-	SET status = $2, failed_test_case_id = $3
-	WHERE id = $1`
-
-	nullableFailedTestCaseID := sql.NullInt64{}
-	if failedTestCaseId != nil && *failedTestCaseId != 0 {
-		nullableFailedTestCaseID.Valid = true
-		nullableFailedTestCaseID.Int64 = int64(*failedTestCaseId)
-	} else {
-		nullableFailedTestCaseID.Valid = false
+func (d *Database) CreateSubmission(submission *Submission) (*Submission, error) {
+	submission.SubmitTime = time.Now()
+	err := d.NextJudgeDB.Create(submission).Error
+	if err != nil {
+		return nil, err
 	}
+	return submission, nil
+}
 
-	_, err := db.NextJudgeDB.Exec(sqlStatement, submissionId, status, nullableFailedTestCaseID)
+func (d *Database) GetSubmission(submissionId int) (*Submission, error) {
+	submission := &Submission{}
+	err := db.NextJudgeDB.First(submission, submissionId).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return submission, nil
+}
 
+func (d *Database) UpdateSubmission(submission *Submission) error {
+	err := db.NextJudgeDB.Save(submission).Error
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (d Database) CreateLanguage(language *Language) (*Language, error) {
-	sqlStatement := `
-	INSERT INTO "language" (name, version, extension)
-	VALUES ($1, $2, $3)
-	RETURNING id`
-
-	res := &Language{
-		Name:      language.Name,
-		Extension: language.Extension,
-		Version:   language.Version,
-	}
-
-	err := d.NextJudgeDB.QueryRow(sqlStatement, language.Name, language.Version, language.Extension).Scan(&res.ID)
+func (d *Database) CreateLanguage(language *Language) (*Language, error) {
+	err := d.NextJudgeDB.Create(language).Error
 	if err != nil {
 		return nil, err
 	}
-
-	return res, nil
+	return language, nil
 }
 
-func (d Database) GetLanguages() ([]Language, error) {
-	sqlStatement := `SELECT * FROM "language"`
-	rows, err := db.NextJudgeDB.Query(sqlStatement)
+func (d *Database) GetLanguages() ([]Language, error) {
+	languages := []Language{}
+	err := d.NextJudgeDB.Find(&languages).Error
 	if err != nil {
 		return nil, err
 	}
-
-	res := []Language{}
-
-	defer rows.Close()
-	for rows.Next() {
-		var u Language
-		err := rows.Scan(&u.ID, &u.Name, &u.Extension, &u.Version)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, u)
-	}
-	err = rows.Err()
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+	return languages, nil
 }
 
-func (d Database) GetLanguageByNameAndVersion(name string, version string) (*Language, error) {
-	sqlStatement := `SELECT * FROM "language" WHERE (name = $1 AND version = $2)`
-	row := db.NextJudgeDB.QueryRow(sqlStatement, name, version)
-
-	res := &Language{}
-	err := row.Scan(&res.ID, &res.Name, &res.Extension, &res.Version)
+func (d *Database) GetLanguageByNameAndVersion(name string, version string) (*Language, error) {
+	language := &Language{}
+	err := d.NextJudgeDB.Where("name = ? AND version = ?", name, version).First(language).Error
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
 		return nil, err
 	}
-
-	return res, nil
+	return language, nil
 }
 
-func (d Database) GetLanguage(id int) (*Language, error) {
-	sqlStatement := `SELECT * FROM "language" WHERE id = $1`
-	row := db.NextJudgeDB.QueryRow(sqlStatement, id)
-
-	res := &Language{}
-	err := row.Scan(&res.ID, &res.Name, &res.Extension, &res.Version)
+func (d *Database) GetLanguage(id int) (*Language, error) {
+	language := &Language{}
+	err := db.NextJudgeDB.First(language, id).Error
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
 		return nil, err
 	}
-
-	return res, nil
+	return language, nil
 }
 
-func (d Database) GetProblemIDForTestCase(testcaseId int) (*int, error) {
-	sqlStatement := `SELECT problem_id FROM "test_case" WHERE id = $1`
-	row := db.NextJudgeDB.QueryRow(sqlStatement, testcaseId)
-
-	var res *int
-	err := row.Scan(&res)
+func (d *Database) GetTestCase(testcaseId int) (*TestCase, error) {
+	testCase := &TestCase{}
+	err := db.NextJudgeDB.First(testCase, testcaseId).Error
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
 		return nil, err
 	}
-
-	return res, nil
+	return testCase, nil
 }

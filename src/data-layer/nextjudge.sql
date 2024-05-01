@@ -8,7 +8,7 @@ CREATE TYPE status AS ENUM(
   'PENDING'
 );
 
-CREATE TABLE "user" (
+CREATE TABLE "users" (
   "id" SERIAL PRIMARY KEY,
   "username" varchar,
   "password_hash" varchar,
@@ -16,7 +16,7 @@ CREATE TABLE "user" (
   "is_admin" boolean
 );
 
-CREATE TABLE "problem" (
+CREATE TABLE "problems" (
   "id" SERIAL PRIMARY KEY,
   "title" varchar,
   "prompt" varchar,
@@ -25,7 +25,7 @@ CREATE TABLE "problem" (
   "upload_date" timestamp
 );
 
-CREATE TABLE "submission" (
+CREATE TABLE "submissions" (
   "id" SERIAL PRIMARY KEY,
   "user_id" integer,
   "problem_id" integer,
@@ -37,14 +37,14 @@ CREATE TABLE "submission" (
   "source_code" varchar
 );
 
-CREATE TABLE "test_case" (
+CREATE TABLE "test_cases" (
   "id" SERIAL PRIMARY KEY,
   "problem_id" integer,
   "input" varchar,
   "expected_output" varchar
 );
 
-CREATE TABLE "competition" (
+CREATE TABLE "competitions" (
   "id" SERIAL PRIMARY KEY,
   "user_id" integer,
   "start_time" timestamp,
@@ -65,23 +65,23 @@ CREATE TABLE "competition_user" (
   PRIMARY KEY("user_id", "competition_id")
 );
 
-CREATE TABLE "language" (
+CREATE TABLE "languages" (
   "id" SERIAL PRIMARY KEY,
   "name" varchar,
   "extension" varchar,
   "version" varchar
 );
 
-ALTER TABLE "problem" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
+ALTER TABLE "problems" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
 
-ALTER TABLE "submission" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
+ALTER TABLE "submissions" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
 
-ALTER TABLE "submission" ADD FOREIGN KEY ("problem_id") REFERENCES "problem" ("id");
+ALTER TABLE "submissions" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("id");
 
-ALTER TABLE "submission" ADD FOREIGN KEY ("language_id") REFERENCES "language" ("id");
+ALTER TABLE "submissions" ADD FOREIGN KEY ("language_id") REFERENCES "languages" ("id");
 
-ALTER TABLE "test_case" ADD FOREIGN KEY ("problem_id") REFERENCES "problem" ("id");
+ALTER TABLE "test_cases" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("id");
 
-ALTER TABLE "competition" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id");
+ALTER TABLE "competitions" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
 
-ALTER TABLE "submission" ADD FOREIGN KEY ("failed_test_case_id") REFERENCES "test_case" ("id");
+ALTER TABLE "submissions" ADD FOREIGN KEY ("failed_test_case_id") REFERENCES "test_cases" ("id");

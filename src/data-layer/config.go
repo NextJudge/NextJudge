@@ -11,20 +11,13 @@ import (
 )
 
 type config struct {
-	CORSOrigin               []string
-	Host                     string
-	Port                     int64
-	Username                 string
-	Password                 string
-	DBName                   string
-	DBDriver                 string
-	UsersTable               string
-	ProblemsTable            string
-	SubmissionsTable         string
-	TestCasesTable           string
-	CompetitionsTable        string
-	CompetitionProblemsTable string
-	CompetitionUsersTable    string
+	CORSOrigin []string
+	Host       string
+	Port       int64
+	Username   string
+	Password   string
+	DBName     string
+	DBDriver   string
 }
 
 var cfg config
@@ -95,54 +88,5 @@ func init() {
 		cfg.DBName = "nextjudge"
 	} else {
 		cfg.DBName = database
-	}
-
-	usersTable := os.Getenv("DB_USER_TABLE_NAME")
-	if usersTable == "" {
-		cfg.UsersTable = DefaultUsersTable
-	} else {
-		cfg.UsersTable = usersTable
-	}
-
-	problemsTable := os.Getenv("DB_PROBLEM_TABLE_NAME")
-	if problemsTable == "" {
-		cfg.ProblemsTable = DefaultProblemsTable
-	} else {
-		cfg.ProblemsTable = usersTable
-	}
-
-	submissionsTable := os.Getenv("DB_SUBMISSION_TABLE_NAME")
-	if submissionsTable == "" {
-		cfg.SubmissionsTable = DefaultSubmissionsTable
-	} else {
-		cfg.SubmissionsTable = submissionsTable
-	}
-
-	testCasesTable := os.Getenv("DB_TEST_CASE_TABLE_NAME")
-	if testCasesTable == "" {
-		cfg.TestCasesTable = DefaultTestCasesTable
-	} else {
-		cfg.TestCasesTable = testCasesTable
-	}
-
-	competitionsTable := os.Getenv("DB_COMPETITION_TABLE_NAME")
-	if competitionsTable == "" {
-		cfg.CompetitionsTable = DefaultCompetitionsTable
-	} else {
-		cfg.CompetitionsTable = competitionsTable
-	}
-
-	competitionProblemsTable := os.Getenv("DB_COMPETITION_PROBLEM_TABLE_NAME")
-	if competitionProblemsTable == "" {
-		cfg.CompetitionProblemsTable = DefaultCompetitionProblemsTable
-	} else {
-		cfg.CompetitionProblemsTable = competitionProblemsTable
-	}
-
-	competitionUsersTable := os.Getenv("DB_COMPETITION_USER_TABLE_NAME")
-	if competitionUsersTable == "" {
-		cfg.CompetitionUsersTable = DefaultCompetitionUsersTable
-	} else {
-		cfg.CompetitionUsersTable = competitionUsersTable
 	}
 }

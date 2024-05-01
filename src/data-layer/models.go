@@ -34,6 +34,7 @@ type Problem struct {
 
 type TestCase struct {
 	ID             int    `json:"id"`
+	ProblemID      int    `json:"problem_id"`
 	Input          string `json:"input"`
 	ExpectedOutput string `json:"expected_output"`
 }
@@ -66,4 +67,17 @@ type Language struct {
 	Name      string `json:"name"`
 	Extension string `json:"extension"`
 	Version   string `json:"version"`
+}
+
+type PutUserRequestBody struct {
+	ID           int    `json:"id"`
+	Username     string `json:"username"`
+	PasswordHash string `json:"password_hash"`
+	IsAdmin      bool   `json:"is_admin"`
+	JoinDate     string `json:"join_date"`
+}
+
+type UpdateSubmissionStatusPatchBody struct {
+	Status           Status `json:"status"`
+	FailedTestCaseID *int   `json:"failed_test_case_id,omitempty"`
 }

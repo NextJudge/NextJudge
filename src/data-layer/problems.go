@@ -20,7 +20,6 @@ func addProblemRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Get("/v1/problems/:problem_id"), getProblem)
 }
 
-// TODO: make a transaction so the problem cant be inserted if the test cases fail to inser
 func postProblem(w http.ResponseWriter, r *http.Request) {
 	reqData := new(Problem)
 	reqBodyBytes, err := io.ReadAll(r.Body)
