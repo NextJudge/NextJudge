@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"goji.io"
@@ -67,8 +68,8 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprint(w, string(respJSON))
 	w.WriteHeader(http.StatusCreated)
+	fmt.Fprint(w, string(respJSON))
 }
 
 func getUsers(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +137,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqData := new(User)
+	reqData := new(PutUserRequestBody)
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading request body")
@@ -189,7 +190,23 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = db.UpdateUser(reqData)
+	time, err := time.Parse(time.RFC3339, reqData.JoinDate)
+	if err != nil {
+		logrus.WithError(err).Error("error parsing time string")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"error parsing time string"}`)
+		return
+	}
+
+	updatedUser := &User{
+		ID:           reqData.ID,
+		Username:     reqData.Username,
+		PasswordHash: reqData.PasswordHash,
+		IsAdmin:      reqData.IsAdmin,
+		JoinDate:     time,
+	}
+
+	err = db.UpdateUser(updatedUser)
 	if err != nil {
 		logrus.WithError(err).Error("error inserting user")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -225,7 +242,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.DeleteUser(userId)
+	err = db.DeleteUser(user)
 	if err != nil {
 		logrus.WithError(err).Error("error deleting user")
 		w.WriteHeader(http.StatusInternalServerError)

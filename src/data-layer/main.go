@@ -34,10 +34,12 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins: cfg.CORSOrigin,
 		AllowedHeaders: []string{"Content-Type", "Authorization"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
 		MaxAge:         3600,
 	})
+
 	mux.Use(c.Handler)
+	mux.Use(JSONMiddleware)
 
 	// TODO: Add automated API tests
 	addUserRoutes(mux)
@@ -45,10 +47,20 @@ func main() {
 	addSubmissionRoutes(mux)
 	addLanguageRoutes(mux)
 
+	logrus.Info("Starting data layer API")
+
 	addr := ":" + *port
 	err = http.ListenAndServe(addr, mux)
 	if err != nil {
 		logrus.WithError(err).Error("http listener error")
 		os.Exit(1)
 	}
+}
+
+func JSONMiddleware(h http.Handler) http.Handler {
+	f := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		h.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(f)
 }

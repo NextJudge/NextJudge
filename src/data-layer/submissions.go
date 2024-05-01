@@ -18,11 +18,6 @@ func addSubmissionRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Patch("/v1/submissions/:submission_id"), updateSubmissionStatus)
 }
 
-type UpdateSubmissionStatusPatchBody struct {
-	Status           Status `json:"status"`
-	FailedTestCaseID *int   `json:"failed_test_case_id,omitempty"`
-}
-
 func postSubmission(w http.ResponseWriter, r *http.Request) {
 	reqData := new(Submission)
 	reqBodyBytes, err := io.ReadAll(r.Body)
@@ -187,16 +182,25 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if reqData.FailedTestCaseID != nil && *reqData.FailedTestCaseID != 0 {
-		problemId, err := db.GetProblemIDForTestCase(*reqData.FailedTestCaseID)
+		testCase, err := db.GetTestCase(*reqData.FailedTestCaseID)
 		if err != nil {
 			logrus.WithError(err).Error("error checking test case's problem")
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, `{"code":"500", "message":"error checking test case's problem"}`)
 			return
 		}
-		if *problemId != submission.ProblemID {
+		if testCase == nil {
 			logrus.WithFields(logrus.Fields{
-				"test_case_problem_id":  problemId,
+				"test_case_id":          *reqData.FailedTestCaseID,
+				"submission_problem_id": submission.ProblemID,
+			}).Warn("test case does not exist")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"test case does not exist"}`)
+			return
+		}
+		if testCase.ProblemID != submission.ProblemID {
+			logrus.WithFields(logrus.Fields{
+				"test_case_problem_id":  testCase.ID,
 				"submission_problem_id": submission.ProblemID,
 			}).Warn("test case is not for this problem")
 			w.WriteHeader(http.StatusBadRequest)
@@ -205,7 +209,9 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = db.UpdateSubmission(submissionId, reqData.Status, reqData.FailedTestCaseID)
+	submission.FailedTestCaseID = reqData.FailedTestCaseID
+	submission.Status = reqData.Status
+	err = db.UpdateSubmission(submission)
 	if err != nil {
 		logrus.WithError(err).Error("error updating submission status in db")
 		w.WriteHeader(http.StatusInternalServerError)
