@@ -4,8 +4,10 @@ import Editor from "@monaco-editor/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useContext, useState } from "react";
 import { EditorThemeSelector } from "./editor-theme-select";
+import { EditorLanguageSelect } from "./editor-language-select";
+import { lang } from "moment";
 
-export default function CodeEditor({ themes }: any) {
+export default function CodeEditor({ themes, languages }: any) {
   const [code, setCode] = useState(`"use strict";
 const printLine = (x: string) => {
   console.log(x);
@@ -59,12 +61,23 @@ const main = () => {
 
   console.log({ theme });
 
+  const [currentLanguage, setCurrentLanguage] = useState('typescript');
+
+
   return (
     <>
       <div className="h-full overflow-y-scroll min-w-full">
-        <div className="flex justify-end my-2 px-2">
-          <EditorThemeSelector themes={themes} />
+
+        <div className="flex justify-between">
+
+        <div className="justify-start my-2 px-2">
+          <EditorLanguageSelect />
         </div>
+        <div className="justify-end my-2 px-2">
+          <EditorThemeSelector themes ={themes} />
+        </div>
+        </div>
+
         <AnimatePresence mode="wait">
           {theme?.name && (
             <motion.div
@@ -75,7 +88,7 @@ const main = () => {
               transition={{ duration: 0.7 }}
             >
               <Editor
-                language={"cpp"}
+                language={currentLanguage}
                 defaultLanguage="typescript"
                 value={code}
                 theme={theme.name}
