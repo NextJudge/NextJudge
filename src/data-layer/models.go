@@ -40,12 +40,13 @@ type TestCase struct {
 }
 
 type Submission struct {
-	ID               int       `json:"id"`
-	UserID           int       `json:"user_id"`
-	ProblemID        int       `json:"problem_id"`
-	TimeElapsed      int       `json:"time_elapsed"`
-	LanguageID       int       `json:"language_id"`
-	Status           Status    `json:"status"`
+	ID          int    `json:"id"`
+	UserID      int    `json:"user_id"`
+	ProblemID   int    `json:"problem_id"`
+	TimeElapsed int    `json:"time_elapsed"`
+	LanguageID  int    `json:"language_id"`
+	Status      Status `json:"status"`
+	// gorm does not support optional relationships, so this must be managed manually
 	FailedTestCaseID *int      `json:"failed_test_case_id,omitempty"`
 	SubmitTime       time.Time `json:"submit_time"`
 	SourceCode       string    `json:"source_code"`
