@@ -1,0 +1,129 @@
+test_name: Validate data layer endpoints
+
+strict:
+  - json:off
+
+marks:
+  - usefixtures:
+    - setup_tests
+    
+includes:
+  - !include globals.yaml
+
+
+stages:
+  - name: get non existant user
+    request: 
+      url: "{host}/v1/users/999999"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: create new user
+    request: 
+      url: "{host}/v1/users"
+      method: POST
+      json:
+        username: "{test_username}"
+        password_hash: "abcd1234"
+        is_admin: false
+    response:
+      headers:
+        content-type: application/json
+      status_code: 201
+      json:
+        username: "{test_username}"
+        password_hash: "abcd1234"
+        is_admin: false
+      save:
+        json:
+          user_id: id
+
+  - name: try to create duplicate user
+    request: 
+      url: "{host}/v1/users"
+      method: POST
+      json:
+        username: "{test_username}"
+        password_hash: "abcd1234"
+        is_admin: false
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: get user
+    request: 
+      url: "{host}/v1/users/{user_id}"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 200
+      json:
+        id: !int "{user_id}"
+        username: "{test_username}"
+        password_hash: "abcd1234"
+        is_admin: false
+
+  - name: get user by non existant username
+    request: 
+      url: "{host}/v1/users"
+      method: GET
+      params:
+        username: "{test_username}abc"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 200
+      json: []
+
+  - name: get user by username
+    request: 
+      url: "{host}/v1/users"
+      method: GET
+      params:
+        username: "{test_username}"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 200
+      json:
+        - id: !int "{user_id}"
+          username: "{test_username}"
+          password_hash: "abcd1234"
+          is_admin: false
+
+  - name: get all users
+    request: 
+      url: "{host}/v1/users"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 200
+      json:
+        - id: !int "{user_id}"
+          username: "{test_username}"
+          password_hash: "abcd1234"
+          is_admin: false
+
+  - name: delete non existant user
+    request: 
+      url: "{host}/v1/users/999999"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: delete user
+    request: 
+      url: "{host}/v1/users/{user_id}"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 204

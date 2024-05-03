@@ -26,6 +26,7 @@ type NextJudgeDB interface {
 	CreateTestcase(testcase *TestCase, problemId int) (*TestCase, error)
 	GetProblemByID(problemId int) (*Problem, error)
 	GetProblemByTitle(title string) (*Problem, error)
+	DeleteProblem(problem *Problem) error
 	CreateSubmission(submission *Submission) (*Submission, error)
 	GetSubmission(submissionId int) (*Submission, error)
 	UpdateSubmission(submission *Submission) error
@@ -144,6 +145,14 @@ func (d *Database) GetProblemByTitle(title string) (*Problem, error) {
 		return nil, err
 	}
 	return problem, nil
+}
+
+func (d *Database) DeleteProblem(problem *Problem) error {
+	err := db.NextJudgeDB.Delete(problem).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *Database) CreateSubmission(submission *Submission) (*Submission, error) {

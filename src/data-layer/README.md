@@ -6,6 +6,8 @@
 
 #### GET /v1/users
 
+Can pass in the query parameter `username` to only get the user with that username.
+
 Response body:
 
 ```json
@@ -152,7 +154,7 @@ Response Body:
 }
 ```
 
-#### GET /v1/problems/:problem_id
+#### GET /v1/problems/{problem_id}
 
 Response Body:
 
@@ -173,6 +175,10 @@ Response Body:
     ],
 }
 ```
+
+#### DELETE /v1/problems/{problem_id}
+
+There are no post or response bodies for this endpoint.
 
 ### Submissions
 
@@ -204,7 +210,7 @@ Response Body:
 }
 ```
 
-#### PATCH /v1/submissions/:submission_id
+#### PATCH /v1/submissions/{submission_id}
 
 Request Body
 
@@ -215,7 +221,7 @@ Request Body
 }
 ```
 
-#### GET /v1/submissions/:submission_id
+#### GET /v1/submissions/{submission_id}
 
 Response Body:
 
@@ -263,7 +269,7 @@ Response Body:
 
 ## Running the Data Layer
 
-## Docker
+### Docker
 
 There is a `docker-compose-local.yml` file which will instantiate the Go-based CRUD application as well the underlying Postgres database in a Docker network. This is great for development and quickly getting everything necessary running locally.
 
@@ -280,7 +286,7 @@ docker volume ls
 docker volume rm <POSTGRES_VOLUME_ID>
 ```
 
-## Host
+### Host
 
 These commands builds the data layer, runs the docker container, initializes the database, and starts the data layer server.
 
@@ -290,3 +296,7 @@ docker-compose up -d
 make postgres
 ./main
 ```
+
+### Testing
+
+The `./tests/` directory contains API tests using Tavern. To run the tests, start the service in one terminal and then run `pipenv run pytest tests/ -p no:warnings` in another.
