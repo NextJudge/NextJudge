@@ -73,22 +73,45 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := db.GetUsers()
-	if err != nil {
-		logrus.WithError(err).Error("error retrieving users")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving users"}`)
-		return
-	}
+	username := r.URL.Query().Get("username")
+	if username != "" {
+		users := []User{}
+		user, err := db.GetUserByUsername(username)
+		if err != nil {
+			logrus.WithError(err).Error("error retrieving users")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error retrieving users"}`)
+			return
+		}
+		if user != nil {
+			users = append(users, *user)
+		}
+		respJSON, err := json.Marshal(users)
+		if err != nil {
+			logrus.WithError(err).Error("JSON parse error")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+			return
+		}
+		fmt.Fprint(w, string(respJSON))
+	} else {
+		users, err := db.GetUsers()
+		if err != nil {
+			logrus.WithError(err).Error("error retrieving users")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error retrieving users"}`)
+			return
+		}
 
-	respJSON, err := json.Marshal(users)
-	if err != nil {
-		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
-		return
+		respJSON, err := json.Marshal(users)
+		if err != nil {
+			logrus.WithError(err).Error("JSON parse error")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+			return
+		}
+		fmt.Fprint(w, string(respJSON))
 	}
-	fmt.Fprint(w, string(respJSON))
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {

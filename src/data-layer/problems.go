@@ -18,6 +18,7 @@ func addProblemRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/problems"), postProblem)
 	mux.HandleFunc(pat.Get("/v1/problems"), getProblems)
 	mux.HandleFunc(pat.Get("/v1/problems/:problem_id"), getProblem)
+	mux.HandleFunc(pat.Delete("/v1/problems/:problem_id"), deleteProblem)
 }
 
 func postProblem(w http.ResponseWriter, r *http.Request) {
@@ -135,4 +136,40 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprint(w, string(respJSON))
+}
+
+func deleteProblem(w http.ResponseWriter, r *http.Request) {
+	problemIdParam := pat.Param(r, "problem_id")
+
+	problemId, err := strconv.Atoi(problemIdParam)
+	if err != nil {
+		logrus.WithError(err).Error("problem id must be int")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"500", "message":"problem id must be int"}`)
+		return
+	}
+
+	problem, err := db.GetProblemByID(problemId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving problem")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+		return
+	}
+	if problem == nil {
+		logrus.WithError(err).Warn("problem not found")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		return
+	}
+
+	err = db.DeleteProblem(problem)
+	if err != nil {
+		logrus.WithError(err).Error("error deleting problem")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error deleting problem"}`)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
