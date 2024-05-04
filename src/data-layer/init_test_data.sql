@@ -1,10 +1,10 @@
 INSERT INTO "languages" (name, extension, version)
 VALUES
-('c++',     '.cpp',     '14'),
-('c',       '.c',       '-1'),
-('python',  '.py',      '3.12'),
-('rust',  '.rs',      '1.71.0'),
-('go',  '.go',      '-1'),
+('c++',         '.cpp',     '14'),
+('c',           '.c',       '-1'),
+('python',      '.py',      '3.12'),
+('rust',        '.rs',      '1.71.0'),
+('go',          '.go',      '-1'),
 ('javascript',  '.js',      '-1');
 
 

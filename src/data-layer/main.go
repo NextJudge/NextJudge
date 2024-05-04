@@ -38,8 +38,8 @@ func main() {
 		MaxAge:         3600,
 	})
 
-	mux.Use(c.Handler)
 	mux.Use(JSONMiddleware)
+	mux.Use(c.Handler)
 
 	// TODO: Add automated API tests
 	addUserRoutes(mux)

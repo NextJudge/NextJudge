@@ -1,0 +1,10 @@
+name: globals
+description: variables used in tests
+
+variables:
+  host: "http://localhost:5000" # change this to test against a deployment (perhaps change to env var?)
+  test_username: brantnej
+  test_username_2: danquayle
+  test_language: jordanscript
+  test_problem: jordansproblem
+  test_problem_2: jordansHARDproblem

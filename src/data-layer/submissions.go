@@ -45,7 +45,7 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 	if problem == nil {
 		logrus.Warn("problem does not exist")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprint(w, `{"code":"404", "message":"problem does not exist"}`)
 		return
 	}
@@ -59,7 +59,7 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 	if language == nil {
 		logrus.Warn("language does not exist")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprint(w, `{"code":"404", "message":"language does not exist"}`)
 		return
 	}
@@ -73,11 +73,13 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 	if user == nil {
 		logrus.Warn("user does not exist")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprint(w, `{"code":"404", "message":"user does not exist"}`)
 		return
 	}
 
+	reqData.Status = "PENDING"
+	reqData.FailedTestCaseID = nil
 	response, err := db.CreateSubmission(reqData)
 	if err != nil {
 		logrus.WithError(err).Error("error inserting submission into db")
@@ -93,6 +95,7 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, string(respJSON))
 }
 

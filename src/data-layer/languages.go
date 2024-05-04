@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/sirupsen/logrus"
 	"goji.io"
@@ -14,6 +15,7 @@ import (
 func addLanguageRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/languages"), postLanguage)
 	mux.HandleFunc(pat.Get("/v1/languages"), getLanguages)
+	mux.HandleFunc(pat.Delete("/v1/languages/:language_id"), deleteLanguage)
 }
 
 func postLanguage(w http.ResponseWriter, r *http.Request) {
@@ -50,9 +52,9 @@ func postLanguage(w http.ResponseWriter, r *http.Request) {
 
 	newLang, err := db.CreateLanguage(reqData)
 	if err != nil {
-		logrus.WithError(err).Error("error ")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"language already exists"}`)
+		logrus.WithError(err).Error("error creating language")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error creating language"}`)
 		return
 	}
 
@@ -63,8 +65,8 @@ func postLanguage(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	fmt.Fprint(w, string(respJSON))
 	w.WriteHeader(http.StatusCreated)
+	fmt.Fprint(w, string(respJSON))
 }
 
 func getLanguages(w http.ResponseWriter, r *http.Request) {
@@ -83,4 +85,40 @@ func getLanguages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprint(w, string(respJSON))
+}
+
+func deleteLanguage(w http.ResponseWriter, r *http.Request) {
+	languageIdParam := pat.Param(r, "language_id")
+
+	languageId, err := strconv.Atoi(languageIdParam)
+	if err != nil {
+		logrus.WithError(err).Error("user id must be int")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"500", "message":"user id must be int"}`)
+		return
+	}
+
+	language, err := db.GetLanguage(languageId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving language")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving language"}`)
+		return
+	}
+	if language == nil {
+		logrus.WithError(err).Warn("language not found")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"language not found"}`)
+		return
+	}
+
+	err = db.DeleteLanguage(language)
+	if err != nil {
+		logrus.WithError(err).Error("error deleting language")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error deleting language"}`)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

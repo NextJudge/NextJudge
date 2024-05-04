@@ -26,6 +26,7 @@ type NextJudgeDB interface {
 	CreateTestcase(testcase *TestCase, problemId int) (*TestCase, error)
 	GetProblemByID(problemId int) (*Problem, error)
 	GetProblemByTitle(title string) (*Problem, error)
+	DeleteProblem(problem *Problem) error
 	CreateSubmission(submission *Submission) (*Submission, error)
 	GetSubmission(submissionId int) (*Submission, error)
 	UpdateSubmission(submission *Submission) error
@@ -33,6 +34,7 @@ type NextJudgeDB interface {
 	GetLanguages() ([]Language, error)
 	GetLanguageByNameAndVersion(name string, version string) (*Language, error)
 	GetLanguage(id int) (*Language, error)
+	DeleteLanguage(language *Language) error
 	GetTestCase(testcaseId int) (*TestCase, error)
 }
 
@@ -146,6 +148,14 @@ func (d *Database) GetProblemByTitle(title string) (*Problem, error) {
 	return problem, nil
 }
 
+func (d *Database) DeleteProblem(problem *Problem) error {
+	err := db.NextJudgeDB.Delete(problem).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *Database) CreateSubmission(submission *Submission) (*Submission, error) {
 	submission.SubmitTime = time.Now()
 	err := d.NextJudgeDB.Create(submission).Error
@@ -214,6 +224,14 @@ func (d *Database) GetLanguage(id int) (*Language, error) {
 		return nil, err
 	}
 	return language, nil
+}
+
+func (d *Database) DeleteLanguage(language *Language) error {
+	err := db.NextJudgeDB.Delete(language).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *Database) GetTestCase(testcaseId int) (*TestCase, error) {
