@@ -193,8 +193,8 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	if user == nil {
 		logrus.Warn("user does not exist")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"user does not exist"}`)
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"user does not exist"}`)
 		return
 	}
 	if user.Username != reqData.Username {
