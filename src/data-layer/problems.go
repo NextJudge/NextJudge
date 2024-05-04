@@ -82,6 +82,7 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, string(respJSON))
 }
 

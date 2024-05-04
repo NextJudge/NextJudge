@@ -10,16 +10,9 @@ marks:
 includes:
   - !include globals.yaml
 
-
 stages:
-  - name: get non existant user
-    request: 
-      url: "{host}/v1/users/999999"
-      method: GET
-    response:
-      headers:
-        content-type: application/json
-      status_code: 404
+
+  ### /v1/users
 
   - name: create new user
     request: 
@@ -40,6 +33,23 @@ stages:
       save:
         json:
           user_id: id
+          join_date: join_date
+
+  - name: create another new user
+    request: 
+      url: "{host}/v1/users"
+      method: POST
+      json:
+        username: "{test_username_2}"
+        password_hash: "abcd1234"
+        is_admin: false
+    response:
+      headers:
+        content-type: application/json
+      status_code: 201
+      save:
+        json:
+          user_id_2: id
 
   - name: try to create duplicate user
     request: 
@@ -49,6 +59,24 @@ stages:
         username: "{test_username}"
         password_hash: "abcd1234"
         is_admin: false
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: get non existent user
+    request: 
+      url: "{host}/v1/users/999999"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: get user using string instead of number
+    request: 
+      url: "{host}/v1/users/badid"
+      method: GET
     response:
       headers:
         content-type: application/json
@@ -68,7 +96,7 @@ stages:
         password_hash: "abcd1234"
         is_admin: false
 
-  - name: get user by non existant username
+  - name: get user by non existent username
     request: 
       url: "{host}/v1/users"
       method: GET
@@ -110,7 +138,511 @@ stages:
           password_hash: "abcd1234"
           is_admin: false
 
-  - name: delete non existant user
+  - name: update non existent user
+    request: 
+      url: "{host}/v1/users/99999"
+      method: PUT
+      json:
+        id: !int 99999
+        username: "{test_username}"
+        password_hash: "abcd1234"
+        is_admin: false
+        join_date: "{join_date}"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: update user with mismatched ids
+    request: 
+      url: "{host}/v1/users/{user_id}"
+      method: PUT
+      json:
+        id: !int 99999
+        username: "{test_username}"
+        password_hash: "abcd1234"
+        is_admin: false
+        join_date: "{join_date}"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: update user with existing username
+    request: 
+      url: "{host}/v1/users/{user_id}"
+      method: PUT
+      json:
+        id: !int "{user_id}"
+        username: "{test_username_2}"
+        password_hash: "abcd1234"
+        is_admin: false
+        join_date: "{join_date}"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: update user
+    request: 
+      url: "{host}/v1/users/{user_id}"
+      method: PUT
+      json:
+        id: !int "{user_id}"
+        username: "{test_username}"
+        password_hash: "abcd1234123"
+        is_admin: true
+        join_date: "{join_date}"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 204
+
+  - name: get user should show updated values
+    request: 
+      url: "{host}/v1/users/{user_id}"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 200
+      json:
+        id: !int "{user_id}"
+        username: "{test_username}"
+        password_hash: "abcd1234123"
+        is_admin: true
+
+  ### /v1/languages
+
+  - name: create new langauge
+    request: 
+      url: "{host}/v1/languages"
+      method: POST
+      json:
+        name: "{test_language}"
+        extension: ".gooby"
+        version: "30000"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 201
+      json:
+        name: "{test_language}"
+        extension: ".gooby"
+        version: "30000"
+      save:
+        json:
+          language_id: id
+
+  - name: create duplicate langauge
+    request: 
+      url: "{host}/v1/languages"
+      method: POST
+      json:
+        name: "{test_language}"
+        extension: ".gooby"
+        version: "30000"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: get langauges
+    request: 
+      url: "{host}/v1/languages"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 200
+      json:
+        - name: "{test_language}"
+          extension: ".gooby"
+          version: "30000"
+
+  ### /v1/problems
+
+  - name: create problem with bad user id
+    request: 
+      url: "{host}/v1/problems"
+      method: POST
+      json:
+        user_id: 99999
+        prompt: "solve the problem"
+        title: "{test_problem}"
+        test_cases:
+          - input: "abc"
+            output: "123"
+          - input: "xyz"
+            output: "789"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: create problem
+    request: 
+      url: "{host}/v1/problems"
+      method: POST
+      json:
+        user_id: !int "{user_id}"
+        prompt: "solve the problem"
+        title: "{test_problem}"
+        test_cases:
+          - input: "abc"
+            expected_output: "123"
+          - input: "xyz"
+            expected_output: "789"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 201
+      json:
+        user_id: !int "{user_id}"
+        prompt: "solve the problem"
+        title: "{test_problem}"
+        test_cases:
+          - input: "abc"
+            expected_output: "123"
+          - input: "xyz"
+            expected_output: "789"
+      save:
+        json:
+          problem_id: id
+          test_case_id: test_cases[0].id
+
+  - name: create duplicate problem
+    request: 
+      url: "{host}/v1/problems"
+      method: POST
+      json:
+        user_id: !int "{user_id}"
+        prompt: "solve the problem"
+        title: "{test_problem}"
+        test_cases:
+          - input: "abc"
+            expected_output: "123"
+          - input: "xyz"
+            expected_output: "789"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: create second problem
+    request: 
+      url: "{host}/v1/problems"
+      method: POST
+      json:
+        user_id: !int "{user_id}"
+        prompt: "solve the harder problem"
+        title: "{test_problem_2}"
+        test_cases:
+          - input: "you"
+            expected_output: "me"
+          - input: "me"
+            expected_output: "you"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 201
+      json:
+      save:
+        json:
+          problem_id_2: id
+          test_case_id_2: test_cases[0].id
+
+
+  - name: get non existent problem
+    request: 
+      url: "{host}/v1/problems/99999"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: get problem
+    request: 
+      url: "{host}/v1/problems/{problem_id}"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 200
+      json:
+        user_id: !int "{user_id}"
+        prompt: "solve the problem"
+        title: "{test_problem}"
+        test_cases:
+          - input: "abc"
+            expected_output: "123"
+          - input: "xyz"
+            expected_output: "789"
+
+  - name: get all problems
+    request: 
+      url: "{host}/v1/problems"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 200
+      json:
+        - user_id: !int "{user_id}"
+          prompt: "solve the problem"
+          title: "{test_problem}"
+
+  ### /v1/submissions
+
+  - name: create submission to non existent problem
+    request: 
+      url: "{host}/v1/submissions"
+      method: POST
+      json:
+        user_id: !int "{user_id}"
+        problem_id: 99999
+        time_elapsed: 1
+        language_id: !int "{language_id}"
+        source_code: "int main"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: create submission to non existent user
+    request: 
+      url: "{host}/v1/submissions"
+      method: POST
+      json:
+        user_id: 99999
+        problem_id: !int "{problem_id}"
+        time_elapsed: 1
+        language_id: !int "{language_id}"
+        source_code: "int main"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: create submission to non existent language
+    request: 
+      url: "{host}/v1/submissions"
+      method: POST
+      json:
+        user_id: !int "{user_id}"
+        problem_id: !int "{problem_id}"
+        time_elapsed: 1
+        language_id: 99999
+        source_code: "int main"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: create submission
+    request: 
+      url: "{host}/v1/submissions"
+      method: POST
+      json:
+        user_id: !int "{user_id}"
+        problem_id: !int "{problem_id}"
+        time_elapsed: 1
+        language_id: !int "{language_id}"
+        source_code: "int main"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 201
+      json:
+        user_id: !int "{user_id}"
+        problem_id: !int "{problem_id}"
+        time_elapsed: 1
+        language_id: !int "{language_id}"
+        status: "PENDING"
+        source_code: "int main"
+      save:
+        json:
+          submission_id: id
+
+  - name: get submission
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      json:
+        id: !int "{submission_id}"
+        user_id: !int "{user_id}"
+        problem_id: !int "{problem_id}"
+        time_elapsed: 1
+        language_id: !int "{language_id}"
+        status: "PENDING"
+        source_code: "int main"
+      status_code: 200
+
+  - name: update submission with bad status
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: PATCH
+      json:
+        status: "LOOOL"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 500
+
+  - name: update submission with failed test case and not wrong answer status
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: PATCH
+      json:
+        status: "TIME_LIMIT_EXCEEDED"
+        failed_test_case_id: !int "{test_case_id}"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: update submission with test case of other problem
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: PATCH
+      json:
+        status: "WRONG_ANSWER"
+        failed_test_case_id: !int "{test_case_id_2}"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: update submission with non existant test case
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: PATCH
+      json:
+        status: "WRONG_ANSWER"
+        failed_test_case_id: 99999
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: update submission
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: PATCH
+      json:
+        status: "WRONG_ANSWER"
+        failed_test_case_id: !int "{test_case_id}"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 204
+
+  - name: get submission should show updated fields
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      json:
+        id: !int "{submission_id}"
+        user_id: !int "{user_id}"
+        problem_id: !int "{problem_id}"
+        time_elapsed: 1
+        language_id: !int "{language_id}"
+        status: "WRONG_ANSWER"
+        failed_test_case_id: !int "{test_case_id}"
+        source_code: "int main"
+      status_code: 200
+
+  ### cleanup
+
+  - name: delete non existent problem
+    request: 
+      url: "{host}/v1/problems/99999"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: delete problem
+    request: 
+      url: "{host}/v1/problems/{problem_id}"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 204
+  
+  - name: delete other problem
+    request: 
+      url: "{host}/v1/problems/{problem_id_2}"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 204
+
+  - name: getting submission should fail due to cascading delete
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: try to delete problem again
+    request: 
+      url: "{host}/v1/problems/{problem_id}"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: getting problem should fail
+    request: 
+      url: "{host}/v1/problems/{problem_id}"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: delete non existent language
+    request: 
+      url: "{host}/v1/languages/99999"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: delete language
+    request: 
+      url: "{host}/v1/languages/{language_id}"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 204
+
+  - name: delete language again should fail
+    request: 
+      url: "{host}/v1/languages/{language_id}"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: delete non existent user
     request: 
       url: "{host}/v1/users/999999"
       method: DELETE
@@ -122,6 +654,33 @@ stages:
   - name: delete user
     request: 
       url: "{host}/v1/users/{user_id}"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 204
+  
+  - name: delete user again should fail
+    request: 
+      url: "{host}/v1/users/{user_id}"
+      method: DELETE
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: get user again should fail
+    request: 
+      url: "{host}/v1/users/{user_id}"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: delete other user
+    request: 
+      url: "{host}/v1/users/{user_id_2}"
       method: DELETE
     response:
       headers:

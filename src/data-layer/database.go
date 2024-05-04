@@ -34,6 +34,7 @@ type NextJudgeDB interface {
 	GetLanguages() ([]Language, error)
 	GetLanguageByNameAndVersion(name string, version string) (*Language, error)
 	GetLanguage(id int) (*Language, error)
+	DeleteLanguage(language *Language) error
 	GetTestCase(testcaseId int) (*TestCase, error)
 }
 
@@ -223,6 +224,14 @@ func (d *Database) GetLanguage(id int) (*Language, error) {
 		return nil, err
 	}
 	return language, nil
+}
+
+func (d *Database) DeleteLanguage(language *Language) error {
+	err := db.NextJudgeDB.Delete(language).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *Database) GetTestCase(testcaseId int) (*TestCase, error) {
