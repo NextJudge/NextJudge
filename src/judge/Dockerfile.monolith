@@ -22,6 +22,11 @@ ENV NODE_VERSION=21.6.2
 RUN wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 ENV NVM_DIR=/root/.nvm
 RUN \. "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION} && nvm use ${NODE_VERSION} && nvm alias default ${NODE_VERSION}
+# TypeScript
+RUN \. "$NVM_DIR/nvm.sh" && npm install typescript -g
+
+# Ruby
+RUN apt-get install -y ruby
 
 FROM basejudge:"$USAGE"
 
@@ -41,7 +46,7 @@ version = "0"
 extension = "cpp"
 script= """
 #!/bin/sh
-g++ {IN_FILE} -o main 
+g++ {IN_FILE} -o /executable/main 
 """
 
 [[language]]
@@ -50,7 +55,7 @@ version = "0"
 extension = "c"
 script= """
 #!/bin/sh
-gcc {IN_FILE} -o main 
+gcc {IN_FILE} -o /executable/main 
 """
 
 [[language]]
@@ -59,9 +64,9 @@ version = "3.12"
 extension = "py"
 script="""
 #!/bin/sh
-echo "#!/bin/sh" >> main
-echo "python3 {IN_FILE}" >> main
-chmod +x main
+echo "#!/bin/sh" >> /executable/main
+echo "python3 /build/{IN_FILE}" >> /executable/main
+chmod +x /executable/main
 """
 
 [[language]]
@@ -70,7 +75,7 @@ version = "0"
 extension = "rs"
 script="""
 #!/bin/sh
-/root/.cargo/bin/rustc {IN_FILE} -o main
+/root/.cargo/bin/rustc {IN_FILE} -o /executable/main
 """
 
 [[language]]
@@ -79,7 +84,7 @@ version = "0"
 extension = "go"
 script= """
 #!/bin/sh
-/usr/local/go/bin/go build -o main {IN_FILE}
+/usr/local/go/bin/go build -o /executable/main {IN_FILE}
 """
 
 
@@ -89,13 +94,40 @@ version = "0"
 extension = "js"
 script= """
 #!/bin/sh
-echo "#!/bin/sh" >> main
-echo 'export PATH="/root/.nvm/versions/node/v21.6.2/bin/:$PATH"' >> main
-echo "node {IN_FILE}" >> main
-chmod +x main
+echo "#!/bin/sh" >> /executable/main
+echo 'export PATH="/root/.nvm/versions/node/v21.6.2/bin/:$PATH"' >> /executable/main
+echo "node /build/{IN_FILE}" >> /executable/main
+chmod +x /executable/main
+"""
+
+[[language]]
+name = "typescript"
+version = "0"
+extension = "ts"
+script= """
+#!/bin/sh
+export PATH="/root/.nvm/versions/node/v21.6.2/bin/:$PATH"
+export NODE_OPTIONS="--max_old_space_size=2048"
+export GENERATE_SOURCEMAP=false
+tsc {IN_FILE} --outfile main2
+
+echo "#!/bin/sh" >> /executable/main
+echo 'export PATH="/root/.nvm/versions/node/v21.6.2/bin/:$PATH"' >> /executable/main
+echo "node /build/main2" >> /executable/main
+chmod +x /executable/main
 """
 
 
+[[language]]
+name = "ruby"
+version = "0"
+extension = "rb"
+script= """
+#!/bin/sh
+echo "#!/bin/sh" >> /executable/main
+echo "/usr/bin/ruby /build/{IN_FILE}" >> /executable/main
+chmod +x /executable/main
+"""
 
 
 EOF

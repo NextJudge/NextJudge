@@ -3,3 +3,4 @@ src/bridge/app/bun.lockb
 src/data-layer/main
 .env
 .DS_Store
+.vscode

@@ -1,0 +1,7 @@
+services:
+  pytest:
+    build:
+      dockerfile: ./Dockerfile.tests
+      context: .
+    privileged: true
+    

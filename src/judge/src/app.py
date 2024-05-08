@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Callable
+from pathlib import Path
 import asyncio
 import os
 import uuid
@@ -21,12 +22,14 @@ SUBMISSION_QUEUE_NAME="submission_queue"
 BRIDGE_QUEUE_NAME="bridge_queue"
 
 NEXTJUDGE_USER_ID = 99999
-BUILD_DIRECTORY = "/chroot/build_dir"
-RUN_DIRECTORY = "/chroot/run_dir"
 
-BUILD_SCRIPT_PATH = f"{BUILD_DIRECTORY}/build.sh"
-RUN_SCRIPT_PATH = f"{RUN_DIRECTORY}/main"
+TARGET_TOP_LEVEL_DIRECTORY = "program_files"
 
+BUILD_DIRECTORY_NAME = "build"
+RUN_DIRECTORY_NAME = "executable"
+
+BUILD_SCRIPT_NAME = "build.sh"
+RUN_SCRIPT_NAME = "main"
 
 
 class RabbitMQClient(object):
@@ -102,24 +105,48 @@ class Language:
     extension: str
     id: int
 
-LANGUAGES: list[Language] = []
+@dataclass
+class Submission:
+    source_code: str
+    language_id: str
+    problem_id: str
+    id: int
+
+LOCAL_LANGUAGES: list[Language] = []
+LOCAL_LANGUAGES_MAP: dict[int, Language] = dict()
+def parse_languages():
+    path = Path(__file__).with_name("languages.toml")
+    filename = path.absolute()
+    language_data = tomllib.load(open(filename,"rb"))
+
+    id = 0
+    for supported_lang in language_data["language"]:
+        LOCAL_LANGUAGES.append(Language(
+            supported_lang["name"],
+            supported_lang["script"],
+            supported_lang["extension"],
+            id
+        ))
+        id += 1
+
+    for lang in LOCAL_LANGUAGES:
+        LOCAL_LANGUAGES_MAP[lang.id] = lang
 
 
-def get_build_script(language_id: int):
-    
-    for lang in LANGUAGES:
-        if(lang.id == language_id):
-            return lang.script
 
+def get_language(local_language_id: int) -> Language | None:
+    for lang in LOCAL_LANGUAGES:
+        if lang.id == local_language_id:
+            return lang
     return None
 
-# Temp
-def get_extension(language_id: int):
-    for lang in LANGUAGES:
-        if lang.id == language_id:
-            return lang.extension
+def get_language_by_extension(ext: str) -> Language | None:
+    for lang in LOCAL_LANGUAGES:
+        if lang.extension == ext:
+            return lang
     return None
 
+BRIDGE_LANG_ID_MAP: dict[int,int] = dict()
 
 rabbitmq: RabbitMQClient = None
 
@@ -138,6 +165,73 @@ async def submit_judgement(submission, success):
     r = await rabbitmq.send_judgement(body)
     print(r)
 
+@dataclass
+class ProgramEnvironment:
+    id: str
+    top_level_dir: str
+    top_level_dir_build_dir: str
+    top_level_dir_executable_dir: str
+    top_level_dir_build_script: str
+    top_level_dir_executable_script: str
+
+    inside_chroot_build_dir: str
+    inside_chroot_executable_dir: str
+    inside_chroot_build_script: str
+    inside_chroot_executable_script: str
+
+    def __init__(self):
+        self.id = f"{uuid.uuid4().hex}"
+        self.top_level_dir = f"/{TARGET_TOP_LEVEL_DIRECTORY}/{self.id}"
+        self.top_level_dir_build_dir = f"{self.top_level_dir}/{BUILD_DIRECTORY_NAME}"
+        self.top_level_dir_executable_dir = f"{self.top_level_dir}/{RUN_DIRECTORY_NAME}"
+        self.top_level_dir_build_script = f"{self.top_level_dir_build_dir}/{BUILD_SCRIPT_NAME}"
+        self.top_level_dir_executable_script = f"{self.top_level_dir_executable_dir}/{RUN_SCRIPT_NAME}"
+
+        self.inside_chroot_build_dir = f"/{BUILD_DIRECTORY_NAME}"
+        self.inside_chroot_executable_dir = f"/{RUN_DIRECTORY_NAME}"
+        self.inside_chroot_build_script = f"{self.inside_chroot_build_dir}/{BUILD_SCRIPT_NAME}"
+        self.inside_chroot_executable_script = f"{self.inside_chroot_executable_dir}/{RUN_SCRIPT_NAME}"
+
+    def create_directories(self):
+        Path.mkdir(Path(self.top_level_dir))
+        Path.mkdir(Path(self.top_level_dir_build_dir))
+        Path.mkdir(Path(self.top_level_dir_executable_dir))
+
+        # Set up permissions for the build and run folders
+        Path.mkdir(Path(f"/chroot/{BUILD_DIRECTORY_NAME}"),exist_ok=True)
+        Path.mkdir(Path(f"/chroot/{RUN_DIRECTORY_NAME}"),exist_ok=True)
+
+        os.chown(f"/chroot/{BUILD_DIRECTORY_NAME}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+        os.chown(f"/chroot/{RUN_DIRECTORY_NAME}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+
+
+    def remove_files(self):
+        shutil.rmtree(self.top_level_dir)
+
+
+def create_program_environment() -> ProgramEnvironment:
+    return ProgramEnvironment()
+
+
+# Used for testing. Compile and run code with no stdin
+def simple_compile_and_run(source_code: str, language: Language) -> bytes | None:
+    environment = create_program_environment()
+    environment.create_directories()
+
+    if not compile_in_jail(source_code, language, environment):
+        # Compile time error
+        # TODO: make this a seperate "cleanup" function
+        environment.remove_files()
+        return None
+
+    output = run_single(environment, b"")
+    print(output)
+
+    environment.remove_files()
+
+    return output
+
+
 
 async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
 
@@ -154,84 +248,78 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
         raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
         test_data = json.loads(raw_test_data)
 
-        # Can swap this with pathlib mkdir parents=true exist ok = true
-        subprocess.run(
-            ["mkdir","-p", BUILD_DIRECTORY]
-        )
+        environment = create_program_environment()
+        environment.create_directories()
 
-        subprocess.run(
-            ["mkdir","-p", RUN_DIRECTORY]
-        )
+        print(BRIDGE_LANG_ID_MAP)
+        local_language_id = BRIDGE_LANG_ID_MAP.get(int(submission_data["language_id"]))
 
-        if not compile_in_jail(submission_data):
+        if local_language_id == None:
+            print("No such language!")
+            return
+
+        if not compile_in_jail(submission_data["source_code"], LOCAL_LANGUAGES_MAP[local_language_id], environment):
             # Compile time error
-
-            # TODO: make this a seperate "cleanup" function
-
-            shutil.rmtree(BUILD_DIRECTORY)
+            environment.remove_files()
             await submit_judgement(submission_data, False)
             return
         
         success = True
         for test in test_data["test_cases"]:
-            if not run_single_test_case(test):
+            if not run_single_test_case(test, dir):
                 success = False
                 break
+        
+        environment.remove_files()
 
-        shutil.rmtree(RUN_DIRECTORY)
-        shutil.rmtree(BUILD_DIRECTORY)
 
         await submit_judgement(submission_data, success)
 
-def compile_in_jail(submission):
-    
-    source_code = submission["source_code"]
+
+def compile_in_jail(source_code: str, language: Language | None, environment: ProgramEnvironment) -> bool:
+
+    if language is None:
+        return False
 
     print("Source code")
     print(source_code)
-    build_script = get_build_script(submission["language_id"])
 
-    if not build_script:
-        print(f"No build script for language {submission['language_id']}")
-        return False
+    build_script = language.script
+    extension = language.extension
 
-    extension = get_extension(submission["language_id"])
-    if not extension:
-        print(f"No extension for language {submission['language_id']}")
-        return False
+    INPUT_FILE_NAME = f"input.{extension}"
 
+    print(f"Writing code to {environment.top_level_dir_build_dir}/{INPUT_FILE_NAME}")
 
-    INPUT_FILE_PATH = f"{BUILD_DIRECTORY}/input.{extension}"
-
-    print("Writing code to {INPUT_FILE_PATH}")
-
-    with open(INPUT_FILE_PATH, "w") as f:
+    with open(f"/{environment.top_level_dir_build_dir}/{INPUT_FILE_NAME}", "w") as f:
         f.write(source_code)
 
-    LOCAL_BUILD_DIR = "/build_dir"
-    LOCAL_BUILD_SCRIPT_PATH = F"{LOCAL_BUILD_DIR}/build.sh"
-
-    build_script = build_script.replace("{IN_FILE}", f"{LOCAL_BUILD_DIR}/input.{extension}")
+    build_script = build_script.replace("{IN_FILE}", f"input.{extension}")
 
     print("Build script")
     print(build_script)
 
-    with open(BUILD_SCRIPT_PATH, "w") as f:
+    with open(f"{environment.top_level_dir_build_script}", "w") as f:
         f.write(build_script)
 
-    os.chmod(BUILD_SCRIPT_PATH, 0o755)
-    os.chown(BUILD_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
-    os.chown(BUILD_SCRIPT_PATH, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+    os.chmod(f"{environment.top_level_dir_build_script}", 0o755)
+    os.chown(f"{environment.top_level_dir_build_script}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+
+    # Chown the build and executable directories
+    os.chown(f"{environment.top_level_dir_build_dir}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+    os.chown(f"{environment.top_level_dir_executable_dir}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
 
 
     print("Compiling")
 
+    # subprocess.run(["ls","-pla", "/"])
+    # subprocess.run(["ls","-pla", "/program_files"])
     # subprocess.run(["ls","-pla", "/chroot/"])
-    # subprocess.run(["ls","-pla", "/chroot/build_dir/"])
+    # subprocess.run(["ls","-pla", f"/chroot/build"])
+    # subprocess.run(["ls","-pla", f"/chroot/executable"])
 
     # print(LOCAL_BUILD_DIR)
     # print(LOCAL_BUILD_SCRIPT_PATH)
-    
 
     nsjail_log_pipes = os.pipe()
 
@@ -244,18 +332,18 @@ def compile_in_jail(submission):
             "--max_cpus", f"{1}", 
 
             "--rlimit_nofile", f"{128}", # Max file descriptor number (32)
-            "--rlimit_as", f"{1024}", # Max virtual memory space
+            "--rlimit_as", f"{1024*2}", # Max virtual memory space
             "--rlimit_cpu", f"{10}", # Max CPU time
             "--rlimit_fsize", f"{512}", # Max file size in MB (1)
             
             "--user", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
             "--group", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
 
-            # "--bindmount_ro", "/chroot:/", // Map root file system readonly
             "--chroot", f"/chroot/", # Chroot entire file system
 
             # // Read/write mounts
-            "--bindmount", f"{BUILD_DIRECTORY}:{LOCAL_BUILD_DIR}", # Map build dir as read/write
+            "--bindmount", f"{environment.top_level_dir_build_dir}:{environment.inside_chroot_build_dir}", # Map build dir as read/write
+            "--bindmount", f"{environment.top_level_dir_executable_dir}:{environment.inside_chroot_executable_dir}", # Map executable dir as read/write
             "--bindmount", f"/chroot/root/.cache:/root/.cache", # Map build dir as read/write
 
             # // Readonly mounts
@@ -263,7 +351,7 @@ def compile_in_jail(submission):
             # // "--bindmount_ro", `/dev/zero:/dev/zero`,
             "--bindmount_ro", f"/dev/null",
 
-            "--cwd", f"{LOCAL_BUILD_DIR}",
+            "--cwd", f"{environment.inside_chroot_build_dir}",
 
             # // "--tmpfsmount", "/tmp",
             '--mount', 'none:/tmp:tmpfs:size=419430400', # // Mount /tmp as tmpfs, make it larger than default (4194304)
@@ -271,10 +359,11 @@ def compile_in_jail(submission):
             "--env", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "--env", "HOME=/root", # User is not really root, but some Dockerfile commands for compilers/runtimes add application files to root home
             
-            "--exec_file",f"{LOCAL_BUILD_SCRIPT_PATH}",
+            "--exec_file",f"{environment.inside_chroot_build_script}",
             
             "--log_fd", f"{nsjail_log_pipes[1]}",
             # "--really_quiet"
+            "-v"
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -287,8 +376,8 @@ def compile_in_jail(submission):
     read_from = os.fdopen(nsjail_log_pipes[0])
     nsjail_errors = read_from.read()
     read_from.close()
-    print("nsjail output")
-    print(nsjail_errors)
+    # print("nsjail output")
+    # print(nsjail_errors)
 
     stderr = compile_result.stderr
     if stderr or compile_result.returncode:
@@ -296,22 +385,41 @@ def compile_in_jail(submission):
         print(stderr,compile_result.returncode)
         return False
     
-    shutil.copyfile(f"{BUILD_DIRECTORY}/main", f"{RUN_SCRIPT_PATH}")
+    # shutil.copyfile(f"/chroot/{dir}/main", f"/chroot/{dir}/{RUN_SCRIPT_NAME}")
     print("Compiling succeeded!")
     return True
 
 
 
+def run_single_test_case(testcase, environment: ProgramEnvironment):
 
-def run_single_test_case(testcase):
+    print(testcase["input"].encode("utf-8"))
 
-    os.chmod(RUN_SCRIPT_PATH, 0o755)
-    os.chown(RUN_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
-    os.chown(RUN_SCRIPT_PATH, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+    standard_out = run_single(environment, testcase["input"].encode("utf-8")).decode("utf-8")
+    print(standard_out)
+
+    expected_output = testcase["expected_output"]
+    print(expected_output)
+
+    print("Starting to compare results")
+    success = compare_input_output(expected_output, standard_out)
+    print("Done comparing results")
+
+    if success:
+        print("Program is correct!")
+    else:
+        print("Program is incorrect!!")
+
+    return success
+
+def run_single(environment: ProgramEnvironment, input: bytes) -> bytes:
+
+    # os.chmod(f"{environment.top_level_dir_executable_script}", 0o755)
+    # os.chown(f"{environment.top_level_dir_executable_dir}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+    # os.chown(f"{environment.top_level_dir_executable_script}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
 
     nsjail_log_pipes = os.pipe()
 
-    # print(testcase["input"].encode("utf-8"))
     print("Starting execution")
     t = time.time()
     run_result = subprocess.run(
@@ -329,21 +437,24 @@ def run_single_test_case(testcase):
             "--user", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
             "--group", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
 
-            # // "--bindmount_ro", "/:/chroot", // Map root file system readonly
             "--chroot", f"/chroot", # // Chroot entire file system
             
-            "--bindmount", f"{RUN_DIRECTORY}:/run_dir", # // Map build dir as read/write
-            "--cwd", f"/run_dir",
+            "--bindmount_ro", f"{environment.top_level_dir_build_dir}:{environment.inside_chroot_build_dir}", # Map build dir as read/write
+            "--bindmount_ro", f"{environment.top_level_dir_executable_dir}:{environment.inside_chroot_executable_dir}", # Map executable dir as read/write
+
+            # "--bindmount_ro", f"/chroot/{dir}:/{dir}", # // Map dir as readonly
+            "--cwd", f"{environment.inside_chroot_executable_dir}",
 
             "--env", f"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 
-            "--exec_file",f"/run_dir/main",
+            "--exec_file",f"{environment.inside_chroot_executable_script}",
             "--log_fd", f"{nsjail_log_pipes[1]}",
             # "--really_quiet"
+            "-v"
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        input=testcase["input"].encode("utf-8"),
+        input=input,
         pass_fds=[nsjail_log_pipes[1]]
     )
     os.close(nsjail_log_pipes[1])
@@ -354,28 +465,23 @@ def run_single_test_case(testcase):
     nsjail_errors = read_from.read()
     read_from.close()
 
-    print("nsjail output")
+    # print("nsjail output")
     # print(nsjail_errors)
 
     stderr = run_result.stderr
     if stderr or run_result.returncode:
         print("Error in runtime!")
         print(stderr,run_result.returncode)
-        return False
+        print(nsjail_errors)
+        return None
 
-    process_stdout = run_result.stdout.decode("utf-8")
-    # print(process_stdout)
+    process_stdout = run_result.stdout
+    print(process_stdout)
+    return process_stdout
+   
 
-    print("Starting to compare results")
-    success = compare_input_output(testcase["expected_output"], process_stdout)
-    print("Done comparing results")
 
-    if success:
-        print("Program is correct!")
-    else:
-        print("Program is incorrect!!")
-
-    return success
+    
 
 def split_and_trim(code: str):
     return [x.rstrip() for x in code.split("\n")]
@@ -416,10 +522,11 @@ async def connect_to_rabbitmq():
             time.sleep(2)
 
 async def main():
-    print("Reading languages.toml file")
-    language_data = tomllib.load(open("languages.toml","rb"))
-    print(language_data)
 
+
+
+    print("Reading languages.toml file")
+    parse_languages()
     connection = await connect_to_rabbitmq()
     if not connection:
         return
@@ -435,20 +542,13 @@ async def main():
     await rabbitmq.setup()
     
     languages = await rabbitmq.get_languages()
-    for lang in languages:
-        for supported_lang in language_data["language"]:
-            if supported_lang["name"] == lang["name"]:
-                LANGUAGES.append(Language(
-                    supported_lang["name"],
-                    supported_lang["script"],
-                    supported_lang["extension"],
-                    lang["id"]
-                ))
-                print(supported_lang["script"])
+    for bridge_lang in languages:
+        for supported_lang in LOCAL_LANGUAGES:
+            if supported_lang.name == bridge_lang["name"]:
+                BRIDGE_LANG_ID_MAP[bridge_lang["id"]] = supported_lang.id
 
     # rpc_channel = await connection.channel()
     # result_queue = await rpc_channel.declare_queue('', exclusive=True)
-
 
     # Setup submission queue
     submission_channel = await connection.channel()
