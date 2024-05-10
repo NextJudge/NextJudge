@@ -25,7 +25,7 @@ For quick iteration, we provide two different methods of setting up a local depl
 The first option will use Docker, but will mount folders containing applications data, allowing for hot reload when changing the files on the host. This prevents the need to install the compilers and runtime tools onto the host (Bun, Rust, Go), while still allowing rapid development, avoiding the need to restart the Docker containers constantly.
 
 ```sh
-./dev-docker-run.sh
+./dev-deploy.sh
 ```
 
 To flush the database and remove all volumes (completely refreshing the Docker environments), run the following script:
@@ -45,7 +45,7 @@ node/npm
 docker
 ```
 
-We still run postgres and the judge in the Docker container. Run the `./dev-host-init.sh` script for a one-time setup of these Docker containers.
+We still run postgres and the judge in the Docker container. Run the `./init-dev-host.sh` script for a one-time setup of these Docker containers.
 
 ```sh
 ./init-dev-host.sh
