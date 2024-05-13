@@ -15,7 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { directoryRoutes, platformRoutes, routeList } from "@/lib/constants";
@@ -29,9 +29,19 @@ import { buttonVariants } from "./ui/button";
 
 // TODO: Refactor this into separate files, it's currently messy.
 export function Navbar() {
+  const [pin] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const pin = localStorage.getItem("pin");
+      if (pin) {
+        localStorage.setItem("pin", pin);
+      }
+    }
+  }, []);
   const [isOpen, setIsOpen] = useState<boolean>(false);
+
   return (
-    <header className="sticky md:relative top-0 z-40 w-screen bg-transparent backdrop-blur-lg flex justify-between items-center p-8">
+    <header className="sticky md:relative top-0 z-40 max-w-7xl mx-auto w-screen bg-transparent backdrop-blur-lg flex justify-between items-center p-8">
       <NavigationMenu
         className={cn("flex justify-between items-center w-full max-w-full")}
       >
@@ -97,11 +107,14 @@ export function Navbar() {
         <div className="hidden md:flex justify-end mx-12">
           <NavigationMenuItem className="flex items-center justify-end gap-4">
             <ModeToggle />
-            {/* <Link href="/auth/login">Login</Link>
-            <Link href="/auth/signup">Register</Link> */}
-            <h3 className="font-normal text-lg select-none pointer-events-none">
-              Coming Soon!
-            </h3>
+            {pin === process.env.NEXT_PUBLIC_PIN ? (
+              <>
+                <Link href="/auth/login">Login</Link>
+                <Link href="/auth/signup">Register</Link>
+              </>
+            ) : (
+              <h3 className="text-muted-foreground">Coming Soon</h3>
+            )}
           </NavigationMenuItem>
         </div>
       </NavigationMenu>

@@ -199,7 +199,7 @@ const ThreeSubmissionsCard = () => {
   );
 };
 
-const items = [
+export const items = [
   {
     title: "Code Editor",
     description:

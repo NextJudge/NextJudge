@@ -16,41 +16,7 @@ import rustSvg from "../../../public/icons/rust.svg";
 import swiftSvg from "../../../public/icons/swift.svg";
 import typeScriptSvg from "../../../public/icons/typescript.svg";
 import { cn } from "../../lib/utils";
-import { InfiniteMovingCards } from "../ui/infinite-moving-cards";
-
-export function LanguagesBanner() {
-  return (
-    <>
-      <section className="container grid lg:grid-cols-1 place-items-center my-12 py-12 md:my-28 md:py-32 dark:bg-grid-white/[0.04] bg-grid-black/[0.05] h-full">
-        <h1 className="text-xl md:text-4xl font-medium font-sans text-center max-w-3xl">
-          Solve problems in all of the programming languages that{" "}
-          <span
-            className=" font-serif italic font-semibold"
-            style={{
-              background: "linear-gradient(transparent 50%, #FF6600 50%)",
-            }}
-          >
-            we know and love.
-          </span>
-        </h1>
-        <div className="h-min antialiased flex flex-col my-12 gap-6 md:gap-12 -space-y-12 items-center justify-center relative overflow-hidden">
-          <InfiniteMovingCards
-            items={secondRowItems}
-            direction="left"
-            speed="normal"
-            pauseOnHover={false}
-          />
-          <InfiniteMovingCards
-            items={firstRowItems}
-            direction="right"
-            speed="normal"
-            pauseOnHover={false}
-          />
-        </div>
-      </section>
-    </>
-  );
-}
+import Marquee from "../ui/marquee";
 
 interface SvgProps {
   icon: any;
@@ -74,29 +40,91 @@ const SvgAsJsx: Component = ({ icon, size }) => {
         "w-16 h-16": size === "16",
         "w-20 h-20": size === "20",
         "w-24 h-24": size === "24",
+        "w-44 h-44": size === "44",
       })}
     />
   );
 };
 
-const firstRowItems = [
-  { label: "Python", icon: SvgAsJsx({ icon: pythonSvg, size: "24" }) },
-  { label: "JavaScript", icon: SvgAsJsx({ icon: javascriptSvg, size: "12" }) },
-  { label: "C++", icon: SvgAsJsx({ icon: cplusplusSvg, size: "24" }) },
-  { label: "Go", icon: SvgAsJsx({ icon: golangSvg, size: "24" }) },
-  { label: "Haskell", icon: SvgAsJsx({ icon: haskellSvg, size: "16" }) },
-  { label: "Kotlin", icon: SvgAsJsx({ icon: kotlinSvg, size: "14" }) },
-  { label: "C#", icon: SvgAsJsx({ icon: csharpSvg, size: "12" }) },
+const LanguageCard = ({
+  label,
+  icon,
+}: {
+  label: string;
+  icon: JSX.Element;
+}) => {
+  return (
+    <div
+      className={cn(
+        "relative cursor-pointer overflow-hidden rounded-xl border p-4",
+        // light styles
+        "border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05]",
+        // dark styles
+        "dark:border-gray-50/[.1] dark:bg-gray-50/[.10] dark:hover:bg-gray-50/[.15]"
+      )}
+    >
+      <div className="flex flex-row items-center gap-2">
+        <div
+          className={cn(
+            `w-12 h-12 relative flex items-center justify-center rounded-md`
+          )}
+        >
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const items = [
+  { label: "Python", icon: SvgAsJsx({ icon: pythonSvg, size: "44" }) },
+  { label: "JavaScript", icon: SvgAsJsx({ icon: javascriptSvg, size: "24" }) },
+  { label: "C++", icon: SvgAsJsx({ icon: cplusplusSvg, size: "44" }) },
+  { label: "Go", icon: SvgAsJsx({ icon: golangSvg, size: "44" }) },
+  { label: "Haskell", icon: SvgAsJsx({ icon: haskellSvg, size: "24" }) },
+  { label: "Kotlin", icon: SvgAsJsx({ icon: kotlinSvg, size: "24" }) },
+  { label: "C#", icon: SvgAsJsx({ icon: csharpSvg, size: "24" }) },
+  { label: "Java", icon: SvgAsJsx({ icon: javaSvg, size: "24" }) },
+  { label: "TypeScript", icon: SvgAsJsx({ icon: typeScriptSvg, size: "24" }) },
+  { label: "PHP", icon: SvgAsJsx({ icon: phpSvg, size: "24" }) },
+  { label: "Swift", icon: SvgAsJsx({ icon: swiftSvg, size: "24" }) },
+  { label: "Rust", icon: SvgAsJsx({ icon: rustSvg, size: "24" }) },
+  { label: "C", icon: SvgAsJsx({ icon: cSvg, size: "24" }) },
+  { label: "Lua", icon: SvgAsJsx({ icon: luaSvg, size: "24" }) },
+  { label: "Ruby", icon: SvgAsJsx({ icon: rubySvg, size: "24" }) },
 ];
 
-const secondRowItems = [
-  { label: "Java", icon: SvgAsJsx({ icon: javaSvg, size: "16" }) },
-  { label: "TypeScript", icon: SvgAsJsx({ icon: typeScriptSvg, size: "12" }) },
-  { label: "PHP", icon: SvgAsJsx({ icon: phpSvg, size: "20" }) },
-  { label: "Swift", icon: SvgAsJsx({ icon: swiftSvg, size: "14" }) },
-  { label: "Rust", icon: SvgAsJsx({ icon: rustSvg, size: "14" }) },
-  { label: "C", icon: SvgAsJsx({ icon: cSvg, size: "14" }) },
-  { label: "Lua", icon: SvgAsJsx({ icon: luaSvg, size: "16" }) },
-  { label: "Ruby", icon: SvgAsJsx({ icon: rubySvg, size: "10" }) },
-];
-const thirdRowItems = [];
+const firstRow = items.slice(0, items.length / 2);
+const secondRow = items.slice(items.length / 2, items.length);
+
+export function LanguagesBanner() {
+  return (
+    <>
+      <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg border bg-background space-y-8 py-20 md:shadow-xl">
+        <h1 className="text-xl md:text-4xl font-medium font-sans text-center max-w-3xl">
+          Solve problems in all of the programming languages that{" "}
+          <span
+            className=" font-serif italic font-semibold"
+            style={{
+              background: "linear-gradient(transparent 50%, #FF6600 50%)",
+            }}
+          >
+            we know and love.
+          </span>
+        </h1>
+        <Marquee pauseOnHover className="[--duration:20s]">
+          {firstRow.map((lang) => (
+            <LanguageCard key={lang.label} {...lang} />
+          ))}
+        </Marquee>
+        <Marquee reverse pauseOnHover className="[--duration:20s]">
+          {secondRow.map((lang) => (
+            <LanguageCard key={lang.label} {...lang} />
+          ))}
+        </Marquee>
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white dark:from-background"></div>
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-white dark:from-background"></div>
+      </div>
+    </>
+  );
+}

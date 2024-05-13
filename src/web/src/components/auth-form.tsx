@@ -15,7 +15,7 @@ export function UserAuthFormSignUp({ className, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const router = useRouter();
 
-  async function onSubmit(event: React.SyntheticEvent) {
+  function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setIsLoading(true);
 
@@ -73,7 +73,7 @@ export function UserAuthFormLogin({ className, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const router = useRouter();
 
-  async function onSubmit(event: React.SyntheticEvent) {
+  function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setIsLoading(true);
 
