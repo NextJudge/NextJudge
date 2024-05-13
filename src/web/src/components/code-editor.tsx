@@ -52,6 +52,7 @@ const main = () => {
 
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editor.focus();
+
     // add support for process
     monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
     monaco.languages.typescript.typescriptDefaults.addExtraLib(
@@ -60,8 +61,6 @@ const main = () => {
       "node:readline/promises"
     );
   };
-
-  console.log({ theme });
 
   const [currentLanguage, setCurrentLanguage] = useState("typescript");
   const [submissionLoading, setSubmissionLoading] = useState(false);
@@ -143,6 +142,7 @@ const main = () => {
                 options={{
                   formatOnPaste: true,
                   formatOnType: true,
+                  showUnsed: true,
                   fontSize: 14,
                   cursorStyle: "line",
                   cursorSmoothCaretAnimation: "on",

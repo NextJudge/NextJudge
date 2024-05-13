@@ -59,6 +59,12 @@ const lightDefault: Theme = {
 // const BRIDGE_ENDPOINT = `http://localhost:8080/api/v1`;
 export default function EditorComponent({}: any) {
   const { isCollapsed, ref, collapse, expand } = useEditorCollapse();
+  const {
+    isCollapsed: isCollapsed2,
+    ref: ref2,
+    collapse: collapse2,
+    expand: expand2,
+  } = useEditorCollapse();
   const { resolvedTheme } = useTheme();
   const defaultColorScheme =
     resolvedTheme === "dark" ? darkDefault : lightDefault;
@@ -106,9 +112,12 @@ export default function EditorComponent({}: any) {
               <TooltipTrigger>
                 <ResizableHandle
                   withHandle
-                  className={cn({
-                    "transform translate-x-2 z-50": isCollapsed,
-                  })}
+                  className={cn(
+                    {
+                      "transform translate-x-2 z-50": isCollapsed,
+                    },
+                    "cursor-col-resize"
+                  )}
                   onClickCapture={() => {
                     if (isCollapsed) {
                       expand();
@@ -128,6 +137,7 @@ export default function EditorComponent({}: any) {
             className="w-[70dvw] max-w-screen-2xl"
           >
             <ResizablePanelGroup direction="vertical" className="w-full">
+              {/*  Code Editor Section */}
               <ResizablePanel
                 defaultSize={80}
                 minSize={40}
@@ -140,12 +150,28 @@ export default function EditorComponent({}: any) {
               </ResizablePanel>
               <Tooltip>
                 <TooltipTrigger>
-                  <ResizableHandle withHandle className="mb-2 cursor-pointer" />
+                  <ResizableHandle
+                    withHandle
+                    className={cn(
+                      {
+                        "transform translate-x-2 z-50 mb-2": isCollapsed2,
+                      },
+                      "cursor-row-resize"
+                    )}
+                    onClickCapture={() => {
+                      if (isCollapsed2) {
+                        expand2();
+                      } else {
+                        collapse2();
+                      }
+                    }}
+                  />
                 </TooltipTrigger>
                 <TooltipContent sideOffset={10}>
                   <p>Resize</p>
                 </TooltipContent>
               </Tooltip>
+              {/* Submission Section */}
               <ResizablePanel
                 defaultSize={0}
                 style={{
@@ -153,6 +179,8 @@ export default function EditorComponent({}: any) {
                 }}
                 minSize={10}
                 collapsible
+                onCollapse={collapse2}
+                ref={ref2}
                 collapsedSize={0}
                 className="backdrop-filter backdrop-blur-3xl"
               >
