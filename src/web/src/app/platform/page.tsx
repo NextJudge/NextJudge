@@ -1,6 +1,7 @@
 import PlatformNavbar from "@/components/nav/platform-nav";
 import { ContestCard } from "./admin/contests/contest-card";
 import { RecentSubmissionCard } from "./problems/components/recent-submissions";
+import SubmissionDrawer from "./problems/components/submission-drawer";
 import { recentSubmissions } from "./problems/data/data";
 
 export default async function PlatformHome() {
@@ -91,9 +92,9 @@ export default async function PlatformHome() {
         <div className="flex flex-col space-y-4">
           <div className="flex items-center justify-between gap-8">
             <h1 className="text-2xl font-bold">Recent Submissions</h1>
-            <a href="/platform/contests" className="text-sm font-light">
-              View All
-            </a>
+            <div className="ml-auto flex min-w-0 items-center space-x-4">
+              <SubmissionDrawer />
+            </div>
           </div>
 
           {/* Submission Cards */}

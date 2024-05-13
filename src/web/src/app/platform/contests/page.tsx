@@ -1,6 +1,7 @@
+import PlatformNavbar from "@/components/nav/platform-nav";
+import SubmissionGraph from "@/components/submission-graph";
 import { Metadata } from "next";
 import { ContestCard } from "../admin/contests/contest-card";
-import PlatformNavbar from "@/components/nav/platform-nav";
 
 export const metadata: Metadata = {
   title: "NextJudge - Problems",
@@ -116,9 +117,9 @@ export default async function ProblemsPage() {
           ))}
         </div>
 
-        <div className="flex items-center pt-4" id="submissions">
+        <div className="flex items-center justify-center py-4" id="submissions">
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-2xl font-bold text-center tracking-tight">
               Contest statistics
             </h2>
             <p className="text-muted-foreground">
@@ -126,6 +127,7 @@ export default async function ProblemsPage() {
             </p>
           </div>
         </div>
+        <SubmissionGraph />
       </div>
     </>
   );

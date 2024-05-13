@@ -78,7 +78,7 @@ function main() {
   console.log(sorted);
 }`;
 
-const DummyCodeEditor = () => {
+export const DummyCodeEditor = () => {
   const { resolvedTheme } = useTheme();
   return (
     <Card className={cn("flex flex-col items-center p-2")}>

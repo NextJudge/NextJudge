@@ -47,6 +47,8 @@
         "@tabler/icons-react": "^3.1.0",
         "@tanstack/react-table": "^8.13.2",
         "@types/mdx": "^2.0.11",
+        "@uiw/react-heat-map": "^2.2.2",
+        "@uiw/react-tooltip": "^4.22.3",
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.1",
         "cmdk": "^0.2.1",
