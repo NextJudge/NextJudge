@@ -208,6 +208,9 @@ class ProgramEnvironment:
     def remove_files(self):
         shutil.rmtree(self.top_level_dir)
 
+    def __repr__(self) -> str:
+        return f"Environmnet: {self.id}"
+
 
 def create_program_environment() -> ProgramEnvironment:
     return ProgramEnvironment()
@@ -224,6 +227,7 @@ def simple_compile_and_run(source_code: str, language: Language) -> bytes | None
         environment.remove_files()
         return None
 
+    print("Running")
     output = run_single(environment, b"")
     print(output)
 
@@ -266,7 +270,7 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
         
         success = True
         for test in test_data["test_cases"]:
-            if not run_single_test_case(test, dir):
+            if not run_single_test_case(test, environment):
                 success = False
                 break
         
@@ -419,6 +423,7 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> bytes:
     # os.chown(f"{environment.top_level_dir_executable_script}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
 
     nsjail_log_pipes = os.pipe()
+
 
     print("Starting execution")
     t = time.time()

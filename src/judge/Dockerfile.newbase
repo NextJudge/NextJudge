@@ -1,47 +1,42 @@
 
-FROM ubuntu:rolling AS nextjudge-jail
 # First, build nsjail
-WORKDIR /
-
+FROM debian:bookworm-20240423-slim AS build-nsjail
+WORKDIR /app
 RUN apt-get update && \
-  apt-get install -y curl unzip git autoconf bison flex gcc g++ libnl-route-3-dev libprotobuf-dev libseccomp-dev libtool make pkg-config protobuf-compiler
-
+  apt-get install -y git autoconf bison flex gcc g++ libnl-route-3-dev libprotobuf-dev libseccomp-dev libtool make pkg-config protobuf-compiler
 RUN git clone https://github.com/google/nsjail.git
-RUN cd /nsjail && make && mv /nsjail/nsjail /bin && rm -rf -- /nsjail
+RUN cd /app/nsjail && make -j
 
-RUN apt-get install -y python3 python3-pip
-# RUN apt-get install -y wget build-essential libssl-dev openssl 
-# RUN cd /usr/src && \
-#     wget https://www.python.org/ftp/python/3.12.3/Python-3.12.3.tgz && \
-#     tar xzf Python-3.12.3.tgz && \
-#     cd Python-3.12.3 && \
-#     ./configure --enable-optimizations && \
-#     make altinstall
 
-# Create the user that runs the compilation scripts
+FROM python:3.12.3-slim-bookworm as nextjudge-jail
+# Credit to https://github.com/redpwn/jail/blob/main/Dockerfile for the method of creating this slim Docker image & copying the correct library files
+COPY --from=build-nsjail /usr/lib/*-linux-gnu/libprotobuf.so.32 /usr/lib/*-linux-gnu/libnl-route-3.so.200 \
+/lib/*-linux-gnu/libnl-3.so.200 /lib/*-linux-gnu/libz.so.1 /usr/lib/*-linux-gnu/libstdc++.so.6 \
+/lib/*-linux-gnu/libgcc_s.so.1 /lib/
+COPY --from=build-nsjail /app/nsjail/nsjail /bin/nsjail
+
+# Create the user that runs user submissions
 RUN groupadd -g 99999 NEXTJUDGE_USER_GROUP
 RUN useradd NEXTJUDGE_USER -u 99999 -g 99999 -s /bin/bash
 RUN mkdir /program_files
 
 WORKDIR /app
 
+COPY requirements.txt .
+RUN pip install --break-system-packages -r requirements.txt 
+
 # copy production dependencies and source code into final image
 FROM nextjudge-jail as dev
 
-RUN apt-get install -y npm
-RUN npm install -g nodemon
+RUN apt-get update && apt-get install -y entr && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --break-system-packages -r requirements.txt 
+CMD sh -c "echo app.py | entr -n -r python3 -u app.py "
+# CMD [ "", "", "entr", "-r", "python3 -u", "app.py" ]
 
-CMD [ "nodemon", "--exec", "python3 -u", "app.py" ]
 
 FROM nextjudge-jail as prod
 
-COPY requirements.txt .
-RUN pip install --break-system-packages -r requirements.txt 
 COPY src/app.py .
 
 CMD [ "python3", "app.py" ]
-
 
