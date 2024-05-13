@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { CircleDot } from "lucide-react";
 import moment from "moment";
 import { RecentSubmission } from "../data/schema";
+import { DialogSubmission } from "./dialog-submission";
 
 interface RecentSubmissionCardProps {
   submission: RecentSubmission;
@@ -63,29 +64,31 @@ export function RecentSubmissionCard({
   const submissionStatus: SubmissionStatus =
     submission.status as SubmissionStatus;
   return (
-    <Card>
-      <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
-        <div className="space-y-1">
-          <CardTitle>{submission.problem.title}</CardTitle>
-        </div>
-        <div className="flex items-center justify-end space-x-1">
-          <SubmissionStatusBadge status={submissionStatus} />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex justify-between space-x-4 text-sm text-muted-foreground">
-          <div className="flex items-center justify-between">
-            <CircleDot
-              className={cn(
-                "mr-2 size-2",
-                submission.language && getColorClass(submission.language)
-              )}
-            />
-            {submission.language}
+    <DialogSubmission submission={submission}>
+      <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200 ease-in-out">
+        <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
+          <div className="space-y-1">
+            <CardTitle>{submission.problem.title}</CardTitle>
           </div>
-          <div>{moment(submission.time).fromNow()}</div>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="flex items-center justify-end space-x-1">
+            <SubmissionStatusBadge status={submissionStatus} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between space-x-4 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <CircleDot
+                className={cn(
+                  "mr-2 size-2",
+                  submission.language && getColorClass(submission.language)
+                )}
+              />
+              {submission.language}
+            </div>
+            <div>{moment(submission.time).fromNow()}</div>
+          </div>
+        </CardContent>
+      </Card>
+    </DialogSubmission>
   );
 }
