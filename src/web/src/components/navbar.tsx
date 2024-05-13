@@ -134,7 +134,7 @@ export function MainNavigationMenu() {
               <li className="row-span-3">
                 <a
                   className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                  href="/platform/problems/problem/1"
+                  href={`/platform/problems/${crypto.randomUUID()}`}
                 >
                   <Pyramid className="w-10 h-10" />
                   <div className="mb-2 mt-3 text-lg font-medium text-gradient_blaze-orange">

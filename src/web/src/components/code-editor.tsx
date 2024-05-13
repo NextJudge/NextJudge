@@ -142,7 +142,7 @@ const main = () => {
                 options={{
                   formatOnPaste: true,
                   formatOnType: true,
-                  showUnsed: true,
+                  showUnused: true,
                   fontSize: 14,
                   cursorStyle: "line",
                   cursorSmoothCaretAnimation: "on",
