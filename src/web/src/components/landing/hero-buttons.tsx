@@ -1,8 +1,9 @@
 "use client";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import { ArrowRightIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
+import { Icons } from "../icons";
+import { EnhancedButton } from "../ui/enhanced-button";
 
 export default function HeroButtons() {
   const handleClick = () => {
@@ -11,35 +12,33 @@ export default function HeroButtons() {
     );
   };
 
-  //TODO: fix hover on button to be more consistent
+  const handleDocumentationClick = () => {
+    window.open("https://github.com/nextjudge/nextjudge", "_blank");
+  };
+
   return (
     <>
-      <div className="space-y-4 md:space-x-4 max-w-64 mx-auto md:max-w-full">
-        <Button
+      <div className="flex flex-col justify-center gap-1 items-center">
+        <EnhancedButton
+          variant="expandIcon"
+          Icon={ArrowRightIcon}
           onClick={handleClick}
-          className={cn(
-            buttonVariants({
-              variant: "secondary",
-            }),
-            "w-full group md:w-1/3 p-[1px] overflow-hidden relative bg-secondary hover:bg-secondary rounded-md"
-          )}
+          iconPlacement="right"
+          className={cn("w-full md:w-4/6")}
+          size={"lg"}
         >
-          <span className="absolute inset-[-1000%] animate-[spin_6s_linear_infinite] bg-[conic-gradient(from_90deg_at_0%_50%,#000000_0%,#000000_90%,#EA580C_100%)] bg-clip-padding" />
-          <span className="inline-flex h-full w-full cursor-pointer items-center justify-center bg-secondary group-hover:bg-neutral-300 transition-colors dark:group-hover:bg-[#1f1f1f]  dark:bg-neutral-800 rounded text-sm font-medium text-primary dark:text-white backdrop-blur-3xl">
-            Get Started
-          </span>
-        </Button>
+          Get Started
+        </EnhancedButton>
 
-        <a
-          href="https://github.com/nextjudge/nextjudge"
-          target="_blank"
-          className={`w-full md:w-1/3 dark:bg-neutral-800 ${buttonVariants({
-            variant: "secondary",
-          })} ring-1 ring-black hover:bg-neutral-00 dark:hover:bg-[#1f1f1f]`}
+        <EnhancedButton
+          variant="linkHover2"
+          size={"lg"}
+          onClick={handleDocumentationClick}
+          className="w-3/6"
         >
-          Documentation
-          <GitHubLogoIcon className="ml-2 w-5 h-5" />
-        </a>
+          NextJudge on GitHub
+          <Icons.github className="w-6 h-6 ml-2 mb-1" />
+        </EnhancedButton>
       </div>
     </>
   );

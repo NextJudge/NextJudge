@@ -2,7 +2,7 @@ import { Footer } from "@/components/footer";
 import { AltHero } from "@/components/landing/alt-hero";
 import { LanguagesBanner } from "@/components/landing/banner";
 import { WhyNextJudge } from "@/components/landing/bento";
-import EarlyAccess from "@/components/landing/early-access";
+import { EarlyAccess } from "@/components/landing/early-access";
 import { FAQ } from "@/components/landing/faq";
 import { ScrollToTop } from "@/components/landing/scroll-up";
 import { Services } from "@/components/landing/services";
@@ -13,7 +13,7 @@ import Image from "next/image";
 export const metadata: Metadata = {
   title: "NextJudge - Elevate your coding skills to the next level.",
   description:
-    "An all-new, competitive programming platform built for organizers, developers, and participants.",
+    "An all-new competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible.",
 };
 
 export default function Home() {
@@ -38,6 +38,8 @@ export default function Home() {
           className="dark:hidden absolute top-0 right-0 -z-50 w-3/6 opacity-50 h-auto bg-transparent blur-[200px] backdrop-filter"
         />
         <AltHero />
+
+        {/* TODO: Figure out how to optimize this across all devices */}
         <Image
           src="/blobs/blob1.svg"
           alt="background"
@@ -46,9 +48,9 @@ export default function Home() {
           height={50}
           className="hidden dark:block absolute bottom-20 left-0 translate-y-2/4 -z-50 w-full mx-auto opacity-70 h-full bg-transparent blur-[250px] backdrop-filter"
         />
+        <WhyNextJudge />
         <Services />
         <LanguagesBanner />
-        <WhyNextJudge />
         <EarlyAccess />
         <FAQ />
         <Footer />
