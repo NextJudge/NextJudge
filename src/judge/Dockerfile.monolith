@@ -1,15 +1,9 @@
 # prod or dev
 ARG USAGE
 
-FROM ubuntu:latest as BUILD
+FROM ubuntu:24.04 as BUILD
 
-RUN apt-get update -y
-RUN apt-get install -y curl
-RUN apt-get install -y g++
-RUN apt-get install -y gcc
-RUN apt-get install -y python3
-RUN apt-get install -y tar
-RUN apt-get install -y wget
+RUN apt-get update -y && apt-get install -y curl tar wget g++ gcc python3 ruby build-essential openjdk-21-jdk
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 RUN wget https://go.dev/dl/go1.22.1.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.22.1.linux-amd64.tar.gz
@@ -22,11 +16,18 @@ ENV NODE_VERSION=21.6.2
 RUN wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 ENV NVM_DIR=/root/.nvm
 RUN \. "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION} && nvm use ${NODE_VERSION} && nvm alias default ${NODE_VERSION}
+
 # TypeScript
 RUN \. "$NVM_DIR/nvm.sh" && npm install typescript -g
 
-# Ruby
-RUN apt-get install -y ruby
+# Lua
+RUN <<EOF
+curl -L -R -O https://www.lua.org/ftp/lua-5.4.6.tar.gz
+tar zxf lua-5.4.6.tar.gz
+cd lua-5.4.6
+make linux install INSTALL_TOP=/usr/local/lua/5_4_6
+EOF
+
 
 FROM basejudge:"$USAGE"
 
@@ -39,14 +40,14 @@ RUN chown -R 99999:99999 /chroot/dev
 
 
 
-COPY <<EOF /app/languages.toml
+COPY <<-'EOF' /app/languages.toml
 [[language]]
 name = "c++"
 version = "0"
 extension = "cpp"
 script= """
 #!/bin/sh
-g++ {IN_FILE} -o /executable/main 
+g++ {IN_FILE} -O2 -o /executable/main 
 """
 
 [[language]]
@@ -55,7 +56,7 @@ version = "0"
 extension = "c"
 script= """
 #!/bin/sh
-gcc {IN_FILE} -o /executable/main 
+gcc {IN_FILE} -O2 -o /executable/main 
 """
 
 [[language]]
@@ -130,4 +131,55 @@ chmod +x /executable/main
 """
 
 
+[[language]]
+name = "lua"
+version = "5.4.6"
+extension = "lua"
+script= """
+#!/bin/sh
+echo "#!/bin/sh" >> /executable/main
+echo "/usr/local/lua/5_4_6/bin/lua /build/{IN_FILE}" >> /executable/main
+chmod +x /executable/main
+"""
+
+[[language]]
+name = "java"
+version = "21"
+extension = "java"
+script= """
+#!/bin/bash
+
+ERROR_MSG=$(/usr/bin/javac -d /executable "{IN_FILE}" 2>&1)
+
+CLASS_FILE=$(ls /executable)
+
+if [ -z "$CLASS_FILE" ]; then
+
+    ERROR_CLASS_NAME=$(echo "$ERROR_MSG" | grep -oP 'class \\K\\w+(?= is public, should be declared in a file named \\w+\\.java)')
+
+    if [ -z "$ERROR_CLASS_NAME" ]; then
+        echo "No class name found in error message or no public class in file: {IN_FILE}" >&2
+        echo "Error message: $ERROR_MSG" >&2
+        exit 1
+    fi
+
+    mv "{IN_FILE}" "$ERROR_CLASS_NAME.java"
+
+    /usr/bin/javac -d /executable "$ERROR_CLASS_NAME.java"
+
+    CLASS_FILE="$ERROR_CLASS_NAME"
+else
+    CLASS_FILE=$(basename "$CLASS_FILE" .class)
+fi
+
+
+echo "#!/bin/sh" >> /executable/main
+echo "/usr/bin/java -XX:+UseSerialGC $CLASS_FILE" >> /executable/main
+chmod +x /executable/main
+
+cat /executable/main
+"""
+
 EOF
+
+
