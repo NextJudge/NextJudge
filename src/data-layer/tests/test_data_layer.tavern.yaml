@@ -20,7 +20,6 @@ stages:
       method: POST
       json:
         username: "{test_username}"
-        password_hash: "abcd1234"
         is_admin: false
     response:
       headers:
@@ -28,7 +27,6 @@ stages:
       status_code: 201
       json:
         username: "{test_username}"
-        password_hash: "abcd1234"
         is_admin: false
       save:
         json:
@@ -41,7 +39,6 @@ stages:
       method: POST
       json:
         username: "{test_username_2}"
-        password_hash: "abcd1234"
         is_admin: false
     response:
       headers:
@@ -57,7 +54,6 @@ stages:
       method: POST
       json:
         username: "{test_username}"
-        password_hash: "abcd1234"
         is_admin: false
     response:
       headers:
@@ -93,7 +89,6 @@ stages:
       json:
         id: !int "{user_id}"
         username: "{test_username}"
-        password_hash: "abcd1234"
         is_admin: false
 
   - name: get user by non existent username
@@ -121,7 +116,6 @@ stages:
       json:
         - id: !int "{user_id}"
           username: "{test_username}"
-          password_hash: "abcd1234"
           is_admin: false
 
   - name: get all users
@@ -135,7 +129,6 @@ stages:
       json:
         - id: !int "{user_id}"
           username: "{test_username}"
-          password_hash: "abcd1234"
           is_admin: false
 
   - name: update non existent user
@@ -145,7 +138,6 @@ stages:
       json:
         id: !int 99999
         username: "{test_username}"
-        password_hash: "abcd1234"
         is_admin: false
         join_date: "{join_date}"
     response:
@@ -160,7 +152,6 @@ stages:
       json:
         id: !int 99999
         username: "{test_username}"
-        password_hash: "abcd1234"
         is_admin: false
         join_date: "{join_date}"
     response:
@@ -175,7 +166,6 @@ stages:
       json:
         id: !int "{user_id}"
         username: "{test_username_2}"
-        password_hash: "abcd1234"
         is_admin: false
         join_date: "{join_date}"
     response:
@@ -190,7 +180,6 @@ stages:
       json:
         id: !int "{user_id}"
         username: "{test_username}"
-        password_hash: "abcd1234123"
         is_admin: true
         join_date: "{join_date}"
     response:
@@ -209,7 +198,6 @@ stages:
       json:
         id: !int "{user_id}"
         username: "{test_username}"
-        password_hash: "abcd1234123"
         is_admin: true
 
   ### /v1/languages

@@ -255,17 +255,9 @@ Request Body:
 
 #### GET /v1/languages
 
-Response Body:
+#### DELETE /v1/languages/{language_id}
 
-```json
-[
-    {
-        "name": "Python",
-        "extension": ".py",
-        "version": "3.12"
-    },
-]
-```
+There are no post or response bodies for this endpoint.
 
 ## Running the Data Layer
 

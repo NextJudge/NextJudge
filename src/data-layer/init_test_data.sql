@@ -8,10 +8,10 @@ VALUES
 ('javascript',  '.js',      '-1');
 
 
-INSERT INTO "users" (username, password_hash, join_date, is_admin)
+INSERT INTO "users" (username, join_date, is_admin)
 VALUES 
-('JohnEldenRing',   'abcd123',  timestamp '2024-01-01 10:00:00',    'TRUE'),
-('JohnDarksouls',   '1234zyx',  timestamp '2024-02-02 10:00:00',    'FALSE');
+('JohnEldenRing',   timestamp '2024-01-01 10:00:00',    'TRUE'),
+('JohnDarksouls',   timestamp '2024-02-02 10:00:00',    'FALSE');
 
 INSERT INTO "problems" (title, prompt, timeout, user_id, upload_date)
 VALUES
@@ -29,3 +29,17 @@ INSERT INTO "submissions" (user_id, problem_id, time_elapsed, language_id, statu
 VALUES
 (1,     1,  2,  2,  'COMPILE_TIME_ERROR',    NULL,   timestamp '2024-03-07 10:00:00',    'int main2(){}'),
 (2,     2,  2,  1,  'WRONG_ANSWER',          3,      timestamp '2024-03-08 10:00:00',    'int main(){ return 0; }');
+
+INSERT INTO "competitions" (user_id, start_time, end_time, description, title)
+VALUES
+(1, timestamp '2024-04-19 8:00:00', timestamp '2024-04-19 11:00:00', 'this is a big competition', 'big competition');
+
+INSERT INTO "competition_problems" (competition_id, problem_id)
+VALUES
+(1, 1),
+(1, 2);
+
+INSERT INTO "competition_users" (competition_id, user_id)
+VALUES
+(1, 1),
+(1, 2);

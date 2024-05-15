@@ -11,7 +11,6 @@ CREATE TYPE status AS ENUM(
 CREATE TABLE "users" (
   "id" SERIAL PRIMARY KEY,
   "username" varchar,
-  "password_hash" varchar,
   "join_date" timestamp,
   "is_admin" boolean
 );
@@ -53,13 +52,13 @@ CREATE TABLE "competitions" (
   "title" varchar
 );
 
-CREATE TABLE "competition_problem" (
+CREATE TABLE "competition_problems" (
   "competition_id" integer,
   "problem_id" integer,
   PRIMARY KEY("competition_id", "problem_id")
 );
 
-CREATE TABLE "competition_user" (
+CREATE TABLE "competition_users" (
   "user_id" integer,
   "competition_id" integer,
   PRIMARY KEY("user_id", "competition_id")
@@ -85,3 +84,11 @@ ALTER TABLE "test_cases" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("
 ALTER TABLE "competitions" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "submissions" ADD FOREIGN KEY ("failed_test_case_id") REFERENCES "test_cases" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "competition_problems" ADD FOREIGN KEY ("competition_id") REFERENCES "competitions" ("id");
+
+ALTER TABLE "competition_problems" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("id");
+
+ALTER TABLE "competition_users" ADD FOREIGN KEY ("competition_id") REFERENCES "competitions" ("id");
+
+ALTER TABLE "competition_users" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");

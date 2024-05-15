@@ -222,11 +222,10 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updatedUser := &User{
-		ID:           reqData.ID,
-		Username:     reqData.Username,
-		PasswordHash: reqData.PasswordHash,
-		IsAdmin:      reqData.IsAdmin,
-		JoinDate:     time,
+		ID:       reqData.ID,
+		Username: reqData.Username,
+		IsAdmin:  reqData.IsAdmin,
+		JoinDate: time,
 	}
 
 	err = db.UpdateUser(updatedUser)

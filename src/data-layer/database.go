@@ -36,6 +36,7 @@ type NextJudgeDB interface {
 	GetLanguage(id int) (*Language, error)
 	DeleteLanguage(language *Language) error
 	GetTestCase(testcaseId int) (*TestCase, error)
+	GetCompetitions() ([]Competition, error)
 }
 
 func NewDatabase() (*Database, error) {
@@ -244,4 +245,13 @@ func (d *Database) GetTestCase(testcaseId int) (*TestCase, error) {
 		return nil, err
 	}
 	return testCase, nil
+}
+
+func (d *Database) GetCompetitions() ([]Competition, error) {
+	competitions := []Competition{}
+	err := d.NextJudgeDB.Preload("Problems").Preload("Users").Find(&competitions).Error
+	if err != nil {
+		return nil, err
+	}
+	return competitions, nil
 }

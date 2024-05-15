@@ -1,13 +1,6 @@
 import pytest
 import requests
 import yaml
-import random
-import string
-import os
-from requests_oauthlib import OAuth2Session
-from oauthlib.oauth2 import BackendApplicationClient
-from datetime import datetime, timedelta
-
 
 GLOBALS_YAML = {}
 
