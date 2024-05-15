@@ -28,6 +28,13 @@ cd lua-5.4.6
 make linux install INSTALL_TOP=/usr/local/lua/5_4_6
 EOF
 
+# Kotlin
+RUN <<EOF
+wget https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-compiler-1.9.24.zip
+unzip kotlin-compiler-1.9.24.zip
+EOF
+
+RUN apt-get install -y strace
 
 FROM basejudge:"$USAGE"
 
@@ -178,6 +185,25 @@ echo "/usr/bin/java -XX:+UseSerialGC $CLASS_FILE" >> /executable/main
 chmod +x /executable/main
 
 cat /executable/main
+"""
+
+
+[[language]]
+name = "kotlin"
+version = "1.9.24"
+extension = "kt"
+script= """
+#!/bin/sh
+
+/kotlinc/bin/kotlinc -d /executable {IN_FILE}
+
+echo "#!/bin/sh" >> /executable/main
+echo "/kotlinc/bin/kotlin /executable/InputKt.class" >> /executable/main
+chmod +x /executable/main
+
+ls /executable
+ls /build
+
 """
 
 EOF

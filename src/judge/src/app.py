@@ -351,9 +351,10 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             "--bindmount", f"/chroot/root/.cache:/root/.cache", # Map build dir as read/write
 
             # // Readonly mounts
-            # // "--bindmount_ro", `/dev/urandom:/dev/urandom`,
             # // "--bindmount_ro", `/dev/zero:/dev/zero`,
             "--bindmount_ro", f"/dev/null",
+            "--bindmount_ro", f"/dev/random",
+            "--bindmount_ro", f"/dev/urandom",
 
             "--cwd", f"{environment.inside_chroot_build_dir}",
 
@@ -383,8 +384,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
     print("nsjail output")
     print(nsjail_errors)
 
-    stderr = compile_result.stderr
-    if stderr or compile_result.returncode:
+    if compile_result.returncode:
         print(f"Compile-time error - {compile_result.returncode}")
         print(f"stdout: {compile_result.stdout}")
         print(f"stderr: {compile_result.stderr}")
