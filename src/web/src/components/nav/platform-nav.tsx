@@ -15,6 +15,7 @@ import { Menu, Pyramid } from "lucide-react";
 import { MainNavigationMenu } from "../navbar";
 import { ModeToggle } from "../theme";
 import { Button, buttonVariants } from "../ui/button";
+import { Icons } from "@/components/icons";
 
 export default function PlatformNavbar() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -22,7 +23,7 @@ export default function PlatformNavbar() {
     <header className="sticky border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-neutral-500/40 dark:bg-background">
       <div className="container h-14 px-4 w-screen flex justify-between">
         <div className="font-bold flex items-center mx-12 gap-4">
-          <Pyramid className="w-6 h-6" />
+          <Icons.logo className="text-orange-600 w-6 h-6" />
           <a href="/" className=" font-bold text-xl">
             NextJudge
           </a>

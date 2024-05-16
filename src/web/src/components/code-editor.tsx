@@ -92,7 +92,7 @@ const main = () => {
               className="w-full"
               onClick={handleSubmitCode}
               disabled={submissionLoading}
-              variant={error ? "destructive" : "default"}
+              variant={error ? "destructive" : "ghost"}
             >
               {submissionLoading ? (
                 <div className="flex items-center justify-center gap-2">

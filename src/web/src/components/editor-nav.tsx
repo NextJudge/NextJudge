@@ -15,6 +15,7 @@ import { ModeToggle } from "@/components/theme";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { routeList } from "@/lib/constants";
 import { Menu, Pyramid } from "lucide-react";
+import { Icons } from "@/components/icons";
 
 // TODO: Feed these props from Zustand (global state solution)
 export default function EditorNavbar() {
@@ -22,8 +23,8 @@ export default function EditorNavbar() {
   return (
     <header className="border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-neutral-500/40 dark:bg-background">
       <div className="container h-14 px-4 w-screen flex justify-between">
-        <div className="font-bold flex items-center mx-6 gap-4">
-          <Pyramid className="w-6 h-6" />
+        <div className="font-bold flex items-center mx-6 gap-2">
+          <Icons.logo className="text-orange-600 w-6 h-6" />
           <a href="/" className="text-xl">
             NextJudge
           </a>
