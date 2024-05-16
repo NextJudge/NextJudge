@@ -121,6 +121,7 @@ export function AltHero() {
         </video>
         {/* Gradient Mask */}
         <div className="hidden md:block absolute bottom-0 left-0 w-full h-5/6 bg-gradient-to-t from-neutral-100 to-neutral-100/5 via-neutral-100/95"></div>
+        <BorderBeam />
       </Card>
     </section>
   );
