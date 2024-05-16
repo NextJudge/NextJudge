@@ -45,11 +45,11 @@ export function Navbar() {
       <NavigationMenu
         className={cn("flex justify-between items-center w-full max-w-full")}
       >
-        <div className="flex justify-start align-middle items-center mx-8 md:mx-12">
+        <div className="flex justify-start align-middle items-center w-full">
           <Icons.logo className="text-orange-600 translate-y-[0.8px]" />
-          <a href="/" className="ml-2 text-xl">
+          <Link href="/" passHref className="ml-3 text-xl">
             NextJudge
-          </a>
+          </Link>
         </div>
         {/* mobile */}
         <div className="flex md:hidden">
@@ -104,13 +104,25 @@ export function Navbar() {
             </a>
           ))}
         </NavigationMenuList>
-        <div className="hidden md:flex justify-end mx-12">
-          <NavigationMenuItem className="flex items-center justify-end gap-4 text-xl">
+        <div className="hidden md:flex justify-end w-full">
+          <NavigationMenuItem className="flex items-center justify-end gap-4">
             <ModeToggle />
-            <>
-              <Link href="/auth/login">Login</Link>
-              <Link href="/auth/signup">Register</Link>
-            </>
+            <div className="flex items-center gap-0">
+              <Link
+                href="/auth/login"
+                className={`text-base ${buttonVariants({ variant: "link" })}`}
+              >
+                Login
+              </Link>
+              <Link
+                href="/auth/signup"
+                className={`text-base ${buttonVariants({
+                  variant: "link",
+                })}`}
+              >
+                Sign Up
+              </Link>
+            </div>
           </NavigationMenuItem>
         </div>
       </NavigationMenu>

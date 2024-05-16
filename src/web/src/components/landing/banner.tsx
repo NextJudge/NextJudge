@@ -71,6 +71,7 @@ const LanguageCard = ({
         >
           {icon}
         </div>
+        <span className="text-lg font-medium">{label}</span>
       </div>
     </div>
   );
@@ -100,8 +101,8 @@ const secondRow = items.slice(items.length / 2, items.length);
 export function LanguagesBanner() {
   return (
     <>
-      <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg border bg-background space-y-8 py-20 md:shadow-xl">
-        <h1 className="text-xl md:text-4xl font-medium font-sans text-center max-w-3xl">
+      <div className="relative flex h-full max-w-7xl flex-col items-center justify-center overflow-hidden space-y-20 py-32">
+        <h1 className="xs:text-xl text-2xl mx-8 md:text-4xl font-medium font-sans text-center whitespace-normal w-96 md:w-7/12 md:max-w-3xl">
           Solve problems in all of the programming languages that{" "}
           <span
             className=" font-serif italic font-semibold"

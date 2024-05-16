@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { RecentSubmission } from "../data/schema";
 
 export function DialogSubmission({
@@ -33,14 +34,14 @@ export function DialogSubmission({
               <Button variant="outline">View Submission</Button>
             )}
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="min-w-2xl max-w-3xl">
             <DialogHeader>
               <DialogTitle>
                 Submission to {submission.problem.title}
               </DialogTitle>
               <DialogDescription>
                 Submitted by {submission.problem.author} on{" "}
-                {submission.time.toLocaleString()}
+                {format(submission.time, "PPP 'at' p")}
               </DialogDescription>
             </DialogHeader>
             <div>

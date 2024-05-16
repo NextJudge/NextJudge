@@ -20,7 +20,7 @@ export default function Home() {
   return (
     <>
       <Navbar />
-      <main className="flex max-w-screen gap-10 flex-col items-center justify-between overflow-x-hidden">
+      <main className="flex max-w-full gap-10 flex-col items-center justify-between overflow-x-hidden">
         <Image
           src="/blobs/blob1.svg"
           alt="background"
@@ -46,7 +46,7 @@ export default function Home() {
           priority={true}
           width={100}
           height={50}
-          className="hidden dark:block absolute bottom-20 left-0 translate-y-2/4 -z-50 w-full mx-auto opacity-70 h-full bg-transparent blur-[250px] backdrop-filter"
+          className="hidden dark:block dark:2xl:hidden absolute bottom-20 left-0 translate-y-2/4 -z-50 w-full mx-auto opacity-70 h-full scale-100 bg-transparent blur-[250px] backdrop-filter"
         />
         <WhyNextJudge />
         <Services />
