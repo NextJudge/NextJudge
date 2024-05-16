@@ -77,7 +77,7 @@ export function EmailForm() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm text-white">Name</FormLabel>
+                <FormLabel className="text-sm dark:text-white">Name</FormLabel>
                 <FormControl>
                   <Input
                     placeholder=""
@@ -97,7 +97,7 @@ export function EmailForm() {
             name="email"
             render={({ field }) => (
               <FormItem className="mb-2">
-                <FormLabel className="text-sm text-white">Email</FormLabel>
+                <FormLabel className="text-sm dark:text-white">Email</FormLabel>
                 <FormControl>
                   <Input
                     placeholder=""
@@ -107,10 +107,10 @@ export function EmailForm() {
                     })}
                   />
                 </FormControl>
+                <FormMessage className="text-red-500" />
                 <FormDescription>
                   We'll send you a welcome email.
                 </FormDescription>
-                <FormMessage className="text-red-500" />
               </FormItem>
             )}
           />
