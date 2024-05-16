@@ -29,9 +29,9 @@ export function AltHero() {
                   </p>
                 </TooltipContent>
                 <TooltipTrigger asChild>
-                  <button className="scale-90 ring-1 ring-white/60 no-underline group cursor-pointer relative shadow-2xl shadow-orange-600/50 rounded-full p-px text-xs font-semibold leading-6  dark:text-white inline-block">
+                  <button className="scale-90 ring-1 ring-neutral-300/60 no-underline group cursor-pointer relative shadow-2xl shadow-orange-600/50 rounded-full p-px text-xs font-semibold leading-6  dark:text-white inline-block">
                     <span className="absolute inset-0 overflow-hidden rounded-full">
-                      <span className="absolute inset-0 rounded-full bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(220,68,5,0.3)_0%,rgba(0,0,0,0.5)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                      <span className="absolute inset-0 rounded-full shadow-lg bg-neutral-200 dark:bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(220,68,5,0.3)_0%,rgba(0,0,0,0.5)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                     </span>
                     <div className="relative flex space-x-2 items-center z-10 rounded-full py-0.5 px-4 ring-1 ring-white/10 ">
                       <span>We're launching soon!</span>
