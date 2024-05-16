@@ -336,7 +336,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             "--max_cpus", f"{1}", 
 
             "--rlimit_nofile", f"{128}", # Max file descriptor number (32)
-            "--rlimit_as", f"{1024*2}", # Max virtual memory space
+            "--rlimit_as", f"{1024*8}", # Max virtual memory space
             "--rlimit_cpu", f"{10}", # Max CPU time
             "--rlimit_fsize", f"{512}", # Max file size in MB (1)
             
@@ -351,9 +351,10 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             "--bindmount", f"/chroot/root/.cache:/root/.cache", # Map build dir as read/write
 
             # // Readonly mounts
-            # // "--bindmount_ro", `/dev/urandom:/dev/urandom`,
             # // "--bindmount_ro", `/dev/zero:/dev/zero`,
             "--bindmount_ro", f"/dev/null",
+            "--bindmount_ro", f"/dev/random",
+            "--bindmount_ro", f"/dev/urandom",
 
             "--cwd", f"{environment.inside_chroot_build_dir}",
 
@@ -380,14 +381,17 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
     read_from = os.fdopen(nsjail_log_pipes[0])
     nsjail_errors = read_from.read()
     read_from.close()
-    # print("nsjail output")
-    # print(nsjail_errors)
+    print("nsjail output")
+    print(nsjail_errors)
 
-    stderr = compile_result.stderr
-    if stderr or compile_result.returncode:
-        print("stderr")
-        print(stderr,compile_result.returncode)
+    if compile_result.returncode:
+        print(f"Compile-time error - {compile_result.returncode}")
+        print(f"stdout: {compile_result.stdout}")
+        print(f"stderr: {compile_result.stderr}")
         return False
+
+    print(f"stdout: {compile_result.stdout}")
+    print(f"stderr: {compile_result.stderr}")
     
     # shutil.copyfile(f"/chroot/{dir}/main", f"/chroot/{dir}/{RUN_SCRIPT_NAME}")
     print("Compiling succeeded!")
@@ -433,7 +437,7 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> bytes:
             "--mode", "o",
             "--time_limit", f"{10}",
             "--max_cpus", f"{1}", 
-            "--rlimit_as", f"{1024}", # // Max virtual memory space
+            "--rlimit_as", f"{1024*4}", # // Max virtual memory space
             "--rlimit_cpu", f"{10}", # Max CPU time
             # // "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
             "--nice_level", "-20", # High priority
@@ -470,14 +474,14 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> bytes:
     nsjail_errors = read_from.read()
     read_from.close()
 
-    # print("nsjail output")
-    # print(nsjail_errors)
+    print("nsjail output")
+    print(nsjail_errors)
 
     stderr = run_result.stderr
     if stderr or run_result.returncode:
-        print("Error in runtime!")
-        print(stderr,run_result.returncode)
-        print(nsjail_errors)
+        print(f"Runtime error - {run_result.returncode}")
+        print(f"stdout: {run_result.stdout}")
+        print(f"stderr: {run_result.stderr}")
         return None
 
     process_stdout = run_result.stdout
