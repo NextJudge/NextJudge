@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Icons } from "./icons";
 import { Button } from "./ui/button";
 import {
@@ -21,7 +21,6 @@ interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function UserAuthFormSignUp({ className, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const router = useRouter();
 
   function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
@@ -29,7 +28,9 @@ export function UserAuthFormSignUp({ className, ...props }: UserAuthFormProps) {
 
     setTimeout(() => {
       setIsLoading(false);
-      router.push("/auth/login");
+      toast(
+        "NextJudge isn't ready for non-admin users yet. Please check back later."
+      );
     }, 3000);
   }
 
@@ -111,7 +112,6 @@ export function UserAuthFormSignUp({ className, ...props }: UserAuthFormProps) {
 
 export function UserAuthFormLogin({ className, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const router = useRouter();
 
   function onSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
@@ -119,7 +119,9 @@ export function UserAuthFormLogin({ className, ...props }: UserAuthFormProps) {
 
     setTimeout(() => {
       setIsLoading(false);
-      router.push("/platform/admin");
+      toast(
+        "NextJudge isn't ready for non-admin users yet. Please check back later."
+      );
     }, 3000);
   }
 
