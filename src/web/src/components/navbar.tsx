@@ -45,9 +45,9 @@ export function Navbar() {
       <NavigationMenu
         className={cn("flex justify-between items-center w-full max-w-full")}
       >
-        <div className="flex justify-start mx-8 md:mx-12">
-          <Icons.logo className="text-orange-600" />
-          <a href="/" className="ml-1 font-bold text-xl flex">
+        <div className="flex justify-start align-middle items-center mx-8 md:mx-12">
+          <Icons.logo className="text-orange-600 translate-y-[0.8px]" />
+          <a href="/" className="ml-2 text-xl">
             NextJudge
           </a>
         </div>
@@ -105,16 +105,12 @@ export function Navbar() {
           ))}
         </NavigationMenuList>
         <div className="hidden md:flex justify-end mx-12">
-          <NavigationMenuItem className="flex items-center justify-end gap-4">
+          <NavigationMenuItem className="flex items-center justify-end gap-4 text-xl">
             <ModeToggle />
-            {pin === process.env.NEXT_PUBLIC_PIN ? (
-              <>
-                <Link href="/auth/login">Login</Link>
-                <Link href="/auth/signup">Register</Link>
-              </>
-            ) : (
-              <h3 className="text-muted-foreground">Coming Soon</h3>
-            )}
+            <>
+              <Link href="/auth/login">Login</Link>
+              <Link href="/auth/signup">Register</Link>
+            </>
           </NavigationMenuItem>
         </div>
       </NavigationMenu>

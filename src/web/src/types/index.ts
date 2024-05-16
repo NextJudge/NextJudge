@@ -58,3 +58,8 @@ export type Theme = {
   name: string;
   fetch: string;
 };
+
+export interface NewsletterFormValues {
+  name: string;
+  email: string;
+}
