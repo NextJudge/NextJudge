@@ -85,10 +85,10 @@ ALTER TABLE "competitions" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id")
 
 ALTER TABLE "submissions" ADD FOREIGN KEY ("failed_test_case_id") REFERENCES "test_cases" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "competition_problems" ADD FOREIGN KEY ("competition_id") REFERENCES "competitions" ("id");
+ALTER TABLE "competition_problems" ADD FOREIGN KEY ("competition_id") REFERENCES "competitions" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "competition_problems" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("id");
+ALTER TABLE "competition_problems" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "competition_users" ADD FOREIGN KEY ("competition_id") REFERENCES "competitions" ("id");
+ALTER TABLE "competition_users" ADD FOREIGN KEY ("competition_id") REFERENCES "competitions" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "competition_users" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
+ALTER TABLE "competition_users" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;

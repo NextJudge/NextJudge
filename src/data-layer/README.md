@@ -15,7 +15,6 @@ Response body:
     {
         "id": "1",
         "username": "joe",
-        "password_hash": "abc123",
         "is_admin": true,
         "join_date": "2024-02-14T06:26:55.12794Z"
     },
@@ -29,7 +28,6 @@ Request Body:
 ```json
 {
     "username": "joe",
-    "password_hash": "abc123",
     "is_admin": true,
 }
 ```
@@ -40,7 +38,6 @@ Response Body:
 {
     "id": "1",
     "username": "joe",
-    "password_hash": "abc123",
     "is_admin": true,
     "join_date": "2024-02-14T06:26:55.12794Z"
 }
@@ -54,7 +51,6 @@ Response Body:
 {
     "id": "1",
     "username": "joe",
-    "password_hash": "abc123",
     "is_admin": true,
     "join_date": "2024-02-14T06:26:55.12794Z"
 }
@@ -72,7 +68,6 @@ Request Body:
 {
     "id": "1",
     "username": "joe",
-    "password_hash": "abc123",
     "is_admin": true,
 }
 ```
@@ -83,7 +78,6 @@ Response Body:
 {
     "id": "1",
     "username": "joe",
-    "password_hash": "abc123",
     "is_admin": true,
     "join_date": "2024-02-14T06:26:55.12794Z"
 }
@@ -204,7 +198,7 @@ Response Body:
     "problem_id": 1,
     "time_elapsed": 0,
     "language_id": 1,
-    "status": "pending",
+    "status": "PENDING",
     "submit_time": "2024-03-02T02:39:19.564713178Z",
     "source_code": "int main() { return 0 }"
 }
@@ -216,7 +210,7 @@ Request Body
 
 ```json
 {
-    "status": "failed",
+    "status": "WRONG_ANSWER",
     "failed_test_case_id": 1
 }
 ```
@@ -232,7 +226,7 @@ Response Body:
     "problem_id": 1,
     "time_elapsed": 0,
     "language_id": 1,
-    "status": "failed",
+    "status": "WRONG_ANSWER",
     "failed_test_case_id": 2,
     "submit_time": "2024-03-02T02:45:09.603556Z",
     "source_code": "int main 5"
@@ -258,6 +252,169 @@ Request Body:
 #### DELETE /v1/languages/{language_id}
 
 There are no post or response bodies for this endpoint.
+
+### Competitions
+
+#### GET /v1/competitions
+
+Response Body:
+
+```json
+[
+    {
+        "id": 1,
+        "start_time": "2024-04-19T08:00:00Z",
+        "end_time": "2024-04-19T11:00:00Z",
+        "description": "this is a big competition",
+        "title": "big competition",
+        "user_id": 1,
+        "participants": null, // These will always be null when getting all competitions
+        "problems": null
+    },
+]
+```
+
+#### POST /v1/competitions
+
+Request Body:
+
+```json
+{
+    "title": "jordans new competition",
+    "description": "woah dude",
+    "start_time": "2024-05-19T20:30:00Z",
+    "end_time": "2024-05-20T20:30:00Z",
+    "user_id": 1,
+    "problem_ids": [1, 2]
+}
+```
+
+Response Body:
+
+```json
+{
+    "id": 2,
+    "start_time": "2024-05-19T20:30:00Z",
+    "end_time": "2024-05-20T20:30:00Z",
+    "description": "woah dude",
+    "title": "jordans new comp",
+    "user_id": 1,
+    "participants": null, // will always be null on POST
+    "problems": [
+        {
+            "id": 1,
+            "prompt": "Given a string, print the reverse",
+            "title": "Invert a String",
+            "timeout": 10,
+            "user_id": 1,
+            "upload_date": "2024-03-03T10:00:00Z",
+            "test_cases": [
+                {
+                    "id": 1,
+                    "problem_id": 1,
+                    "input": "abc",
+                    "expected_output": "cba"
+                },
+                {
+                    "id": 2,
+                    "problem_id": 1,
+                    "input": "123",
+                    "expected_output": "321"
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "prompt": "Given two numbers, print the sum",
+            "title": "Add two numbers",
+            "timeout": 5,
+            "user_id": 2,
+            "upload_date": "2024-03-04T10:00:00Z",
+            "test_cases": [
+                {
+                    "id": 3,
+                    "problem_id": 2,
+                    "input": "2 1",
+                    "expected_output": "3"
+                },
+                {
+                    "id": 4,
+                    "problem_id": 2,
+                    "input": "10 10",
+                    "expected_output": "20"
+                }
+            ]
+        }
+    ]
+}
+```
+
+#### GET /v1/competitions/{competition_id}
+
+Response Body:
+
+```json
+{
+    "id": 1,
+    "start_time": "2024-04-19T08:00:00Z",
+    "end_time": "2024-04-19T11:00:00Z",
+    "description": "this is a big competition",
+    "title": "big competition",
+    "user_id": 1,
+    "participants": [
+        {
+            "id": 1,
+            "username": "JohnEldenRing",
+            "is_admin": true,
+            "join_date": "2024-01-01T10:00:00Z"
+        },
+        {
+            "id": 2,
+            "username": "JohnDarksouls",
+            "is_admin": false,
+            "join_date": "2024-02-02T10:00:00Z"
+        },
+        {
+            "id": 3,
+            "username": "jordan",
+            "is_admin": false,
+            "join_date": "2024-05-16T20:35:05.556626Z"
+        }
+    ],
+    "problems": [
+        {
+            "id": 1,
+            "prompt": "Given a string, print the reverse",
+            "title": "Invert a String",
+            "timeout": 10,
+            "user_id": 1,
+            "upload_date": "2024-03-03T10:00:00Z"
+        },
+        {
+            "id": 2,
+            "prompt": "Given two numbers, print the sum",
+            "title": "Add two numbers",
+            "timeout": 5,
+            "user_id": 2,
+            "upload_date": "2024-03-04T10:00:00Z"
+        }
+    ]
+}
+```
+
+#### DELETE /v1/competitions/{competition_id}
+
+There are no post or response bodies for this endpoint.
+
+#### POST /v1/competitions/{competition_id}/participants
+
+Request Body:
+
+```json
+{
+    "user_id": 3
+}
+```
 
 ## Running the Data Layer
 

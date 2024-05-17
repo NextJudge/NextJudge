@@ -37,6 +37,11 @@ type NextJudgeDB interface {
 	DeleteLanguage(language *Language) error
 	GetTestCase(testcaseId int) (*TestCase, error)
 	GetCompetitions() ([]Competition, error)
+	GetCompetitionByID(competitionId int) (*Competition, error)
+	GetCompetitionByTitle(title string) (*Competition, error)
+	CreateCompetition(competition *Competition) (*Competition, error)
+	UpdateCompetition(competition *Competition) error
+	DeleteCompetition(competition *Competition) error
 }
 
 func NewDatabase() (*Database, error) {
@@ -249,9 +254,57 @@ func (d *Database) GetTestCase(testcaseId int) (*TestCase, error) {
 
 func (d *Database) GetCompetitions() ([]Competition, error) {
 	competitions := []Competition{}
-	err := d.NextJudgeDB.Preload("Problems").Preload("Users").Find(&competitions).Error
+	err := d.NextJudgeDB.Find(&competitions).Error
 	if err != nil {
 		return nil, err
 	}
 	return competitions, nil
+}
+
+func (d *Database) GetCompetitionByID(competitionId int) (*Competition, error) {
+	competition := &Competition{}
+	err := db.NextJudgeDB.Preload("Problems").Preload("Users").First(competition, competitionId).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return competition, nil
+}
+
+func (d *Database) GetCompetitionByTitle(title string) (*Competition, error) {
+	competition := &Competition{}
+	err := db.NextJudgeDB.Preload("Problems").Preload("Users").Where("title = ?", title).First(competition).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return competition, nil
+}
+
+func (d *Database) CreateCompetition(competition *Competition) (*Competition, error) {
+	err := d.NextJudgeDB.Create(competition).Error
+	if err != nil {
+		return nil, err
+	}
+	return competition, nil
+}
+
+func (d *Database) UpdateCompetition(competition *Competition) error {
+	err := db.NextJudgeDB.Save(competition).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Database) DeleteCompetition(competition *Competition) error {
+	err := db.NextJudgeDB.Delete(competition).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
