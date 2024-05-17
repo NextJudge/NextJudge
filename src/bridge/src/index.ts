@@ -1,6 +1,6 @@
 import ApiService from "@classes/ApiService";
 import UserService from "@classes/UserService";
-import { judgingRouter, languagesRouter, submissionsRouter, testcaseRouter, userRouter } from "@routes/index";
+import { languagesRouter, submissionsRouter, testcaseRouter, userRouter } from "@routes/index";
 import { DATABASE_HOST, DATABASE_PORT } from "@util/constants";
 import { Elysia, type ErrorHandler } from "elysia";
 import { cors } from '@elysiajs/cors'
@@ -96,7 +96,6 @@ const app = new Elysia()
   .use(submissionsRouter)
   .use(languagesRouter)
   .use(testcaseRouter)
-  .use(judgingRouter)
   .listen(PORT);
 
 app.onError(errorHandler);
