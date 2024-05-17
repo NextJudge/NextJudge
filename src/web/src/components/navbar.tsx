@@ -45,11 +45,11 @@ export function Navbar() {
       <NavigationMenu
         className={cn("flex justify-between items-center w-full max-w-full")}
       >
-        <div className="flex justify-start mx-8 md:mx-12">
-          <Icons.logo className="text-orange-600" />
-          <a href="/" className="ml-1 font-bold text-xl flex">
+        <div className="flex justify-start align-middle items-center w-full">
+          <Icons.logo className="text-orange-600 translate-y-[0.8px]" />
+          <Link href="/" passHref className="ml-3 text-xl">
             NextJudge
-          </a>
+          </Link>
         </div>
         {/* mobile */}
         <div className="flex md:hidden">
@@ -104,17 +104,25 @@ export function Navbar() {
             </a>
           ))}
         </NavigationMenuList>
-        <div className="hidden md:flex justify-end mx-12">
+        <div className="hidden md:flex justify-end w-full">
           <NavigationMenuItem className="flex items-center justify-end gap-4">
             <ModeToggle />
-            {pin === process.env.NEXT_PUBLIC_PIN ? (
-              <>
-                <Link href="/auth/login">Login</Link>
-                <Link href="/auth/signup">Register</Link>
-              </>
-            ) : (
-              <h3 className="text-muted-foreground">Coming Soon</h3>
-            )}
+            <div className="flex items-center gap-0">
+              <Link
+                href="/auth/login"
+                className={`text-base ${buttonVariants({ variant: "link" })}`}
+              >
+                Login
+              </Link>
+              <Link
+                href="/auth/signup"
+                className={`text-base ${buttonVariants({
+                  variant: "link",
+                })}`}
+              >
+                Sign Up
+              </Link>
+            </div>
           </NavigationMenuItem>
         </div>
       </NavigationMenu>

@@ -17,9 +17,9 @@ import { Card } from "../ui/card";
 
 export function WhyNextJudge() {
   return (
-    <section id="features" className="py-12">
-      <h1 className="text-lg md:text-4xl font-medium font-sans text-center max-w-2xl mx-auto">
-        NextJudge offers all the tools you need to
+    <section id="features" className="py-20">
+      <h1 className="text-2xl md:text-4xl font-medium font-sans text-center w-full mx-auto max-w-3xl px-6">
+        NextJudge offers all the tools you need to{" "}
         <span className="bg-gradient-to-r from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
           {" "}
           host, participate in, and organize{" "}
@@ -78,15 +78,45 @@ function main() {
   console.log(sorted);
 }`;
 
-export const DummyCodeEditor = () => {
+const selectionSort = `function selectionSort(arr: number[]): number[] {
+    for (let i = 0; i < arr.length; i++) {
+        let min = i;
+        for (let j = i + 1; j < arr.length; j++) {
+            if (arr[j] < arr[min]) {
+                min = j;
+            }
+        }
+        if (min !== i) {
+            [arr[i], arr[min]] = [arr[min], arr[i]];
+        }
+    }
+    return arr;
+}
+
+function main() {
+    const input = [3, 5, 1, 4, 2];
+    const sorted = selectionSort(input);
+    console.log(sorted);
+}`;
+
+interface DummyCodeEditorProps {
+  mock?: boolean;
+}
+
+export const DummyCodeEditor = ({ mock }: DummyCodeEditorProps) => {
   const { resolvedTheme } = useTheme();
+  // TODO: Handle edge case when this is rendered on mobile
   return (
     <Card className={cn("flex flex-col items-center p-2")}>
       <Editor
-        height="450px"
-        className="h-full w-full rounded pointer-events-none select-none shadow-none"
+        height={mock ? "485px" : "370px"}
+        width={"100%"}
+        className={cn(
+          { "rounded pointer-events-none select-none shadow-none": mock },
+          "w-full h-full"
+        )}
         defaultLanguage="typescript"
-        defaultValue={mergeSort}
+        defaultValue={mock ? mergeSort : selectionSort}
         options={{
           lineNumbers: "off",
           minimap: { enabled: false },
@@ -184,7 +214,7 @@ const mockComps = [
 const ContestCardPreview = () => {
   return (
     <Card className={cn("flex flex-col items-center border-none")}>
-      <ContestCard contest={mockComps[0]} />
+      <ContestCard contest={mockComps[0]} mock />
     </Card>
   );
 };
@@ -204,7 +234,7 @@ export const items = [
     title: "Code Editor",
     description:
       "Built on top of Monaco Editor, NextJudge provides a powerful code editor with syntax highlighting, code completion, for all of our supported programming languages on the platform.",
-    header: <DummyCodeEditor />,
+    header: <DummyCodeEditor mock />,
     icon: <IconClipboardCopy className="h-4 w-4 text-neutral-500" />,
   },
   {

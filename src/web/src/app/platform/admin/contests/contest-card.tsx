@@ -24,6 +24,7 @@ import {
   PlusIcon,
 } from "@radix-ui/react-icons";
 
+import { cn } from "@/lib/utils";
 import { Competition } from "@/types";
 import { format } from "date-fns";
 import { Clock, EditIcon } from "lucide-react";
@@ -32,12 +33,14 @@ type ContestCardProps = {
   className?: string;
   contest: Competition | any;
   deleteContest?: (id: number) => void;
+  mock?: boolean;
 };
 
 export function ContestCard({
   className,
   contest,
   deleteContest,
+  mock,
 }: ContestCardProps) {
   const contestName = contest?.title;
   const contestDescription = contest?.description;
@@ -50,7 +53,14 @@ export function ContestCard({
           <CardTitle>{contestName}</CardTitle>
           <CardDescription>{contestDescription}</CardDescription>
         </div>
-        <div className="flex items-center rounded-md bg-secondary text-secondary-foreground w-full">
+        <div
+          className={cn(
+            "flex items-center rounded-md bg-secondary text-secondary-foreground w-full",
+            {
+              hidden: mock,
+            }
+          )}
+        >
           <Separator orientation="vertical" className="h-[20px]" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -85,7 +95,7 @@ export function ContestCard({
       </CardHeader>
       <CardContent className="w-full">
         <div className="flex flex-row items-center gap-6 text-sm text-muted-foreground">
-          <div className="flex flex-row items-center gap-6">
+          <div className="flex flex-col md:items-center gap-6 md:flex-row ">
             <div className="flex items-center flex-row">
               <CircleIcon className="mr-1 h-3 w-3 fill-osu text-osu" />
               <p>{contest.problems?.length} Problems</p>

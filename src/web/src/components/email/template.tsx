@@ -7,35 +7,82 @@ interface EmailTemplateProps {
 export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
   firstName,
 }) => (
-  <div className="w-full md:w-1/2 mx-auto p-8">
-    <div className="font-sans text-neutral-800 bg-neutral-50 p-6">
-      <p className="text-lg font-semibold">Hi, {firstName}!</p>
-      <p className="mt-4">
-        Thank you for signing up for early access to NextJudge. Your support is
-        crucial as we build a community of inital users who will help shape the
-        future of competitive programming.
+  <div className="min-h-screen flex flex-col items-center py-10">
+    <div className="shadow-md rounded-lg p-6 max-w-2xl w-full">
+      <h2 className="text-2xl font-bold  mb-4">
+        Welcome to the NextJudge Community!
+      </h2>
+      <p className=" mb-4">Hi {firstName},</p>
+      <p className=" mb-4">
+        Thank you for your interest in NextJudge and for joining our newsletter!
+        We are thrilled to have you as part of our growing community of
+        competitive programming enthusiasts.
       </p>
-      <p className="mt-2">
-        We're hard at work creating a platform that's not only intuitive but
-        also packed with features to help you improve your coding skills and
-        compete with the best.
+      <p className=" mb-4">
+        Our team is dedicated to revolutionizing the world of competitive
+        programming by providing an innovative and seamless platform for coders
+        of all levels. Now that you're on our mailing list, you'll be among the
+        first to experience our application designed to both enhance your coding
+        skills and challenge your abilities.
       </p>
-      <h2 className="mt-6 text-neutral-800 font-semibold">What to Expect?</h2>
-      <ul className="list-disc list-inside space-y-2 mt-2">
-        <li>Regular updates on our progress</li>
-        <li>Exclusive early access to new features</li>
-        <li>Opportunities to influence the development with your feedback</li>
+      <h2 className="text-xl font-semibold  mb-2">
+        Here's what you can expect from us next:
+      </h2>
+      <ul className="list-disc list-inside mb-4 ">
+        <li>
+          <strong>Early Access:</strong> Get exclusive early access to NextJudge
+          before it becomes available to the general public.
+        </li>
+        <li>
+          <strong>Admin Requests:</strong> Become a NextJudge admin by
+          submitting a request to the NextJudge team. Admins have the ability to
+          create contests and manage users.
+        </li>
+
+        <li>
+          <strong>Product Updates and Announcements:</strong> Stay informed
+          about the latest product updates, features, and announcements from our
+          team. We'll keep you in the loop every step of the way.
+        </li>
       </ul>
-      <p className="mt-4">
-        We believe that your input can significantly impact our community's
-        success. Stay tuned for more information as we get closer to our launch!
+      <p className=" mb-4">
+        As soon as we're ready to onboard new users, we will contact you. In the
+        meantime, feel free to reach out to us with any questions or suggestions
+        at{" "}
+        <a
+          href="mailto:nyumat@nextjudge.org"
+          className="text-orange-600 underline"
+        >
+          hello@nextjudge.org
+        </a>
+        .
       </p>
-      <p className="mt-4">
-        If you have any questions or suggestions, feel free to reply to this
-        email. We're always here to help!
+      <p className=" mb-4">
+        Once again, thank you for your support and visiting our platform. We
+        can't wait to share NextJudge with you!
       </p>
-      <p className="mt-4 font-bold">Warm regards,</p>
-      <p className="font-bold text-neutral-900">The NextJudge Team</p>
+      <p className="">All the best,</p>
+      <p className=" mb-4">
+        <strong>The NextJudge Team</strong>
+      </p>
+
+      <div className="mt-6 border-t pt-4 text-center text-gray-600 text-sm">
+        <p>
+          <a href="https://nextjudge.org" className="underline text-orange-600">
+            NextJudge
+          </a>{" "}
+          | The Programing Platform of the Future
+        </p>
+        <p>
+          For any queries, contact us at{" "}
+          <a
+            href="mailto:hello@nextjudge.org"
+            className="text-orange-600 underline"
+          >
+            hello@nextjudge.org
+          </a>
+        </p>
+      </div>
     </div>
   </div>
 );

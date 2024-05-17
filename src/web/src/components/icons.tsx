@@ -1,4 +1,5 @@
 import { EnterIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
+import { IconBrandGithub, IconBrandGoogle } from "@tabler/icons-react";
 import { EyeIcon, EyeOffIcon, Loader2Icon, Pyramid, Shell } from "lucide-react";
 
 export const Icons = {
@@ -9,4 +10,6 @@ export const Icons = {
   eye: EyeIcon,
   eyeOff: EyeOffIcon,
   enter: EnterIcon,
+  altgithub: IconBrandGithub,
+  google: IconBrandGoogle,
 };

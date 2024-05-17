@@ -11,7 +11,7 @@ import HeroButtons from "./hero-buttons";
 
 export function AltHero() {
   return (
-    <section className="container relative grid lg:grid-cols-1 place-items-center py-8 lg:pt-4 gap-10">
+    <section className="container relative grid lg:grid-cols-1 place-items-center py-2 md:py-8 lg:pt-4 gap-10">
       <TooltipProvider>
         <div className="text-center space-y-6">
           <div className="mx-auto flex items-center justify-center">
@@ -19,7 +19,7 @@ export function AltHero() {
               <Tooltip delayDuration={0}>
                 <TooltipContent
                   side="right"
-                  className={cn("text-sm")}
+                  className={cn("text-sm", "scale-90")}
                   sideOffset={5}
                 >
                   <p className="text-sm">
@@ -29,9 +29,9 @@ export function AltHero() {
                   </p>
                 </TooltipContent>
                 <TooltipTrigger asChild>
-                  <button className="ring-1 ring-white/60 no-underline group cursor-pointer relative shadow-2xl shadow-orange-600/50 rounded-full p-px text-xs font-semibold leading-6  dark:text-white inline-block">
+                  <button className="scale-90 ring-1 ring-neutral-300/60 no-underline group cursor-pointer relative shadow-2xl shadow-orange-600/50 rounded-full p-px text-xs font-semibold leading-6  dark:text-white inline-block">
                     <span className="absolute inset-0 overflow-hidden rounded-full">
-                      <span className="absolute inset-0 rounded-full bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(220,68,5,0.3)_0%,rgba(0,0,0,0.5)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                      <span className="absolute inset-0 rounded-full shadow-lg bg-neutral-200 dark:bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(220,68,5,0.3)_0%,rgba(0,0,0,0.5)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                     </span>
                     <div className="relative flex space-x-2 items-center z-10 rounded-full py-0.5 px-4 ring-1 ring-white/10 ">
                       <span>We're launching soon!</span>
@@ -77,13 +77,13 @@ export function AltHero() {
       {/* <div className="mt-4 hidden dark:block max-w-6xl"> */}
       <Card
         className={cn(
-          "relative hidden dark:flex flex-col items-center bg-neutral-950 w-full rounded-lg shadow-osu"
+          "hidden relative dark:flex flex-col items-center dark:justify-center bg-neutral-950 border-muted rounded-lg min-w-7xl"
         )}
       >
         <video
           loop
           controls={false}
-          className="rounded-lg border border-black bg-neutral-950 p-2 object-cover w-full h-[200px] sm:h-[300px] md:h-[400px] lg:h-full shadow"
+          className="rounded-lg border border-muted bg-neutral-950 p-2 object-cover w-full h-full max-w-7xl sm:h-[300px] md:h-[400px] lg:h-full shadow-osu"
           preload="auto"
           muted
           src="/demo/dark.mp4"
@@ -97,9 +97,9 @@ export function AltHero() {
           <source src={"/demo/dark.mp4"} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        <BorderBeam />
         {/* Gradient Mask */}
-        {/* <div className="absolute bottom-0 left-0 w-full h-4/5 bg-gradient-to-t from-neutral-950 to-neutral-950/5 via-neutral-950/95" /> */}
+        <div className="hidden md:block absolute bottom-0 left-0 w-full h-5/6 bg-gradient-to-t from-neutral-950 to-neutral-950/5 via-neutral-950/95" />
+        <BorderBeam />
       </Card>
       <Card className={cn("relative flex dark:hidden flex-col items-center")}>
         <video
@@ -114,13 +114,14 @@ export function AltHero() {
           typeof="video/mp4"
           width="100%"
           height="100%"
-          className="rounded-lg object-contain w-full sm:h-[300px] md:h-[400px] xl:h-[600px] max-xl:h-full shadow"
+          className="rounded-lg border border-muted bg-white p-2 object-cover w-full h-full max-w-7xl sm:h-[300px] md:h-[400px] lg:h-full shadow-xl"
         >
           <source src={"/demo/light.mp4"} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
         {/* Gradient Mask */}
-        {/* <div className="absolute bottom-0 left-0 w-full h-4/5 bg-gradient-to-t from-neutral-100 to-neutral-100/5 via-neutral-100/95"></div> */}
+        <div className="hidden md:block absolute bottom-0 left-0 w-full h-5/6 bg-gradient-to-t from-neutral-100 to-neutral-100/5 via-neutral-100/95"></div>
+        <BorderBeam />
       </Card>
     </section>
   );

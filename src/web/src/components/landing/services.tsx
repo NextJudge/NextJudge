@@ -64,10 +64,13 @@ export const Services = () => {
   };
 
   return (
-    <section className="container py-4 max-w-7xl" id="services">
-      <div className="grid lg:grid-cols-[1fr,1fr] gap-8 place-items-center items-start">
+    <section
+      className="container py-4 max-w-6xl overflow-hidden w-full"
+      id="services"
+    >
+      <div className="grid lg:grid-cols-[1fr,1fr] gap-12 place-items-center items-start">
         <div>
-          <h2 className="text-3xl md:text-4xl font-medium font-sans">
+          <h2 className="text-3xl md:text-4xl font-medium font-sans text-center md:text-left">
             The{" "}
             <span className="bg-gradient-to-br from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
               Ultimate{" "}
@@ -75,16 +78,16 @@ export const Services = () => {
             Coding Arena
           </h2>
 
-          <p className="text-muted-foreground text-xl mt-4 mb-4 ">
+          <p className="text-muted-foreground text-xl mt-4 text-center md:text-left ">
             Whether you&apos;re a beginner or an seasoned veteran in competitive
             programming, we&apos;ve got you covered.
           </p>
 
-          <i className="text-muted-foreground text-lg">
+          <i className="hidden md:block text-muted-foreground text-lg text-center md:text-left w-full mx-auto">
             Select a service to learn more.
           </i>
 
-          <div className="flex flex-col gap-8 mt-4">
+          <div className="hidden md:flex flex-col gap-8 mt-4">
             {serviceList.map(
               ({ icon, title, description, id }: ServiceProps) => (
                 <Card
@@ -111,7 +114,24 @@ export const Services = () => {
             )}
           </div>
         </div>
-        <div className="flex justify-center" ref={parent}>
+        <div className="flex md:hidden flex-col gap-8 mt-4">
+          {serviceList.map(({ icon, title, description }: ServiceProps) => (
+            <Card key={title}>
+              <CardHeader className="space-y-1 flex md:flex-row justify-start items-start gap-4">
+                <div className="mt-1 dark:bg-neutral-900 bg-neutral-100 shadow p-1 rounded">
+                  {icon}
+                </div>
+                <div>
+                  <CardTitle>{title}</CardTitle>
+                  <CardDescription className="text-md mt-2">
+                    {description}
+                  </CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+        <div className="justify-center hidden md:flex" ref={parent}>
           {selectedCard === 0 ? (
             <>
               <PlatformItems />

@@ -43,11 +43,17 @@ const FAQList: FAQProps[] = [
       "To become an admin on the platform, you must first register as a user. Once you have registered, you can request admin access by contacting the NextJudge team. We are always looking for new admins to help us manage the platform and improve the user experience.",
     value: "item-5",
   },
+  {
+    question: "How do I report a bug or issue with the platform?",
+    answer:
+      "To report a bug or issue with the platform, you can contact our team directly (hello@nextjudge.org) or submit an issue on our Github repository. We are always looking for feedback on how we can improve the platform and make it better for our users.",
+    value: "item-6",
+  },
 ];
 
 export const FAQ = () => {
   return (
-    <section id="faq" className="container py-24 sm:py-32 max-w-6xl">
+    <section id="faq" className="container py-32 max-w-5xl">
       <h2 className="text-3xl md:text-4xl font-medium font-sans mb-4 text-center">
         Frequently Asked{" "}
         <span className="bg-gradient-to-b from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
@@ -70,7 +76,7 @@ export const FAQ = () => {
       <h3 className="font-medium mt-4">
         Still have questions?{" "}
         <a
-          href="/contact"
+          href="mailto:hello@nextjudge.org"
           className="text-primary transition-all border-primary hover:border-b-2"
         >
           Contact us

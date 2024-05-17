@@ -1,82 +1,127 @@
-"use clients";
+"use client";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import { sendEmail } from "@/app/actions";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../ui/form";
 import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+import { toast } from "sonner";
 
-export function EmailForm({
-  sendEmail,
-}: {
-  sendEmail: (formData: FormData) => void;
-}) {
+const FormSchema = z.object({
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  email: z.string().email("Invalid email address"),
+});
+
+export function EmailForm() {
+  const form = useForm<z.infer<typeof FormSchema>>({
+    resolver: zodResolver(FormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+    },
+  });
+
+  async function onSubmit(data: z.infer<typeof FormSchema>) {
+    try {
+      const { name, email } = JSON.parse(JSON.stringify(data));
+      await sendEmail({ name, email });
+      form.reset();
+      toast("Thank you for joining the waitlist!");
+    } catch (error) {
+      toast("An error occurred. Please try again later.");
+    }
+  }
+
   return (
-    <Card className="w-full m-4 md:w-1/2 p-8 space-y-4 border-orange-500/15">
-      <div className="mb-4 space-y-4">
-        <h2 className="text-lg md:text-2xl font-semibold text-center">
-          Be part of the{" "}
-          <span
-            className=" font-serif italic font-semibold mx-1 underline text-[#FF6600]"
-            // Should we remove this gradient?
-            // style={{
-            //   background: "linear-gradient(transparent 50%, #FF6600 50%)",
-            // }}
-          >
-            future
-          </span>{" "}
-          of competitive programming
-        </h2>
-        <p className="text-center text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-          Join the waitlist to get early access to NextJudge. <br /> We'll
-          notify you when we're ready to onboard new users.{" "}
-        </p>
-      </div>
-      <div>
+    <Card className="p-4 m-4 md:p-6">
+      <Form {...form}>
         <form
-          action={sendEmail}
-          className="flex w-full flex-col gap-4 md:gap-4 justify-center items-center mx-auto"
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex gap-2 flex-col"
         >
-          <div className="flex flex-col items-center w-full gap-2">
-            <div className="flex flex-row items-center w-full gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                name="name"
-                className="w-full"
-                type="text"
-                required
-                placeholder="John Doe"
-                aria-label="name"
-              />
-            </div>
-            <div className="flex flex-row items-center w-full gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                name="email"
-                type="email"
-                className="w-full"
-                required
-                placeholder="johndoe@oregonstate.edu"
-                aria-label="email"
-              />
-            </div>
+          <div className="space-y-4">
+            <h2 className="text-lg md:text-2xl font-semibold text-center">
+              Be part of the{" "}
+              <span
+                className=" font-serif italic font-semibold mx-1 underline text-[#FF6600]"
+                // Should we remove this gradient?
+                // style={{
+                //   background: "linear-gradient(transparent 50%, #FF6600 50%)",
+                // }}
+              >
+                future
+              </span>{" "}
+              of competitive programming
+            </h2>
+            <p className="text-center text-sm md:text-base text-muted-foreground max-w-md mx-auto">
+              Join the waitlist to get early access to NextJudge. We'll notify
+              you when we're ready to onboard new users.
+            </p>
           </div>
+
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm dark:text-white">Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder=""
+                    {...field}
+                    className={cn({
+                      "border-red-500": form.formState.errors.name,
+                    })}
+                  />
+                </FormControl>
+                <FormMessage className="text-red-500" />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem className="mb-2">
+                <FormLabel className="text-sm dark:text-white">Email</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder=""
+                    {...field}
+                    className={cn({
+                      "border-red-500": form.formState.errors.email,
+                    })}
+                  />
+                </FormControl>
+                <FormMessage className="text-red-500" />
+                <FormDescription>
+                  We'll send you a welcome email.
+                </FormDescription>
+              </FormItem>
+            )}
+          />
           <Button
             type="submit"
-            className={cn(
-              buttonVariants({
-                variant: "secondary",
-              }),
-              "w-full group p-[1px] overflow-hidden relative bg-secondary hover:bg-secondary rounded-md"
-            )}
+            className={cn(buttonVariants({ variant: "default" }), "w-full")}
           >
-            <span className="absolute inset-[-1000%] animate-[spin_6s_linear_infinite] bg-[conic-gradient(from_90deg_at_0%_50%,#000000_0%,#000000_80%,#EA580C_100%)] bg-clip-padding" />
-            <span className="inline-flex h-full w-full cursor-pointer items-center justify-center bg-primary group-hover:bg-neutral-700 transition-colors dark:group-hover:bg-neutral-300  dark:bg-neutral-200 rounded text-sm font-medium dark:text-neutral-950 text-white backdrop-blur-3xl">
-              Join the waitlist
-            </span>
+            Submit
           </Button>
         </form>
-      </div>
+      </Form>
     </Card>
   );
 }
