@@ -10,16 +10,17 @@ CREATE TYPE status AS ENUM(
 
 CREATE TABLE "users" (
   "id" SERIAL PRIMARY KEY,
-  "username" varchar,
+  "email" varchar NOT NULL UNIQUE,
+  "username" varchar NOT NULL UNIQUE,
   "join_date" timestamp,
   "is_admin" boolean
 );
 
 CREATE TABLE "problems" (
   "id" SERIAL PRIMARY KEY,
-  "title" varchar,
+  "title" varchar NOT NULL UNIQUE,
   "prompt" varchar,
-  "timeout" integer,
+  "timeout" integer NOT NULL,
   "user_id" integer,
   "upload_date" timestamp
 );
@@ -30,26 +31,26 @@ CREATE TABLE "submissions" (
   "problem_id" integer,
   "time_elapsed" integer,
   "language_id" integer,
-  "status" status,
+  "status" status NOT NULL,
   "failed_test_case_id" integer,
   "submit_time" timestamp,
-  "source_code" varchar
+  "source_code" varchar NOT NULL
 );
 
 CREATE TABLE "test_cases" (
   "id" SERIAL PRIMARY KEY,
   "problem_id" integer,
-  "input" varchar,
-  "expected_output" varchar
+  "input" varchar NOT NULL,
+  "expected_output" varchar NOT NULL
 );
 
 CREATE TABLE "competitions" (
   "id" SERIAL PRIMARY KEY,
   "user_id" integer,
-  "start_time" timestamp,
-  "end_time" timestamp,
+  "start_time" timestamp NOT NULL,
+  "end_time" timestamp NOT NULL,
   "description" varchar,
-  "title" varchar
+  "title" varchar NOT NULL UNIQUE
 );
 
 CREATE TABLE "competition_problems" (

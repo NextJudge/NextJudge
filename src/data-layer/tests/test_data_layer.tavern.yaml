@@ -17,12 +17,37 @@ stages:
 
   ### /v1/users
 
+  - name: create user with no email
+    request: 
+      url: "{host}/v1/users"
+      method: POST
+      json:
+        username: "{test_username}"
+        is_admin: false
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: create user with no username
+    request: 
+      url: "{host}/v1/users"
+      method: POST
+      json:
+        email: "{test_email}"
+        is_admin: false
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
   - name: create new user
     request: 
       url: "{host}/v1/users"
       method: POST
       json:
         username: "{test_username}"
+        email: "{test_email}"
         is_admin: false
     response:
       headers:
@@ -36,12 +61,39 @@ stages:
           user_id: id
           join_date: join_date
 
+  - name: try to create user with duplicate username
+    request: 
+      url: "{host}/v1/users"
+      method: POST
+      json:
+        username: "{test_username}"
+        email: "{test_email_2}"
+        is_admin: false
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: try to create user with duplicate email
+    request: 
+      url: "{host}/v1/users"
+      method: POST
+      json:
+        username: "{test_username_2}"
+        email: "{test_email}"
+        is_admin: false
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
   - name: create another new user
     request: 
       url: "{host}/v1/users"
       method: POST
       json:
         username: "{test_username_2}"
+        email: "{test_email_2}"
         is_admin: false
     response:
       headers:
@@ -50,18 +102,6 @@ stages:
       save:
         json:
           user_id_2: id
-
-  - name: try to create duplicate user
-    request: 
-      url: "{host}/v1/users"
-      method: POST
-      json:
-        username: "{test_username}"
-        is_admin: false
-    response:
-      headers:
-        content-type: application/json
-      status_code: 400
 
   - name: get non existent user
     request: 
@@ -139,38 +179,20 @@ stages:
       url: "{host}/v1/users/99999"
       method: PUT
       json:
-        id: !int 99999
         username: "{test_username}"
         is_admin: false
-        join_date: "{join_date}"
     response:
       headers:
         content-type: application/json
       status_code: 404
-
-  - name: update user with mismatched ids
-    request: 
-      url: "{host}/v1/users/{user_id}"
-      method: PUT
-      json:
-        id: !int 99999
-        username: "{test_username}"
-        is_admin: false
-        join_date: "{join_date}"
-    response:
-      headers:
-        content-type: application/json
-      status_code: 400
 
   - name: update user with existing username
     request: 
       url: "{host}/v1/users/{user_id}"
       method: PUT
       json:
-        id: !int "{user_id}"
         username: "{test_username_2}"
         is_admin: false
-        join_date: "{join_date}"
     response:
       headers:
         content-type: application/json
@@ -181,10 +203,8 @@ stages:
       url: "{host}/v1/users/{user_id}"
       method: PUT
       json:
-        id: !int "{user_id}"
         username: "{test_username}"
         is_admin: true
-        join_date: "{join_date}"
     response:
       headers:
         content-type: application/json

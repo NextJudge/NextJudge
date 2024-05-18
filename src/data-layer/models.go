@@ -17,6 +17,7 @@ const (
 type User struct {
 	ID       int       `json:"id"`
 	Username string    `json:"username"`
+	Email    string    `json:"email"`
 	IsAdmin  bool      `json:"is_admin"`
 	JoinDate time.Time `json:"join_date"`
 }
@@ -68,16 +69,4 @@ type Language struct {
 	Name      string `json:"name"`
 	Extension string `json:"extension"`
 	Version   string `json:"version"`
-}
-
-type PutUserRequestBody struct {
-	ID       int    `json:"id"`
-	Username string `json:"username"`
-	IsAdmin  bool   `json:"is_admin"`
-	JoinDate string `json:"join_date"`
-}
-
-type UpdateSubmissionStatusPatchBody struct {
-	Status           Status `json:"status"`
-	FailedTestCaseID *int   `json:"failed_test_case_id,omitempty"`
 }

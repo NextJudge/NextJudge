@@ -66,7 +66,6 @@ Request Body:
 
 ```json
 {
-    "id": "1",
     "username": "joe",
     "is_admin": true,
 }

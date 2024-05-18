@@ -19,6 +19,7 @@ type NextJudgeDB interface {
 	CreateUser(user *User) (*User, error)
 	GetUserByID(userId int) (*User, error)
 	GetUserByUsername(username string) (*User, error)
+	GetUserByEmail(email string) (*User, error)
 	UpdateUser(user *User) error
 	DeleteUser(user *User) error
 	CreateProblem(problem *Problem) (*Problem, error)
@@ -87,6 +88,18 @@ func (d *Database) GetUserByID(userId int) (*User, error) {
 func (d *Database) GetUserByUsername(username string) (*User, error) {
 	user := &User{}
 	err := db.NextJudgeDB.Where("username = ?", username).First(user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
+func (d *Database) GetUserByEmail(email string) (*User, error) {
+	user := &User{}
+	err := db.NextJudgeDB.Where("email = ?", email).First(user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
