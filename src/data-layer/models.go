@@ -15,11 +15,14 @@ const (
 )
 
 type User struct {
-	ID           int       `json:"id"`
-	Username     string    `json:"username"`
-	PasswordHash string    `json:"password_hash"`
-	IsAdmin      bool      `json:"is_admin"`
-	JoinDate     time.Time `json:"join_date"`
+	ID            int       `json:"id"`
+	Name          string    `json:"name"`
+	PasswordHash  string    `json:"password_hash"`
+	Email         string    `json:"email"`
+	EmailVerified time.Time `json:"emailVerified" gorm:"column:emailVerified"`
+	Image         string    `json:"image"`
+	IsAdmin       bool      `json:"is_admin"`
+	JoinDate      time.Time `json:"join_date"`
 }
 
 type Problem struct {
@@ -52,15 +55,16 @@ type Submission struct {
 	SourceCode       string    `json:"source_code"`
 }
 
+// Competition model
 type Competition struct {
-	ID           int       `json:"id"`
-	UserID       int       `json:"user_id"`
-	StartTime    time.Time `json:"start_time"`
-	EndTime      time.Time `json:"end_time"`
-	Description  string    `json:"description"`
-	Title        string    `json:"title"`
-	Problems     []Problem `json:"problems"`
-	Participants []User    `json:"participants"`
+	ID          int       `json:"id"`
+	StartTime   time.Time `json:"start_time"`
+	EndTime     time.Time `json:"end_time"`
+	Description string    `json:"description"`
+	Title       string    `json:"title"`
+	UserID      int       `json:"user_id"`
+	Users       []User    `json:"participants" gorm:"many2many:competition_users"`
+	Problems    []Problem `json:"problems" gorm:"many2many:competition_problems"`
 }
 
 type Language struct {
@@ -68,17 +72,4 @@ type Language struct {
 	Name      string `json:"name"`
 	Extension string `json:"extension"`
 	Version   string `json:"version"`
-}
-
-type PutUserRequestBody struct {
-	ID           int    `json:"id"`
-	Username     string `json:"username"`
-	PasswordHash string `json:"password_hash"`
-	IsAdmin      bool   `json:"is_admin"`
-	JoinDate     string `json:"join_date"`
-}
-
-type UpdateSubmissionStatusPatchBody struct {
-	Status           Status `json:"status"`
-	FailedTestCaseID *int   `json:"failed_test_case_id,omitempty"`
 }

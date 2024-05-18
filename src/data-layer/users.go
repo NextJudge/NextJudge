@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"goji.io"
@@ -19,6 +18,13 @@ func addUserRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Delete("/v1/users/:user_id"), deleteUser)
 	mux.HandleFunc(pat.Post("/v1/users"), postUser)
 	mux.HandleFunc(pat.Put("/v1/users/:user_id"), updateUser)
+}
+
+type PutUserRequestBody struct {
+	Name         string `json:"name"`
+	Image        string `json:"image"`
+	IsAdmin      *bool  `json:"is_admin"`
+	PasswordHash string `json:"password_hash"`
 }
 
 func postUser(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +45,21 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := db.GetUserByUsername(reqData.Username)
+	if reqData.Email == "" {
+		logrus.Warn("email cannot be blank")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"email cannot be blank"}`)
+		return
+	}
+
+	if reqData.Name == "" {
+		logrus.Warn("name cannot be blank")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"name cannot be blank"}`)
+		return
+	}
+
+	user, err := db.GetUserByName(reqData.Name)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing user")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -47,9 +67,23 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user != nil {
-		logrus.Warn("user already exists")
+		logrus.Warn("user with name already exists")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"user already exists"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"user with name already exists"}`)
+		return
+	}
+
+	user, err = db.GetUserByEmail(reqData.Email)
+	if err != nil {
+		logrus.WithError(err).Error("error checking for existing user")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing user"}`)
+		return
+	}
+	if user != nil {
+		logrus.Warn("user with email already exists")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"user with email already exists"}`)
 		return
 	}
 
@@ -73,10 +107,10 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUsers(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
-	if username != "" {
+	name := r.URL.Query().Get("name")
+	if name != "" {
 		users := []User{}
-		user, err := db.GetUserByUsername(username)
+		user, err := db.GetUserByName(name)
 		if err != nil {
 			logrus.WithError(err).Error("error retrieving users")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -177,14 +211,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if reqData.ID != userId {
-		logrus.Warn("user id in body does not match")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"user id in body does not match"}`)
-		return
-	}
-
-	user, err := db.GetUserByID(reqData.ID)
+	user, err := db.GetUserByID(userId)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing user")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -197,8 +224,8 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"404", "message":"user does not exist"}`)
 		return
 	}
-	if user.Username != reqData.Username {
-		existingUser, err := db.GetUserByUsername(reqData.Username)
+	if user.Name != reqData.Name {
+		existingUser, err := db.GetUserByName(reqData.Name)
 		if err != nil {
 			logrus.WithError(err).Error("error checking for existing user")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -206,34 +233,35 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if existingUser != nil {
-			logrus.Warn("user with desired username already exists")
+			logrus.Warn("user with desired name already exists")
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, `{"code":"400", "message":"user with desired username already exists"}`)
+			fmt.Fprint(w, `{"code":"400", "message":"user with desired name already exists"}`)
 			return
 		}
 	}
 
-	time, err := time.Parse(time.RFC3339, reqData.JoinDate)
-	if err != nil {
-		logrus.WithError(err).Error("error parsing time string")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"error parsing time string"}`)
-		return
+	// update user
+	if reqData.PasswordHash != "" {
+		user.PasswordHash = reqData.PasswordHash
 	}
 
-	updatedUser := &User{
-		ID:           reqData.ID,
-		Username:     reqData.Username,
-		PasswordHash: reqData.PasswordHash,
-		IsAdmin:      reqData.IsAdmin,
-		JoinDate:     time,
+	if reqData.Image != "" {
+		user.Image = reqData.Image
 	}
 
-	err = db.UpdateUser(updatedUser)
+	if reqData.IsAdmin != nil {
+		user.IsAdmin = *reqData.IsAdmin
+	}
+
+	if reqData.Name != "" {
+		user.Name = reqData.Name
+	}
+
+	err = db.UpdateUser(user)
 	if err != nil {
-		logrus.WithError(err).Error("error inserting user")
+		logrus.WithError(err).Error("error updating user")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error inserting user"}`)
+		fmt.Fprint(w, `{"code":"500", "message":"error updating user"}`)
 		return
 	}
 

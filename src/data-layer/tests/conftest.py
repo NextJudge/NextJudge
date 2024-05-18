@@ -1,13 +1,7 @@
 import pytest
 import requests
 import yaml
-import random
-import string
-import os
-from requests_oauthlib import OAuth2Session
-from oauthlib.oauth2 import BackendApplicationClient
-from datetime import datetime, timedelta
-
+from datetime import datetime, timedelta, timezone
 
 GLOBALS_YAML = {}
 
@@ -56,3 +50,18 @@ def setup_tests():
                 if r.status_code != 204:
                     raise RuntimeError("error deleting test language")
                 break
+
+@pytest.fixture(scope="session", autouse=True)
+def five_minutes_from_now():
+  time = datetime.now(timezone.utc) + timedelta(minutes = 5)
+  return time.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+@pytest.fixture(scope="session", autouse=True)
+def five_minutes_ago():
+  time = datetime.now(timezone.utc) + timedelta(minutes = -5)
+  return time.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+@pytest.fixture(scope="session", autouse=True)
+def ten_minutes_from_now():
+  time = datetime.now(timezone.utc) + timedelta(minutes = 10)
+  return time.strftime('%Y-%m-%dT%H:%M:%SZ')
