@@ -1,7 +1,6 @@
-"use client";
-import EditorComponent from "@/components/editor";
-import EditorNavbar from "@/components/editor-nav";
-import RemoteMdxPage from "@/components/remote-mdx";
+import EditorComponent from "@/components/editor/editor";
+import EditorNavbar from "@/components/editor/editor-nav";
+
 import { EditorThemeProvider } from "@/providers/editor-theme";
 
 // TODO: Move all the logic & state to Zustand (global state solution)
@@ -10,9 +9,7 @@ export default function Editor() {
     <>
       <EditorThemeProvider>
         <EditorNavbar />
-        <EditorComponent>
-          <RemoteMdxPage />
-        </EditorComponent>
+        <EditorComponent />
       </EditorThemeProvider>
     </>
   );

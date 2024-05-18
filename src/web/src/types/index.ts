@@ -78,3 +78,9 @@ export interface LoginFormValues {
 export interface LoginCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
+export interface SignUpCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+export interface SignoutCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}

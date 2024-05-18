@@ -1,4 +1,4 @@
-import { ProfileForm } from "@/components/profile-form";
+import { ProfileForm } from "@/components/forms/profile-form";
 import { Separator } from "@/components/ui/separator";
 
 export default function SettingsProfilePage() {

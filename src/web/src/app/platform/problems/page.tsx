@@ -1,15 +1,15 @@
 import { promises as fs } from "fs";
 import { Metadata } from "next";
-import Image from "next/image";
 import path from "path";
 import { z } from "zod";
 
+import PlatformNavbar from "@/components/nav/platform-nav";
+import UserAvatar from "@/components/nav/user-avatar";
 import { columns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { RecentSubmissionCard } from "./components/recent-submissions";
 import { recentSubmissions } from "./data/data";
 import { RecentSubmission, problemSchema } from "./data/schema";
-import PlatformNavbar from "@/components/nav/platform-nav";
 
 export const metadata: Metadata = {
   title: "NextJudge - Problems",
@@ -38,7 +38,9 @@ export default async function ProblemsPage() {
   const recentSubmissions = await getRecentSubmissions();
   return (
     <>
-      <PlatformNavbar />
+      <PlatformNavbar>
+        <UserAvatar />
+      </PlatformNavbar>
       <div className="max-w-7xl w-full flex-1 flex-col space-y-4 p-8 mx-8 md:flex">
         <div className="flex items-center justify-between space-y-4">
           <div className="space-y-2">

@@ -1,15 +1,14 @@
-import { Metadata } from "next";
 import PlatformNavbar from "@/components/nav/platform-nav";
-import { z } from "zod";
 import { promises as fs } from "fs";
+import { Metadata } from "next";
+import { z } from "zod";
 
+import UserAvatar from "@/components/nav/user-avatar";
+import path from "path";
 import { columns } from "../problems/components/columns";
 import { DataTable } from "../problems/components/data-table";
-import { RecentSubmissionCard } from "../problems/components/recent-submissions";
 import { recentSubmissions } from "../problems/data/data";
 import { RecentSubmission, problemSchema } from "../problems/data/schema";
-import path from "path";
-
 
 export const metadata: Metadata = {
   title: "NextJudge - Editorials",
@@ -38,7 +37,9 @@ export default async function ProblemsPage() {
   const recentSubmissions = await getRecentSubmissions();
   return (
     <>
-      <PlatformNavbar />
+      <PlatformNavbar>
+        <UserAvatar />
+      </PlatformNavbar>
       <div className="max-w-7xl w-full flex-1 flex-col space-y-4 p-8 mx-8 md:flex">
         <div className="flex items-center justify-between space-y-4">
           <div className="space-y-2">

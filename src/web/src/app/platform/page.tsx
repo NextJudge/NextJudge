@@ -1,4 +1,5 @@
 import PlatformNavbar from "@/components/nav/platform-nav";
+import UserAvatar from "@/components/nav/user-avatar";
 import { ContestCard } from "./admin/contests/contest-card";
 import { RecentSubmissionCard } from "./problems/components/recent-submissions";
 import SubmissionDrawer from "./problems/components/submission-drawer";
@@ -69,7 +70,9 @@ export default async function PlatformHome() {
   };
   return (
     <>
-      <PlatformNavbar />
+      <PlatformNavbar>
+        <UserAvatar />
+      </PlatformNavbar>
       <div className="max-w-7xl w-full flex-1 flex-col space-y-8 p-8 mx-8 md:flex">
         {/* Contests */}
         <div className="flex flex-col space-y-4">

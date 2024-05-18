@@ -6,7 +6,7 @@ import { EarlyAccess } from "@/components/landing/early-access";
 import { FAQ } from "@/components/landing/faq";
 import { ScrollToTop } from "@/components/landing/scroll-up";
 import { Services } from "@/components/landing/services";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/nav/navbar";
 import { Metadata } from "next";
 import Image from "next/image";
 
