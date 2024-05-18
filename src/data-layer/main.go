@@ -46,6 +46,7 @@ func main() {
 	addProblemRoutes(mux)
 	addSubmissionRoutes(mux)
 	addLanguageRoutes(mux)
+	addCompetitionsRoutes(mux)
 
 	logrus.Info("Starting data layer API")
 

@@ -18,6 +18,11 @@ func addSubmissionRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Patch("/v1/submissions/:submission_id"), updateSubmissionStatus)
 }
 
+type UpdateSubmissionStatusPatchBody struct {
+	Status           Status `json:"status"`
+	FailedTestCaseID *int   `json:"failed_test_case_id,omitempty"`
+}
+
 func postSubmission(w http.ResponseWriter, r *http.Request) {
 	reqData := new(Submission)
 	reqBodyBytes, err := io.ReadAll(r.Body)

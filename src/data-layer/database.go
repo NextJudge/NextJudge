@@ -19,6 +19,7 @@ type NextJudgeDB interface {
 	CreateUser(user *User) (*User, error)
 	GetUserByID(userId int) (*User, error)
 	GetUserByUsername(username string) (*User, error)
+	GetUserByEmail(email string) (*User, error)
 	UpdateUser(user *User) error
 	DeleteUser(user *User) error
 	CreateProblem(problem *Problem) (*Problem, error)
@@ -36,6 +37,12 @@ type NextJudgeDB interface {
 	GetLanguage(id int) (*Language, error)
 	DeleteLanguage(language *Language) error
 	GetTestCase(testcaseId int) (*TestCase, error)
+	GetCompetitions() ([]Competition, error)
+	GetCompetitionByID(competitionId int) (*Competition, error)
+	GetCompetitionByTitle(title string) (*Competition, error)
+	CreateCompetition(competition *Competition) (*Competition, error)
+	UpdateCompetition(competition *Competition) error
+	DeleteCompetition(competition *Competition) error
 }
 
 func NewDatabase() (*Database, error) {
@@ -78,9 +85,21 @@ func (d *Database) GetUserByID(userId int) (*User, error) {
 	return user, nil
 }
 
-func (d *Database) GetUserByUsername(username string) (*User, error) {
+func (d *Database) GetUserByName(name string) (*User, error) {
 	user := &User{}
-	err := db.NextJudgeDB.Where("username = ?", username).First(user).Error
+	err := db.NextJudgeDB.Where("name = ?", name).First(user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
+func (d *Database) GetUserByEmail(email string) (*User, error) {
+	user := &User{}
+	err := db.NextJudgeDB.Where("email = ?", email).First(user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -244,4 +263,61 @@ func (d *Database) GetTestCase(testcaseId int) (*TestCase, error) {
 		return nil, err
 	}
 	return testCase, nil
+}
+
+func (d *Database) GetCompetitions() ([]Competition, error) {
+	competitions := []Competition{}
+	err := d.NextJudgeDB.Find(&competitions).Error
+	if err != nil {
+		return nil, err
+	}
+	return competitions, nil
+}
+
+func (d *Database) GetCompetitionByID(competitionId int) (*Competition, error) {
+	competition := &Competition{}
+	err := db.NextJudgeDB.Preload("Problems").Preload("Users").First(competition, competitionId).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return competition, nil
+}
+
+func (d *Database) GetCompetitionByTitle(title string) (*Competition, error) {
+	competition := &Competition{}
+	err := db.NextJudgeDB.Preload("Problems").Preload("Users").Where("title = ?", title).First(competition).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return competition, nil
+}
+
+func (d *Database) CreateCompetition(competition *Competition) (*Competition, error) {
+	err := d.NextJudgeDB.Create(competition).Error
+	if err != nil {
+		return nil, err
+	}
+	return competition, nil
+}
+
+func (d *Database) UpdateCompetition(competition *Competition) error {
+	err := db.NextJudgeDB.Save(competition).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Database) DeleteCompetition(competition *Competition) error {
+	err := db.NextJudgeDB.Delete(competition).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
