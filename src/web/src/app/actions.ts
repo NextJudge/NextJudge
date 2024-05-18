@@ -2,8 +2,10 @@
 
 import { EmailTemplate } from "@/components/email/template";
 
+import { LoginFormValues, SignUpFormValues } from "@/types";
 import { Resend } from "resend";
 import { ZodError } from "zod";
+import { signIn } from "./auth";
 import { newsletterFormSchema } from "./validation";
 
 interface ReturnType {
@@ -48,4 +50,24 @@ export async function sendEmail(formData: FormData): Promise<ReturnType> {
     status: "success",
     message: "Email sent successfully",
   };
+}
+
+export async function signUpUser(data: SignUpFormValues) {
+  const { email, password, confirmPassword } = data;
+  await signIn("credentials", {
+    email,
+    password,
+    confirmPassword,
+    redirectTo: "/platform",
+  });
+}
+
+export async function logUserIn(data: LoginFormValues) {
+  const { email, password } = data;
+  await signIn("credentials", {
+    email,
+    password,
+    confirmPassword: password,
+    redirectTo: "/platform",
+  });
 }
