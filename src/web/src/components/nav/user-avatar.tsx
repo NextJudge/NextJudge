@@ -8,13 +8,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 
 export default async function UserAvatar() {
   const session = await auth();
+  if (!session?.user) return null;
   // TODO: Remove this console.log
-  console.log(session);
+  console.log({
+    ...session,
+    expires: format(session.expires, "yyyy-MM-dd HH:mm:ss"),
+  });
   if (!session?.user) return null;
   if (!session.user.image) return null;
 
