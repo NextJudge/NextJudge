@@ -4,7 +4,7 @@ import animationDataDark from "@nextjudge/lottie/code-dark.json";
 import animationDataLight from "@nextjudge/lottie/code-light.json";
 import Lottie from "lottie-react";
 
-function Code() {
+export default function Code() {
   return (
     <>
       <div className="hidden dark:block">
@@ -26,5 +26,3 @@ function Code() {
     </>
   );
 }
-
-export default Code;
