@@ -14,8 +14,9 @@ Response body:
 [
     {
         "id": "1",
-        "username": "joe",
+        "name": "joe",
         "is_admin": true,
+        "email": "joebiden@usa.gov",
         "join_date": "2024-02-14T06:26:55.12794Z"
     },
 ]
@@ -27,7 +28,9 @@ Request Body:
 
 ```json
 {
-    "username": "joe",
+    "name": "joe",
+    "image": "linktoimage.com/joe.png",
+    "email": "joebiden@usa.gov",
     "is_admin": true,
 }
 ```
@@ -37,7 +40,8 @@ Response Body:
 ```json
 {
     "id": "1",
-    "username": "joe",
+    "image": "linktoimage.com/joe.png",
+    "name": "joe",
     "is_admin": true,
     "join_date": "2024-02-14T06:26:55.12794Z"
 }
@@ -50,8 +54,10 @@ Response Body:
 ```json
 {
     "id": "1",
-    "username": "joe",
+    "image": "linktoimage.com/joe.png",
+    "name": "joe",
     "is_admin": true,
+    "email": "joebiden@usa.gov",
     "join_date": "2024-02-14T06:26:55.12794Z"
 }
 ```
@@ -66,7 +72,9 @@ Request Body:
 
 ```json
 {
-    "username": "joe",
+    "name": "joe",
+    "image": "linktoimage.com/joe.png",
+    "email": "joebiden@usa.gov",
     "is_admin": true,
 }
 ```
@@ -76,7 +84,8 @@ Response Body:
 ```json
 {
     "id": "1",
-    "username": "joe",
+    "name": "joe",
+    "email": "joebiden@usa.gov",
     "is_admin": true,
     "join_date": "2024-02-14T06:26:55.12794Z"
 }
@@ -375,19 +384,19 @@ Response Body:
     "participants": [
         {
             "id": 1,
-            "username": "JohnEldenRing",
+            "name": "JohnEldenRing",
             "is_admin": true,
             "join_date": "2024-01-01T10:00:00Z"
         },
         {
             "id": 2,
-            "username": "JohnDarksouls",
+            "name": "JohnDarksouls",
             "is_admin": false,
             "join_date": "2024-02-02T10:00:00Z"
         },
         {
             "id": 3,
-            "username": "jordan",
+            "name": "jordan",
             "is_admin": false,
             "join_date": "2024-05-16T20:35:05.556626Z"
         }
