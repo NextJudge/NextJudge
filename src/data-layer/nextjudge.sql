@@ -1,5 +1,5 @@
 -- Auth.js required tables
-REATE TABLE verification_token
+CREATE TABLE verification_token
 (
   identifier TEXT NOT NULL,
   expires TIMESTAMPTZ NOT NULL,
