@@ -85,9 +85,9 @@ func (d *Database) GetUserByID(userId int) (*User, error) {
 	return user, nil
 }
 
-func (d *Database) GetUserByUsername(username string) (*User, error) {
+func (d *Database) GetUserByName(name string) (*User, error) {
 	user := &User{}
-	err := db.NextJudgeDB.Where("username = ?", username).First(user).Error
+	err := db.NextJudgeDB.Where("name = ?", name).First(user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil

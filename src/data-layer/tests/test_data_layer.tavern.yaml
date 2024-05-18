@@ -22,7 +22,7 @@ stages:
       url: "{host}/v1/users"
       method: POST
       json:
-        username: "{test_username}"
+        name: "{test_username}"
         is_admin: false
     response:
       headers:
@@ -46,7 +46,7 @@ stages:
       url: "{host}/v1/users"
       method: POST
       json:
-        username: "{test_username}"
+        name: "{test_username}"
         email: "{test_email}"
         is_admin: false
     response:
@@ -54,7 +54,7 @@ stages:
         content-type: application/json
       status_code: 201
       json:
-        username: "{test_username}"
+        name: "{test_username}"
         is_admin: false
       save:
         json:
@@ -66,7 +66,7 @@ stages:
       url: "{host}/v1/users"
       method: POST
       json:
-        username: "{test_username}"
+        name: "{test_username}"
         email: "{test_email_2}"
         is_admin: false
     response:
@@ -79,7 +79,7 @@ stages:
       url: "{host}/v1/users"
       method: POST
       json:
-        username: "{test_username_2}"
+        name: "{test_username_2}"
         email: "{test_email}"
         is_admin: false
     response:
@@ -92,7 +92,7 @@ stages:
       url: "{host}/v1/users"
       method: POST
       json:
-        username: "{test_username_2}"
+        name: "{test_username_2}"
         email: "{test_email_2}"
         is_admin: false
     response:
@@ -131,7 +131,7 @@ stages:
       status_code: 200
       json:
         id: !int "{user_id}"
-        username: "{test_username}"
+        name: "{test_username}"
         is_admin: false
 
   - name: get user by non existent username
@@ -139,7 +139,7 @@ stages:
       url: "{host}/v1/users"
       method: GET
       params:
-        username: "{test_username}abc"
+        name: "{test_username}abc"
     response:
       headers:
         content-type: application/json
@@ -151,14 +151,14 @@ stages:
       url: "{host}/v1/users"
       method: GET
       params:
-        username: "{test_username}"
+        name: "{test_username}"
     response:
       headers:
         content-type: application/json
       status_code: 200
       json:
         - id: !int "{user_id}"
-          username: "{test_username}"
+          name: "{test_username}"
           is_admin: false
 
   - name: get all users
@@ -171,7 +171,7 @@ stages:
       status_code: 200
       json:
         - id: !int "{user_id}"
-          username: "{test_username}"
+          name: "{test_username}"
           is_admin: false
 
   - name: update non existent user
@@ -179,7 +179,7 @@ stages:
       url: "{host}/v1/users/99999"
       method: PUT
       json:
-        username: "{test_username}"
+        name: "{test_username}"
         is_admin: false
     response:
       headers:
@@ -191,7 +191,7 @@ stages:
       url: "{host}/v1/users/{user_id}"
       method: PUT
       json:
-        username: "{test_username_2}"
+        name: "{test_username_2}"
         is_admin: false
     response:
       headers:
@@ -203,7 +203,7 @@ stages:
       url: "{host}/v1/users/{user_id}"
       method: PUT
       json:
-        username: "{test_username}"
+        name: "{test_username}"
         is_admin: true
     response:
       headers:
@@ -220,7 +220,7 @@ stages:
       status_code: 200
       json:
         id: !int "{user_id}"
-        username: "{test_username}"
+        name: "{test_username}"
         is_admin: true
 
   ### /v1/languages

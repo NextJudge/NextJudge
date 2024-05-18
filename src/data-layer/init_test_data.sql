@@ -13,7 +13,7 @@ VALUES
 ('lua',         '.lua',     '5.4.6');
 
 
-INSERT INTO "users" (username, join_date, email, is_admin)
+INSERT INTO "users" (name, join_date, email, is_admin)
 VALUES 
 ('JohnEldenRing',   timestamp '2024-01-01 10:00:00', 'joebiden@usa.gov',    'TRUE'),
 ('JohnDarksouls',   timestamp '2024-02-02 10:00:00', 'grumbus@usa.gov',     'FALSE');

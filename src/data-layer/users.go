@@ -21,8 +21,9 @@ func addUserRoutes(mux *goji.Mux) {
 }
 
 type PutUserRequestBody struct {
-	Username string `json:"username"`
-	IsAdmin  bool   `json:"is_admin"`
+	Name    string `json:"name"`
+	Image   string `json:"image"`
+	IsAdmin bool   `json:"is_admin"`
 }
 
 func postUser(w http.ResponseWriter, r *http.Request) {
@@ -50,14 +51,14 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if reqData.Username == "" {
-		logrus.Warn("username cannot be blank")
+	if reqData.Name == "" {
+		logrus.Warn("name cannot be blank")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"username cannot be blank"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"name cannot be blank"}`)
 		return
 	}
 
-	user, err := db.GetUserByUsername(reqData.Username)
+	user, err := db.GetUserByName(reqData.Name)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing user")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -65,9 +66,9 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user != nil {
-		logrus.Warn("user with username already exists")
+		logrus.Warn("user with name already exists")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"user with username already exists"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"user with name already exists"}`)
 		return
 	}
 
@@ -105,10 +106,10 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUsers(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
-	if username != "" {
+	name := r.URL.Query().Get("name")
+	if name != "" {
 		users := []User{}
-		user, err := db.GetUserByUsername(username)
+		user, err := db.GetUserByName(name)
 		if err != nil {
 			logrus.WithError(err).Error("error retrieving users")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -222,8 +223,8 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"404", "message":"user does not exist"}`)
 		return
 	}
-	if user.Username != reqData.Username {
-		existingUser, err := db.GetUserByUsername(reqData.Username)
+	if user.Name != reqData.Name {
+		existingUser, err := db.GetUserByName(reqData.Name)
 		if err != nil {
 			logrus.WithError(err).Error("error checking for existing user")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -231,9 +232,9 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if existingUser != nil {
-			logrus.Warn("user with desired username already exists")
+			logrus.Warn("user with desired name already exists")
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, `{"code":"400", "message":"user with desired username already exists"}`)
+			fmt.Fprint(w, `{"code":"400", "message":"user with desired name already exists"}`)
 			return
 		}
 	}
@@ -242,7 +243,8 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		ID:       user.ID,
 		Email:    user.Email,
 		JoinDate: user.JoinDate,
-		Username: reqData.Username,
+		Image:    reqData.Image,
+		Name:     reqData.Name,
 		IsAdmin:  reqData.IsAdmin,
 	}
 

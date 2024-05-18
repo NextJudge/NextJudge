@@ -1,3 +1,43 @@
+-- Auth.js required tables
+REATE TABLE verification_token
+(
+  identifier TEXT NOT NULL,
+  expires TIMESTAMPTZ NOT NULL,
+  token TEXT NOT NULL,
+ 
+  PRIMARY KEY (identifier, token)
+);
+ 
+CREATE TABLE accounts
+(
+  id SERIAL,
+  "userId" INTEGER NOT NULL,
+  type VARCHAR(255) NOT NULL,
+  provider VARCHAR(255) NOT NULL,
+  "providerAccountId" VARCHAR(255) NOT NULL,
+  refresh_token TEXT,
+  access_token TEXT,
+  expires_at BIGINT,
+  id_token TEXT,
+  scope TEXT,
+  session_state TEXT,
+  token_type TEXT,
+ 
+  PRIMARY KEY (id)
+);
+ 
+CREATE TABLE sessions
+(
+  id SERIAL,
+  "userId" INTEGER NOT NULL,
+  expires TIMESTAMPTZ NOT NULL,
+  "sessionToken" VARCHAR(255) NOT NULL,
+ 
+  PRIMARY KEY (id)
+);
+
+-- NextJudge Tables
+
 CREATE TYPE status AS ENUM(
   'ACCEPTED',
   'WRONG_ANSWER',
@@ -10,8 +50,10 @@ CREATE TYPE status AS ENUM(
 
 CREATE TABLE "users" (
   "id" SERIAL PRIMARY KEY,
-  "email" varchar NOT NULL UNIQUE,
-  "username" varchar NOT NULL UNIQUE,
+  "email" varchar(255) NOT NULL UNIQUE,
+  "name" varchar(255) NOT NULL UNIQUE,
+  "emailVerified" TIMESTAMPTZ,
+  "image" TEXT,
   "join_date" timestamp,
   "is_admin" boolean
 );

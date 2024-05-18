@@ -15,11 +15,13 @@ const (
 )
 
 type User struct {
-	ID       int       `json:"id"`
-	Username string    `json:"username"`
-	Email    string    `json:"email"`
-	IsAdmin  bool      `json:"is_admin"`
-	JoinDate time.Time `json:"join_date"`
+	ID            int       `json:"id"`
+	Name          string    `json:"name"`
+	Email         string    `json:"email"`
+	EmailVerified time.Time `json:"emailVerified" gorm:"column:emailVerified"`
+	Image         string    `json:"image"`
+	IsAdmin       bool      `json:"is_admin"`
+	JoinDate      time.Time `json:"join_date"`
 }
 
 type Problem struct {
