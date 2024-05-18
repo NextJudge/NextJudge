@@ -10,10 +10,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import Code from "../login/code";
+const Code = dynamic(() => import("@/components/code"), { ssr: false });
 
-export default async function SignOutPage() {
+export default function SignOutPage() {
   return (
     <>
       <div className="absolute top-4 left-4 z-50">

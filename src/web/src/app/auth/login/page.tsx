@@ -1,12 +1,13 @@
-import { LoginCard } from "@/components/auth-form";
+import { LoginForm } from "@/components/forms/login-form";
 import { Icons } from "@/components/icons";
 import { ModeToggle } from "@/components/theme";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import OAuthGitHub from "../signup/form";
-import Code from "./code";
+
+const Code = dynamic(() => import("@/components/code"), { ssr: false });
 
 export const metadata: Metadata = {
   title: "Authentication",
@@ -23,9 +24,7 @@ export default function LoginPage() {
         <div className="lg:p-8">
           <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
             {/* Login Form */}
-            <LoginCard>
-              <OAuthGitHub />
-            </LoginCard>
+            <LoginForm />
           </div>
         </div>
         <div className="relative hidden h-full flex-col px-10 pt-10 dark:text-white text-black lg:flex dark:border-r ">

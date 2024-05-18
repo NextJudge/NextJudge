@@ -1,17 +1,19 @@
 import { Metadata } from "next";
 import Link from "next/link";
 
+import { SignUpForm } from "@/components/forms/signup-form";
 import { Icons } from "@/components/icons";
 import { ModeToggle } from "@/components/theme";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import Code from "../login/code";
-import { SignUpCard } from "./form";
+import dynamic from "next/dynamic";
 
 export const metadata: Metadata = {
   title: "Authentication",
   description: "Authentication forms built using the components.",
 };
+
+const Code = dynamic(() => import("@/components/code"), { ssr: false });
 
 export default function SignUpPage() {
   return (
@@ -23,7 +25,7 @@ export default function SignUpPage() {
         <div className="lg:p-8">
           <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
             {/* Sign Up Form */}
-            <SignUpCard />
+            <SignUpForm />
           </div>
         </div>
         <div className="relative hidden h-full flex-col px-10 pt-10 dark:text-white text-black lg:flex dark:border-r ">
