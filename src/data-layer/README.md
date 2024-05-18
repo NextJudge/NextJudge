@@ -29,6 +29,7 @@ Request Body:
 ```json
 {
     "name": "joe",
+    "password_hash": "asdfjoisdafjasdk",
     "image": "linktoimage.com/joe.png",
     "email": "joebiden@usa.gov",
     "is_admin": true,
@@ -73,6 +74,7 @@ Request Body:
 ```json
 {
     "name": "joe",
+    "password_hash": "asdfjoisdafjasdk",
     "image": "linktoimage.com/joe.png",
     "email": "joebiden@usa.gov",
     "is_admin": true,

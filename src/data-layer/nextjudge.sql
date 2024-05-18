@@ -50,6 +50,7 @@ CREATE TYPE status AS ENUM(
 
 CREATE TABLE "users" (
   "id" SERIAL PRIMARY KEY,
+  "password_hash" varchar,
   "email" varchar(255) NOT NULL UNIQUE,
   "name" varchar(255) NOT NULL UNIQUE,
   "emailVerified" TIMESTAMPTZ,

@@ -17,6 +17,7 @@ const (
 type User struct {
 	ID            int       `json:"id"`
 	Name          string    `json:"name"`
+	PasswordHash  string    `json:"password_hash"`
 	Email         string    `json:"email"`
 	EmailVerified time.Time `json:"emailVerified" gorm:"column:emailVerified"`
 	Image         string    `json:"image"`

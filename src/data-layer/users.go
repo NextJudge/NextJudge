@@ -21,9 +21,10 @@ func addUserRoutes(mux *goji.Mux) {
 }
 
 type PutUserRequestBody struct {
-	Name    string `json:"name"`
-	Image   string `json:"image"`
-	IsAdmin bool   `json:"is_admin"`
+	Name         string `json:"name"`
+	Image        string `json:"image"`
+	IsAdmin      *bool  `json:"is_admin"`
+	PasswordHash string `json:"password_hash"`
 }
 
 func postUser(w http.ResponseWriter, r *http.Request) {
@@ -239,16 +240,24 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	updatedUser := &User{
-		ID:       user.ID,
-		Email:    user.Email,
-		JoinDate: user.JoinDate,
-		Image:    reqData.Image,
-		Name:     reqData.Name,
-		IsAdmin:  reqData.IsAdmin,
+	// update user
+	if reqData.PasswordHash != "" {
+		user.PasswordHash = reqData.PasswordHash
 	}
 
-	err = db.UpdateUser(updatedUser)
+	if reqData.Image != "" {
+		user.Image = reqData.Image
+	}
+
+	if reqData.IsAdmin != nil {
+		user.IsAdmin = *reqData.IsAdmin
+	}
+
+	if reqData.Name != "" {
+		user.Name = reqData.Name
+	}
+
+	err = db.UpdateUser(user)
 	if err != nil {
 		logrus.WithError(err).Error("error updating user")
 		w.WriteHeader(http.StatusInternalServerError)
