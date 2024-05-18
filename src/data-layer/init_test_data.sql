@@ -6,11 +6,11 @@ VALUES
 ('rust',        '.rs',      '1.71.0'),
 ('go',          '.go',      '-1'),
 ('javascript',  '.js',      '-1'),
-('typescript',          '.ts',      '-1'),
-('java',          '.java',      '21'),
-('kotlin',          '.kt',      '1.9.24'),
-('ruby',          '.rb',      '-1'),
-('lua',          '.lua',      '5.4.6');
+('typescript',  '.ts',      '-1'),
+('java',        '.java',    '21'),
+('kotlin',      '.kt',      '1.9.24'),
+('ruby',        '.rb',      '-1'),
+('lua',         '.lua',     '5.4.6');
 
 
 INSERT INTO "users" (username, join_date, is_admin)
