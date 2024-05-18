@@ -18,7 +18,11 @@ import { routeList } from "@/lib/constants";
 import { Menu } from "lucide-react";
 
 // TODO: Feed these props from Zustand (global state solution)
-export default function EditorNavbar() {
+export default function EditorNavbar({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   return (
     <header className="border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-neutral-500/40 dark:bg-background">
@@ -68,6 +72,7 @@ export default function EditorNavbar() {
 
         <div className="hidden md:flex flex-row gap-4 justify-center items-center mx-12 ">
           <MainNavigationMenu />
+          {children}
           <ModeToggle />
         </div>
       </div>
