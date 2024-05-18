@@ -178,12 +178,19 @@ export class RabbitMQConnection {
             // Send submission to the database'
 
             console.log(body, typeof(body))
+
+            const data = body.success == "ACCEPTED" ? {
+                status:body.success,
+              } : {
+                status:body.success,
+                failed_test_case_id:body.failed_test_case_id
+              }
+
+
             console.log(`http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions/${body.submission_id}`)
             ApiService.patch(
             `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions/${body.submission_id}`,
-            {
-                status: body.success
-            }
+            data
             ).then(response => response.json())
                 .then(response => {
                 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Literal
 from pathlib import Path
 import asyncio
 import os
@@ -112,6 +112,22 @@ class Submission:
     problem_id: str
     id: int
 
+RunResultReason = Literal["ACCEPTED"] | Literal["TIME_LIMIT_EXCEEDED"] | Literal["MEMORY_LIMIT_EXCEEDED"] | Literal["RUNTIME_ERROR"]
+TestCaseResult = Literal["WRONG_ANSWER"] | RunResultReason
+ResultReason = TestCaseResult | Literal["COMPILE_TIME_ERROR"]
+
+@dataclass
+class CompileResult:
+    success: bool
+    stdout: bytes
+    stderr: bytes
+
+@dataclass
+class RunResult:
+    result: RunResultReason
+    stdout: bytes
+    stderr: bytes
+
 LOCAL_LANGUAGES: list[Language] = []
 LOCAL_LANGUAGES_MAP: dict[int, Language] = dict()
 def parse_languages():
@@ -151,13 +167,20 @@ BRIDGE_LANG_ID_MAP: dict[int,int] = dict()
 rabbitmq: RabbitMQClient = None
 
 
-async def submit_judgement(submission, success):
+async def submit_judgement(submission, result: ResultReason, failed_test_case: int = -1):
 
-    # TODO: make the non-accepted case more specific
-    body = {
-        "submission_id": submission["id"],
-        "success": "ACCEPTED" if success else "WRONG_ANSWER"
-    }
+
+    if result != "WRONG_ANSWER":
+        body = {
+            "submission_id": submission["id"],
+            "success": result
+        }
+    else:
+        body = {
+            "submission_id": submission["id"],
+            "success": result,
+            "failed_test_case_id":failed_test_case
+        }
 
     print("Submitting judgement to bridge")
     print(body)
@@ -217,15 +240,13 @@ def create_program_environment() -> ProgramEnvironment:
 
 
 # Used for testing. Compile and run code with no stdin
-def simple_compile_and_run(source_code: str, language: Language) -> bytes | None:
+def simple_compile_and_run(source_code: str, language: Language) -> bytes:
     environment = create_program_environment()
     environment.create_directories()
 
     if not compile_in_jail(source_code, language, environment):
-        # Compile time error
-        # TODO: make this a seperate "cleanup" function
         environment.remove_files()
-        return None
+        return b''
 
     print("Running")
     output = run_single(environment, b"")
@@ -233,7 +254,7 @@ def simple_compile_and_run(source_code: str, language: Language) -> bytes | None
 
     environment.remove_files()
 
-    return output
+    return output.stdout
 
 
 
@@ -265,19 +286,20 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
         if not compile_in_jail(submission_data["source_code"], LOCAL_LANGUAGES_MAP[local_language_id], environment):
             # Compile time error
             environment.remove_files()
-            await submit_judgement(submission_data, False)
+            await submit_judgement(submission_data, "COMPILE_TIME_ERROR")
             return
         
-        success = True
         for test in test_data["test_cases"]:
-            if not run_single_test_case(test, environment):
-                success = False
-                break
+            run_result = run_single_test_case(test, environment)
+            if run_result != "ACCEPTED":
+                environment.remove_files()
+                await submit_judgement(submission_data, run_result, test["id"])
+                return
         
         environment.remove_files()
 
 
-        await submit_judgement(submission_data, success)
+        await submit_judgement(submission_data, "ACCEPTED")
 
 
 def compile_in_jail(source_code: str, language: Language | None, environment: ProgramEnvironment) -> bool:
@@ -336,7 +358,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             "--max_cpus", f"{1}", 
 
             "--rlimit_nofile", f"{128}", # Max file descriptor number (32)
-            "--rlimit_as", f"{1024*2}", # Max virtual memory space
+            "--rlimit_as", f"{1024*8}", # Max virtual memory space
             "--rlimit_cpu", f"{10}", # Max CPU time
             "--rlimit_fsize", f"{512}", # Max file size in MB (1)
             
@@ -351,9 +373,10 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             "--bindmount", f"/chroot/root/.cache:/root/.cache", # Map build dir as read/write
 
             # // Readonly mounts
-            # // "--bindmount_ro", `/dev/urandom:/dev/urandom`,
             # // "--bindmount_ro", `/dev/zero:/dev/zero`,
             "--bindmount_ro", f"/dev/null",
+            "--bindmount_ro", f"/dev/random",
+            "--bindmount_ro", f"/dev/urandom",
 
             "--cwd", f"{environment.inside_chroot_build_dir}",
 
@@ -380,14 +403,17 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
     read_from = os.fdopen(nsjail_log_pipes[0])
     nsjail_errors = read_from.read()
     read_from.close()
-    # print("nsjail output")
-    # print(nsjail_errors)
+    print("nsjail output")
+    print(nsjail_errors)
 
-    stderr = compile_result.stderr
-    if stderr or compile_result.returncode:
-        print("stderr")
-        print(stderr,compile_result.returncode)
+    if compile_result.returncode:
+        print(f"Compile-time error - {compile_result.returncode}")
+        print(f"stdout: {compile_result.stdout}")
+        print(f"stderr: {compile_result.stderr}")
         return False
+
+    print(f"stdout: {compile_result.stdout}")
+    print(f"stderr: {compile_result.stderr}")
     
     # shutil.copyfile(f"/chroot/{dir}/main", f"/chroot/{dir}/{RUN_SCRIPT_NAME}")
     print("Compiling succeeded!")
@@ -395,28 +421,29 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
 
 
 
-def run_single_test_case(testcase, environment: ProgramEnvironment):
+def run_single_test_case(testcase, environment: ProgramEnvironment) -> TestCaseResult:
 
     print(testcase["input"].encode("utf-8"))
 
-    standard_out = run_single(environment, testcase["input"].encode("utf-8")).decode("utf-8")
-    print(standard_out)
+    run_result = run_single(environment, testcase["input"].encode("utf-8"))
 
-    expected_output = testcase["expected_output"]
-    print(expected_output)
-
-    print("Starting to compare results")
-    success = compare_input_output(expected_output, standard_out)
-    print("Done comparing results")
-
-    if success:
-        print("Program is correct!")
+    if(run_result.result != "ACCEPTED"):
+        return run_result.result
     else:
-        print("Program is incorrect!!")
+        standard_out = run_result.stdout.decode("utf-8")
+        expected_output = testcase["expected_output"]
 
-    return success
+        # print(standard_out)
+        # print(expected_output)
 
-def run_single(environment: ProgramEnvironment, input: bytes) -> bytes:
+        success = compare_input_output(expected_output, standard_out)
+
+        if success:
+            return "ACCEPTED"
+        else:
+            return "WRONG_ANSWER"
+
+def run_single(environment: ProgramEnvironment, input: bytes) -> RunResult:
 
     # os.chmod(f"{environment.top_level_dir_executable_script}", 0o755)
     # os.chown(f"{environment.top_level_dir_executable_dir}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
@@ -433,7 +460,7 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> bytes:
             "--mode", "o",
             "--time_limit", f"{10}",
             "--max_cpus", f"{1}", 
-            "--rlimit_as", f"{1024}", # // Max virtual memory space
+            "--rlimit_as", f"{1024*4}", # // Max virtual memory space
             "--rlimit_cpu", f"{10}", # Max CPU time
             # // "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
             "--nice_level", "-20", # High priority
@@ -470,20 +497,18 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> bytes:
     nsjail_errors = read_from.read()
     read_from.close()
 
-    # print("nsjail output")
-    # print(nsjail_errors)
+    print("nsjail output")
+    print(nsjail_errors)
 
-    stderr = run_result.stderr
-    if stderr or run_result.returncode:
-        print("Error in runtime!")
-        print(stderr,run_result.returncode)
-        print(nsjail_errors)
-        return None
+    if run_result.returncode:
+        print(f"Runtime error - {run_result.returncode}")
+        print(f"stdout: {run_result.stdout}")
+        print(f"stderr: {run_result.stderr}")
+        return RunResult("RUNTIME_ERROR", run_result.stdout, run_result.stderr)
 
-    process_stdout = run_result.stdout
-    print(process_stdout)
-    return process_stdout
-   
+    print(run_result.stdout)
+
+    return RunResult("ACCEPTED", run_result.stdout, run_result.stderr)
 
 
     
