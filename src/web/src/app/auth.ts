@@ -4,7 +4,10 @@ import NextAuth, { User } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { PrismaClient } from "@prisma/client";
 
+const prisma = new PrismaClient();
 // How we extend the User object to include additional fields
 declare module "next-auth" {
   interface User {
@@ -53,6 +56,7 @@ export const providerMap = providers.map((provider) => {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
+  adapter: PrismaAdapter(prisma),
   pages: {
     signIn: "/auth/login",
     signOut: "/auth/logout",
