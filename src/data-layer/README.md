@@ -249,6 +249,18 @@ Request Body:
 
 #### GET /v1/languages
 
+Response Body:
+
+```json
+[
+    {
+        "name": "Python",
+        "extension": ".py",
+        "version": "3.12"
+    },
+]
+```
+
 #### DELETE /v1/languages/{language_id}
 
 There are no post or response bodies for this endpoint.

@@ -13,6 +13,3 @@ postgres:
 	docker exec -i data-layer-db-1 psql -U postgres -c 'CREATE DATABASE nextjudge'
 	docker exec -i data-layer-db-1 psql -U postgres nextjudge < nextjudge.sql
 	docker exec -i data-layer-db-1 psql -U postgres nextjudge < init_test_data.sql
-
-query:
-	docker exec -i data-layer-db-1 psql -U postgres nextjudge < query.sql
