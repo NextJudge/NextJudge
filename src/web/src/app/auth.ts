@@ -1,13 +1,13 @@
 import { AuthorizeSchema } from "@/lib/zod";
-import { randomUUID } from "crypto";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
 import NextAuth, { User } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
 // How we extend the User object to include additional fields
 declare module "next-auth" {
   interface User {
@@ -31,13 +31,37 @@ const providers: Provider[] = [
     },
     authorize: async (credentials, request): Promise<User | null> => {
       try {
-        const id = randomUUID();
-        const { email } = AuthorizeSchema.parse(credentials);
-        // TODO: Implement "actual" user creation logic here
-        const name = email.split("@")[0];
+        const { email, password } = AuthorizeSchema.parse(credentials);
         const image = `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`;
-        const userWithoutPassword = { id, email, name, image };
-        return userWithoutPassword;
+
+        const euser = await prisma.users.findUnique({
+          where: { email },
+        });
+
+        if (password === euser?.password_hash) {
+          return {
+            id: euser?.id.toString(),
+            email: euser?.email,
+            name: euser?.name,
+            image: euser?.image,
+          };
+        }
+
+        const user = await prisma.users.create({
+          data: {
+            email,
+            password_hash: password,
+            name: email.split("@")[0],
+            image,
+          },
+        });
+
+        return {
+          id: user.id.toString(),
+          email: user.email,
+          name: user.name,
+          image: user.image,
+        };
       } catch (error) {
         return null;
       }
@@ -56,11 +80,11 @@ export const providerMap = providers.map((provider) => {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
-  adapter: PrismaAdapter(prisma),
   pages: {
     signIn: "/auth/login",
     signOut: "/auth/logout",
     error: "/error",
     newUser: "/auth/signup",
   },
+  debug: true,
 });

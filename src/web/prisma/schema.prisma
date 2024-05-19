@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -7,28 +8,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model competition_problem {
-  competition_id Int
-  problem_id     Int
-
-  @@id([competition_id, problem_id])
-}
-
-model competition_user {
-  user_id        Int
-  competition_id Int
-
-  @@id([user_id, competition_id])
-}
-
 model competitions {
-  id          Int       @id @default(autoincrement())
-  user_id     Int?
-  start_time  DateTime? @db.Timestamp(6)
-  end_time    DateTime? @db.Timestamp(6)
-  description String?   @db.VarChar
-  title       String?   @db.VarChar
-  users       users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                   Int                    @id @default(autoincrement())
+  user_id              Int?
+  start_time           DateTime               @db.Timestamp(6)
+  end_time             DateTime               @db.Timestamp(6)
+  description          String?                @db.VarChar
+  title                String                 @unique @db.VarChar
+  competition_problems competition_problems[]
+  competition_users    competition_users[]
+  users                users?                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model languages {
@@ -40,15 +29,16 @@ model languages {
 }
 
 model problems {
-  id          Int           @id @default(autoincrement())
-  title       String?       @db.VarChar
-  prompt      String?       @db.VarChar
-  timeout     Int?
-  user_id     Int?
-  upload_date DateTime?     @db.Timestamp(6)
-  users       users?        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  submissions submissions[]
-  test_cases  test_cases[]
+  id                   Int                    @id @default(autoincrement())
+  title                String                 @unique @db.VarChar
+  prompt               String?                @db.VarChar
+  timeout              Int
+  user_id              Int?
+  upload_date          DateTime?              @db.Timestamp(6)
+  competition_problems competition_problems[]
+  users                users?                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  submissions          submissions[]
+  test_cases           test_cases[]
 }
 
 model submissions {
@@ -57,10 +47,10 @@ model submissions {
   problem_id          Int?
   time_elapsed        Int?
   language_id         Int?
-  status              status?
+  status              status
   failed_test_case_id Int?
   submit_time         DateTime?   @db.Timestamp(6)
-  source_code         String?     @db.VarChar
+  source_code         String      @db.VarChar
   test_cases          test_cases? @relation(fields: [failed_test_case_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   languages           languages?  @relation(fields: [language_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   problems            problems?   @relation(fields: [problem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -70,21 +60,73 @@ model submissions {
 model test_cases {
   id              Int           @id @default(autoincrement())
   problem_id      Int?
-  input           String?       @db.VarChar
-  expected_output String?       @db.VarChar
+  input           String        @db.VarChar
+  expected_output String        @db.VarChar
   submissions     submissions[]
   problems        problems?     @relation(fields: [problem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model users {
-  id            Int            @id @default(autoincrement())
-  username      String?        @db.VarChar
-  password_hash String?        @db.VarChar
-  join_date     DateTime?      @db.Timestamp(6)
-  is_admin      Boolean?
-  competitions  competitions[]
-  problems      problems[]
-  submissions   submissions[]
+  id                Int                 @id @default(autoincrement())
+  password_hash     String?             @db.VarChar
+  email             String              @unique @db.VarChar(255)
+  name              String              @unique @db.VarChar(255)
+  emailVerified     DateTime?           @db.Timestamptz(6)
+  image             String?
+  join_date         DateTime?           @db.Timestamp(6)
+  is_admin          Boolean?
+  competition_users competition_users[]
+  competitions      competitions[]
+  problems          problems[]
+  submissions       submissions[]
+}
+
+model accounts {
+  id                Int     @id @default(autoincrement())
+  userId            Int
+  type              String  @db.VarChar(255)
+  provider          String  @db.VarChar(255)
+  providerAccountId String  @db.VarChar(255)
+  refresh_token     String?
+  access_token      String?
+  expires_at        BigInt?
+  id_token          String?
+  scope             String?
+  session_state     String?
+  token_type        String?
+}
+
+model competition_problems {
+  competition_id Int
+  problem_id     Int
+  competitions   competitions @relation(fields: [competition_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  problems       problems     @relation(fields: [problem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([competition_id, problem_id])
+}
+
+model competition_users {
+  user_id        Int
+  competition_id Int
+  competitions   competitions @relation(fields: [competition_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, competition_id])
+}
+
+model sessions {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  expires      DateTime @db.Timestamptz(6)
+  sessionToken String   @db.VarChar(255)
+}
+
+model verification_token {
+  identifier String
+  expires    DateTime @db.Timestamptz(6)
+  token      String
+
+  @@id([identifier, token])
 }
 
 enum status {
