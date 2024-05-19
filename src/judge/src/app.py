@@ -96,6 +96,9 @@ class RabbitMQClient(object):
 
     async def send_judgement(self, body: dict):
         return await self.generic_call({"type":"judgement", "body":body})
+    
+    async def send_custom_input_result(self, body: dict):
+        return await self.generic_call({"type":"custom_result", "body":body})
 
 
 @dataclass
@@ -188,6 +191,18 @@ async def submit_judgement(submission, result: ResultReason, failed_test_case: i
     r = await rabbitmq.send_judgement(body)
     print(r)
 
+async def submit_custom_input_judgement(id: str, result: ResultReason, stdout: bytes, stderr: bytes):
+
+    body = {
+        "submission_id": id,
+        "success": result,
+        "stdout": stdout.decode("utf-8"),
+        "stderr": stderr.decode("utf-8")
+    }
+
+    r = await rabbitmq.send_custom_input_result(body)
+    print(r)
+
 @dataclass
 class ProgramEnvironment:
     id: str
@@ -257,49 +272,83 @@ def simple_compile_and_run(source_code: str, language: Language) -> bytes:
     return output.stdout
 
 
+async def handle_test_submission(submission_id: str):
+    # Get all the relevent information regarding this submission ID
+    raw_submission_data = await rabbitmq.get_submission_data(submission_id)
+    submission_data = json.loads(raw_submission_data)
+
+    # Get test data for this ID
+    raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
+    test_data = json.loads(raw_test_data)
+
+    environment = create_program_environment()
+    environment.create_directories()
+
+    print(BRIDGE_LANG_ID_MAP)
+    local_language_id = BRIDGE_LANG_ID_MAP.get(int(submission_data["language_id"]))
+
+    if local_language_id == None:
+        print("No such language!")
+        environment.remove_files()
+        return
+
+    if not compile_in_jail(submission_data["source_code"], LOCAL_LANGUAGES_MAP[local_language_id], environment):
+        # Compile time error
+        environment.remove_files()
+        await submit_judgement(submission_data, "COMPILE_TIME_ERROR")
+        return
+    
+    for test in test_data["test_cases"]:
+        run_result = run_single_test_case(test, environment)
+        if run_result != "ACCEPTED":
+            environment.remove_files()
+            await submit_judgement(submission_data, run_result, test["id"])
+            return
+    
+    environment.remove_files()
+
+    await submit_judgement(submission_data, "ACCEPTED")
+
 
 async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
 
     async with message.process():
         print(f"Judge received a submission")
         print(message.body)
-        submission_id = message.body.decode("utf-8")
 
-        # Get all the relevent information regarding this submission ID
-        raw_submission_data = await rabbitmq.get_submission_data(submission_id)
-        submission_data = json.loads(raw_submission_data)
+        json_data = json.loads(message.body.decode("utf-8"))
 
-        # Get test data for this ID
-        raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
-        test_data = json.loads(raw_test_data)
+        work_item_type = json_data["type"]
+        if work_item_type == "submission":
+            submission_id = json_data["id"]
+            await handle_test_submission(submission_id)
+        elif work_item_type == "input":
+            source_code = json_data["code"]
+            language_id = json_data["language_id"]
+            stdin = json_data["stdin"]
 
-        environment = create_program_environment()
-        environment.create_directories()
+            environment = create_program_environment()
+            environment.create_directories()
 
-        print(BRIDGE_LANG_ID_MAP)
-        local_language_id = BRIDGE_LANG_ID_MAP.get(int(submission_data["language_id"]))
+            local_language_id = BRIDGE_LANG_ID_MAP.get(int(language_id))
 
-        if local_language_id == None:
-            print("No such language!")
-            return
-
-        if not compile_in_jail(submission_data["source_code"], LOCAL_LANGUAGES_MAP[local_language_id], environment):
-            # Compile time error
-            environment.remove_files()
-            await submit_judgement(submission_data, "COMPILE_TIME_ERROR")
-            return
-        
-        for test in test_data["test_cases"]:
-            run_result = run_single_test_case(test, environment)
-            if run_result != "ACCEPTED":
+            if local_language_id == None:
+                print("No such language!")
                 environment.remove_files()
-                await submit_judgement(submission_data, run_result, test["id"])
                 return
-        
-        environment.remove_files()
+            
+            if not compile_in_jail(source_code, LOCAL_LANGUAGES_MAP[local_language_id], environment):
+                # Compile time error
+                environment.remove_files()
+                await submit_custom_input_judgement(json_data["id"], "COMPILE_TIME_ERROR", b"", b"")
+                return
+            
+            run_result = run_single(environment, bytes(stdin,"utf-8"))
+            environment.remove_files()
+
+            await submit_custom_input_judgement(json_data["id"], run_result.result, run_result.stdout, run_result.stderr)
 
 
-        await submit_judgement(submission_data, "ACCEPTED")
 
 
 def compile_in_jail(source_code: str, language: Language | None, environment: ProgramEnvironment) -> bool:
@@ -553,8 +602,6 @@ async def connect_to_rabbitmq():
 
 async def main():
 
-
-
     print("Reading languages.toml file")
     parse_languages()
     connection = await connect_to_rabbitmq()
@@ -577,9 +624,6 @@ async def main():
             if supported_lang.name == bridge_lang["name"]:
                 BRIDGE_LANG_ID_MAP[bridge_lang["id"]] = supported_lang.id
 
-    # rpc_channel = await connection.channel()
-    # result_queue = await rpc_channel.declare_queue('', exclusive=True)
-
     # Setup submission queue
     submission_channel = await connection.channel()
 
@@ -596,20 +640,5 @@ async def main():
         await connection.close()
 
 
-
-
-
 if __name__ == '__main__':
     asyncio.run(main())
-
-# Give the judge a random ID so the server can identify it when communicating through RabbitMQ
-# CLIENT_ID = str(uuid.uuid4())
-# QUEUE_NAME = f"judge_queue_{CLIENT_ID}"
-# channel.queue_declare(queue=QUEUE_NAME, exclusive=True)
-
-# def callback(ch, method, properties, body):
-#     print(f"Got a message: {body.decode()}")
-
-# channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback, auto_ack=True)
-
-# channel.start_consuming()

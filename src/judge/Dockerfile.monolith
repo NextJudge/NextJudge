@@ -185,7 +185,7 @@ fi
 
 
 echo "#!/bin/sh" >> /executable/main
-echo "/usr/bin/java -XX:+UseSerialGC $CLASS_FILE" >> /executable/main
+echo "/usr/bin/java -XX:+UseSerialGC -Xms1920m -Xmx1920m $CLASS_FILE" >> /executable/main
 chmod +x /executable/main
 
 cat /executable/main

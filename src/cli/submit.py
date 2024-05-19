@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# Parse and upload an challenge according to the ICPC problem package specification
 
 import requests
 import argparse
@@ -14,23 +13,35 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("solution_file_path")
 parser.add_argument("problem_id", type=int)
+
+parser.add_argument("--host",dest="host",required=False)
+parser.add_argument("--port",dest="port",required=False)
 args = parser.parse_args()
 
+BRIDGE_HOST=args.host or os.getenv("HOST") or "localhost"
+BRIDGE_PORT=args.port or os.getenv("PORT") or "3000"
 
-BRIDGE_HOST=os.getenv("HOST") or "localhost"
-BRIDGE_PORT=os.getenv("PORT") or "3000"
+BRIDGE_ENDPOINT = f"http://{BRIDGE_HOST}:{BRIDGE_PORT}"
 
 sol_path: str = args.solution_file_path
 problem_id: int = args.problem_id
 
-source_code = open(f"{sol_path}", 'r').read()
+try:
+    source_code = open(sol_path,"r", encoding="utf-8").read()
+except FileNotFoundError:
+    print(f"Could not find file {sol_path}")
+    sys.exit(1)
+except OSError as e:
+    print(f"Could not open file {sol_path} - {e}")
+    sys.exit(1)
 
-bridge_languages = requests.get(f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/languages")
+try:
+    bridge_languages = requests.get(f"{BRIDGE_ENDPOINT}/languages")
+except:
+    print(f"Failed to connect to {BRIDGE_ENDPOINT}")
+    sys.exit(1)
 
 real_langs = bridge_languages.json()
-
-# extension to id
-lang_mapping: dict[str,int] = {}
 
 language_id = None
 
@@ -43,12 +54,6 @@ if language_id is None:
     print(real_langs)
     sys.exit(1)
 
-
-# Load all testcases now
-# print(test_cases)
-
-
-
 submit = requests.post(
     f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/submission",
     json = {
@@ -59,20 +64,24 @@ submit = requests.post(
     }
 )
 
-print(submit.status_code, submit.text)
-
 if(submit.status_code != 200):
     sys.exit(1)
 
-start_time = time.time()
-# Poll
-for i in range(20):
-    time.sleep(.2)
+print(f"Submission ID: {submit.text}")
 
-# for i in range(1):
-    # time.sleep(2)
+
+max_polls = 12
+initial_delay = 0.3
+max_delay = 1.5
+increment = (max_delay - initial_delay) / (max_polls - 1)
+
+delay = initial_delay
+
+for i in range(25):
+    time.sleep(delay)
+
     verdict = requests.get(
-        f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/submission/{submit.text}",
+        f"{BRIDGE_ENDPOINT}/submission/{submit.text}",
     )
 
     result = verdict.json()
@@ -80,6 +89,7 @@ for i in range(20):
 
     if status != "PENDING" and status != "":
         print(f"Verdict: {status}")
-        print(time.time() - start_time)
         break
+
+    delay = min(delay+increment,max_delay)
 
