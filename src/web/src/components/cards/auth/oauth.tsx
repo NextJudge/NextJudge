@@ -8,7 +8,7 @@ export function OAuthGitHub() {
       <form
         action={async () => {
           "use server";
-          await signIn("github", {
+          const data = await signIn("github", {
             redirectTo: "/platform",
           });
         }}

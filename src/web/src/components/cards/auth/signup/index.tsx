@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { AuthorizeSchema } from "@/lib/zod";
 import { SignUpCardProps } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -36,13 +37,20 @@ export function SignUpCard({ children }: SignUpCardProps) {
     },
   });
 
+  const router = useRouter();
+
   async function onSubmit(data: z.infer<typeof AuthorizeSchema>) {
     try {
       const { email, password, confirmPassword } = JSON.parse(
         JSON.stringify(data)
       );
-      await signUpUser({ email, password, confirmPassword });
+      const res = await signUpUser({ email, password, confirmPassword });
+      if (res.status === "error") {
+        toast.error(res.message);
+        return;
+      }
       toast("Account created successfully");
+      router.push("/auth/login");
     } catch (error) {
       toast(error as string);
     }

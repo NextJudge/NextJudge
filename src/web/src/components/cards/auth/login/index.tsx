@@ -1,6 +1,6 @@
 "use client";
 
-import { logUserIn } from "@/app/actions";
+import { logUserIn, ReturnType } from "@/app/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { LoginFormSchema } from "@/lib/zod";
 import { LoginCardProps } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -35,11 +36,23 @@ export function LoginCard({ children }: LoginCardProps) {
     },
   });
 
+  const router = useRouter();
+
   async function onSubmit(data: z.infer<typeof LoginFormSchema>) {
     try {
       const { email, password } = JSON.parse(JSON.stringify(data));
-      await logUserIn({ email, password });
+      const res: ReturnType = await logUserIn({ email, password });
+
+      if (!res) {
+        toast.error("Invalid credentials");
+        return;
+      }
+      if (res.status === "error") {
+        toast.error(res.message);
+        return;
+      }
       toast.success("Welcome back to NextJudge!");
+      router.push("/platform");
     } catch (error) {
       toast(error as string);
     }

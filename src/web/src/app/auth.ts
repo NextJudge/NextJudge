@@ -1,12 +1,11 @@
 import { AuthorizeSchema } from "@/lib/zod";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import NextAuth, { User } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 
-const prisma = new PrismaClient();
+export const prisma = new PrismaClient();
 
 // How we extend the User object to include additional fields
 declare module "next-auth" {
@@ -33,34 +32,23 @@ const providers: Provider[] = [
       try {
         const { email, password } = AuthorizeSchema.parse(credentials);
         const image = `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`;
-
-        const euser = await prisma.users.findUnique({
+        const user = await prisma.users.findUnique({
           where: { email },
         });
 
-        if (password === euser?.password_hash) {
-          return {
-            id: euser?.id.toString(),
-            email: euser?.email,
-            name: euser?.name,
-            image: euser?.image,
-          };
+        if (!user) {
+          return null;
         }
 
-        const user = await prisma.users.create({
-          data: {
-            email,
-            password_hash: password,
-            name: email.split("@")[0],
-            image,
-          },
-        });
+        if (user.password_hash !== password) {
+          return null;
+        }
 
         return {
           id: user.id.toString(),
           email: user.email,
           name: user.name,
-          image: user.image,
+          image: image,
         };
       } catch (error) {
         return null;
@@ -87,4 +75,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     newUser: "/auth/signup",
   },
   debug: true,
+  callbacks: {
+    async session({ user, token, session }) {
+      session.user = user;
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.image = user.image;
+      }
+      return token;
+    },
+    async signIn({ user, profile }) {
+      if (user) {
+        return true;
+      }
+      return false;
+    },
+  },
 });

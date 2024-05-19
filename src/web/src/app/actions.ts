@@ -5,10 +5,10 @@ import { EmailTemplate } from "@/components/email/template";
 import { LoginFormValues, SignUpFormValues } from "@/types";
 import { Resend } from "resend";
 import { ZodError } from "zod";
-import { signIn } from "./auth";
+import { prisma, signIn } from "./auth";
 import { newsletterFormSchema } from "./validation";
 
-interface ReturnType {
+export interface ReturnType {
   status: "error" | "success";
   message: string;
 }
@@ -53,21 +53,50 @@ export async function sendEmail(formData: FormData): Promise<ReturnType> {
 }
 
 export async function signUpUser(data: SignUpFormValues) {
-  const { email, password, confirmPassword } = data;
-  await signIn("credentials", {
-    email,
-    password,
-    confirmPassword,
-    redirectTo: "/platform",
+  const { email, password } = data;
+  const hasUser = await prisma.users.findUnique({
+    where: { email },
   });
+
+  if (hasUser) {
+    return {
+      status: "error",
+      message: "User already exists",
+    };
+  }
+  const image = `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`;
+  await prisma.users.create({
+    data: {
+      email,
+      password_hash: password,
+      name: email.split("@")[0],
+      image,
+    },
+  });
+
+  return {
+    status: "success",
+    message: "User created!",
+  };
 }
 
-export async function logUserIn(data: LoginFormValues) {
+export async function logUserIn(data: LoginFormValues): Promise<ReturnType> {
   const { email, password } = data;
-  await signIn("credentials", {
-    email,
-    password,
-    confirmPassword: password,
-    redirectTo: "/platform",
-  });
+  try {
+    await signIn("credentials", {
+      email,
+      password,
+      confirmPassword: password,
+      redirect: false,
+    });
+    return {
+      status: "success",
+      message: "User logged in",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: "Invalid credentials",
+    };
+  }
 }
