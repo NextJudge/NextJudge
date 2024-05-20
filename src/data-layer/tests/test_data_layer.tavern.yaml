@@ -284,6 +284,7 @@ stages:
         user_id: 99999
         prompt: "solve the problem"
         title: "{test_problem}"
+        difficulty: "EASY"
         test_cases:
           - input: "abc"
             output: "123"
@@ -302,6 +303,7 @@ stages:
         user_id: !int "{user_id}"
         prompt: "solve the problem"
         title: "{test_problem}"
+        difficulty: "EASY"
         test_cases:
           - input: "abc"
             expected_output: "123"
@@ -331,6 +333,7 @@ stages:
       method: POST
       json:
         user_id: !int "{user_id}"
+        difficulty: "EASY"
         prompt: "solve the problem"
         title: "{test_problem}"
         test_cases:
@@ -350,6 +353,7 @@ stages:
       json:
         user_id: !int "{user_id}"
         prompt: "solve the harder problem"
+        difficulty: "HARD"
         title: "{test_problem_2}"
         test_cases:
           - input: "you"

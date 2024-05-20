@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"goji.io"
@@ -15,14 +16,44 @@ import (
 // TODO: add PUT endpoints for problems and test cases
 
 func addProblemRoutes(mux *goji.Mux) {
+	mux.HandleFunc(pat.Get("/v1/categories"), getCategories)
 	mux.HandleFunc(pat.Post("/v1/problems"), postProblem)
 	mux.HandleFunc(pat.Get("/v1/problems"), getProblems)
 	mux.HandleFunc(pat.Get("/v1/problems/:problem_id"), getProblem)
 	mux.HandleFunc(pat.Delete("/v1/problems/:problem_id"), deleteProblem)
 }
 
+type PostProblemRequestBody struct {
+	Prompt      string     `json:"prompt"`
+	Title       string     `json:"title"`
+	Timeout     int        `json:"timeout"`
+	Difficulty  Difficulty `json:"difficulty"`
+	UserID      int        `json:"user_id"`
+	TestCases   []TestCase `json:"test_cases"`
+	CategoryIds []int      `json:"category_ids"`
+}
+
+func getCategories(w http.ResponseWriter, r *http.Request) {
+	categories, err := db.GetCategories()
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving categories")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving categories"}`)
+		return
+	}
+
+	respJSON, err := json.Marshal(categories)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
+
 func postProblem(w http.ResponseWriter, r *http.Request) {
-	reqData := new(Problem)
+	reqData := new(PostProblemRequestBody)
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading request body")
@@ -67,7 +98,37 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newProblem, err := db.CreateProblem(reqData)
+	newProblem := &Problem{
+		Prompt:     reqData.Prompt,
+		Title:      reqData.Title,
+		Timeout:    reqData.Timeout,
+		Difficulty: reqData.Difficulty,
+		UserID:     reqData.UserID,
+		TestCases:  reqData.TestCases,
+		UploadDate: time.Now(),
+		Categories: []Category{},
+	}
+
+	for _, categoryId := range reqData.CategoryIds {
+		category, err := db.GetCategoryByID(categoryId)
+		if err != nil {
+			logrus.WithError(err).Error("error checking for category")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error checking for category"}`)
+			return
+		}
+
+		if category == nil {
+			logrus.Warn("category not found")
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, `{"code":"404", "message":"category not found"}`)
+			return
+		}
+
+		newProblem.Categories = append(newProblem.Categories, *category)
+	}
+
+	dbProblem, err := db.CreateProblem(newProblem)
 	if err != nil {
 		logrus.WithError(err).Error("error inserting problem into db")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -75,7 +136,7 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respJSON, err := json.Marshal(newProblem)
+	respJSON, err := json.Marshal(dbProblem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
 		w.WriteHeader(http.StatusInternalServerError)
