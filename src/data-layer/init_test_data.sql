@@ -1,15 +1,15 @@
 INSERT INTO "languages" (name, extension, version)
 VALUES
 ('c++',         '.cpp',     '14'),
-('c',           '.c',       '1'),
+('c',           '.c',       '0'),
 ('python',      '.py',      '3.12'),
 ('rust',        '.rs',      '1.71.0'),
-('go',          '.go',      '1'),
-('javascript',  '.js',      '1'),
-('typescript',  '.ts',      '1'),
+('go',          '.go',      '0'),
+('javascript',  '.js',      '0'),
+('typescript',  '.ts',      '0'),
 ('java',        '.java',    '21'),
 ('kotlin',      '.kt',      '1.9.24'),
-('ruby',        '.rb',      '1'),
+('ruby',        '.rb',      '0'),
 ('lua',         '.lua',     '5.4.6');
 
 
