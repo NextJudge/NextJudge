@@ -74,7 +74,7 @@ const errorStringToEnum = {
 function ErrorContent() {
   const search = useSearchParams();
   const error =
-    (search.get("error") as keyof typeof errorStringToEnum) || "Default";
+    (search?.get("error") as keyof typeof errorStringToEnum) || "Default";
   return <>{errorStringToEnum[error]}</>;
 }
 
