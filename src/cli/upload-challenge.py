@@ -53,16 +53,20 @@ for name in testcase_names:
 print(f"Title: {title}")
 print(f"Number of testcases: {len(test_cases)}")
 
-submit_problem = requests.post(
-    f"http://{DATABASE_HOST}:{DATABASE_PORT}/v1/problems",
-    json = {
-      "title": title,
-      "prompt": statement,
-      "timeout": 1,
-      "user_id": 1,
-      "test_cases": test_cases
-    }
-)
+try:
+    submit_problem = requests.post(
+        f"http://{DATABASE_HOST}:{DATABASE_PORT}/v1/problems",
+        json = {
+        "title": title,
+        "prompt": statement,
+        "timeout": 1,
+        "user_id": 1,
+        "test_cases": test_cases
+        }
+    )
+except:
+    print(f"Failed to connect to database")
+    sys.exit(1)
 
 response_json = submit_problem.json()
 
