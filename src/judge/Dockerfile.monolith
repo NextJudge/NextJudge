@@ -54,7 +54,7 @@ RUN chown -R 99999:99999 /chroot/dev
 COPY <<-'EOF' /app/languages.toml
 [[language]]
 name = "c++"
-version = "0"
+version = "14"
 extension = "cpp"
 script= """
 #!/bin/sh
@@ -83,7 +83,7 @@ chmod +x /executable/main
 
 [[language]]
 name = "rust"
-version = "0"
+version = "1.71.0"
 extension = "rs"
 script="""
 #!/bin/sh

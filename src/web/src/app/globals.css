@@ -5,67 +5,48 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-
+    --background: 0 0% 97.65%;
+    --foreground: 0 0% 12.55%;
+    --muted: 0 0% 93.73%;
+    --muted-foreground: 0 0% 39.22%;
+    --popover: 0 0% 98.82%;
+    --popover-foreground: 0 0% 12.55%;
+    --card: 0 0% 98.82%;
+    --card-foreground: 0 0% 12.55%;
+    --border: 0 0% 84.71%;
+    --input: 0 0% 94.12%;
+    --primary: 22.93 92.59% 52.35%;
+    --primary-foreground: 44 0% 100%;
+    --secondary: 34.05 100% 85.49%;
+    --secondary-foreground: 16.27 50.43% 22.94%;
+    --accent: 0 0% 90.98%;
+    --accent-foreground: 0 0% 12.55%;
+    --destructive: 10.16 77.87% 53.92%;
+    --destructive-foreground: 0 0% 100%;
+    --ring: 24.8 79.79% 63.14%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-
-    --shadow-1: 0 88.2% 50.2%;
+    --background: 0 0% 6.67%;
+    --foreground: 0 0% 93.33%;
+    --muted: 0 0% 13.33%;
+    --muted-foreground: 0 0% 70.59%;
+    --popover: 0 0% 9.8%;
+    --popover-foreground: 0 0% 93.33%;
+    --card: 0 0% 9.8%;
+    --card-foreground: 0 0% 93.33%;
+    --border: 44 14% 11%;
+    --input: 0 0% 28.24%;
+    --primary: 22.93 92.59% 52.35%;
+    --primary-foreground: 29.51 0% 100%;
+    --secondary: 28.5 64.52% 12.16%;
+    --secondary-foreground: 29.51 100% 88.04%;
+    --accent: 0 0% 16.47%;
+    --accent-foreground: 0 0% 93.33%;
+    --destructive: 10.16 77.87% 53.92%;
+    --destructive-foreground: 0 0% 100%;
+    --ring: 23.11 59.8% 40%;
   }
 }
 
@@ -117,4 +98,12 @@
   .shadow-anim {
     display: none;
   }
+}
+
+.error-bg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900'%3E%3Cpolygon fill='%23dc4405' points='957 450 539 900 1396 900'/%3E%3Cpolygon fill='%23b53a04' points='957 450 872.9 900 1396 900'/%3E%3Cpolygon fill='%23b53a04' points='-60 900 398 662 816 900'/%3E%3Cpolygon fill='%23b53a04' points='337 900 398 662 816 900'/%3E%3Cpolygon fill='%23b53a04' points='1203 546 1552 900 876 900'/%3E%3Cpolygon fill='%23a23204' points='1203 546 1552 900 1162 900'/%3E%3Cpolygon fill='%23dc4405' points='641 695 886 900 367 900'/%3E%3Cpolygon fill='%23b53a04' points='587 900 641 695 886 900'/%3E%3Cpolygon fill='%23b53a04' points='1710 900 1401 632 1096 900'/%3E%3Cpolygon fill='%23a23204' points='1710 900 1401 632 1365 900'/%3E%3Cpolygon fill='%23dc4405' points='1210 900 971 687 725 900'/%3E%3Cpolygon fill='%23b53a04' points='943 900 1210 900 971 687'/%3E%3C/svg%3E");
+}
+
+.text-shadow {
+  text-shadow: -8px 0 0 #dc4405;
 }

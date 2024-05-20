@@ -10,14 +10,18 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
+import { Icons } from "@/components/icons";
 import { routeList } from "@/lib/constants";
-import { Menu, Pyramid } from "lucide-react";
-import { MainNavigationMenu } from "../navbar";
+import { Menu } from "lucide-react";
 import { ModeToggle } from "../theme";
 import { Button, buttonVariants } from "../ui/button";
-import { Icons } from "@/components/icons";
+import { MainNavigationMenu } from "./navbar";
 
-export default function PlatformNavbar() {
+export default function PlatformNavbar({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   return (
     <header className="sticky border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-neutral-500/40 dark:bg-background">
@@ -44,6 +48,7 @@ export default function PlatformNavbar() {
                 <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col justify-center items-center gap-2 mt-4">
+                {children}
                 {routeList.map(({ href, label }) => (
                   <a
                     key={label}
@@ -61,6 +66,7 @@ export default function PlatformNavbar() {
 
         <div className="hidden md:flex flex-row gap-4 justify-center items-center mx-12">
           <MainNavigationMenu />
+          {children}
           <ModeToggle />
         </div>
       </div>

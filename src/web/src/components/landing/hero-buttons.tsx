@@ -24,10 +24,10 @@ export default function HeroButtons() {
           Icon={ArrowRightIcon}
           onClick={handleClick}
           iconPlacement="right"
-          className={cn("w-full md:w-4/6")}
+          className={cn("w-full md:w-4/6 font-semibold text-lg")}
           size={"lg"}
         >
-          Get Started
+          Join the Arena
         </EnhancedButton>
 
         <EnhancedButton

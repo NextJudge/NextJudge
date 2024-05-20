@@ -104,7 +104,7 @@ export function DataTable<TData, TValue>({
                       className="cursor-pointer"
                       key={cell.id}
                       onClick={() => {
-                        router.push(`/platform/problems/${cell.id}`);
+                        router.push(`/platform/problems/${row.getValue("id")}`);
                       }}
                     >
                       {flexRender(

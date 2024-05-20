@@ -5,6 +5,8 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { Problem } from "../data/schema";
+
+import { format } from "date-fns";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 
@@ -34,11 +36,12 @@ export const columns: ColumnDef<Problem>[] = [
     enableHiding: false,
   },
   {
+    // Holy hack(s)
     accessorKey: "id",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Id" />
+      <DataTableColumnHeader column={column} title="Id" className="hidden" />
     ),
-    cell: ({ row }) => <div className="w-[80px]">{row.getValue("id")}</div>,
+    cell: ({ row }) => <div className="hidden">{row.getValue("id")}</div>,
     enableSorting: false,
     enableHiding: false,
   },
@@ -58,14 +61,12 @@ export const columns: ColumnDef<Problem>[] = [
     },
   },
   {
-    accessorKey: "description",
+    accessorKey: "prompt",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Description" />
+      <DataTableColumnHeader column={column} title="Prompt" />
     ),
     cell: ({ row }) => (
-      <div className="max-w-[500px] truncate">
-        {row.getValue("description")}
-      </div>
+      <div className="max-w-[450px] truncate">{row.getValue("prompt")}</div>
     ),
   },
 
@@ -76,7 +77,7 @@ export const columns: ColumnDef<Problem>[] = [
     ),
     cell: ({ row }) => {
       return (
-        <div className="flex w-[100px] items-center">
+        <div className="flex w-[120px] items-center">
           <span className="flex-shrink-0 w-3 h-3 rounded-full bg-osu" />
           <span className="ml-2">{row.getValue("author")}</span>
         </div>
@@ -87,12 +88,17 @@ export const columns: ColumnDef<Problem>[] = [
     },
   },
   {
-    accessorKey: "submissions",
+    accessorKey: "upload_date",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Submissions" />
+      <DataTableColumnHeader column={column} title="Upload Date" />
     ),
     cell: ({ row }) => {
-      return <div className="w-[100px]">{row.getValue("submissions")}</div>;
+      const value = row.getValue("upload_date");
+      return (
+        <div className="w-[100px]">
+          {format(new Date(value as any), "yyyy-MM-dd")}
+        </div>
+      );
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
