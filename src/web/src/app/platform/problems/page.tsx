@@ -10,7 +10,7 @@ import { columns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { RecentSubmissionCard } from "./components/recent-submissions";
 import { recentSubmissions } from "./data/data";
-import { Problem, RecentSubmission, problemSchema } from "./data/schema";
+import { RecentSubmission, problemSchema } from "./data/schema";
 
 export const metadata: Metadata = {
   title: "NextJudge - Problems",
@@ -27,7 +27,18 @@ async function getProblems() {
 
 async function getProblems2() {
   const problems = await fetchProblems();
-  return problems as Problem[];
+  const problems2 = problems.map((problem) => {
+    return {
+      ...problem,
+      id: problem.id.toString(),
+      status: "open",
+      submissions: 8,
+      description: "Implement a linked list data structure.",
+      author: "David",
+      prompt: "Find the indicies of two numbers that add to sum.",
+    };
+  });
+  return problems2;
 }
 
 async function getRecentSubmissions(): Promise<RecentSubmission[]> {

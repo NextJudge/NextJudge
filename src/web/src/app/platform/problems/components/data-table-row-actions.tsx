@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { labels } from "../data/data";
-import { problemSchema } from "../data/schema";
+import { oldProblemSchema, problemSchema } from "../data/schema";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -29,7 +29,7 @@ export function DataTableRowActions<TData>({
   row,
 }: DataTableRowActionsProps<TData>) {
   // TODO: Migrate this to the new schema
-  const problem = problemSchema.parse(row.original);
+  const problem = oldProblemSchema.parse(row.original);
 
   return (
     <DropdownMenu>
@@ -50,7 +50,7 @@ export function DataTableRowActions<TData>({
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>Labels</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            <DropdownMenuRadioGroup value={problem.prompt}>
+            <DropdownMenuRadioGroup value={problem.description}>
               {labels.map((label) => (
                 <DropdownMenuRadioItem key={label.value} value={label.value}>
                   {label.label}

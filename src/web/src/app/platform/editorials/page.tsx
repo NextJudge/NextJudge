@@ -1,20 +1,12 @@
 import PlatformNavbar from "@/components/nav/platform-nav";
-import { promises as fs } from "fs";
-import { Metadata } from "next";
-import { z } from "zod";
-
 import UserAvatar from "@/components/nav/user-avatar";
-import path from "path";
-import { columns } from "../problems/components/columns";
-import { DataTable } from "../problems/components/data-table";
-import { recentSubmissions } from "../problems/data/data";
-import { RecentSubmission, problemSchema } from "../problems/data/schema";
+import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "NextJudge - Editorials",
   description: "Editorials to assist in your learning",
 };
-
+/*
 async function getEditorials() {
   const data = await fs.readFile(
     path.join(process.cwd(), "src/app/platform/problems/data/problems.json")
@@ -31,10 +23,8 @@ async function getRecentSubmissions(): Promise<RecentSubmission[]> {
   });
   return promise;
 }
-
+*/
 export default async function ProblemsPage() {
-  const problems = await getEditorials();
-  const recentSubmissions = await getRecentSubmissions();
   return (
     <>
       <PlatformNavbar>
@@ -49,7 +39,6 @@ export default async function ProblemsPage() {
             </p>
           </div>
         </div>
-        <DataTable data={problems} columns={columns} />
       </div>
     </>
   );
