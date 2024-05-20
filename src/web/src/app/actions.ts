@@ -80,6 +80,41 @@ export async function signUpUser(data: SignUpFormValues) {
   };
 }
 
+export async function fetchProblems(page?: number, limit?: number) {
+  if (!page || !limit) {
+    const problems = await prisma.problems.findMany({
+      include: {
+        users: true,
+      },
+    });
+    return problems.map((problem) => ({
+      id: problem.id,
+      title: problem.title,
+      prompt: problem.prompt,
+      timeout: problem.timeout,
+      user_id: problem.user_id,
+      upload_date: problem.upload_date,
+      author: problem.users?.name,
+    }));
+  }
+  const problems = await prisma.problems.findMany({
+    take: limit,
+    skip: (page - 1) * limit,
+    include: {
+      users: true,
+    },
+  });
+  return problems.map((problem) => ({
+    id: problem.id,
+    title: problem.title,
+    prompt: problem.prompt,
+    timeout: problem.timeout,
+    user_id: problem.user_id,
+    upload_date: problem.upload_date,
+    author: problem.users?.name,
+  }));
+}
+
 export async function logUserIn(data: LoginFormValues): Promise<ReturnType> {
   const { email, password } = data;
   try {
@@ -97,6 +132,36 @@ export async function logUserIn(data: LoginFormValues): Promise<ReturnType> {
     return {
       status: "error",
       message: "Invalid credentials",
+    };
+  }
+}
+interface ProfileData {
+  id: number;
+  name: string;
+  password: string;
+}
+export async function changeProfile(data: ProfileData) {
+  try {
+    const { id, name, password } = data;
+    await prisma.users.update({
+      where: { id },
+      data: {
+        name,
+        password_hash: password,
+      },
+    });
+    return {
+      status: "success",
+      message: "Profile updated",
+      newProfile: {
+        name,
+        password,
+      },
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: "Something went wrong",
     };
   }
 }

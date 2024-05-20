@@ -1,8 +1,18 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import * as React from "react";
@@ -17,12 +27,14 @@ export type Language = {
 export function EditorLanguageSelect() {
   const [open, setOpen] = React.useState(false);
   const [languages, setLanguages] = React.useState<Language[]>([]);
-  const [currentLanguage, setCurrentLanguage] = React.useState<Language | null>(null);
+  const [currentLanguage, setCurrentLanguage] = React.useState<Language | null>(
+    null
+  );
 
   React.useEffect(() => {
     async function fetchLanguages() {
       try {
-        const response = await fetch('http://localhost:3001/api/languages'); // Ensure this matches your setup
+        const response = await fetch("http://localhost:3001/api/languages"); // Ensure this matches your setup
         const data = await response.json();
         setLanguages(data);
         setCurrentLanguage(data[0]); // Set default language to the first one
@@ -42,7 +54,9 @@ export function EditorLanguageSelect() {
           aria-expanded={open}
           className="w-[200px] justify-between"
         >
-          {currentLanguage ? `${currentLanguage.name} (${currentLanguage.version})` : "Select a language"}
+          {currentLanguage
+            ? `${currentLanguage.name} (${currentLanguage.version})`
+            : "Select a language"}
           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -57,13 +71,14 @@ export function EditorLanguageSelect() {
                 value={language.name}
                 onSelect={() => {
                   setCurrentLanguage(language);
-                  console.log(language);
                   setOpen(false);
                 }}
               >
                 <div className="flex justify-between w-full">
                   <span>{language.name}</span>
-                  <span className="text-sm text-gray-500 opacity-70">{language.version}</span>
+                  <span className="text-sm text-gray-500 opacity-70">
+                    {language.version}
+                  </span>
                 </div>
                 <CheckIcon
                   className={cn(

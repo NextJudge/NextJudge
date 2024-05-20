@@ -40,6 +40,7 @@ const providers: Provider[] = [
           return null;
         }
 
+        // TODO: Secure this
         if (user.password_hash !== password) {
           return null;
         }
@@ -76,24 +77,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   debug: true,
   callbacks: {
-    async session({ user, token, session }) {
-      session.user = user;
+    async session({ session, user }) {
       return session;
     },
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
-        token.image = user.image;
-      }
       return token;
     },
-    async signIn({ user, profile }) {
-      if (user) {
-        return true;
-      }
-      return false;
+    async signIn({ user, account, profile }) {
+      return true;
+    },
+    async redirect({ url, baseUrl }) {
+      return baseUrl;
     },
   },
 });

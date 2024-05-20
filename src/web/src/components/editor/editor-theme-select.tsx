@@ -39,10 +39,6 @@ export function EditorThemeSelector({ themes }: { themes: Theme[] }) {
   const { theme: currentTheme, setTheme } = React.useContext(ThemeContext);
   const { resolvedTheme } = useTheme();
   const [open, setOpen] = React.useState(false);
-  console.log({
-    currentTheme,
-    resolvedTheme,
-  });
   //   const [value, setValue] = React.useState(
   //     selectedTheme?.name.toUpperCase() || ""
   //   )

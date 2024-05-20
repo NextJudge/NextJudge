@@ -115,6 +115,18 @@ export const problems: Problem[] = [
   },
 ];
 
+export const problemsTwo: any[] = [
+  {
+    id: 1,
+    title: "Two Sum",
+    prompt: "Find the indicies of two numbers that add to sum.",
+    timeout: 1000,
+    user_id: 1,
+    upload_date: new Date(),
+    author: "LeetCode",
+  },
+];
+
 // generate aan array with 5 random dates within the past [one hour, one day, one week, one month, one year]
 const getDate = () => {
   let date = new Date();
