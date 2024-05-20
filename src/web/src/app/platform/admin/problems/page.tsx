@@ -1,14 +1,17 @@
-"use client";
-
-import { ProblemsTable } from "@/components/admin-problems-table";
-import { Button } from "@/components/ui/button";
+import { fetchProblems } from "@/app/actions";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/toaster";
-import { PlusIcon } from "@radix-ui/react-icons";
-import { useRouter } from "next/navigation";
+import { columns } from "../../problems/components/columns";
+import { DataTable } from "../../problems/components/data-table";
+import { Problem } from "../../problems/data/schema";
 
-export default function AdminProblemsPage() {
-  const router = useRouter();
+async function getProblems2() {
+  const problems = (await fetchProblems()) as Problem[];
+  return problems;
+}
+
+export default async function AdminProblemsPage() {
+  const problems = await getProblems2();
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -18,16 +21,17 @@ export default function AdminProblemsPage() {
             Manage the problems in the official NextJudge problem set.
           </p>
         </div>
-        <Button
+        {/* TODO: Make a modal here */}
+        {/* <Button
           variant="outline"
           className="flex items-center space-x-4"
           onClick={() => router.push("/platform/admin/problems/create")}
         >
           <PlusIcon /> <span>Create new problem</span>
-        </Button>
+        </Button> */}
       </div>
       <Separator />
-      <ProblemsTable />
+      <DataTable columns={columns} data={problems} />
       <Toaster />
     </div>
   );

@@ -10,7 +10,7 @@ import { columns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { RecentSubmissionCard } from "./components/recent-submissions";
 import { recentSubmissions } from "./data/data";
-import { RecentSubmission, problemSchema } from "./data/schema";
+import { Problem, RecentSubmission, problemSchema } from "./data/schema";
 
 export const metadata: Metadata = {
   title: "NextJudge - Problems",
@@ -26,19 +26,8 @@ async function getProblems() {
 }
 
 async function getProblems2() {
-  const problems = await fetchProblems();
-  const problems2 = problems.map((problem) => {
-    return {
-      ...problem,
-      id: problem.id.toString(),
-      status: "open",
-      submissions: 8,
-      description: "Implement a linked list data structure.",
-      author: "David",
-      prompt: "Find the indicies of two numbers that add to sum.",
-    };
-  });
-  return problems2;
+  const problems = (await fetchProblems()) as Problem[];
+  return problems;
 }
 
 async function getRecentSubmissions(): Promise<RecentSubmission[]> {
@@ -51,9 +40,7 @@ async function getRecentSubmissions(): Promise<RecentSubmission[]> {
 }
 
 export default async function ProblemsPage() {
-  //   const problems = await getProblems();
   const problems = await getProblems2();
-  //   console.log(problems2);
   const recentSubmissions = await getRecentSubmissions();
   return (
     <>
@@ -70,7 +57,6 @@ export default async function ProblemsPage() {
           </div>
         </div>
         <DataTable data={problems} columns={columns} />
-
         <div className="flex items-center pt-4" id="submissions">
           <div className="space-y-2">
             <h2 className="text-2xl font-bold tracking-tight">
@@ -82,7 +68,6 @@ export default async function ProblemsPage() {
             </p>
           </div>
         </div>
-
         <div className="flex items-center justify-between space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {recentSubmissions.map((submission) => (

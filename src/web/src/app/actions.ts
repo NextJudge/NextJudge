@@ -94,7 +94,7 @@ export async function fetchProblems(page?: number, limit?: number) {
       timeout: problem.timeout,
       user_id: problem.user_id,
       upload_date: problem.upload_date,
-      author: problem.users?.name,
+      author: problem.users?.name ?? "Unknown",
     }));
   }
   const problems = await prisma.problems.findMany({
@@ -111,7 +111,7 @@ export async function fetchProblems(page?: number, limit?: number) {
     timeout: problem.timeout,
     user_id: problem.user_id,
     upload_date: problem.upload_date,
-    author: problem.users?.name,
+    author: problem.users?.name ?? "Unknown",
   }));
 }
 
