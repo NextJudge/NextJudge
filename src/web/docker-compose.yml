@@ -2,4 +2,4 @@ services:
   nextjudge-frontend:
     build: .
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:3001:3001"
