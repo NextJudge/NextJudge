@@ -14,39 +14,24 @@ export type Language = {
   version: string;
 };
 
-const defaultLanguages: Language[] = [
-  {
-    id: 1,
-    name: "TypeScript",
-    extension: ".tsx",
-    version: "5.4.3"
-  },
-
-  {
-    id: 2,
-    name: "C",
-    extension: ".c",
-    version: "C17"
-  },
-
-  {
-    id: 3,
-    name: "JavaScript",
-    extension: ".js",
-    version: "ES6"
-  },
-
-  {
-  id: 4,
-  name: "Python",
-  extension: ".py",
-  version: "3.8"
-  },
-];
-
 export function EditorLanguageSelect() {
   const [open, setOpen] = React.useState(false);
-  const [currentLanguage, setCurrentLanguage] = React.useState(defaultLanguages[0]);
+  const [languages, setLanguages] = React.useState<Language[]>([]);
+  const [currentLanguage, setCurrentLanguage] = React.useState<Language | null>(null);
+
+  React.useEffect(() => {
+    async function fetchLanguages() {
+      try {
+        const response = await fetch('http://localhost:3001/api/languages'); // Ensure this matches your setup
+        const data = await response.json();
+        setLanguages(data);
+        setCurrentLanguage(data[0]); // Set default language to the first one
+      } catch (error) {
+        console.error("Failed to fetch languages", error);
+      }
+    }
+    fetchLanguages();
+  }, []);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -57,7 +42,7 @@ export function EditorLanguageSelect() {
           aria-expanded={open}
           className="w-[200px] justify-between"
         >
-          {currentLanguage.name}
+          {currentLanguage ? `${currentLanguage.name} (${currentLanguage.version})` : "Select a language"}
           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -66,7 +51,7 @@ export function EditorLanguageSelect() {
           <CommandInput placeholder="Search languages..." className="h-9" />
           <CommandEmpty>No language found.</CommandEmpty>
           <CommandGroup className="overflow-y-scroll max-h-52">
-            {defaultLanguages.map((language) => (
+            {languages.map((language) => (
               <CommandItem
                 key={language.id}
                 value={language.name}
@@ -76,11 +61,14 @@ export function EditorLanguageSelect() {
                   setOpen(false);
                 }}
               >
-                {language.name}
+                <div className="flex justify-between w-full">
+                  <span>{language.name}</span>
+                  <span className="text-sm text-gray-500 opacity-70">{language.version}</span>
+                </div>
                 <CheckIcon
                   className={cn(
                     "ml-auto h-4 w-4",
-                    currentLanguage.id === language.id
+                    currentLanguage?.id === language.id
                       ? "opacity-100"
                       : "opacity-0"
                   )}
