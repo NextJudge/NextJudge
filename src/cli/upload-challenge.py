@@ -7,17 +7,20 @@ import os
 import sys
 import yaml
 
-DATABASE_HOST=os.getenv("HOST") or "localhost"
-DATABASE_PORT=os.getenv("PORT") or "5000"
-
+from shared_cli import add_common_arguments
 
 parser = argparse.ArgumentParser(
     prog='Upload challenge',
     description='Upload a challenge to the NextJudge system',
 )
 
+add_common_arguments(parser)
+
 parser.add_argument("directory_to_problem")
 args = parser.parse_args()
+
+DATABASE_HOST=args.host
+DATABASE_PORT=args.port
 
 dir = args.directory_to_problem
 

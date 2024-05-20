@@ -5,22 +5,22 @@ import argparse
 import time
 import os
 import sys
+from shared_cli import add_common_arguments
 
 parser = argparse.ArgumentParser(
     prog='Upload submission',
     description='Upload a submission to the NextJudge system',
 )
 
+add_common_arguments(parser)
+
 parser.add_argument("solution_file_path")
 parser.add_argument("problem_id", type=int)
 
-parser.add_argument("--host",dest="host",required=False)
-parser.add_argument("--port",dest="port",required=False)
 args = parser.parse_args()
 
-BRIDGE_HOST=args.host or os.getenv("HOST") or "localhost"
-BRIDGE_PORT=args.port or os.getenv("PORT") or "3000"
-
+BRIDGE_HOST=args.host
+BRIDGE_PORT=args.port
 BRIDGE_ENDPOINT = f"http://{BRIDGE_HOST}:{BRIDGE_PORT}"
 
 sol_path: str = args.solution_file_path
