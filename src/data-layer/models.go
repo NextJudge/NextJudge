@@ -14,6 +14,16 @@ const (
 	CompileTimeError    Status = "COMPILE_TIME_ERROR"
 )
 
+type Difficulty string
+
+const (
+	VeryEasy Difficulty = "VERY EASY"
+	Easy     Difficulty = "EASY"
+	Medium   Difficulty = "MEDIUM"
+	Hard     Difficulty = "HARD"
+	VeryHard Difficulty = "VERY HARD"
+)
+
 type User struct {
 	ID            int       `json:"id"`
 	Name          string    `json:"name"`
@@ -25,14 +35,21 @@ type User struct {
 	JoinDate      time.Time `json:"join_date"`
 }
 
+type Category struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 type Problem struct {
 	ID         int        `json:"id"`
 	Prompt     string     `json:"prompt"`
 	Title      string     `json:"title"`
 	Timeout    int        `json:"timeout"`
+	Difficulty Difficulty `json:"difficulty"`
 	UserID     int        `json:"user_id"`
 	UploadDate time.Time  `json:"upload_date"`
 	TestCases  []TestCase `json:"test_cases,omitempty"`
+	Categories []Category `json:"categories" gorm:"many2many:problem_categories"`
 }
 
 type TestCase struct {
@@ -63,8 +80,8 @@ type Competition struct {
 	Description string    `json:"description"`
 	Title       string    `json:"title"`
 	UserID      int       `json:"user_id"`
-	Users       []User    `json:"participants" gorm:"many2many:competition_users"`
-	Problems    []Problem `json:"problems" gorm:"many2many:competition_problems"`
+	Users       []User    `json:"participants,omitempty" gorm:"many2many:competition_users"`
+	Problems    []Problem `json:"problems,omitempty" gorm:"many2many:competition_problems"`
 }
 
 type Language struct {

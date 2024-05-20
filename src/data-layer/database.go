@@ -22,6 +22,7 @@ type NextJudgeDB interface {
 	GetUserByEmail(email string) (*User, error)
 	UpdateUser(user *User) error
 	DeleteUser(user *User) error
+	GetCategories() ([]Category, error)
 	CreateProblem(problem *Problem) (*Problem, error)
 	GetProblems() ([]Problem, error)
 	CreateTestcase(testcase *TestCase, problemId int) (*TestCase, error)
@@ -125,8 +126,28 @@ func (d *Database) DeleteUser(user *User) error {
 	return nil
 }
 
+func (d *Database) GetCategories() ([]Category, error) {
+	categories := []Category{}
+	err := d.NextJudgeDB.Find(&categories).Error
+	if err != nil {
+		return nil, err
+	}
+	return categories, nil
+}
+
+func (d *Database) GetCategoryByID(categoryId int) (*Category, error) {
+	category := &Category{}
+	err := d.NextJudgeDB.Model(&Category{}).First(category, categoryId).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return category, nil
+}
+
 func (d *Database) CreateProblem(problem *Problem) (*Problem, error) {
-	problem.UploadDate = time.Now()
 	err := d.NextJudgeDB.Create(problem).Error
 	if err != nil {
 		return nil, err
@@ -136,7 +157,7 @@ func (d *Database) CreateProblem(problem *Problem) (*Problem, error) {
 
 func (d *Database) GetProblems() ([]Problem, error) {
 	problems := []Problem{}
-	err := d.NextJudgeDB.Find(&problems).Error
+	err := d.NextJudgeDB.Preload("Categories").Find(&problems).Error
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +166,7 @@ func (d *Database) GetProblems() ([]Problem, error) {
 
 func (d *Database) GetProblemByID(problemId int) (*Problem, error) {
 	problem := &Problem{}
-	err := d.NextJudgeDB.Model(&Problem{}).Preload("TestCases").First(problem, problemId).Error
+	err := d.NextJudgeDB.Model(&Problem{}).Preload("Categories").Preload("TestCases").First(problem, problemId).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil

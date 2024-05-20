@@ -1,6 +1,5 @@
 -- Auth.js required tables
-CREATE TABLE verification_token
-(
+CREATE TABLE verification_token (
   identifier TEXT NOT NULL,
   expires TIMESTAMPTZ NOT NULL,
   token TEXT NOT NULL,
@@ -8,8 +7,7 @@ CREATE TABLE verification_token
   PRIMARY KEY (identifier, token)
 );
  
-CREATE TABLE accounts
-(
+CREATE TABLE accounts (
   id SERIAL,
   "userId" INTEGER NOT NULL,
   type VARCHAR(255) NOT NULL,
@@ -48,6 +46,14 @@ CREATE TYPE status AS ENUM(
   'PENDING'
 );
 
+CREATE TYPE difficulty as ENUM(
+  'VERY EASY',
+  'EASY',
+  'MEDIUM',
+  'HARD',
+  'VERY HARD'
+);
+
 CREATE TABLE "users" (
   "id" SERIAL PRIMARY KEY,
   "password_hash" varchar,
@@ -62,57 +68,69 @@ CREATE TABLE "users" (
 CREATE TABLE "problems" (
   "id" SERIAL PRIMARY KEY,
   "title" varchar NOT NULL UNIQUE,
-  "prompt" varchar,
+  "prompt" varchar NOT NULL,
   "timeout" integer NOT NULL,
-  "user_id" integer,
-  "upload_date" timestamp
+  "difficulty" difficulty NOT NULL,
+  "user_id" integer NOT NULL,
+  "upload_date" timestamp NOT NULL
 );
 
 CREATE TABLE "submissions" (
   "id" SERIAL PRIMARY KEY,
-  "user_id" integer,
-  "problem_id" integer,
-  "time_elapsed" integer,
-  "language_id" integer,
+  "user_id" integer NOT NULL,
+  "problem_id" integer NOT NULL,
+  "time_elapsed" integer NOT NULL,
+  "language_id" integer NOT NULL,
   "status" status NOT NULL,
   "failed_test_case_id" integer,
-  "submit_time" timestamp,
+  "submit_time" timestamp NOT NULL,
   "source_code" varchar NOT NULL
 );
 
 CREATE TABLE "test_cases" (
   "id" SERIAL PRIMARY KEY,
-  "problem_id" integer,
+  "problem_id" integer NOT NULL,
   "input" varchar NOT NULL,
   "expected_output" varchar NOT NULL
 );
 
 CREATE TABLE "competitions" (
   "id" SERIAL PRIMARY KEY,
-  "user_id" integer,
+  "user_id" integer NOT NULL,
   "start_time" timestamp NOT NULL,
   "end_time" timestamp NOT NULL,
-  "description" varchar,
+  "description" varchar NOT NULL,
   "title" varchar NOT NULL UNIQUE
 );
 
 CREATE TABLE "competition_problems" (
-  "competition_id" integer,
-  "problem_id" integer,
+  "competition_id" integer NOT NULL,
+  "problem_id" integer NOT NULL,
   PRIMARY KEY("competition_id", "problem_id")
 );
 
 CREATE TABLE "competition_users" (
-  "user_id" integer,
-  "competition_id" integer,
+  "user_id" integer NOT NULL,
+  "competition_id" integer NOT NULL,
   PRIMARY KEY("user_id", "competition_id")
 );
 
 CREATE TABLE "languages" (
   "id" SERIAL PRIMARY KEY,
-  "name" varchar,
-  "extension" varchar,
-  "version" varchar
+  "name" varchar NOT NULL,
+  "extension" varchar NOT NULL,
+  "version" varchar NOT NULL
+);
+
+CREATE TABLE "categories" (
+  "id" SERIAL PRIMARY KEY,
+  "name" varchar NOT NULL
+);
+
+CREATE TABLE "problem_categories" (
+  "category_id" integer NOT NULL,
+  "problem_id" integer NOT NULL,
+  PRIMARY KEY("category_id", "problem_id")
 );
 
 ALTER TABLE "problems" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
@@ -136,3 +154,7 @@ ALTER TABLE "competition_problems" ADD FOREIGN KEY ("problem_id") REFERENCES "pr
 ALTER TABLE "competition_users" ADD FOREIGN KEY ("competition_id") REFERENCES "competitions" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "competition_users" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "problem_categories" ADD FOREIGN KEY ("category_id") REFERENCES "categories" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "problem_categories" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("id") ON DELETE CASCADE;

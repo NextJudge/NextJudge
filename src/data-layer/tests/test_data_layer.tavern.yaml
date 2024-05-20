@@ -276,14 +276,16 @@ stages:
 
   ### /v1/problems
 
-  - name: create problem with bad user id
+  - name: create problem with bad user category id
     request: 
       url: "{host}/v1/problems"
       method: POST
       json:
-        user_id: 99999
+        user_id: !int "{user_id}"
         prompt: "solve the problem"
         title: "{test_problem}"
+        difficulty: "EASY"
+        category_ids: [1, 2, 9999]
         test_cases:
           - input: "abc"
             output: "123"
@@ -292,7 +294,27 @@ stages:
     response:
       headers:
         content-type: application/json
-      status_code: 400
+      status_code: 404
+
+  - name: create problem with bad user id
+    request: 
+      url: "{host}/v1/problems"
+      method: POST
+      json:
+        user_id: 99999
+        prompt: "solve the problem"
+        title: "{test_problem}"
+        difficulty: "EASY"
+        category_ids: [1, 2, 3]
+        test_cases:
+          - input: "abc"
+            output: "123"
+          - input: "xyz"
+            output: "789"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
 
   - name: create problem
     request: 
@@ -302,6 +324,8 @@ stages:
         user_id: !int "{user_id}"
         prompt: "solve the problem"
         title: "{test_problem}"
+        difficulty: "EASY"
+        category_ids: [1, 2, 3]
         test_cases:
           - input: "abc"
             expected_output: "123"
@@ -331,8 +355,10 @@ stages:
       method: POST
       json:
         user_id: !int "{user_id}"
+        difficulty: "EASY"
         prompt: "solve the problem"
         title: "{test_problem}"
+        category_ids: [1, 2, 3]
         test_cases:
           - input: "abc"
             expected_output: "123"
@@ -350,7 +376,9 @@ stages:
       json:
         user_id: !int "{user_id}"
         prompt: "solve the harder problem"
+        difficulty: "HARD"
         title: "{test_problem_2}"
+        category_ids: [1, 2, 3]
         test_cases:
           - input: "you"
             expected_output: "me"
@@ -365,7 +393,6 @@ stages:
         json:
           problem_id_2: id
           test_case_id_2: test_cases[0].id
-
 
   - name: get non existent problem
     request: 

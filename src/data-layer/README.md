@@ -95,6 +95,19 @@ Response Body:
 
 ### Problems
 
+#### GET /v1/categories
+
+Response Body:
+
+```json
+[
+    {
+        "id": 1,
+        "name": "Sorting"
+    },
+]
+```
+
 #### GET /v1/problems
 
 Response Body:
@@ -115,6 +128,12 @@ Response Body:
                 "expected_output": "cba"
             },
         ],
+        "categories": [
+            {
+                "id": 1,
+                "name": "Sorting"
+            },
+        ]
     },
 ]
 ```
@@ -135,6 +154,7 @@ Request Body:
             "expected_output": "cba"
         },
     ],
+    "category_ids": [1, 3, 5]
 }
 ```
 
@@ -155,6 +175,12 @@ Response Body:
             "expected_output": "cba"
         },
     ],
+    "categories": [
+        {
+            "id": 1,
+            "name": "Sorting"
+        },
+    ]
 }
 ```
 
@@ -177,6 +203,12 @@ Response Body:
             "expected_output": "cba"
         },
     ],
+    "categories": [
+        {
+            "id": 1,
+            "name": "Sorting"
+        },
+    ]
 }
 ```
 
@@ -290,8 +322,6 @@ Response Body:
         "description": "this is a big competition",
         "title": "big competition",
         "user_id": 1,
-        "participants": null, // These will always be null when getting all competitions
-        "problems": null
     },
 ]
 ```
@@ -470,4 +500,8 @@ make postgres
 
 ### Testing
 
-The `./tests/` directory contains API tests using Tavern. To run the tests, start the service in one terminal and then run `pipenv run pytest tests/ -p no:warnings` in another.
+The `./tests/` directory contains API tests using Tavern. To run the tests, start the service in one terminal and then run `pipenv run pytest tests/ -p no:warnings` in another. Ensure an init script has been ran against the database beforehand.
+
+### Debugging
+
+To manually run an arbitrary query, run `docker exec -i data-layer-db-1 psql -U postgres nextjudge < query.sql` where `query.sql` contains your query.
