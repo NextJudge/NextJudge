@@ -1,7 +1,7 @@
 "use client";
-import { sendEmail } from "@/app/actions";
-import { Vortex } from "../ui/vortex";
-import { EmailForm } from "./email-form";
+
+import { EmailForm } from "@/components/forms/mailing-list-form";
+import { Vortex } from "@/components/ui/vortex";
 
 export function EarlyAccess() {
   return (

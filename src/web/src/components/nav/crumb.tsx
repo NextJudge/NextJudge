@@ -62,7 +62,7 @@ const renderBreadcrumbItem = (
 
 export function BreadcrumbWithDropdown({ crumbs }: CrumbProps) {
   const pathname = usePathname();
-  const route = pathname.split("/").pop() || "Settings";
+  const route = pathname?.split("/").pop() || "Settings";
   const upperCaseRoute = route.charAt(0).toUpperCase() + route.slice(1);
   const lastBreadcrumb =
     upperCaseRoute === "Admin" ? "Profile" : upperCaseRoute;

@@ -32,11 +32,13 @@ export default function VideoSkeleton({ loading, src }: VideoSkeletonProps) {
             muted
             src={src}
             playsInline
+            typeof="video/webm"
             autoPlay
             width="100%"
             height="100%"
+            title="NextJudge Demo"
           >
-            <source src={src} type="video/mp4" />
+            <source src={src} type="video/webm" />
             Your browser does not support the video tag.
           </video>
         </motion.div>

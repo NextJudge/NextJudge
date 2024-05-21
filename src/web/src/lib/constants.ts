@@ -46,14 +46,14 @@ export const directoryRoutes = {
           description: "Tried submitting a solution? Here's your latest.",
         },
         {
-          title: "Upcoming Contests",
-          href: "/platform/contests",
-          description: "Check out the upcoming contests.",
-        },
-        {
           title: "Editorials",
           href: "/platform/editorials",
           description: "Read the editorials for the problems.",
+        },
+        {
+          title: "Logout",
+          href: "/auth/logout",
+          description: "Done using NextJudge? Logout here.",
         },
       ],
     },

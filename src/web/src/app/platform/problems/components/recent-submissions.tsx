@@ -70,7 +70,7 @@ export function RecentSubmissionCard({
           <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200 ease-in-out">
             <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
               <div className="space-y-1">
-                <CardTitle>{submission.problem.title}</CardTitle>
+                <CardTitle>{submission.problem?.title}</CardTitle>
               </div>
               <div className="flex items-center justify-end space-x-1">
                 <SubmissionStatusBadge status={submissionStatus} />
@@ -93,10 +93,14 @@ export function RecentSubmissionCard({
           </Card>
         </DialogSubmission>
       </div>
-      <Card className="md:hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 ease-in-out">
+      <Card
+        className={cn(
+          "md:hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 ease-in-out"
+        )}
+      >
         <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
           <div className="space-y-1">
-            <CardTitle>{submission.problem.title}</CardTitle>
+            <CardTitle>{submission.problem?.title}</CardTitle>
           </div>
           <div className="flex items-center justify-end space-x-1">
             <SubmissionStatusBadge status={submissionStatus} />

@@ -83,7 +83,7 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqData.Status = "PENDING"
+	reqData.Status = Pending
 	reqData.FailedTestCaseID = nil
 	response, err := db.CreateSubmission(reqData)
 	if err != nil {

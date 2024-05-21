@@ -23,6 +23,8 @@ export function DialogSubmission({
   submission: RecentSubmission;
   children?: React.ReactNode;
 }) {
+  if (!submission) return null;
+  if (!submission.problem) return null;
   return (
     <>
       <div className="flex flex-col gap-4">
@@ -37,7 +39,7 @@ export function DialogSubmission({
           <DialogContent className="min-w-2xl max-w-3xl">
             <DialogHeader>
               <DialogTitle>
-                Submission to {submission.problem.title}
+                Submission to {submission.problem?.title}
               </DialogTitle>
               <DialogDescription>
                 Submitted by {submission.problem.author} on{" "}

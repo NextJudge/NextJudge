@@ -1,14 +1,29 @@
-"use client";
-
-import { ProblemsTable } from "@/components/admin-problems-table";
+import { fetchProblems } from "@/app/actions";
+import { CreateProblemForm } from "@/components/forms/create-problem-form";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/toaster";
 import { PlusIcon } from "@radix-ui/react-icons";
-import { useRouter } from "next/navigation";
+import { columns } from "../../problems/components/columns";
+import { DataTable } from "../../problems/components/data-table";
+import { Problem } from "../../problems/data/schema";
+import { revalidatePath } from "next/cache";
 
-export default function AdminProblemsPage() {
-  const router = useRouter();
+async function getProblems2() {
+  const problems = (await fetchProblems()) as Problem[];
+  return problems;
+}
+
+export default async function AdminProblemsPage() {
+  const problems = await getProblems2();
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -18,16 +33,27 @@ export default function AdminProblemsPage() {
             Manage the problems in the official NextJudge problem set.
           </p>
         </div>
-        <Button
-          variant="outline"
-          className="flex items-center space-x-4"
-          onClick={() => router.push("/platform/admin/problems/create")}
-        >
-          <PlusIcon /> <span>Create new problem</span>
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <div>
+              <Button variant="outline" className="flex items-center space-x-4">
+                <PlusIcon /> <span>Create new problem</span>
+              </Button>
+            </div>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px] lg:max-w-[640px] overflow-y-scroll">
+            <DialogHeader>
+              <DialogTitle>Create a new problem</DialogTitle>
+              <DialogDescription>
+                Fill out the form below to create a new problem.
+              </DialogDescription>
+            </DialogHeader>
+            <CreateProblemForm />
+          </DialogContent>
+        </Dialog>
       </div>
       <Separator />
-      <ProblemsTable />
+      <DataTable columns={columns} data={problems} />
       <Toaster />
     </div>
   );
