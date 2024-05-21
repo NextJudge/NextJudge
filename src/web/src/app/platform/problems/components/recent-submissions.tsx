@@ -100,7 +100,7 @@ export function RecentSubmissionCard({
       >
         <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
           <div className="space-y-1">
-            <CardTitle>{submission.problem.title}</CardTitle>
+            <CardTitle>{submission.problem?.title}</CardTitle>
           </div>
           <div className="flex items-center justify-end space-x-1">
             <SubmissionStatusBadge status={submissionStatus} />

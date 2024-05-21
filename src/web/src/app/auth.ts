@@ -8,17 +8,17 @@ import GitHub from "next-auth/providers/github";
 export const prisma = new PrismaClient();
 
 // How we extend the User object to include additional fields
-declare module "next-auth" {
-  interface User {
-    id?: string | undefined;
-    email?: string | null | undefined;
-    password?: string;
-    image?: string | null | undefined;
-    name?: string | null | undefined;
-    // TODO: figure out how to provide roles
-    admin?: boolean;
-  }
-}
+// declare module "next-auth" {
+//   interface User {
+//     id?: string | undefined;
+//     email?: string | null | undefined;
+//     password?: string;
+//     image?: string | null | undefined;
+//     name?: string | null | undefined;
+//     // TODO: figure out how to provide roles
+//     admin?: boolean;
+//   }
+// }
 
 const providers: Provider[] = [
   GitHub,
@@ -77,7 +77,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   debug: true,
   callbacks: {
-    async session({ session, user }) {
+    async session({ session, user, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
+      }
       return session;
     },
     async jwt({ token, user }) {

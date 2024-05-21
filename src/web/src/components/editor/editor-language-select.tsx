@@ -2,16 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
 } from "@/components/ui/command";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
@@ -24,6 +24,23 @@ export type Language = {
   version: string;
 };
 
+// TODO: Fix these URLs
+export function getBaseUrl() {
+  return process.env.VERCEL_ENV === "production"
+    ? `https://nextjudge.org`
+    : process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : `http://localhost:3001`;
+}
+
+export function getBridgeUrl() {
+  return process.env.VERCEL_ENV === "production"
+    ? `https://nextjudge.org:3001`
+    : process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}:3001`
+    : `http://localhost:3000`;
+}
+
 export function EditorLanguageSelect() {
   const [open, setOpen] = React.useState(false);
   const [languages, setLanguages] = React.useState<Language[]>([]);
@@ -34,7 +51,7 @@ export function EditorLanguageSelect() {
   React.useEffect(() => {
     async function fetchLanguages() {
       try {
-        const response = await fetch("http://localhost:3001/api/languages"); // Ensure this matches your setup
+        const response = await fetch(`${getBridgeUrl()}/languages`);
         const data = await response.json();
         setLanguages(data);
         setCurrentLanguage(data[0]); // Set default language to the first one

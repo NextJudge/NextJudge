@@ -49,6 +49,7 @@ export function ProfileForm({ userDetails }: { userDetails: AdminDetails }) {
     mode: "onChange",
   });
 
+  // TODO: Figure out how to update the session after this form is submitted
   async function onSubmit(data: z.infer<typeof profileFormSchema>) {
     try {
       const { name, password } = JSON.parse(JSON.stringify(data));

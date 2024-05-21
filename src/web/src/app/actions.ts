@@ -3,9 +3,10 @@
 import { EmailTemplate } from "@/components/email/template";
 
 import { LoginFormValues, SignUpFormValues } from "@/types";
+import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { ZodError } from "zod";
-import { prisma, signIn } from "./auth";
+import { auth, prisma, signIn } from "./auth";
 import { newsletterFormSchema } from "./validation";
 
 export interface ReturnType {
@@ -157,6 +158,60 @@ export async function changeProfile(data: ProfileData) {
         name,
         password,
       },
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: "Something went wrong",
+    };
+  }
+}
+
+export type Difficulty = "VERY_EASY" | "EASY" | "MEDIUM" | "HARD" | "VERY_HARD";
+
+interface CreateProblemData {
+  title: string;
+  prompt: string;
+  timeout: number;
+  difficulty: Difficulty;
+  upload_date: Date;
+}
+
+export async function createProblem(data: CreateProblemData) {
+  const session = await auth();
+  if (!session || !session.user || !session.user.id) {
+    return {
+      status: "error",
+      message: "Invalid session",
+    };
+  }
+  const id = parseInt(session.user.id);
+  if (isNaN(id) || !id) {
+    return {
+      status: "error",
+      message: "Invalid user",
+    };
+  }
+  try {
+    const { title, prompt, timeout, difficulty, upload_date } = data;
+    const problem = await prisma.problems.create({
+      data: {
+        title,
+        prompt,
+        timeout,
+        difficulty,
+        upload_date,
+        users: {
+          connect: {
+            id: id,
+          },
+        },
+      },
+    });
+    revalidatePath("/platform/admin/problems");
+    return {
+      status: "success",
+      message: "Problem created",
     };
   } catch (error) {
     return {
