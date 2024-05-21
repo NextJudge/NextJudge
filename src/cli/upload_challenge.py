@@ -54,6 +54,7 @@ def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
             "title": title,
             "prompt": statement,
             "timeout": 1,
+            "difficulty": "MEDIUM",
             "user_id": 1,
             "test_cases": test_cases
             }

@@ -1,8 +1,8 @@
 services:
-  nextjudge-frontend:
-    extends: 
-      file: src/web/docker-compose.yml
-      service: nextjudge-frontend
+  # nextjudge-frontend:
+  #   extends: 
+  #     file: src/web/docker-compose.yml
+  #     service: nextjudge-frontend
 
   nextjudge-bridge:
     extends: 

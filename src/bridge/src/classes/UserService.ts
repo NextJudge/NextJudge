@@ -45,6 +45,8 @@ class UserService {
           password_hash: hashedPassword,
           join_date: new Date(),
           is_admin: isAdmin,
+          email: "example@example.com",
+          name: "bob"
         }
       );
       if (!response.ok) throw new Error(`User already exists!`);
