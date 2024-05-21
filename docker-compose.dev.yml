@@ -3,9 +3,6 @@ services:
   #   extends: 
   #     file: src/web/docker-compose.yml
   #     service: nextjudge-frontend
-  #   environment:
-  #     - VITE_BRIDGE_HOST=localhost # these are passed to the build in the form of import.meta.env
-  #     - VITE_BRIDGE_PORT=3000
 
   nextjudge-bridge:
     extends: 

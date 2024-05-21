@@ -1,6 +1,5 @@
 import { isValidToken } from "@util/main";
 import { JudgeEvent, SubmissionRequest, SubmissionResult } from "@util/types";
-import { randomUUID } from "node:crypto";
 import { RABBITMQ_HOST, RABBITMQ_PORT, DATABASE_HOST, DATABASE_PORT } from '@util/constants';
 import { SubmissionService } from '@classes/SubmissionService';
 import ApiService from '@classes/ApiService';

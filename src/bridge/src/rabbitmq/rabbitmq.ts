@@ -2,12 +2,8 @@ import * as amqp from "amqplib";
 
 import ApiService from "@classes/ApiService";
 import { SubmissionService } from "@classes/SubmissionService";
-import {
-  DATABASE_HOST,
-  DATABASE_PORT,
-  RABBITMQ_HOST,
-  RABBITMQ_PORT,
-} from "@util/constants";
+import { RABBITMQ_HOST, RABBITMQ_PORT, DATABASE_HOST, DATABASE_PORT } from "@util/constants";
+import { add_custom_run_result } from "@routes/custom_input";
 
 const submissionService = new SubmissionService();
 
@@ -43,53 +39,89 @@ export class RabbitMQConnection {
         throw "msg is null!";
       }
 
-      const request = JSON.parse(msg.content.toString());
+            const request = JSON.parse(msg.content.toString());
 
-      switch (request.type) {
-        case "submission_data": {
-          this.handle_submission_data_request(msg, rpc_channel, request.body);
-          break;
-        }
-        case "test_data": {
-          this.handle_test_data_request(msg, rpc_channel, request.body);
-          break;
-        }
-        case "get_languages": {
-          this.handle_get_languages_request(msg, rpc_channel);
-          break;
-        }
-        case "judgement": {
-          this.handle_judgement_request(msg, rpc_channel, request.body);
-          break;
-        }
-        case "test": {
-          this.handle_test_request(msg, rpc_channel, request.body);
-        }
-        default: {
-          console.log("UNKNOWN REQUEST");
-          throw new Error();
-        }
-      }
-    });
-  }
+            console.log(request.type)
 
-  addSubmissionToQueue(submission_id: number) {
-    console.log("Sending!", submission_id);
-
-    try {
-      this.submission_channel.sendToQueue(
-        SUBMISSION_QUEUE_NAME,
-        Buffer.from(submission_id.toString()),
-        {
-          persistent: true,
-        }
-      );
-    } catch (e) {
-      console.log(e);
+            switch(request.type){
+                case "submission_data": {
+                    this.handle_submission_data_request(msg, rpc_channel, request.body)
+                    break;
+                }
+                case "test_data": {
+                    this.handle_test_data_request(msg, rpc_channel, request.body)
+                    break;
+                }
+                case "get_languages": {
+                    this.handle_get_languages_request(msg, rpc_channel)
+                    break;
+                }
+                case "judgement": {
+                    this.handle_judgement_request(msg, rpc_channel, request.body)
+                    break
+                }
+                case "custom_result": {
+                    this.handle_custom_result_request(msg, rpc_channel, request.body)
+                    break;
+                }
+                case "test": {
+                    this.handle_test_request(msg, rpc_channel, request.body)
+                    break;
+                }
+                default: {
+                    console.log("UNKNOWN REQUEST")
+                    throw new Error()
+                }
+            }
+        })
+                
     }
 
-    console.log(`Sent ${submission_id}`);
-  }
+    addSubmissionToQueue(submission_id: number){
+        console.log("Sending!", submission_id)
+
+        const work_item = {
+            type:"submission",
+            id: submission_id,
+        }
+
+        try {
+            this.submission_channel.sendToQueue(SUBMISSION_QUEUE_NAME, 
+            Buffer.from(JSON.stringify(work_item)), {
+                persistent: true
+            })
+        } catch (e) {
+            console.log(e)
+        }
+
+        console.log(`Sent ${submission_id}`);
+    }
+
+
+    addCustomInputSubmissionToQueue(submission_id: string, stdin: string, source_code: string, language_id: number){
+
+        console.log("Sending custom stdin queue!", submission_id)
+
+        const work_item = {
+            type:"input",
+            id: submission_id,
+            code: source_code,
+            language_id: language_id,
+            stdin: stdin
+        }
+
+        try {
+            this.submission_channel.sendToQueue(SUBMISSION_QUEUE_NAME, 
+            Buffer.from(JSON.stringify(work_item)), {
+                persistent: true
+            })
+        } catch (e) {
+            console.log(e)
+        }
+
+        console.log(`Sent ${submission_id}`);
+    }
+
 
   handle_submission_data_request(
     msg: amqp.ConsumeMessage,
@@ -191,39 +223,66 @@ export class RabbitMQConnection {
       // Query and return whatever the database returns
       // Send submission to the database'
 
-      console.log(body, typeof body);
+            console.log(body, typeof(body))
 
-      const data =
-        body.success == "ACCEPTED"
-          ? {
-              status: body.success,
-            }
-          : {
-              status: body.success,
-              failed_test_case_id: body.failed_test_case_id,
-            };
+            const data = body.success == "ACCEPTED" ? {
+                status:body.success,
+              } : {
+                status:body.success,
+                failed_test_case_id:body.failed_test_case_id
+              }
 
-      console.log(
-        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions/${body.submission_id}`
-      );
-      ApiService.patch(
-        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions/${body.submission_id}`,
-        data
-      )
-        .then((response) => response.json())
-        .then((response) => {
-          channel.sendToQueue(msg?.properties.replyTo, Buffer.from("Done!"), {
-            correlationId: msg?.properties.correlationId,
-          });
 
-          console.log("Acking!");
-          channel.ack(msg);
-        });
-    } catch (error) {
-      console.log("Fatal error");
-      throw { success: false, message: error };
+            console.log(`http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions/${body.submission_id}`)
+            ApiService.patch(
+            `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/submissions/${body.submission_id}`,
+            data
+            ).then(response => response.json())
+                .then(response => {
+                
+                channel.sendToQueue(msg?.properties.replyTo,
+                    Buffer.from("Done!"), {
+                        correlationId: msg?.properties.correlationId
+                    }
+                );
+    
+                console.log("Acking!")
+                channel.ack(msg)
+                })
+
+        } catch (error) {
+            console.log("Fatal error")
+            throw { success: false, message: error };
+        }
     }
-  }
+
+
+    handle_custom_result_request(msg: amqp.ConsumeMessage, channel: amqp.Channel, body: object){
+        try {
+
+            const id = body.submission_id
+            const result = body.success
+            const stdout = body.stdout
+            const stderr = body.stderr
+            
+            add_custom_run_result(id, {result, stdout, stderr})
+
+            channel.sendToQueue(msg?.properties.replyTo,
+                Buffer.from("Done!"), {
+                    correlationId: msg?.properties.correlationId
+                }
+            );
+
+            console.log("Acking!")
+            channel.ack(msg)
+
+        } catch (error) {
+            console.log("Fatal error")
+            throw { success: false, message: error };
+        }
+    }
+
+
 
   handle_test_request(
     msg: amqp.ConsumeMessage,

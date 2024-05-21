@@ -54,7 +54,7 @@ RUN chown -R 99999:99999 /chroot/dev
 COPY <<-'EOF' /app/languages.toml
 [[language]]
 name = "c++"
-version = "14"
+version = "13.2.0"
 extension = "cpp"
 script= """
 #!/bin/sh
@@ -63,7 +63,7 @@ g++ {IN_FILE} -O2 -o /executable/main
 
 [[language]]
 name = "c"
-version = "0"
+version = "13.2.0"
 extension = "c"
 script= """
 #!/bin/sh
@@ -83,7 +83,7 @@ chmod +x /executable/main
 
 [[language]]
 name = "rust"
-version = "1.71.0"
+version = "1.78.0"
 extension = "rs"
 script="""
 #!/bin/sh
@@ -92,7 +92,7 @@ script="""
 
 [[language]]
 name = "go"
-version = "0"
+version = "1.22.1"
 extension = "go"
 script= """
 #!/bin/sh
@@ -102,7 +102,7 @@ script= """
 
 [[language]]
 name = "javascript"
-version = "0"
+version = "21.6.2"
 extension = "js"
 script= """
 #!/bin/sh
@@ -114,7 +114,7 @@ chmod +x /executable/main
 
 [[language]]
 name = "typescript"
-version = "0"
+version = "5.4.5"
 extension = "ts"
 script= """
 #!/bin/sh
@@ -132,7 +132,7 @@ chmod +x /executable/main
 
 [[language]]
 name = "ruby"
-version = "0"
+version = "3.2.3"
 extension = "rb"
 script= """
 #!/bin/sh
@@ -155,7 +155,7 @@ chmod +x /executable/main
 
 [[language]]
 name = "java"
-version = "21"
+version = "21.0.3"
 extension = "java"
 script= """
 #!/bin/bash
@@ -185,7 +185,7 @@ fi
 
 
 echo "#!/bin/sh" >> /executable/main
-echo "/usr/bin/java -XX:+UseSerialGC $CLASS_FILE" >> /executable/main
+echo "/usr/bin/java -XX:+UseSerialGC -Xms1920m -Xmx1920m $CLASS_FILE" >> /executable/main
 chmod +x /executable/main
 
 cat /executable/main

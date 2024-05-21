@@ -1,6 +1,6 @@
 import ApiService from "@classes/ApiService";
 import UserService from "@classes/UserService";
-import { languagesRouter, submissionsRouter, testcaseRouter, userRouter } from "@routes/index";
+import { customInputRouter, languagesRouter, submissionsRouter, testcaseRouter, userRouter } from "@routes/index";
 import { DATABASE_HOST, DATABASE_PORT } from "@util/constants";
 import { Elysia, type ErrorHandler } from "elysia";
 import { cors } from '@elysiajs/cors'
@@ -63,6 +63,7 @@ async function setupBridge() {
       prompt: "If the input is 'TRUE', print 'FALSE'. Otherwise, print 'TRUE'",
       timeout: 1,
       user_id: 1,
+      difficulty: "MEDIUM",
       test_cases: [
           {
             input:"FALSE",
@@ -96,6 +97,7 @@ const app = new Elysia()
   .use(submissionsRouter)
   .use(languagesRouter)
   .use(testcaseRouter)
+  .use(customInputRouter)
   .listen(PORT);
 
 app.onError(errorHandler);
