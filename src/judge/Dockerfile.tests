@@ -14,5 +14,5 @@ RUN touch /app/tests/__init__.py
 
 # CMD ["ls", "-pla"]
 ENV PYTEST_ADDOPTS="--color=yes"
-CMD [ "pytest", "-v", "-l" ]
+ENTRYPOINT [ "pytest", "-v", "-l" ]
 

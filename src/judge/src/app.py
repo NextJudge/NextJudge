@@ -131,6 +131,12 @@ class RunResult:
     stdout: bytes
     stderr: bytes
 
+@dataclass
+class FullResult:
+    result: ResultReason
+    stdout: bytes
+    stderr: bytes
+
 LOCAL_LANGUAGES: list[Language] = []
 LOCAL_LANGUAGES_MAP: dict[int, Language] = dict()
 def parse_languages():
@@ -255,13 +261,13 @@ def create_program_environment() -> ProgramEnvironment:
 
 
 # Used for testing. Compile and run code with no stdin
-def simple_compile_and_run(source_code: str, language: Language) -> bytes:
+def simple_compile_and_run(source_code: str, language: Language) -> FullResult:
     environment = create_program_environment()
     environment.create_directories()
 
     if not compile_in_jail(source_code, language, environment):
         environment.remove_files()
-        return b''
+        return FullResult("COMPILE_TIME_ERROR",b'', b'')
 
     print("Running")
     output = run_single(environment, b"")
@@ -269,7 +275,7 @@ def simple_compile_and_run(source_code: str, language: Language) -> bytes:
 
     environment.remove_files()
 
-    return output.stdout
+    return FullResult(output.result, output.stdout, output.stderr)
 
 
 async def handle_test_submission(submission_id: str):
