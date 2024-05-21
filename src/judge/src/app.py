@@ -478,7 +478,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
 
 def run_single_test_case(testcase, environment: ProgramEnvironment) -> TestCaseResult:
 
-    print(testcase["input"].encode("utf-8"))
+    # print(testcase["input"].encode("utf-8"))
 
     run_result = run_single(environment, testcase["input"].encode("utf-8"))
 
