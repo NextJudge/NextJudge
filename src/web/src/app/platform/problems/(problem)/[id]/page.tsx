@@ -1,6 +1,7 @@
 import { prisma } from "@/app/auth";
 import EditorComponent from "@/components/editor/editor-layout";
 import EditorNavbar from "@/components/editor/editor-nav";
+import MarkdownRenderer from "@/components/markdown-renderer";
 import UserAvatar from "@/components/nav/user-avatar";
 import { EditorThemeProvider } from "@/providers/editor-theme";
 import { z } from "zod";
@@ -64,7 +65,10 @@ export default async function Editor({ params }: any) {
         <EditorNavbar>
           <UserAvatar />
         </EditorNavbar>
-        <EditorComponent details={details} />
+        <EditorComponent
+          details={details}
+          slot={<MarkdownRenderer prompt={details.prompt} />}
+        />
       </EditorThemeProvider>
     </>
   );
