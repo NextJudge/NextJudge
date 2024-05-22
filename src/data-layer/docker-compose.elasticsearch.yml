@@ -7,6 +7,7 @@ services:
     environment:
       discovery.type: single-node
       xpack.security.enabled: false
+      logger.level: WARN
     healthcheck:
       test: curl -s http://elasticsearch:9200 >/dev/null || exit 1
       interval: 5s
