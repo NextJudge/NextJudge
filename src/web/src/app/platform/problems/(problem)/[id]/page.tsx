@@ -56,7 +56,7 @@ async function getDetails(id: number): Promise<ProblemDetails> {
   return problemDetailsSchema.parse(transformedDetails);
 }
 
-export default async function Editor({ params }: any) {
+export default async function Editor({ params }: { params: { id: string } }) {
   const { id } = params;
   const details = await getDetails(parseInt(id));
   return (

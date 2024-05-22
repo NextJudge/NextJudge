@@ -38,7 +38,7 @@ export default async function AdminProblemsPage() {
               <PlusIcon /> <span>Create new problem</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] lg:max-w-[640px] overflow-y-scroll max-h-fit">
+          <DialogContent className="sm:max-w-[425px] lg:max-w-[640px]">
             <DialogHeader>
               <DialogTitle>Create a new problem</DialogTitle>
               <DialogDescription>

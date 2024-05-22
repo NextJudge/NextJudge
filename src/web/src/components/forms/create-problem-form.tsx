@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { cn } from "@/lib/utils";
 
 const problemFormSchema = z.object({
   title: z
@@ -79,7 +80,12 @@ export function CreateProblemForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className={cn(
+          "grid gap-6 overflow-y-scroll max-h[450px] md:max-h-[600px] min-h-full"
+        )}
+      >
         <FormField
           control={form.control}
           name="title"
