@@ -83,7 +83,7 @@ export function CreateProblemForm() {
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className={cn(
-          "grid gap-6 overflow-y-scroll max-h[450px] md:max-h-[600px] min-h-full"
+          "grid gap-6 overflow-y-scroll max-h[450px] md:max-h-[600px] min-h-full p-2"
         )}
       >
         <FormField

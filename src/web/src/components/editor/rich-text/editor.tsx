@@ -1,9 +1,8 @@
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-
+import EditorToolbar from "./toolbar/editor-toolbar";
 import { Mathematics } from "@tiptap-pro/extension-mathematics";
 import "katex/dist/katex.min.css";
-import EditorToolbar from "./toolbar/editor-toolbar";
 interface EditorProps {
   content: string;
   placeholder?: string;
