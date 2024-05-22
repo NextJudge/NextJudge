@@ -6,7 +6,14 @@ cd $SCRIPT_DIR/src/judge
 docker build -f Dockerfile.newbase --target dev -t basejudge:dev .
 
 cd $SCRIPT_DIR/src/web
-npm start &
+if [[ "$*" == *"webprod"* ]]
+then
+    npm start &
+else
+    npm run dev &
+fi
+
+
 
 cd $SCRIPT_DIR
 # Start all services

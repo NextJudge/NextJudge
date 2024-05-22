@@ -506,6 +506,7 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> RunResult:
 
     nsjail_log_pipes = os.pipe()
 
+    print(f"Input: {input}")
 
     print("Starting execution")
     t = time.time()
@@ -552,8 +553,8 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> RunResult:
     nsjail_errors = read_from.read()
     read_from.close()
 
-    print("nsjail output")
-    print(nsjail_errors)
+    # print("nsjail output")
+    # print(nsjail_errors)
 
     if run_result.returncode:
         print(f"Runtime error - {run_result.returncode}")

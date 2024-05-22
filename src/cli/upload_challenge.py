@@ -28,7 +28,6 @@ def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
         print("Cannot find a problem.en.tex")
         sys.exit(1)
 
-
     # Load all testcases now
 
     testcase_files = os.listdir(f"{dir}/data/secret")

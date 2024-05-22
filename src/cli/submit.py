@@ -27,7 +27,7 @@ def send_solution(sol_path, problem_id, host, port) -> dict:
     except:
         print(f"Failed to connect to {BRIDGE_ENDPOINT}")
         return None
-
+    
     real_langs = bridge_languages.json()
 
     language_id = None
@@ -35,6 +35,7 @@ def send_solution(sol_path, problem_id, host, port) -> dict:
     for lang in real_langs:
         if sol_path.endswith(lang["extension"]):
             language_id = lang["id"]
+            break
 
     if language_id is None:
         print("Could not map the file to a language (based on extension)")
@@ -61,12 +62,12 @@ def send_solution(sol_path, problem_id, host, port) -> dict:
 
     max_polls = 12
     initial_delay = 0.3
-    max_delay = 2.4
+    max_delay = 3.5
     increment = (max_delay - initial_delay) / (max_polls - 1)
 
     delay = initial_delay
 
-    for i in range(28):
+    for i in range(32):
         time.sleep(delay)
 
         verdict = requests.get(

@@ -2,6 +2,7 @@ INSERT INTO "languages" (name, extension, version)
 VALUES
 ('c',           '.c',       '13.2.0'),
 ('c++',         '.cpp',     '13.2.0'),
+('pypy',        '.py',      '3.9.18 (7.3.15)'),
 ('python',      '.py',      '3.12.3'),
 ('rust',        '.rs',      '1.78.0'),
 ('go',          '.go',      '1.22.1'),
