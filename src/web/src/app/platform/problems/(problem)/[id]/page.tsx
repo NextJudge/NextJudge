@@ -15,6 +15,7 @@ export type ProblemDetails = {
   users: {
     name: string;
   };
+  difficulty?: "VERY_EASY" | "EASY" | "MEDIUM" | "HARD" | "VERY_HARD";
 };
 
 const problemDetailsSchema = z.object({
@@ -27,6 +28,9 @@ const problemDetailsSchema = z.object({
   users: z.object({
     name: z.string(),
   }),
+  difficulty: z
+    .enum(["VERY_EASY", "EASY", "MEDIUM", "HARD", "VERY_HARD", ""])
+    .optional(),
 });
 
 export type ZodProblemDetails = z.infer<typeof problemDetailsSchema>;

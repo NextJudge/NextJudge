@@ -28,6 +28,14 @@ export const recentSubmissionSchema = z.object({
   status: z.string(),
 });
 
-export type Problem = z.infer<typeof problemSchema>;
+const CategorySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
 
+const CategoriesSchema = z.array(CategorySchema);
+
+export type Category = z.infer<typeof CategorySchema>;
+export type Categories = z.infer<typeof CategoriesSchema>;
+export type Problem = z.infer<typeof problemSchema>;
 export type RecentSubmission = z.infer<typeof recentSubmissionSchema>;

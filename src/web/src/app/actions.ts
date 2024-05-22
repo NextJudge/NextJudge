@@ -175,6 +175,7 @@ interface CreateProblemData {
   timeout: number;
   difficulty: Difficulty;
   upload_date: Date;
+  categories?: number[];
 }
 
 export async function createProblem(data: CreateProblemData) {
@@ -193,13 +194,22 @@ export async function createProblem(data: CreateProblemData) {
     };
   }
   try {
-    const { title, prompt, timeout, difficulty, upload_date } = data;
+    const { title, prompt, timeout, difficulty, upload_date, categories } =
+      data;
+
     const problem = await prisma.problems.create({
       data: {
         title,
         prompt,
         timeout,
         difficulty,
+        // TODO: Support categories
+        // problem_categories: {
+        //   connect: categories?.map((categoryId) => ({
+        //     category_id: categoryId,
+        //     problem_id: 1,
+        //   })),
+        // },
         upload_date,
         users: {
           connect: {
@@ -214,6 +224,44 @@ export async function createProblem(data: CreateProblemData) {
       message: "Problem created",
     };
   } catch (error) {
+    return {
+      status: "error",
+      message: "Something went wrong",
+    };
+  }
+}
+
+export async function fetchCategories() {
+  try {
+    const session = await auth();
+    if (!session || !session.user || !session.user.id) {
+      return {
+        status: "error",
+        message: "Invalid session",
+      };
+    }
+    const categories = await prisma.categories.findMany();
+    return categories;
+  } catch (error) {
+    return {
+      status: "error",
+      message: "Something went wrong",
+    };
+  }
+}
+
+export async function deleteProblem(id: number) {
+  try {
+    await prisma.problems.delete({
+      where: { id },
+    });
+    revalidatePath("/platform/admin/problems");
+    return {
+      status: "success",
+      message: "Problem deleted!",
+    };
+  } catch (error) {
+    console.log(error);
     return {
       status: "error",
       message: "Something went wrong",

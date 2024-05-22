@@ -108,7 +108,8 @@ export default function EditorComponent({
                 <div className="flex items-center justify-between">
                   <h1 className="text-2xl font-bold">{details.title}</h1>
                   <Badge variant="secondary" className="text-xs">
-                    Easy
+                    {details.difficulty.charAt(0) +
+                      details.difficulty.slice(1).toLowerCase()}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-start gap-2">

@@ -1,6 +1,16 @@
 "use client";
 
-import { createProblem } from "@/app/actions";
+import { createProblem, Difficulty } from "@/app/actions";
+import { Categories, Category } from "@/app/platform/problems/data/schema";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Form,
   FormControl,
@@ -10,20 +20,21 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-import { Difficulty } from "../../app/actions";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "@/components/ui/select";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu";
+import { useReducer } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { ScrollArea } from "../ui/scroll-area";
 
 const problemFormSchema = z.object({
   title: z
@@ -38,17 +49,32 @@ const problemFormSchema = z.object({
     message: "Prompt must be at least 8 characters.",
   }),
   timeout: z.number().int().positive(),
-  difficulty: z.enum(["VERY_EASY", "EASY", "MEDIUM", "HARD", "VERY_HARD"]),
+  difficulty: z
+    .enum(["VERY_EASY", "EASY", "MEDIUM", "HARD", "VERY_HARD", ""])
+    .default("")
+    .refine((value) => value !== "", {
+      message: "Difficulty must be selected.",
+    }),
+  problem_categories: z.array(z.number().int().positive()).default([]),
 });
 
 type ProblemFormValues = z.infer<typeof problemFormSchema>;
 
-export function CreateProblemForm() {
+type Checked = DropdownMenuCheckboxItemProps["checked"];
+
+// TODO: Make the multi-select more UI/UX friendly
+export function CreateProblemForm({ categories }: { categories: Categories }) {
+  const [selectedCategories, setSelectedCategories] = useReducer(
+    (state: Categories, action: Categories) => action,
+    []
+  );
+
   const defaultValues: Partial<ProblemFormValues> = {
     title: "",
     prompt: "",
     timeout: 0,
-    difficulty: "VERY_EASY",
+    difficulty: undefined,
+    problem_categories: [],
   };
 
   const form = useForm<ProblemFormValues>({
@@ -64,10 +90,11 @@ export function CreateProblemForm() {
       );
       const parsed: Difficulty = difficulty as Difficulty;
       await createProblem({
-        title,
-        prompt,
-        timeout,
+        categories: selectedCategories.map((c) => c.id),
         difficulty: parsed,
+        prompt,
+        title,
+        timeout,
         upload_date: new Date(),
       });
       toast.success("Problem created successfully.");
@@ -78,7 +105,10 @@ export function CreateProblemForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="grid md:grid-cols-2 gap-6"
+      >
         <FormField
           control={form.control}
           name="title"
@@ -153,7 +183,58 @@ export function CreateProblemForm() {
             </FormItem>
           )}
         />
-        <Button type="submit">Create Problem</Button>
+        <FormField
+          control={form.control}
+          // TODO: Make this styling consistent
+          name="problem_categories"
+          render={({ field }) => (
+            <FormItem className="flex flex-col gap-0">
+              <FormLabel htmlFor="problem_categories" className="mb-1">
+                Tags
+              </FormLabel>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">Select tags</Button>
+                </DropdownMenuTrigger>
+                <ScrollArea>
+                  <DropdownMenuContent className="w-56 max-h-96">
+                    <DropdownMenuLabel>Select Tags</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {categories.map((category: Category) => (
+                      <DropdownMenuCheckboxItem
+                        key={category.id}
+                        checked={selectedCategories
+                          .map((c) => c.id)
+                          .includes(category.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedCategories([
+                              ...selectedCategories,
+                              category,
+                            ]);
+                          } else {
+                            setSelectedCategories(
+                              selectedCategories.filter(
+                                (c) => c.id !== category.id
+                              )
+                            );
+                          }
+                        }}
+                      >
+                        {category.name}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </ScrollArea>
+              </DropdownMenu>
+              <FormDescription>The problem categories.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="col-span-2">
+          Create Problem
+        </Button>
       </form>
     </Form>
   );
