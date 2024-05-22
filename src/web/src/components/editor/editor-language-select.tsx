@@ -26,18 +26,18 @@ export type Language = {
 
 // TODO: Fix these URLs
 export function getBaseUrl() {
-  return process.env.VERCEL_ENV === "production"
+  return process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
     ? `https://nextjudge.org`
-    : process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_VERCEL_URL
+    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
     : `http://localhost:3001`;
 }
 
 export function getBridgeUrl() {
-  return process.env.VERCEL_ENV === "production"
+  return process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
     ? `https://nextjudge.org:3001`
-    : process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}:3001`
+    : process.env.NEXT_PUBLIC_VERCEL_URL
+    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}:3001`
     : `http://localhost:3000`;
 }
 
