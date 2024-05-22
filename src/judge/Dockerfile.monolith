@@ -21,18 +21,14 @@ RUN \. "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION} && nvm use ${NODE_VERSIO
 RUN \. "$NVM_DIR/nvm.sh" && npm install typescript -g
 
 # Lua
-RUN <<EOF
-curl -L -R -O https://www.lua.org/ftp/lua-5.4.6.tar.gz
-tar zxf lua-5.4.6.tar.gz
-cd lua-5.4.6
-make linux install INSTALL_TOP=/usr/local/lua/5_4_6
-EOF
+RUN curl -L -R -O https://www.lua.org/ftp/lua-5.4.6.tar.gz && \
+    tar zxf lua-5.4.6.tar.gz && \
+    cd lua-5.4.6 && \
+    make linux install INSTALL_TOP=/usr/local/lua/5_4_6
 
 # Kotlin
-RUN <<EOF
-wget https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-compiler-1.9.24.zip
-unzip kotlin-compiler-1.9.24.zip
-EOF
+RUN wget https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-compiler-1.9.24.zip && \
+    unzip kotlin-compiler-1.9.24.zip
 
 RUN apt-get install -y strace
 

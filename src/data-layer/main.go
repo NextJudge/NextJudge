@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"goji.io"
@@ -12,6 +13,7 @@ import (
 
 var (
 	db *Database
+	es *elasticsearch.Client
 )
 
 func main() {
@@ -27,6 +29,26 @@ func main() {
 	db, err = NewDatabase()
 	if err != nil {
 		logrus.WithError(err).Error("error creating database")
+		os.Exit(1)
+	}
+
+	es, err = elasticsearch.NewClient(elasticsearch.Config{
+		Addresses: []string{
+			cfg.ElasticEndpoint,
+		},
+	})
+	if err != nil {
+		logrus.WithError(err).Error("error creating elastic search client")
+		os.Exit(1)
+	}
+	res, err := es.Ping()
+	if err != nil {
+		logrus.WithError(err).Error("error pinging elastic search client")
+		os.Exit(1)
+	}
+	defer res.Body.Close()
+	if res.IsError() {
+		logrus.WithError(err).Error("error pinging elastic search client")
 		os.Exit(1)
 	}
 
