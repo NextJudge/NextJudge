@@ -11,13 +11,15 @@ import (
 )
 
 type config struct {
-	CORSOrigin []string
-	Host       string
-	Port       int64
-	Username   string
-	Password   string
-	DBName     string
-	DBDriver   string
+	CORSOrigin      []string
+	Host            string
+	Port            int64
+	Username        string
+	Password        string
+	DBName          string
+	DBDriver        string
+	ElasticEndpoint string
+	ElasticIndex    string
 }
 
 var cfg config
@@ -88,5 +90,19 @@ func init() {
 		cfg.DBName = "nextjudge"
 	} else {
 		cfg.DBName = database
+	}
+
+	elasticEndpoint := os.Getenv("ELASTIC_ENDPOINT")
+	if elasticEndpoint == "" {
+		cfg.ElasticEndpoint = "http://localhost:9200"
+	} else {
+		cfg.ElasticEndpoint = elasticEndpoint
+	}
+
+	elasticIndex := os.Getenv("ELASTIC_INDEX")
+	if elasticIndex == "" {
+		cfg.ElasticIndex = "nextjudge-problems"
+	} else {
+		cfg.ElasticIndex = elasticIndex
 	}
 }

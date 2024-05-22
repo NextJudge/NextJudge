@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -136,6 +137,32 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	esDocument := map[string]string{
+		"Title":  dbProblem.Title,
+		"Prompt": dbProblem.Prompt,
+	}
+	doc, err := json.Marshal(esDocument)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	res, err := es.Index(cfg.ElasticIndex, strings.NewReader(string(doc)), es.Index.WithDocumentID(strconv.Itoa(dbProblem.ID)))
+	defer res.Body.Close()
+	if err != nil {
+		logrus.WithError(err).Error("error adding problem")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error adding problem"}`)
+		return
+	}
+	if res.IsError() {
+		logrus.WithError(err).Error("error adding problem to elastic index")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error adding problem to elastic index"}`)
+		return
+	}
+
 	respJSON, err := json.Marshal(dbProblem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
@@ -182,12 +209,75 @@ func getProblem(w http.ResponseWriter, r *http.Request) {
 }
 
 func getProblems(w http.ResponseWriter, r *http.Request) {
-	problems, err := db.GetProblems()
-	if err != nil {
-		logrus.WithError(err).Error("error retrieving problems")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems"}`)
-		return
+	query := r.URL.Query().Get("query")
+	problems := []Problem{}
+	var err error
+
+	if query == "" {
+		problems, err = db.GetProblems()
+		if err != nil {
+			logrus.WithError(err).Error("error retrieving problems")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems"}`)
+			return
+		}
+	} else {
+		esQuery := `
+    	{
+    	    "query": {
+    	        "multi_match": {
+    	            "query": "%s",
+    	            "fields": ["Title", "Prompt"]
+    	        }
+    	    }
+    	}`
+		res, err := es.Search(
+			es.Search.WithContext(r.Context()),
+			es.Search.WithIndex(cfg.ElasticIndex),
+			es.Search.WithBody(strings.NewReader(fmt.Sprintf(esQuery, query))),
+		)
+		defer res.Body.Close()
+		if err != nil {
+			logrus.WithError(err).Error("error getting info from elastic search")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error getting info from elastic search"}`)
+			return
+		}
+		if res.IsError() {
+			logrus.WithError(err).Error("error getting problems from elastic index")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error adding problems from elastic index"}`)
+			return
+		}
+		var result map[string]interface{}
+		err = json.NewDecoder(res.Body).Decode(&result)
+		if err != nil {
+			logrus.WithError(err).Error("error getting problems from elastic index")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error adding problems from elastic index"}`)
+			return
+		}
+		hits := result["hits"].(map[string]interface{})["hits"].([]interface{})
+		for _, hit := range hits {
+			doc := hit.(map[string]interface{})
+			id, err := strconv.Atoi(doc["_id"].(string))
+			if err != nil {
+				logrus.WithError(err).Error("error parsing id from elastic index")
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(w, `{"code":"500", "message":"error parsing id from elastic index"}`)
+				return
+			}
+			problem, err := db.GetProblemByID(id)
+			if err != nil {
+				logrus.WithError(err).WithField("problem_id", id).Error("error getting problem")
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(w, `{"code":"500", "message":"error getting problem"}`)
+				return
+			}
+			if problem != nil {
+				problems = append(problems, *problem)
+			}
+		}
 	}
 
 	respJSON, err := json.Marshal(problems)

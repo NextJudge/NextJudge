@@ -47,7 +47,7 @@ type NextJudgeDB interface {
 }
 
 func NewDatabase() (*Database, error) {
-	dataSource := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", cfg.Host, strconv.FormatInt(cfg.Port, 10), cfg.Username, cfg.Password, cfg.DBName)
+	dataSource := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s", cfg.Host, strconv.FormatInt(cfg.Port, 10), cfg.Username, cfg.Password, cfg.DBName)
 	db, err := gorm.Open(postgres.Open(dataSource), &gorm.Config{})
 	if err != nil {
 		return nil, err
