@@ -2,14 +2,15 @@
 import { ThemeContext } from "@/providers/editor-theme";
 import Editor from "@monaco-editor/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Icons } from "../icons";
 import { Button } from "../ui/button";
-import { EditorLanguageSelect } from "./editor-language-select";
+import { EditorLanguageSelect, Language } from "./editor-language-select";
 import { EditorThemeSelector } from "./editor-theme-select";
+import { getBridgeUrl } from "@/lib/utils";
 
-export default function CodeEditor({ themes, languages }: any) {
+export default function CodeEditor({ themes }: any) {
   const [code, setCode] = useState(`"use strict";
 const printLine = (x: string) => {
   console.log(x);
@@ -62,19 +63,65 @@ const main = () => {
     );
   };
 
-  const [currentLanguage, setCurrentLanguage] = useState("typescript");
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [currentLanguage, setCurrentLanguage] = useState<Language | null>(null);
   const [submissionLoading, setSubmissionLoading] = useState(false);
   const [submissionResult, setSubmissionResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchLanguages() {
+      try {
+        const response = await fetch("http://localhost:3000/languages");
+        const data = await response.json();
+        setLanguages(data);
+        setCurrentLanguage(data[0]); // Optionally set the first language as the default
+      } catch (error) {
+        console.error("Failed to fetch languages", error);
+      }
+    }
+    fetchLanguages();
+  }, []);
+
+  const handleLanguageSelect = (language: Language) => {
+    setCurrentLanguage(language);
+  };
 
   const handleSubmitCode = async () => {
     setSubmissionLoading(true);
     setError(null);
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000));
+      const selectedLanguage = languages.find(
+        (lang) => lang.extension === currentLanguage?.extension
+      );
+      if (!selectedLanguage) {
+        throw new Error("Language not found");
+      }
+
+      const response = await fetch("http://localhost:3000/submission", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          source_code: code,
+          language_id: selectedLanguage.id,
+          problem_id: 1, // Gonna need to change this to the actual problem ID
+          user_id: 1, // Also gonna need to change this to the actual user ID
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit code");
+      }
+
+      const data = await response.json();
+      setSubmissionResult(data);
       toast.success("Accepted!");
     } catch (error) {
       toast.error("There was an error submitting your code.");
+      setError(error.message);
     } finally {
       setSubmissionLoading(false);
     }
@@ -85,7 +132,10 @@ const main = () => {
       <div className="h-full overflow-y-scroll min-w-full">
         <div className="flex justify-between">
           <div className="justify-start my-2 px-2">
-            <EditorLanguageSelect />
+            <EditorLanguageSelect
+              onLanguageSelect={handleLanguageSelect}
+              languages={languages}
+            />
           </div>
           <div className="flex justify-center my-2 px-2 gap-2">
             <Button
@@ -134,7 +184,7 @@ const main = () => {
               transition={{ duration: 0.7 }}
             >
               <Editor
-                language={currentLanguage}
+                language={currentLanguage?.extension.replace(".", "")}
                 defaultLanguage="typescript"
                 value={code}
                 theme={theme.name}
@@ -152,7 +202,6 @@ const main = () => {
                   multiCursorModifier: "ctrlCmd",
                   scrollBeyondLastLine: true,
                 }}
-                //   beforeMount={handleEditorDidMount}
                 onChange={handleCodeChange}
                 onMount={handleEditorDidMount}
               />
