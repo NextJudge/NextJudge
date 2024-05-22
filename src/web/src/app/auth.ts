@@ -74,7 +74,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/auth/login",
     signOut: "/auth/logout",
     error: "/error",
-    newUser: "/auth/signup",
+    newUser: "/platform",
   },
   debug: true,
   callbacks: {
@@ -84,14 +84,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       return token;
     },
     async signIn({ user, account, profile }) {
+      if (account?.provider === "github") {
+        const existsUser = await prisma.users.findFirst({
+          where: {
+            email: profile?.email ?? "",
+          },
+        });
+
+        if (!existsUser) {
+          await prisma.users.create({
+            data: {
+              id: parseInt(profile?.id as string),
+              email: user.email as string,
+              name: user.name as string,
+              image: user.image as string,
+              join_date: new Date(),
+            },
+          });
+        }
+      }
       return true;
-    },
-    async redirect({ url, baseUrl }) {
-      return baseUrl;
     },
   },
 });
