@@ -25,19 +25,17 @@ export type Language = {
 };
 
 // TODO: Fix these URLs
-export function getBaseUrl() {
-  return process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
-    ? `https://nextjudge.org`
-    : process.env.NEXT_PUBLIC_VERCEL_URL
-    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-    : `http://localhost:3001`;
-}
+// export function getBaseUrl() {
+//   return process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
+//     ? `https://nextjudge.org`
+//     : process.env.NEXT_PUBLIC_VERCEL_URL
+//     ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+//     : `http://localhost:3001`;
+// }
 
 export function getBridgeUrl() {
-  return process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
-    ? `https://nextjudge.org:3001`
-    : process.env.NEXT_PUBLIC_VERCEL_URL
-    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}:3001`
+  return process.env.NEXT_PUBLIC_VERCEL_BRIDGE_URL
+    ? process.env.NEXT_PUBLIC_VERCEL_BRIDGE_URL
     : `http://localhost:3000`;
 }
 
