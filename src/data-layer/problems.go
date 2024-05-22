@@ -323,5 +323,14 @@ func deleteProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	res, err := es.Delete(cfg.ElasticIndex, strconv.Itoa(problemId))
+	defer res.Body.Close()
+	if res.IsError() {
+		logrus.WithError(err).Error("error deleting problem from elastic search")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"partial success, problem was deleted, error deleting from elastic search"}`)
+		return
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }

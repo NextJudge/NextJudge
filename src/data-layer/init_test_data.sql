@@ -41,6 +41,7 @@ VALUES
 ('JohnEldenRing',   timestamp '2024-01-01 10:00:00', 'joebiden@usa.gov',    'TRUE'),
 ('JohnDarksouls',   timestamp '2024-02-02 10:00:00', 'grumbus@usa.gov',     'FALSE');
 
+-- deleting these using that API WILL returnd a 500 since they aren't in elastic search
 INSERT INTO "problems" (title, prompt, timeout, user_id, difficulty, upload_date)
 VALUES
 ('Invert a String',     'Given a string, print the reverse',    10,     1,  'EASY',         timestamp '2024-03-03 10:00:00'),
