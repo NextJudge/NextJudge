@@ -108,7 +108,7 @@ Response Body:
 ]
 ```
 
-#### GET /v1/problems
+#### GET /v1/problems?query={query}
 
 Response Body:
 
