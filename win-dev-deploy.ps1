@@ -10,7 +10,7 @@ if ($Args.Count -gt 0) {
     cd $PSScriptRoot
     docker-compose -f docker-compose.dev.yml up --build
 } else {
-    docker-compose -f docker-compose.dev.yml up --build nextjudge-bridge rabbitmq nextjudge-data-layer db
+    docker-compose -f docker-compose.dev.yml up --build nextjudge-bridge rabbitmq nextjudge-data-layer db elasticsearch
 }
 
 
