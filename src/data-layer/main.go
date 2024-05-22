@@ -41,6 +41,16 @@ func main() {
 		logrus.WithError(err).Error("error creating elastic search client")
 		os.Exit(1)
 	}
+	res, err := es.Ping()
+	if err != nil {
+		logrus.WithError(err).Error("error pinging elastic search client")
+		os.Exit(1)
+	}
+	defer res.Body.Close()
+	if res.IsError() {
+		logrus.WithError(err).Error("error pinging elastic search client")
+		os.Exit(1)
+	}
 
 	mux := goji.NewMux()
 	c := cors.New(cors.Options{

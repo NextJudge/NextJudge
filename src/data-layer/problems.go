@@ -149,13 +149,13 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := es.Index(cfg.ElasticIndex, strings.NewReader(string(doc)), es.Index.WithDocumentID(strconv.Itoa(dbProblem.ID)))
-	defer res.Body.Close()
 	if err != nil {
 		logrus.WithError(err).Error("error adding problem")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"error adding problem"}`)
 		return
 	}
+	defer res.Body.Close()
 	if res.IsError() {
 		logrus.WithError(err).Error("error adding problem to elastic index")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -236,13 +236,13 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 			es.Search.WithIndex(cfg.ElasticIndex),
 			es.Search.WithBody(strings.NewReader(fmt.Sprintf(esQuery, query))),
 		)
-		defer res.Body.Close()
 		if err != nil {
 			logrus.WithError(err).Error("error getting info from elastic search")
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, `{"code":"500", "message":"error getting info from elastic search"}`)
 			return
 		}
+		defer res.Body.Close()
 		if res.IsError() {
 			logrus.WithError(err).Error("error getting problems from elastic index")
 			w.WriteHeader(http.StatusInternalServerError)
