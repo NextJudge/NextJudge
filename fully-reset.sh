@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Remove all volumes/persistent data in the 
 docker compose down --volumes
