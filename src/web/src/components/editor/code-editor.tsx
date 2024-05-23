@@ -9,7 +9,7 @@ import { EditorLanguageSelect, Language } from "./editor-language-select";
 import { EditorThemeSelector } from "./editor-theme-select";
 import { getBridgeUrl } from "@/lib/utils";
 
-const templates: { [key: string]: string } = {
+const templates = {
   "C++": `#include <bits/stdc++.h>
 using namespace std;
 
@@ -54,13 +54,13 @@ const printLine = (x: string) => {
   console.log(x);
 };
 
-let inputString: string = "";
-let currentLine: number = 0;
+let inputString = "";
+let currentLine = 0;
 
 process.stdin.resume();
 process.stdin.setEncoding("utf-8");
 
-process.stdin.on("data", (inputStdin: string) => {
+process.stdin.on("data", (inputStdin) => {
   inputString += inputStdin;
 });
 
@@ -69,7 +69,7 @@ process.stdin.on("end", () => {
   main();
 });
 
-const readLine = (): string => {
+const readLine = () => {
   return inputString[currentLine++];
 };
 
@@ -87,8 +87,8 @@ const main = () => {
   "PyPy": ` `,
 };
 
-const normalizeLanguageKey = (languageName: string): string => {
-  const normalizedLanguageNames: { [key: string]: string } = {
+const normalizeLanguageKey = (languageName) => {
+  const normalizedLanguageNames = {
     "c++": "C++",
     "java": "Java",
     "c": "C",
@@ -100,15 +100,21 @@ const normalizeLanguageKey = (languageName: string): string => {
   return normalizedLanguageNames[languageName.toLowerCase()] || languageName;
 };
 
-export default function CodeEditor({ themes, problemId }: any) {
+export default function CodeEditor({ themes, problemId }) {
   const [code, setCode] = useState(templates["TypeScript"]);
   const [submissionId, setSubmissionId] = useState(0);
-  const handleCodeChange = (value: string | undefined) => {
-    setCode(value!);
-  };
   const { theme } = useContext(ThemeContext);
+  const [languages, setLanguages] = useState([]);
+  const [currentLanguage, setCurrentLanguage] = useState(null);
+  const [submissionLoading, setSubmissionLoading] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleEditorDidMount = (editor: any, monaco: any) => {
+  const handleCodeChange = (value) => {
+    setCode(value || "");
+  };
+
+  const handleEditorDidMount = (editor, monaco) => {
     editor.focus();
 
     // add support for process
@@ -119,12 +125,6 @@ export default function CodeEditor({ themes, problemId }: any) {
       "node:readline/promises"
     );
   };
-
-  const [languages, setLanguages] = useState<Language[]>([]);
-  const [currentLanguage, setCurrentLanguage] = useState<Language | null>(null);
-  const [submissionLoading, setSubmissionLoading] = useState(false);
-  const [submissionResult, setSubmissionResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchLanguages() {
@@ -140,7 +140,7 @@ export default function CodeEditor({ themes, problemId }: any) {
     fetchLanguages();
   }, []);
 
-  const handleLanguageSelect = (language: Language) => {
+  const handleLanguageSelect = (language) => {
     setCurrentLanguage(language);
     const normalizedLanguage = normalizeLanguageKey(language.name);
     if (templates[normalizedLanguage]) {
@@ -189,87 +189,85 @@ export default function CodeEditor({ themes, problemId }: any) {
   };
 
   return (
-    <>
-      <div className="h-full overflow-y-scroll min-w-full">
-        <div className="flex justify-between">
-          <div className="justify-start my-2 px-2">
-            <EditorLanguageSelect
-              onLanguageSelect={handleLanguageSelect}
-              languages={languages}
-            />
-          </div>
-          <div className="flex justify-center my-2 px-2 gap-2">
-            <Button
-              className="w-full"
-              onClick={handleSubmitCode}
-              disabled={submissionLoading}
-              variant={error ? "destructive" : "ghost"}
-            >
-              {submissionLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Icons.loader className="w-6 h-6 animate-spin" />
-                  <p>Loading...</p>
-                </div>
-              ) : (
-                <>
-                  {error ? (
-                    <div className="text-sm text-center">{error}</div>
-                  ) : (
-                    <>Submit Code</>
-                  )}
-                </>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCode("");
-                toast.success("Editor cleared successfully!");
-              }}
-            >
-              Clear Editor
-            </Button>
-          </div>
-          <div className="justify-end my-2 px-2">
-            <EditorThemeSelector themes={themes} />
-          </div>
+    <div className="h-full overflow-y-scroll min-w-full">
+      <div className="flex justify-between">
+        <div className="justify-start my-2 px-2">
+          <EditorLanguageSelect
+            onLanguageSelect={handleLanguageSelect}
+            languages={languages}
+          />
         </div>
-
-        <AnimatePresence mode="wait">
-          {theme?.name && (
-            <motion.div
-              key={submissionId}
-              initial={{ y: 0, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -10, opacity: 0 }}
-              transition={{ duration: 0.7 }}
-            >
-              <Editor
-                language={currentLanguage?.extension.replace(".", "")}
-                defaultLanguage="typescript"
-                value={code}
-                theme={theme.name}
-                className={`min-h-screen w-[100%] overflow-y-scroll`}
-                options={{
-                  formatOnPaste: true,
-                  formatOnType: true,
-                  showUnused: true,
-                  fontSize: 14,
-                  cursorStyle: "line",
-                  cursorSmoothCaretAnimation: "on",
-                  cursorBlinking: "smooth",
-                  cursorWidth: 1,
-                  cursorSurroundingLines: 1,
-                  multiCursorModifier: "ctrlCmd",
-                  scrollBeyondLastLine: true,
-                }}
-                onChange={handleCodeChange}
-                onMount={handleEditorDidMount}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="flex justify-center my-2 px-2 gap-2">
+          <Button
+            className="w-full"
+            onClick={handleSubmitCode}
+            disabled={submissionLoading}
+            variant={error ? "destructive" : "ghost"}
+          >
+            {submissionLoading ? (
+              <div className="flex items-center justify-center gap-2">
+                <Icons.loader className="w-6 h-6 animate-spin" />
+                <p>Loading...</p>
+              </div>
+            ) : (
+              <>
+                {error ? (
+                  <div className="text-sm text-center">{error}</div>
+                ) : (
+                  <>Submit Code</>
+                )}
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setCode("");
+              toast.success("Editor cleared successfully!");
+            }}
+          >
+            Clear Editor
+          </Button>
+        </div>
+        <div className="justify-end my-2 px-2">
+          <EditorThemeSelector themes={themes} />
+        </div>
       </div>
-    </>
+
+      <AnimatePresence mode="wait">
+        {theme?.name && (
+          <motion.div
+            key={submissionId}
+            initial={{ y: 0, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -10, opacity: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            <Editor
+              language={currentLanguage?.extension.replace(".", "") || "typescript"}
+              defaultLanguage="typescript"
+              value={code}
+              theme={theme.name}
+              className="min-h-screen w-[100%] overflow-y-scroll"
+              options={{
+                formatOnPaste: true,
+                formatOnType: true,
+                showUnused: true,
+                fontSize: 14,
+                cursorStyle: "line",
+                cursorSmoothCaretAnimation: "on",
+                cursorBlinking: "smooth",
+                cursorWidth: 1,
+                cursorSurroundingLines: 1,
+                multiCursorModifier: "ctrlCmd",
+                scrollBeyondLastLine: true,
+              }}
+              onChange={handleCodeChange}
+              onMount={handleEditorDidMount}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
