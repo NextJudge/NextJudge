@@ -184,7 +184,6 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateUser(w http.ResponseWriter, r *http.Request) {
-
 	userIdParam := pat.Param(r, "user_id")
 	userId, err := strconv.Atoi(userIdParam)
 	if err != nil {

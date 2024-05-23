@@ -21,22 +21,20 @@ RUN \. "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION} && nvm use ${NODE_VERSIO
 RUN \. "$NVM_DIR/nvm.sh" && npm install typescript -g
 
 # Lua
-RUN <<EOF
-curl -L -R -O https://www.lua.org/ftp/lua-5.4.6.tar.gz
-tar zxf lua-5.4.6.tar.gz
-cd lua-5.4.6
-make linux install INSTALL_TOP=/usr/local/lua/5_4_6
-EOF
+RUN curl -L -R -O https://www.lua.org/ftp/lua-5.4.6.tar.gz && \
+    tar zxf lua-5.4.6.tar.gz && \
+    cd lua-5.4.6 && \
+    make linux install INSTALL_TOP=/usr/local/lua/5_4_6
 
 # Kotlin
-RUN <<EOF
-wget https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-compiler-1.9.24.zip
-unzip kotlin-compiler-1.9.24.zip
-EOF
+RUN wget https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-compiler-1.9.24.zip && \
+    unzip kotlin-compiler-1.9.24.zip
 
 RUN apt-get install -y strace
 
 RUN apt-get install -y ghc
+
+RUN apt-get install -y pypy3
 
 RUN curl -L https://dot.net/v1/dotnet-install.sh | bash -s -- --version latest
 
@@ -68,6 +66,19 @@ extension = "c"
 script= """
 #!/bin/sh
 gcc {IN_FILE} -O2 -o /executable/main 
+"""
+
+[[language]]
+name = "pypy"
+version = "3.9.18 (7.3.15)"
+extension = "py"
+script="""
+#!/bin/sh
+/usr/bin/pypy3 -m py_compile {IN_FILE}
+
+echo "#!/bin/sh" >> /executable/main
+echo "/usr/bin/pypy3 /build/{IN_FILE}" >> /executable/main
+chmod +x /executable/main
 """
 
 [[language]]

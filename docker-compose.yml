@@ -1,8 +1,4 @@
 services:
-  # nextjudge-frontend:
-  #   extends: 
-  #     file: src/web/docker-compose.yml
-  #     service: nextjudge-frontend
 
   nextjudge-bridge:
     extends: 
@@ -29,8 +25,12 @@ services:
     extends: 
       file: src/data-layer/docker-compose.go.yml
       service: nextjudge-data-layer
+    environment:
+      - ELASTIC_ENDPOINT=http://elasticsearch:9200
     depends_on:
       db:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
   db:
     extends: 
@@ -47,7 +47,12 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      
+  
+  elasticsearch:
+    extends:
+      file: src/data-layer/docker-compose.elasticsearch.yml
+      service: elasticsearch
+
 volumes: 
   postgres_data:
   

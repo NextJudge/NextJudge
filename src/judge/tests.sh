@@ -11,7 +11,7 @@ docker build -f Dockerfile.monolith --build-arg USAGE=prod -t nextjudge-judge-te
 
 if [ -z "$1" ];
 then
-    docker-compose -f docker-compose.test.yml run --build pytest
+    docker compose -f docker-compose.test.yml run --build pytest
 else
-    docker-compose -f docker-compose.test.yml run --build pytest -k "$1"
+    docker compose -f docker-compose.test.yml run --build pytest -k "$1"
 fi

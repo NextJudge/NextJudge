@@ -25,7 +25,7 @@ export default function SignOutPage() {
           <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
             {/* Sign Out Confirm Form */}
             <form
-              action={async (formData) => {
+              action={async () => {
                 "use server";
                 await signOut({ redirectTo: "/auth/login", redirect: true });
               }}
