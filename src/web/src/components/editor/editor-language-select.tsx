@@ -24,18 +24,6 @@ export type Language = {
   version: string;
 };
 
-// TODO: Fix these URLs
-
-// getBridgeUrl is now located in src\web\src\lib\utils.ts
-
-// export function getBaseUrl() {
-//   return process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
-//     ? `https://nextjudge.org`
-//     : process.env.NEXT_PUBLIC_VERCEL_URL
-//     ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-//     : `http://localhost:3001`;
-// }
-
 interface EditorLanguageSelectProps {
   onLanguageSelect: (language: Language) => void;
 }
