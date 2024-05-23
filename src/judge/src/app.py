@@ -482,14 +482,16 @@ def run_single_test_case(testcase, environment: ProgramEnvironment) -> TestCaseR
 
     run_result = run_single(environment, testcase["input"].encode("utf-8"))
 
+    print("OUTPUT:",run_result.stdout.decode("utf-8"))
+    print("EXPECTED:",testcase["expected_output"])
+    
     if(run_result.result != "ACCEPTED"):
         return run_result.result
     else:
         standard_out = run_result.stdout.decode("utf-8")
         expected_output = testcase["expected_output"]
 
-        # print(standard_out)
-        # print(expected_output)
+       
 
         success = compare_input_output(expected_output, standard_out)
 
@@ -561,8 +563,6 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> RunResult:
         print(f"stdout: {run_result.stdout}")
         print(f"stderr: {run_result.stderr}")
         return RunResult("RUNTIME_ERROR", run_result.stdout, run_result.stderr)
-
-    print(run_result.stdout)
 
     return RunResult("ACCEPTED", run_result.stdout, run_result.stderr)
 
