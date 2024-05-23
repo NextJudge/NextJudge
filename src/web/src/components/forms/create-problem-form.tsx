@@ -38,7 +38,6 @@ import { useReducer } from "react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-
 const problemFormSchema = z.object({
   title: z
     .string()
@@ -130,9 +129,30 @@ export function CreateProblemForm({ categories }: { categories: Categories }) {
         />
         <FormField
           control={form.control}
-          name="prompt"
+          name="timeout"
           render={({ field }) => (
             <FormItem>
+              <FormLabel htmlFor="timeout">Timeout</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  id="timeout"
+                  type="number"
+                  onChange={(event) =>
+                    field.onChange(parseInt(event.target.value))
+                  }
+                />
+              </FormControl>
+              <FormDescription>The timeout of the problem.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="prompt"
+          render={({ field }) => (
+            <FormItem className="col-span-2">
               <FormLabel htmlFor="prompt">Prompt</FormLabel>
               <FormControl>
                 {/* <Textarea
@@ -150,27 +170,6 @@ export function CreateProblemForm({ categories }: { categories: Categories }) {
               <FormDescription>
                 Supports Latex! (<code>.md</code> support coming soon.)
               </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="timeout"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel htmlFor="timeout">Timeout</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  id="timeout"
-                  type="number"
-                  onChange={(event) =>
-                    field.onChange(parseInt(event.target.value))
-                  }
-                />
-              </FormControl>
-              <FormDescription>The timeout of the problem.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

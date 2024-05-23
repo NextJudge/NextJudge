@@ -180,7 +180,9 @@ export default function EditorComponent({
             >
               <div className="flex w-full h-full items-center justify-center overflow-y-scroll">
                 {loading && <EditorSkeleton />}
-                {!loading && <CodeEditor themes={themes} problemId={details.id} />}
+                {!loading && (
+                  <CodeEditor themes={themes} problemId={details.id} />
+                )}
               </div>
             </ResizablePanel>
             <Tooltip>
