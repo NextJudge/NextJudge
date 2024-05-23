@@ -148,6 +148,7 @@ export default function CodeEditor({
       try {
         const response = await fetch(`${getBridgeUrl()}/languages`);
         const data = await response.json();
+        setLanguages(data)
         setCode(templates[normalizeLanguageKey(data[0].name)]);
       } catch (error) {
         console.error("Failed to fetch languages", error);
