@@ -133,9 +133,13 @@ export default function CodeEditor({
     // add support for process
     monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
     monaco.languages.typescript.typescriptDefaults.addExtraLib(
-      `declare var process: NodeJS.Process;`,
-      "node_modules/@types/node/index.d.ts",
+      `declare var process: NodeJS.Process;`
+    );
+    monaco.languages.typescript.typescriptDefaults.addExtraLib(
       "node:readline/promises"
+    );
+    monaco.languages.typescript.typescriptDefaults.addExtraLib(
+      "node_modules/@types/node/index.d.ts"
     );
   };
 
