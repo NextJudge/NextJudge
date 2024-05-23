@@ -1,15 +1,18 @@
-import { useContext, useState, useEffect } from "react";
+import { defaultEditorOptions, defaultLanguage } from "@/lib/constants";
+import { getBridgeUrl } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
-import Editor from "@monaco-editor/react";
+import { Language } from "@/types";
+import Editor, { Monaco } from "@monaco-editor/react";
 import { AnimatePresence, motion } from "framer-motion";
+import { editor } from "monaco-editor";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Icons } from "../icons";
 import { Button } from "../ui/button";
-import { EditorLanguageSelect, Language } from "./editor-language-select";
+import { EditorLanguageSelect } from "./editor-language-select";
 import { EditorThemeSelector } from "./editor-theme-select";
-import { getBridgeUrl } from "@/lib/utils";
 
-const templates = {
+const templates: Record<string, string> = {
   "C++": `#include <bits/stdc++.h>
 using namespace std;
 
@@ -20,36 +23,36 @@ int main()
 
 }
 `,
-  "Java": `import java.io.*;
+  Java: `import java.io.*;
 import java.util.*;
 
 public class Solution {
     public static void main(String[] args) throws Exception {
         Scanner sc = new Scanner(System.in);
 
-        
+
 
     }
 }
 `,
-  "C": `#include <stdlib.h>
+  C: `#include <stdlib.h>
 #include <stdio.h>
 
 int main(int argc, char** argv) {
 
-    
+
 
     return 0;
 }
 `,
-  "Kotlin": `import java.io.*
+  Kotlin: `import java.io.*
 import java.util.*
 
 fun main(args: Array<String>) {
 
 }
 `,
-  "TypeScript": `"use strict";
+  TypeScript: `"use strict";
 const printLine = (x: string) => {
   console.log(x);
 };
@@ -83,38 +86,48 @@ const main = () => {
     process.exit();
 };
 `,
-  "Python": ` `,
-  "PyPy": ` `,
+  Python: ` `,
+  PyPy: ` `,
 };
 
-const normalizeLanguageKey = (languageName) => {
-  const normalizedLanguageNames = {
-    "c++": "C++",
-    "java": "Java",
-    "c": "C",
-    "kotlin": "Kotlin",
-    "typescript": "TypeScript",
-    "pypy": "PyPy",
-    "python": "Python",
-  };
-  return normalizedLanguageNames[languageName.toLowerCase()] || languageName;
-};
-
-export default function CodeEditor({ themes, problemId }) {
-  const [code, setCode] = useState(templates["TypeScript"]);
-  const [submissionId, setSubmissionId] = useState(0);
+export default function CodeEditor({
+  themes,
+  problemId,
+}: {
+  themes: any;
+  problemId: number;
+}) {
+  const [code, setCode] = useState<string>(templates["TypeScript"]);
+  const [submissionId, setSubmissionId] = useState<number>(0);
   const { theme } = useContext(ThemeContext);
   const [languages, setLanguages] = useState([]);
-  const [currentLanguage, setCurrentLanguage] = useState(null);
+  const [currentLanguage, setCurrentLanguage] =
+    useState<Language>(defaultLanguage);
   const [submissionLoading, setSubmissionLoading] = useState(false);
   const [submissionResult, setSubmissionResult] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCodeChange = (value) => {
+  const handleCodeChange = (value: string | undefined) => {
     setCode(value || "");
   };
 
-  const handleEditorDidMount = (editor, monaco) => {
+  const normalizeLanguageKey = (languageName: string) => {
+    const normalizedLanguageNames: Record<string, string> = {
+      "c++": "C++",
+      java: "Java",
+      c: "C",
+      kotlin: "Kotlin",
+      typescript: "TypeScript",
+      pypy: "PyPy",
+      python: "Python",
+    };
+    return normalizedLanguageNames[languageName.toLowerCase()];
+  };
+
+  const handleEditorDidMount = (
+    editor: editor.IStandaloneCodeEditor,
+    monaco: Monaco
+  ) => {
     editor.focus();
 
     // add support for process
@@ -131,8 +144,7 @@ export default function CodeEditor({ themes, problemId }) {
       try {
         const response = await fetch(`${getBridgeUrl()}/languages`);
         const data = await response.json();
-        setLanguages(data);
-        setCurrentLanguage(data[0]); // Optionally set the first language as the default
+        setCode(templates[normalizeLanguageKey(data[0].name)]);
       } catch (error) {
         console.error("Failed to fetch languages", error);
       }
@@ -140,11 +152,14 @@ export default function CodeEditor({ themes, problemId }) {
     fetchLanguages();
   }, []);
 
-  const handleLanguageSelect = (language) => {
+  const handleLanguageSelect = (language: Language) => {
     setCurrentLanguage(language);
-    const normalizedLanguage = normalizeLanguageKey(language.name);
-    if (templates[normalizedLanguage]) {
-      setCode(templates[normalizedLanguage]);
+    if (templates[normalizeLanguageKey(language.name)]) {
+      setCode(templates[normalizeLanguageKey(language.name)]);
+    } else if (language.name === "javascript") {
+      setCode(templates["TypeScript"]);
+    } else {
+      setCode("");
     }
   };
 
@@ -154,7 +169,7 @@ export default function CodeEditor({ themes, problemId }) {
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       const selectedLanguage = languages.find(
-        (lang) => lang.extension === currentLanguage?.extension
+        (lang: Language) => lang.extension === currentLanguage?.extension
       );
       if (!selectedLanguage) {
         throw new Error("Language not found");
@@ -167,7 +182,7 @@ export default function CodeEditor({ themes, problemId }) {
         },
         body: JSON.stringify({
           source_code: code,
-          language_id: selectedLanguage.id,
+          language_id: currentLanguage.id,
           problem_id: problemId,
           user_id: 1, // Also gonna need to change this to the actual user ID
         }),
@@ -180,13 +195,21 @@ export default function CodeEditor({ themes, problemId }) {
       const data = await response.json();
       setSubmissionResult(data);
       toast.success("Accepted!");
-    } catch (error) {
+    } catch (error: unknown) {
       toast.error("There was an error submitting your code.");
-      setError(error.message);
+      setError(error instanceof Error ? error.message : "An error occurred.");
     } finally {
       setSubmissionLoading(false);
     }
   };
+
+  // TODO: Create a store for the editor options
+  const editorOptions = useMemo(
+    () => ({
+      ...defaultEditorOptions,
+    }),
+    []
+  );
 
   return (
     <div className="h-full overflow-y-scroll min-w-full">
@@ -194,7 +217,7 @@ export default function CodeEditor({ themes, problemId }) {
         <div className="justify-start my-2 px-2">
           <EditorLanguageSelect
             onLanguageSelect={handleLanguageSelect}
-            languages={languages}
+            // languages={languages}
           />
         </div>
         <div className="flex justify-center my-2 px-2 gap-2">
@@ -244,24 +267,18 @@ export default function CodeEditor({ themes, problemId }) {
             transition={{ duration: 0.7 }}
           >
             <Editor
-              language={currentLanguage?.extension.replace(".", "") || "typescript"}
-              defaultLanguage="typescript"
+              language={
+                currentLanguage?.name === "PyPy"
+                  ? "python"
+                  : currentLanguage?.name === "C++"
+                  ? "cpp"
+                  : currentLanguage?.name.toLowerCase()
+              }
+              defaultLanguage={currentLanguage?.name.toLowerCase()}
               value={code}
               theme={theme.name}
               className="min-h-screen w-[100%] overflow-y-scroll"
-              options={{
-                formatOnPaste: true,
-                formatOnType: true,
-                showUnused: true,
-                fontSize: 14,
-                cursorStyle: "line",
-                cursorSmoothCaretAnimation: "on",
-                cursorBlinking: "smooth",
-                cursorWidth: 1,
-                cursorSurroundingLines: 1,
-                multiCursorModifier: "ctrlCmd",
-                scrollBeyondLastLine: true,
-              }}
+              options={editorOptions}
               onChange={handleCodeChange}
               onMount={handleEditorDidMount}
             />
