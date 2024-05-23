@@ -34,6 +34,8 @@ RUN apt-get install -y strace
 
 RUN apt-get install -y ghc
 
+RUN apt-get install -y pypy3
+
 RUN curl -L https://dot.net/v1/dotnet-install.sh | bash -s -- --version latest
 
 FROM basejudge:"$USAGE"
@@ -64,6 +66,19 @@ extension = "c"
 script= """
 #!/bin/sh
 gcc {IN_FILE} -O2 -o /executable/main 
+"""
+
+[[language]]
+name = "pypy"
+version = "3.9.18 (7.3.15)"
+extension = "py"
+script="""
+#!/bin/sh
+/usr/bin/pypy3 -m py_compile {IN_FILE}
+
+echo "#!/bin/sh" >> /executable/main
+echo "/usr/bin/pypy3 /build/{IN_FILE}" >> /executable/main
+chmod +x /executable/main
 """
 
 [[language]]

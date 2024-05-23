@@ -1,5 +1,4 @@
 "use client";
-
 import "@/app/globals.css";
 import { EditorSkeleton } from "@/components/editor/editor-skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,7 +25,6 @@ import { useEditorCollapse } from "@/hooks/useEditorCollapse";
 import { useEditorTheme } from "@/hooks/useEditorTheme";
 import { useThemesLoader } from "@/hooks/useThemeLoader";
 import { cn } from "@/lib/utils";
-import markdownFile from "@/md/twosum.md";
 import { ThemeContext } from "@/providers/editor-theme";
 import { Theme } from "@/types";
 import "katex/dist/katex.min.css";
@@ -34,7 +32,6 @@ import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useContext, useState } from "react";
 import { Icons } from "../icons";
-import MarkdownRenderer from "../markdown-renderer";
 import { Expected, Input as InputCase, Output } from "../submit-box";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -59,11 +56,12 @@ const lightDefault: Theme = {
   fetch: "/themes/GitHub Light.json".replace(" ", "%20"),
 };
 
-// const BRIDGE_ENDPOINT = `http://localhost:8080/api/v1`;
 export default function EditorComponent({
   details,
+  slot,
 }: {
   details: ZodProblemDetails;
+  slot: React.ReactNode;
 }) {
   const { isCollapsed, ref, collapse, expand } = useEditorCollapse();
   const {
@@ -136,11 +134,7 @@ export default function EditorComponent({
                     </Badge>
                   ))}
                 </div>
-                <MarkdownRenderer
-                  //   TODO: Make this type safe
-                  prompt={details.prompt || problemStatement}
-                  markdown={markdownFile}
-                />
+                <div>{slot}</div>
               </div>
             </div>
           </div>
@@ -181,7 +175,7 @@ export default function EditorComponent({
             >
               <div className="flex w-full h-full items-center justify-center overflow-y-scroll">
                 {loading && <EditorSkeleton />}
-                {!loading && <CodeEditor themes={themes} />}
+                {!loading && <CodeEditor themes={themes} problemId={details.id} />}
               </div>
             </ResizablePanel>
             <Tooltip>

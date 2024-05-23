@@ -16,7 +16,7 @@ Before running the Bridge, you will need to ensure the data layer is running. Na
 ### Docker
 
 ```sh
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Host

@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Difficulty } from "../../app/actions";
+import Editor from "../editor/rich-text/editor";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import {
@@ -24,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { cn } from "@/lib/utils";
 
 const problemFormSchema = z.object({
   title: z
@@ -78,7 +80,12 @@ export function CreateProblemForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className={cn(
+          "grid gap-6 overflow-y-scroll max-h[450px] md:max-h-[600px] min-h-full p-2"
+        )}
+      >
         <FormField
           control={form.control}
           name="title"
@@ -100,9 +107,21 @@ export function CreateProblemForm() {
             <FormItem>
               <FormLabel htmlFor="prompt">Prompt</FormLabel>
               <FormControl>
-                <Input {...field} id="prompt" type="text" />
+                {/* <Textarea
+                  className="max-h-[120px] lg:max-h-[180px]"
+                  {...field}
+                  id="prompt"
+                /> */}
+                <Editor
+                  content={field.value}
+                  onChange={(value) => field.onChange(value)}
+                  placeholder="Enter the prompt here..."
+                  //   readOnly={false}
+                />
               </FormControl>
-              <FormDescription>The prompt of the problem.</FormDescription>
+              <FormDescription>
+                Supports Latex! (<code>.md</code> support coming soon.)
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

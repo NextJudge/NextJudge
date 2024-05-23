@@ -13,7 +13,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, getBridgeUrl } from "@/lib/utils";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import * as React from "react";
 
@@ -25,23 +25,22 @@ export type Language = {
 };
 
 // TODO: Fix these URLs
-export function getBaseUrl() {
-  return process.env.VERCEL_ENV === "production"
-    ? `https://nextjudge.org`
-    : process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : `http://localhost:3001`;
+
+// getBridgeUrl is now located in src\web\src\lib\utils.ts
+
+// export function getBaseUrl() {
+//   return process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
+//     ? `https://nextjudge.org`
+//     : process.env.NEXT_PUBLIC_VERCEL_URL
+//     ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+//     : `http://localhost:3001`;
+// }
+
+interface EditorLanguageSelectProps {
+  onLanguageSelect: (language: Language) => void;
 }
 
-export function getBridgeUrl() {
-  return process.env.VERCEL_ENV === "production"
-    ? `https://nextjudge.org:3001`
-    : process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}:3001`
-    : `http://localhost:3000`;
-}
-
-export function EditorLanguageSelect() {
+export function EditorLanguageSelect({ onLanguageSelect }: EditorLanguageSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [languages, setLanguages] = React.useState<Language[]>([]);
   const [currentLanguage, setCurrentLanguage] = React.useState<Language | null>(
@@ -51,10 +50,15 @@ export function EditorLanguageSelect() {
   React.useEffect(() => {
     async function fetchLanguages() {
       try {
-        const response = await fetch(`${getBridgeUrl()}/languages`);
+        // const response = await fetch(`${getBridgeUrl()}/api/languages`);
+        const response = await fetch(`/api/languages`);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
         const data = await response.json();
         setLanguages(data);
-        setCurrentLanguage(data[0]); // Set default language to the first one
+        setCurrentLanguage(data[0]);
+        onLanguageSelect(data[0]);
       } catch (error) {
         console.error("Failed to fetch languages", error);
       }
@@ -82,12 +86,13 @@ export function EditorLanguageSelect() {
           <CommandInput placeholder="Search languages..." className="h-9" />
           <CommandEmpty>No language found.</CommandEmpty>
           <CommandGroup className="overflow-y-scroll max-h-52">
-            {languages.map((language) => (
+            {languages.map((language: any) => (
               <CommandItem
                 key={language.id}
                 value={language.name}
                 onSelect={() => {
                   setCurrentLanguage(language);
+                  onLanguageSelect(language);
                   setOpen(false);
                 }}
               >
