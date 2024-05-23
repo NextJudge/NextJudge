@@ -20,6 +20,7 @@ type config struct {
 	DBDriver        string
 	ElasticEndpoint string
 	ElasticIndex    string
+	ElasticEnabled  bool
 }
 
 var cfg config
@@ -104,5 +105,12 @@ func init() {
 		cfg.ElasticIndex = "nextjudge-problems"
 	} else {
 		cfg.ElasticIndex = elasticIndex
+	}
+
+	elasticEnabled := os.Getenv("ELASTIC_ENABLED")
+	if elasticEnabled == "true" {
+		cfg.ElasticEnabled = true
+	} else {
+		cfg.ElasticEnabled = false
 	}
 }

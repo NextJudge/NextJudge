@@ -32,24 +32,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	es, err = elasticsearch.NewClient(elasticsearch.Config{
-		Addresses: []string{
-			cfg.ElasticEndpoint,
-		},
-	})
-	if err != nil {
-		logrus.WithError(err).Error("error creating elastic search client")
-		os.Exit(1)
-	}
-	res, err := es.Ping()
-	if err != nil {
-		logrus.WithError(err).Error("error pinging elastic search client")
-		os.Exit(1)
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		logrus.WithError(err).Error("error pinging elastic search client")
-		os.Exit(1)
+	if cfg.ElasticEnabled {
+		es, err = elasticsearch.NewClient(elasticsearch.Config{
+			Addresses: []string{
+				cfg.ElasticEndpoint,
+			},
+		})
+		if err != nil {
+			logrus.WithError(err).Error("error creating elastic search client")
+			os.Exit(1)
+		}
+		res, err := es.Ping()
+		if err != nil {
+			logrus.WithError(err).Error("error pinging elastic search client")
+			os.Exit(1)
+		}
+		defer res.Body.Close()
+		if res.IsError() {
+			logrus.WithError(err).Error("error pinging elastic search client")
+			os.Exit(1)
+		}
 	}
 
 	mux := goji.NewMux()

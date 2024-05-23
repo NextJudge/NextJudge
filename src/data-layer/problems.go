@@ -148,19 +148,22 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
-	res, err := es.Index(cfg.ElasticIndex, strings.NewReader(string(doc)), es.Index.WithDocumentID(strconv.Itoa(dbProblem.ID)))
-	if err != nil {
-		logrus.WithError(err).Error("error adding problem")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error adding problem"}`)
-		return
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		logrus.WithError(err).Error("error adding problem to elastic index")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error adding problem to elastic index"}`)
-		return
+
+	if cfg.ElasticEnabled {
+		res, err := es.Index(cfg.ElasticIndex, strings.NewReader(string(doc)), es.Index.WithDocumentID(strconv.Itoa(dbProblem.ID)))
+		if err != nil {
+			logrus.WithError(err).Error("error adding problem")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error adding problem"}`)
+			return
+		}
+		defer res.Body.Close()
+		if res.IsError() {
+			logrus.WithError(err).Error("error adding problem to elastic index")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error adding problem to elastic index"}`)
+			return
+		}
 	}
 
 	respJSON, err := json.Marshal(dbProblem)
@@ -213,7 +216,7 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 	problems := []Problem{}
 	var err error
 
-	if query == "" {
+	if query == "" || !cfg.ElasticEnabled {
 		problems, err = db.GetProblems()
 		if err != nil {
 			logrus.WithError(err).Error("error retrieving problems")
@@ -246,7 +249,7 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 		if res.IsError() {
 			logrus.WithError(err).Error("error getting problems from elastic index")
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error adding problems from elastic index"}`)
+			fmt.Fprint(w, `{"code":"500", "message":"error getting problems from elastic index"}`)
 			return
 		}
 		var result map[string]interface{}
@@ -254,7 +257,7 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logrus.WithError(err).Error("error getting problems from elastic index")
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error adding problems from elastic index"}`)
+			fmt.Fprint(w, `{"code":"500", "message":"error getting problems from elastic index"}`)
 			return
 		}
 		hits := result["hits"].(map[string]interface{})["hits"].([]interface{})
@@ -323,13 +326,15 @@ func deleteProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := es.Delete(cfg.ElasticIndex, strconv.Itoa(problemId))
-	defer res.Body.Close()
-	if res.IsError() {
-		logrus.WithError(err).Error("error deleting problem from elastic search")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"partial success, problem was deleted, error deleting from elastic search"}`)
-		return
+	if cfg.ElasticEnabled {
+		res, err := es.Delete(cfg.ElasticIndex, strconv.Itoa(problemId))
+		defer res.Body.Close()
+		if res.IsError() {
+			logrus.WithError(err).Error("error deleting problem from elastic search")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"partial success, problem was deleted, error deleting from elastic search"}`)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)

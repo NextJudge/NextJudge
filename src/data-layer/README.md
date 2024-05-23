@@ -123,6 +123,7 @@ Response Body:
         "upload_date": "2024-02-14T06:26:55.12794Z",
         "test_cases": [
             {
+                "is_public": false,
                 "id": 1,
                 "input": "abc",
                 "expected_output": "cba"
@@ -150,6 +151,7 @@ Request Body:
     "user_id": 1,
     "test_cases": [
         {
+            "is_public": false,
             "input": "abc",
             "expected_output": "cba"
         },
@@ -171,6 +173,7 @@ Response Body:
     "test_cases": [
         {
             "id": 1,
+            "is_public": false,
             "input": "abc",
             "expected_output": "cba"
         },
@@ -199,6 +202,7 @@ Response Body:
     "test_cases": [
         {
             "id": 1,
+            "is_public": false,
             "input": "abc",
             "expected_output": "cba"
         },
@@ -363,6 +367,7 @@ Response Body:
             "test_cases": [
                 {
                     "id": 1,
+                    "is_public": false,
                     "problem_id": 1,
                     "input": "abc",
                     "expected_output": "cba"
@@ -385,6 +390,7 @@ Response Body:
             "test_cases": [
                 {
                     "id": 3,
+                    "is_public": false,
                     "problem_id": 2,
                     "input": "2 1",
                     "expected_output": "3"

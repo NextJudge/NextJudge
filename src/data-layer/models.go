@@ -56,6 +56,7 @@ type TestCase struct {
 	ID             int    `json:"id"`
 	ProblemID      int    `json:"problem_id"`
 	Input          string `json:"input"`
+	IsPublic       bool   `json:"is_public"`
 	ExpectedOutput string `json:"expected_output"`
 }
 
