@@ -7,7 +7,7 @@ export default function Submissions() {
 
   useEffect(() => {
     async function fetchSubmissions() {
-      const response = await fetch("http://localhost:3000/submission");
+      const response = await fetch(`${getBridgeUrl()}/submission`);
       const data = await response.json();
       setSubmissions(data);
     }

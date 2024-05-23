@@ -129,7 +129,7 @@ export default function CodeEditor({ themes, problemId }) {
   useEffect(() => {
     async function fetchLanguages() {
       try {
-        const response = await fetch("http://localhost:3000/languages");
+        const response = await fetch(`${getBridgeUrl()}/languages`);
         const data = await response.json();
         setLanguages(data);
         setCurrentLanguage(data[0]); // Optionally set the first language as the default
@@ -160,7 +160,7 @@ export default function CodeEditor({ themes, problemId }) {
         throw new Error("Language not found");
       }
 
-      const response = await fetch("http://localhost:3000/submission", {
+      const response = await fetch(`${getBridgeUrl()}/submission`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
