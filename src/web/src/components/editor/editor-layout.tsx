@@ -59,7 +59,6 @@ const lightDefault: Theme = {
   fetch: "/themes/GitHub Light.json".replace(" ", "%20"),
 };
 
-// const BRIDGE_ENDPOINT = `http://localhost:8080/api/v1`;
 export default function EditorComponent({
   details,
 }: {
@@ -181,7 +180,7 @@ export default function EditorComponent({
             >
               <div className="flex w-full h-full items-center justify-center overflow-y-scroll">
                 {loading && <EditorSkeleton />}
-                {!loading && <CodeEditor themes={themes} />}
+                {!loading && <CodeEditor themes={themes} problemId={details.id} />}
               </div>
             </ResizablePanel>
             <Tooltip>

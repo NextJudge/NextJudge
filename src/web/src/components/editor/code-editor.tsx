@@ -1,8 +1,7 @@
-"use client";
+import { useContext, useState, useEffect } from "react";
 import { ThemeContext } from "@/providers/editor-theme";
 import Editor from "@monaco-editor/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Icons } from "../icons";
 import { Button } from "../ui/button";
@@ -10,8 +9,47 @@ import { EditorLanguageSelect, Language } from "./editor-language-select";
 import { EditorThemeSelector } from "./editor-theme-select";
 import { getBridgeUrl } from "@/lib/utils";
 
-export default function CodeEditor({ themes }: any) {
-  const [code, setCode] = useState(`"use strict";
+const templates: { [key: string]: string } = {
+  "C++": `#include <bits/stdc++.h>
+using namespace std;
+
+int main()
+{
+
+
+
+}
+`,
+  "Java": `import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws Exception {
+        Scanner sc = new Scanner(System.in);
+
+        
+
+    }
+}
+`,
+  "C": `#include <stdlib.h>
+#include <stdio.h>
+
+int main(int argc, char** argv) {
+
+    
+
+    return 0;
+}
+`,
+  "Kotlin": `import java.io.*
+import java.util.*
+
+fun main(args: Array<String>) {
+
+}
+`,
+  "TypeScript": `"use strict";
 const printLine = (x: string) => {
   console.log(x);
 };
@@ -44,7 +82,26 @@ const main = () => {
     }
     process.exit();
 };
-`);
+`,
+  "Python": ` `,
+  "PyPy": ` `,
+};
+
+const normalizeLanguageKey = (languageName: string): string => {
+  const normalizedLanguageNames: { [key: string]: string } = {
+    "c++": "C++",
+    "java": "Java",
+    "c": "C",
+    "kotlin": "Kotlin",
+    "typescript": "TypeScript",
+    "pypy": "PyPy",
+    "python": "Python",
+  };
+  return normalizedLanguageNames[languageName.toLowerCase()] || languageName;
+};
+
+export default function CodeEditor({ themes, problemId }: any) {
+  const [code, setCode] = useState(templates["TypeScript"]);
   const [submissionId, setSubmissionId] = useState(0);
   const handleCodeChange = (value: string | undefined) => {
     setCode(value!);
@@ -85,6 +142,10 @@ const main = () => {
 
   const handleLanguageSelect = (language: Language) => {
     setCurrentLanguage(language);
+    const normalizedLanguage = normalizeLanguageKey(language.name);
+    if (templates[normalizedLanguage]) {
+      setCode(templates[normalizedLanguage]);
+    }
   };
 
   const handleSubmitCode = async () => {
@@ -107,7 +168,7 @@ const main = () => {
         body: JSON.stringify({
           source_code: code,
           language_id: selectedLanguage.id,
-          problem_id: 1, // Gonna need to change this to the actual problem ID
+          problem_id: problemId,
           user_id: 1, // Also gonna need to change this to the actual user ID
         }),
       });
