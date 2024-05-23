@@ -15,7 +15,6 @@ import { PlusIcon } from "@radix-ui/react-icons";
 import { columns } from "../../problems/components/columns";
 import { DataTable } from "../../problems/components/data-table";
 import { Problem } from "../../problems/data/schema";
-import { revalidatePath } from "next/cache";
 
 async function getProblems2() {
   const problems = (await fetchProblems()) as Problem[];
@@ -35,13 +34,11 @@ export default async function AdminProblemsPage() {
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            <div>
-              <Button variant="outline" className="flex items-center space-x-4">
-                <PlusIcon /> <span>Create new problem</span>
-              </Button>
-            </div>
+            <Button variant="outline" className="flex items-center space-x-4">
+              <PlusIcon /> <span>Create new problem</span>
+            </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] lg:max-w-[640px] overflow-y-scroll">
+          <DialogContent className="sm:max-w-[425px] lg:max-w-[640px]">
             <DialogHeader>
               <DialogTitle>Create a new problem</DialogTitle>
               <DialogDescription>

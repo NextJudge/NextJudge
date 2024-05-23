@@ -1,4 +1,4 @@
-# Pair finder
+### Problem Statement
 
 Imagine you're a farmer and you have a list of numbers that represent the weight of your animals. You want to find two animals that together have a weight equal to a target value.
 
