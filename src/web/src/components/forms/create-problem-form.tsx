@@ -21,11 +21,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-import Editor from "../editor/rich-text/editor";
 import {
   Select,
   SelectContent,
@@ -33,10 +28,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu";
 import { useReducer } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import Editor from "../editor/rich-text/editor";
 import { ScrollArea } from "../ui/scroll-area";
-import { cn } from "@/lib/utils";
 
 const problemFormSchema = z.object({
   title: z

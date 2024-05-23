@@ -98,7 +98,11 @@ export default async function Editor({ params }: { params: { id: string } }) {
         <EditorNavbar>
           <UserAvatar />
         </EditorNavbar>
-        <EditorComponent details={details} tags={tags} />
+        <EditorComponent
+          details={details}
+          tags={tags}
+          slot={<MarkdownRenderer prompt={details.prompt} />}
+        />
       </EditorThemeProvider>
     </>
   );

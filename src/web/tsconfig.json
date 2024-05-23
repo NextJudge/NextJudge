@@ -27,7 +27,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "postcss.config.ts"
+    "postcss.config.ts",
+    "monaco.d.ts"
   ],
   "exclude": ["node_modules"]
 }
