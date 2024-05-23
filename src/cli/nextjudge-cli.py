@@ -16,11 +16,6 @@ def add_submit_script_args(parser: argparse.ArgumentParser):
     parser.add_argument("problem_id", type=int)
     return parser
 
-# def get_b_parser():
-#     parser = argparse.ArgumentParser(description="Command B", parents=[get_common_parser()])
-#     parser.add_argument('--option2', type=str, help='Option 2 for command B')
-#     return parser
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -31,13 +26,14 @@ def main():
 
     toplevel_parser = parser.add_subparsers(dest="command", help="Sub-commands")
 
+    # Parser for the 'b' command
+    b_parser = toplevel_parser.add_parser("upload-challenge")
+    b_parser.add_argument('--test',type=str)
+
     # Parser for the 'a' command
-    a_parser = toplevel_parser.add_parser('a', help='Command A')
+    a_parser = toplevel_parser.add_parser("submit")
     add_submit_script_args(a_parser)
 
-    # Parser for the 'b' command
-    b_parser = toplevel_parser.add_parser('b', help='Command B')
-    b_parser.add_argument('--option2', type=str, help='Option 2 for command B')
 
     # Parse arguments
     args = parser.parse_args()
@@ -45,11 +41,10 @@ def main():
     # Handle sub-commands
     if args.command == 'a':
         print("asd")
-        print(args.port)
-    elif args.command == 'b':
+    elif args.command == 'upload-challenge':
         print("dddd")
-    else:
-        parser.print_help()
+    # else:
+    #     parser.print_help()
 
 
 if __name__ == "__main__":
