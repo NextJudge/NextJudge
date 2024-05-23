@@ -59,8 +59,10 @@ const lightDefault: Theme = {
 export default function EditorComponent({
   details,
   slot,
+  tags,
 }: {
   details: ZodProblemDetails;
+  tags: string[];
   slot: React.ReactNode;
 }) {
   const { isCollapsed, ref, collapse, expand } = useEditorCollapse();
@@ -106,14 +108,17 @@ export default function EditorComponent({
                 <div className="flex items-center justify-between">
                   <h1 className="text-2xl font-bold">{details.title}</h1>
                   <Badge variant="secondary" className="text-xs">
-                    Easy
+                    {details.difficulty
+                      ? details.difficulty.charAt(0) +
+                        details.difficulty.slice(1).toLowerCase()
+                      : ""}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-start gap-2">
                   <div className="text-xs text-accent-foreground">
                     <span>Tags:</span>
                   </div>
-                  {[`Array`, `Hash Table`, `Two Pointers`].map((tag) => (
+                  {tags.map((tag) => (
                     <Badge
                       key={tag}
                       variant="outline"
@@ -175,7 +180,9 @@ export default function EditorComponent({
             >
               <div className="flex w-full h-full items-center justify-center overflow-y-scroll">
                 {loading && <EditorSkeleton />}
-                {!loading && <CodeEditor themes={themes} problemId={details.id} />}
+                {!loading && (
+                  <CodeEditor themes={themes} problemId={details.id} />
+                )}
               </div>
             </ResizablePanel>
             <Tooltip>

@@ -1,4 +1,4 @@
-import { fetchProblems } from "@/app/actions";
+import { fetchCategories, fetchProblems } from "@/app/actions";
 import { CreateProblemForm } from "@/components/forms/create-problem-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,17 +12,32 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/toaster";
 import { PlusIcon } from "@radix-ui/react-icons";
+import { Metadata } from "next";
 import { columns } from "../../problems/components/columns";
 import { DataTable } from "../../problems/components/data-table";
-import { Problem } from "../../problems/data/schema";
+import { Categories, Problem } from "../../problems/data/schema";
 
-async function getProblems2() {
+export const metadata: Metadata = {
+  title: "NextJudge Admin - Problem Management",
+  description: "Manage the problems in the official NextJudge problem set.",
+};
+
+async function getAdminProblems(): Promise<Problem[]> {
   const problems = (await fetchProblems()) as Problem[];
   return problems;
 }
 
+async function getCategories(): Promise<Categories> {
+  const categories = await fetchCategories();
+  if (categories === null || categories === undefined) {
+    return [];
+  }
+  return categories as Categories;
+}
+
 export default async function AdminProblemsPage() {
-  const problems = await getProblems2();
+  const problems: Problem[] = await getAdminProblems();
+  const categories: Categories = await getCategories();
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -45,7 +60,7 @@ export default async function AdminProblemsPage() {
                 Fill out the form below to create a new problem.
               </DialogDescription>
             </DialogHeader>
-            <CreateProblemForm />
+            <CreateProblemForm categories={categories} />
           </DialogContent>
         </Dialog>
       </div>

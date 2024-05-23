@@ -101,11 +101,11 @@ export function DataTable<TData, TValue>({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
-                      className="cursor-pointer"
+                      //   className="cursor-pointer"
                       key={cell.id}
-                      onClick={() => {
-                        router.push(`/platform/problems/${row.getValue("id")}`);
-                      }}
+                      //   onClick={() => {
+                      //     router.push(`/platform/problems/${row.getValue("id")}`);
+                      //   }}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
@@ -121,7 +121,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  No problems found.
                 </TableCell>
               </TableRow>
             )}

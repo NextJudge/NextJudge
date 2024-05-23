@@ -18,8 +18,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { deleteProblem } from "@/app/actions";
+import { useCallback } from "react";
+import { toast } from "sonner";
 import { labels } from "../data/data";
-import { oldProblemSchema, problemSchema } from "../data/schema";
+import { problemSchema } from "../data/schema";
+import { useRouter } from "next/navigation";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -28,8 +32,14 @@ interface DataTableRowActionsProps<TData> {
 export function DataTableRowActions<TData>({
   row,
 }: DataTableRowActionsProps<TData>) {
+  const router = useRouter();
   // TODO: Migrate this to the new schema
   const problem = problemSchema.parse(row.original);
+  const onDeleteProblem = useCallback(async () => {
+    const response = await deleteProblem(problem.id);
+    if (response.status === "error") toast.error(response.message);
+    if (response.status === "success") toast.success(response.message);
+  }, []);
 
   return (
     <DropdownMenu>
@@ -44,8 +54,15 @@ export function DataTableRowActions<TData>({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[160px]">
         <DropdownMenuItem>Edit</DropdownMenuItem>
-        <DropdownMenuItem>Make a copy</DropdownMenuItem>
-        <DropdownMenuItem>Favorite</DropdownMenuItem>
+        <DropdownMenuItem onClick={onDeleteProblem}>Delete</DropdownMenuItem>
+        <DropdownMenuItem>Mark as draft</DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            router.push(`/platform/problems/${problem.id}`);
+          }}
+        >
+          View
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>Labels</DropdownMenuSubTrigger>
