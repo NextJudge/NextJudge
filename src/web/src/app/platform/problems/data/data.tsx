@@ -81,6 +81,42 @@ export const problems: Problem[] = [
     upload_date: new Date(),
     author: "HackerRank",
   },
+  {
+    id: 2,
+    title: "Two Sum",
+    prompt: "Find the indicies of two numbers that add to sum.",
+    timeout: 1000,
+    user_id: 1,
+    upload_date: new Date(),
+    author: "LeetCode",
+  },
+  {
+    id: 3,
+    title: "Reverse Integer",
+    prompt: "Reverse the digits of an integer.",
+    timeout: 1000,
+    user_id: 1,
+    upload_date: new Date(),
+    author: "LeetCode",
+  },
+  {
+    id: 4,
+    title: "Palindrome Number",
+    prompt: "Determine if an integer is a palindrome.",
+    timeout: 1000,
+    user_id: 1,
+    upload_date: new Date(),
+    author: "LeetCode",
+  },
+  {
+    id: 5,
+    title: "Roman to Integer",
+    prompt: "Convert a Roman numeral to an integer.",
+    timeout: 1000,
+    user_id: 1,
+    upload_date: new Date(),
+    author: "LeetCode",
+  },
 ];
 
 export const problemsTwo: any[] = [

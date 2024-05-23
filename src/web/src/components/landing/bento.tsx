@@ -207,7 +207,7 @@ const mockComps = [
       "The annual programming contest held by the Student ACM Chapter at Oregon State University. Location: Kelley Engineering Center Room 1003.",
     title: "6th Annual ACM@OSU Programming Contest",
     problems: mockProblems,
-    participants: [],
+    participants: Array.from({ length: 126 }, (_, i) => i + 1),
   },
 ];
 
