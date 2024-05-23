@@ -62,8 +62,10 @@ const lightDefault: Theme = {
 // const BRIDGE_ENDPOINT = `http://localhost:8080/api/v1`;
 export default function EditorComponent({
   details,
+  tags,
 }: {
   details: ZodProblemDetails;
+  tags: string[];
 }) {
   const { isCollapsed, ref, collapse, expand } = useEditorCollapse();
   const {
@@ -108,15 +110,17 @@ export default function EditorComponent({
                 <div className="flex items-center justify-between">
                   <h1 className="text-2xl font-bold">{details.title}</h1>
                   <Badge variant="secondary" className="text-xs">
-                    {details.difficulty.charAt(0) +
-                      details.difficulty.slice(1).toLowerCase()}
+                    {details.difficulty
+                      ? details.difficulty.charAt(0) +
+                        details.difficulty.slice(1).toLowerCase()
+                      : ""}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-start gap-2">
                   <div className="text-xs text-accent-foreground">
                     <span>Tags:</span>
                   </div>
-                  {[`Array`, `Hash Table`, `Two Pointers`].map((tag) => (
+                  {tags.map((tag) => (
                     <Badge
                       key={tag}
                       variant="outline"

@@ -203,13 +203,6 @@ export async function createProblem(data: CreateProblemData) {
         prompt,
         timeout,
         difficulty,
-        // TODO: Support categories
-        // problem_categories: {
-        //   connect: categories?.map((categoryId) => ({
-        //     category_id: categoryId,
-        //     problem_id: 1,
-        //   })),
-        // },
         upload_date,
         users: {
           connect: {
@@ -218,6 +211,16 @@ export async function createProblem(data: CreateProblemData) {
         },
       },
     });
+
+    if (categories) {
+      await prisma.problem_categories.createMany({
+        data: categories.map((categoryId) => ({
+          category_id: categoryId,
+          problem_id: problem.id,
+        })),
+      });
+    }
+
     revalidatePath("/platform/admin/problems");
     return {
       status: "success",

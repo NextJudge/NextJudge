@@ -16,6 +16,10 @@ export type ProblemDetails = {
     name: string;
   };
   difficulty?: "VERY_EASY" | "EASY" | "MEDIUM" | "HARD" | "VERY_HARD";
+  problem_categories?: {
+    category_id: number;
+    problem_id: number;
+  }[];
 };
 
 const problemDetailsSchema = z.object({
@@ -29,7 +33,15 @@ const problemDetailsSchema = z.object({
     name: z.string(),
   }),
   difficulty: z
-    .enum(["VERY_EASY", "EASY", "MEDIUM", "HARD", "VERY_HARD", ""])
+    .enum(["VERY_EASY", "EASY", "MEDIUM", "HARD", "VERY_HARD"])
+    .optional(),
+  problem_categories: z
+    .array(
+      z.object({
+        category_id: z.number(),
+        problem_id: z.number(),
+      })
+    )
     .optional(),
 });
 
@@ -59,16 +71,33 @@ async function getDetails(id: number): Promise<ProblemDetails> {
   return problemDetailsSchema.parse(transformedDetails);
 }
 
+async function getProblemTags(id: number): Promise<string[]> {
+  const categories = await prisma.problem_categories.findMany({
+    where: {
+      problem_id: id,
+    },
+    select: {
+      categories: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+  return categories.map((c) => c.categories.name);
+}
+
 export default async function Editor({ params }: any) {
   const { id } = params;
   const details = await getDetails(parseInt(id));
+  const tags = await getProblemTags(parseInt(id));
   return (
     <>
       <EditorThemeProvider>
         <EditorNavbar>
           <UserAvatar />
         </EditorNavbar>
-        <EditorComponent details={details} />
+        <EditorComponent details={details} tags={tags} />
       </EditorThemeProvider>
     </>
   );
