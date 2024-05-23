@@ -19,7 +19,7 @@ export const useThemesLoader = (): {
       const themeListData: ThemeList = await import(
         "../../public/themelist.json"
       );
-      const themeList = Object.keys(themeListData).map((theme) => ({
+      const themeList = Object.keys(themeListData.default).map((theme) => ({
         name: theme,
         fetch: `/themes/${themeListData.default[theme]}.json`,
       }));
