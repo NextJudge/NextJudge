@@ -72,18 +72,18 @@ CREATE TABLE "problems" (
   "prompt" varchar NOT NULL,
   "timeout" integer NOT NULL,
   "difficulty" difficulty NOT NULL,
-  "user_id" integer NOT NULL,
+  "user_id" UUID NOT NULL,
   "upload_date" timestamp NOT NULL
 );
 
 CREATE TABLE "submissions" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  "user_id" integer NOT NULL,
-  "problem_id" integer NOT NULL,
+  "user_id" UUID NOT NULL,
+  "problem_id" UUID NOT NULL,
   "time_elapsed" integer NOT NULL,
-  "language_id" integer NOT NULL,
+  "language_id" UUID NOT NULL,
   "status" status NOT NULL,
-  "failed_test_case_id" integer,
+  "failed_test_case_id" UUID,
   "submit_time" timestamp NOT NULL,
   "source_code" varchar NOT NULL
 );
@@ -91,14 +91,14 @@ CREATE TABLE "submissions" (
 CREATE TABLE "test_cases" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "is_public" boolean NOT NULL,
-  "problem_id" integer NOT NULL,
+  "problem_id" UUID NOT NULL,
   "input" varchar NOT NULL,
   "expected_output" varchar NOT NULL
 );
 
 CREATE TABLE "competitions" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  "user_id" integer NOT NULL,
+  "user_id" UUID NOT NULL,
   "start_time" timestamp NOT NULL,
   "end_time" timestamp NOT NULL,
   "description" varchar NOT NULL,
@@ -106,14 +106,14 @@ CREATE TABLE "competitions" (
 );
 
 CREATE TABLE "competition_problems" (
-  "competition_id" integer NOT NULL,
-  "problem_id" integer NOT NULL,
+  "competition_id" UUID NOT NULL,
+  "problem_id" UUID NOT NULL,
   PRIMARY KEY("competition_id", "problem_id")
 );
 
 CREATE TABLE "competition_users" (
-  "user_id" integer NOT NULL,
-  "competition_id" integer NOT NULL,
+  "user_id" UUID NOT NULL,
+  "competition_id" UUID NOT NULL,
   PRIMARY KEY("user_id", "competition_id")
 );
 
@@ -130,8 +130,8 @@ CREATE TABLE "categories" (
 );
 
 CREATE TABLE "problem_categories" (
-  "category_id" integer NOT NULL,
-  "problem_id" integer NOT NULL,
+  "category_id" UUID NOT NULL,
+  "problem_id" UUID NOT NULL,
   PRIMARY KEY("category_id", "problem_id")
 );
 
