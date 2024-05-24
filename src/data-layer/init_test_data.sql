@@ -11,7 +11,7 @@ VALUES
 ('java',        '.java',    '21.0.3'),
 ('kotlin',      '.kt',      '1.9.24'),
 ('ruby',        '.rb',      '3.2.3'),
-('haskell',        '.hs',      '9.4.7'),
+('haskell',     '.hs',      '9.4.7'),
 ('lua',         '.lua',     '5.4.6');
 
 INSERT INTO "categories" (name)
@@ -45,38 +45,38 @@ VALUES
 -- deleting these using that API WILL returnd a 500 since they aren't in elastic search
 INSERT INTO "problems" (title, prompt, timeout, user_id, difficulty, upload_date)
 VALUES
-('Invert a String',     'Given a string, print the reverse',    10,     1,  'EASY',         timestamp '2024-03-03 10:00:00'),
-('Add two numbers',     'Given two numbers, print the sum',     5,      2,  'VERY HARD',    timestamp '2024-03-04 10:00:00');
+('Invert a String',     'Given a string, print the reverse',    10,     (SELECT "id" FROM "users" WHERE name='JohnEldenRing'),  'EASY',         timestamp '2024-03-03 10:00:00'),
+('Add two numbers',     'Given two numbers, print the sum',     5,      (SELECT "id" FROM "users" WHERE name='JohnDarksouls'),  'VERY HARD',    timestamp '2024-03-04 10:00:00');
 
 INSERT INTO "test_cases" (problem_id, input, expected_output, is_public)
 VALUES
-(1,     'abc',      'cba',  'TRUE'),
-(1,     '123',      '321',  'FALSE'),
-(2,     '2 1',      '3',    'TRUE'),
-(2,     '10 10',    '20',   'FALSE');
+((SELECT "id" FROM "problems" WHERE title='Invert a String'),     'abc',      'cba',  'TRUE'),
+((SELECT "id" FROM "problems" WHERE title='Invert a String'),     '123',      '321',  'FALSE'),
+((SELECT "id" FROM "problems" WHERE title='Add two numbers'),     '2 1',      '3',    'TRUE'),
+((SELECT "id" FROM "problems" WHERE title='Add two numbers'),     '10 10',    '20',   'FALSE');
 
 INSERT INTO "submissions" (user_id, problem_id, time_elapsed, language_id, status, failed_test_case_id, submit_time, source_code)
 VALUES
-(1,     1,  2,  2,  'COMPILE_TIME_ERROR',    NULL,   timestamp '2024-03-07 10:00:00',    'int main2(){}'),
-(2,     2,  2,  1,  'WRONG_ANSWER',          3,      timestamp '2024-03-08 10:00:00',    'int main(){ return 0; }');
+((SELECT "id" FROM "users" WHERE name='JohnEldenRing'),     (SELECT "id" FROM "problems" WHERE title='Invert a String'),  2,  (SELECT "id" FROM "languages" WHERE name='c++'),  'COMPILE_TIME_ERROR',    NULL,                                                  timestamp '2024-03-07 10:00:00',    'int main2(){}'),
+((SELECT "id" FROM "users" WHERE name='JohnDarksouls'),     (SELECT "id" FROM "problems" WHERE title='Add two numbers'),  2,  (SELECT "id" FROM "languages" WHERE name='c'),    'WRONG_ANSWER',          (SELECT "id" FROM "test_cases" WHERE input='2 1'),     timestamp '2024-03-08 10:00:00',    'int main(){ return 0; }');
 
 INSERT INTO "competitions" (user_id, start_time, end_time, description, title)
 VALUES
-(1, timestamp '2024-04-19 8:00:00', timestamp '2024-04-19 11:00:00', 'this is a big competition', 'big competition');
+((SELECT "id" FROM "users" WHERE name='JohnEldenRing'), timestamp '2024-04-19 8:00:00', timestamp '2024-04-19 11:00:00', 'this is a big competition', 'big competition');
 
 INSERT INTO "competition_problems" (competition_id, problem_id)
 VALUES
-(1, 1),
-(1, 2);
+((SELECT "id" FROM "competitions" WHERE title='big competition'), (SELECT "id" FROM "problems" WHERE title='Invert a String')),
+((SELECT "id" FROM "competitions" WHERE title='big competition'), (SELECT "id" FROM "problems" WHERE title='Add two numbers'));
 
 INSERT INTO "competition_users" (competition_id, user_id)
 VALUES
-(1, 1),
-(1, 2);
+((SELECT "id" FROM "competitions" WHERE title='big competition'), (SELECT "id" FROM "users" WHERE name='JohnEldenRing')),
+((SELECT "id" FROM "competitions" WHERE title='big competition'), (SELECT "id" FROM "users" WHERE name='JohnDarksouls'));
 
 INSERT INTO "problem_categories" (problem_id, category_id)
 VALUES
-(1, 2),
-(1, 3),
-(2, 1),
-(2, 2);
+((SELECT "id" FROM "problems" WHERE title='Invert a String'), (SELECT "id" FROM "categories" WHERE name='Sorting')),
+((SELECT "id" FROM "problems" WHERE title='Invert a String'), (SELECT "id" FROM "categories" WHERE name='Graphs')),
+((SELECT "id" FROM "problems" WHERE title='Add two numbers'), (SELECT "id" FROM "categories" WHERE name='Graphs')),
+((SELECT "id" FROM "problems" WHERE title='Add two numbers'), (SELECT "id" FROM "categories" WHERE name='Geometry'));
