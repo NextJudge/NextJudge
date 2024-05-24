@@ -108,7 +108,8 @@ export function Navbar() {
           <NavigationMenuItem className="flex items-center justify-end gap-4">
             <ModeToggle />
             <div className="flex items-center gap-0">
-              <Link
+              <p className="text-base text-black dark:text-white">NextJudge is coming soon.</p>
+              {/* <Link
                 href="/auth/login"
                 className={cn(
                   `text-base text-black dark:text-white ${buttonVariants({
@@ -127,7 +128,7 @@ export function Navbar() {
                 )}
               >
                 Sign Up
-              </Link>
+              </Link> */}
             </div>
           </NavigationMenuItem>
         </div>

@@ -104,11 +104,10 @@ export function ContestCard({
               <PersonIcon className="mr-1 h-3 w-3" />
               <p>{contest.participants?.length} Participants</p>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center align-middle justify-center">
               <Clock className="mr-1 size-4 md:mr-2 md:size-4" />
               <p className="w-[200%] md:w-full">
-                {format(new Date(startTime), "MMM d, h:mm a")} -{" "}
-                {format(new Date(endTime), "MMM d, h:mm a")}
+                Sep 30, 5:00 PM - Oct 1, 4:59 PM
               </p>
             </div>
           </div>

@@ -1,4 +1,5 @@
 "use client";
+
 import { ContestCard } from "@/app/platform/admin/contests/contest-card";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
 import { serverRenderRecents } from "@/app/platform/problems/data/data";

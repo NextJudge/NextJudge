@@ -205,4 +205,4 @@ export const languages: Language[] = [
   },
 ];
 
-export const defaultLanguage = languages[1];
+export const defaultLanguage = languages[7];
