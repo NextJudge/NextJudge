@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Status string
 
@@ -25,7 +29,7 @@ const (
 )
 
 type User struct {
-	ID            int       `json:"id"`
+	ID            uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	Name          string    `json:"name"`
 	PasswordHash  string    `json:"password_hash"`
 	Email         string    `json:"email"`
@@ -36,58 +40,58 @@ type User struct {
 }
 
 type Category struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID   uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	Name string    `json:"name"`
 }
 
 type Problem struct {
-	ID         int        `json:"id"`
+	ID         uuid.UUID  `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	Prompt     string     `json:"prompt"`
 	Title      string     `json:"title"`
 	Timeout    int        `json:"timeout"`
 	Difficulty Difficulty `json:"difficulty"`
-	UserID     int        `json:"user_id"`
+	UserID     uuid.UUID  `json:"user_id"`
 	UploadDate time.Time  `json:"upload_date"`
 	TestCases  []TestCase `json:"test_cases,omitempty"`
 	Categories []Category `json:"categories" gorm:"many2many:problem_categories"`
 }
 
 type TestCase struct {
-	ID             int    `json:"id"`
-	ProblemID      int    `json:"problem_id"`
-	Input          string `json:"input"`
-	IsPublic       bool   `json:"is_public"`
-	ExpectedOutput string `json:"expected_output"`
+	ID             uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	ProblemID      uuid.UUID `json:"problem_id"`
+	Input          string    `json:"input"`
+	IsPublic       bool      `json:"is_public"`
+	ExpectedOutput string    `json:"expected_output"`
 }
 
 type Submission struct {
-	ID          int    `json:"id"`
-	UserID      int    `json:"user_id"`
-	ProblemID   int    `json:"problem_id"`
-	TimeElapsed int    `json:"time_elapsed"`
-	LanguageID  int    `json:"language_id"`
-	Status      Status `json:"status"`
+	ID          uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	UserID      uuid.UUID `json:"user_id"`
+	ProblemID   uuid.UUID `json:"problem_id"`
+	TimeElapsed int       `json:"time_elapsed"`
+	LanguageID  uuid.UUID `json:"language_id"`
+	Status      Status    `json:"status"`
 	// gorm does not support optional relationships, so this must be managed manually
-	FailedTestCaseID *int      `json:"failed_test_case_id,omitempty"`
-	SubmitTime       time.Time `json:"submit_time"`
-	SourceCode       string    `json:"source_code"`
+	FailedTestCaseID *uuid.UUID `json:"failed_test_case_id,omitempty"`
+	SubmitTime       time.Time  `json:"submit_time"`
+	SourceCode       string     `json:"source_code"`
 }
 
 // Competition model
 type Competition struct {
-	ID          int       `json:"id"`
+	ID          uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	StartTime   time.Time `json:"start_time"`
 	EndTime     time.Time `json:"end_time"`
 	Description string    `json:"description"`
 	Title       string    `json:"title"`
-	UserID      int       `json:"user_id"`
+	UserID      uuid.UUID `json:"user_id"`
 	Users       []User    `json:"participants,omitempty" gorm:"many2many:competition_users"`
 	Problems    []Problem `json:"problems,omitempty" gorm:"many2many:competition_problems"`
 }
 
 type Language struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	Extension string `json:"extension"`
-	Version   string `json:"version"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Extension string    `json:"extension"`
+	Version   string    `json:"version"`
 }

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"goji.io"
 	"goji.io/pat"
@@ -89,12 +89,11 @@ func getLanguages(w http.ResponseWriter, r *http.Request) {
 
 func deleteLanguage(w http.ResponseWriter, r *http.Request) {
 	languageIdParam := pat.Param(r, "language_id")
-
-	languageId, err := strconv.Atoi(languageIdParam)
+	languageId, err := uuid.Parse(languageIdParam)
 	if err != nil {
-		logrus.WithError(err).Error("user id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"500", "message":"user id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 

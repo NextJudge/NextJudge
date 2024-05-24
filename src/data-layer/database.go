@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -17,7 +18,7 @@ type Database struct {
 type NextJudgeDB interface {
 	GetUsers() ([]User, error)
 	CreateUser(user *User) (*User, error)
-	GetUserByID(userId int) (*User, error)
+	GetUserByID(userId uuid.UUID) (*User, error)
 	GetUserByUsername(username string) (*User, error)
 	GetUserByEmail(email string) (*User, error)
 	UpdateUser(user *User) error
@@ -25,21 +26,20 @@ type NextJudgeDB interface {
 	GetCategories() ([]Category, error)
 	CreateProblem(problem *Problem) (*Problem, error)
 	GetProblems() ([]Problem, error)
-	CreateTestcase(testcase *TestCase, problemId int) (*TestCase, error)
-	GetProblemByID(problemId int) (*Problem, error)
+	GetProblemByID(problemId uuid.UUID) (*Problem, error)
 	GetProblemByTitle(title string) (*Problem, error)
 	DeleteProblem(problem *Problem) error
 	CreateSubmission(submission *Submission) (*Submission, error)
-	GetSubmission(submissionId int) (*Submission, error)
+	GetSubmission(submissionId uuid.UUID) (*Submission, error)
 	UpdateSubmission(submission *Submission) error
 	CreateLanguage(language *Language) (*Language, error)
 	GetLanguages() ([]Language, error)
 	GetLanguageByNameAndVersion(name string, version string) (*Language, error)
-	GetLanguage(id int) (*Language, error)
+	GetLanguage(id string) (*Language, error)
 	DeleteLanguage(language *Language) error
-	GetTestCase(testcaseId int) (*TestCase, error)
+	GetTestCase(testcaseId uuid.UUID) (*TestCase, error)
 	GetCompetitions() ([]Competition, error)
-	GetCompetitionByID(competitionId int) (*Competition, error)
+	GetCompetitionByID(competitionId uuid.UUID) (*Competition, error)
 	GetCompetitionByTitle(title string) (*Competition, error)
 	CreateCompetition(competition *Competition) (*Competition, error)
 	UpdateCompetition(competition *Competition) error
@@ -74,7 +74,7 @@ func (d *Database) GetUsers() ([]User, error) {
 	return users, nil
 }
 
-func (d *Database) GetUserByID(userId int) (*User, error) {
+func (d *Database) GetUserByID(userId uuid.UUID) (*User, error) {
 	user := &User{}
 	err := db.NextJudgeDB.First(user, userId).Error
 	if err != nil {
@@ -135,7 +135,7 @@ func (d *Database) GetCategories() ([]Category, error) {
 	return categories, nil
 }
 
-func (d *Database) GetCategoryByID(categoryId int) (*Category, error) {
+func (d *Database) GetCategoryByID(categoryId uuid.UUID) (*Category, error) {
 	category := &Category{}
 	err := d.NextJudgeDB.Model(&Category{}).First(category, categoryId).Error
 	if err != nil {
@@ -164,7 +164,7 @@ func (d *Database) GetProblems() ([]Problem, error) {
 	return problems, nil
 }
 
-func (d *Database) GetProblemByID(problemId int) (*Problem, error) {
+func (d *Database) GetProblemByID(problemId uuid.UUID) (*Problem, error) {
 	problem := &Problem{}
 	err := d.NextJudgeDB.Model(&Problem{}).Preload("Categories").Preload("TestCases").First(problem, problemId).Error
 	if err != nil {
@@ -205,7 +205,7 @@ func (d *Database) CreateSubmission(submission *Submission) (*Submission, error)
 	return submission, nil
 }
 
-func (d *Database) GetSubmission(submissionId int) (*Submission, error) {
+func (d *Database) GetSubmission(submissionId uuid.UUID) (*Submission, error) {
 	submission := &Submission{}
 	err := db.NextJudgeDB.First(submission, submissionId).Error
 	if err != nil {
@@ -254,7 +254,7 @@ func (d *Database) GetLanguageByNameAndVersion(name string, version string) (*La
 	return language, nil
 }
 
-func (d *Database) GetLanguage(id int) (*Language, error) {
+func (d *Database) GetLanguage(id uuid.UUID) (*Language, error) {
 	language := &Language{}
 	err := db.NextJudgeDB.First(language, id).Error
 	if err != nil {
@@ -274,7 +274,7 @@ func (d *Database) DeleteLanguage(language *Language) error {
 	return nil
 }
 
-func (d *Database) GetTestCase(testcaseId int) (*TestCase, error) {
+func (d *Database) GetTestCase(testcaseId uuid.UUID) (*TestCase, error) {
 	testCase := &TestCase{}
 	err := db.NextJudgeDB.First(testCase, testcaseId).Error
 	if err != nil {
@@ -295,7 +295,7 @@ func (d *Database) GetCompetitions() ([]Competition, error) {
 	return competitions, nil
 }
 
-func (d *Database) GetCompetitionByID(competitionId int) (*Competition, error) {
+func (d *Database) GetCompetitionByID(competitionId uuid.UUID) (*Competition, error) {
 	competition := &Competition{}
 	err := db.NextJudgeDB.Preload("Problems").Preload("Users").First(competition, competitionId).Error
 	if err != nil {

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"goji.io"
 	"goji.io/pat"
@@ -22,16 +22,16 @@ func addCompetitionsRoutes(mux *goji.Mux) {
 }
 
 type PostCompetitionRequestBody struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	StartTime   string `json:"start_time"`
-	EndTime     string `json:"end_time"`
-	UserID      int    `json:"user_id"`
-	ProblemIDs  []int  `json:"problem_ids"`
+	Title       string      `json:"title"`
+	Description string      `json:"description"`
+	StartTime   string      `json:"start_time"`
+	EndTime     string      `json:"end_time"`
+	UserID      uuid.UUID   `json:"user_id"`
+	ProblemIDs  []uuid.UUID `json:"problem_ids"`
 }
 
 type PostCompetitionParticipantRequestBody struct {
-	UserID int `json:"user_id"`
+	UserID uuid.UUID `json:"user_id"`
 }
 
 func getCompetitions(w http.ResponseWriter, r *http.Request) {
@@ -54,12 +54,11 @@ func getCompetitions(w http.ResponseWriter, r *http.Request) {
 
 func getCompetition(w http.ResponseWriter, r *http.Request) {
 	competitionIdParam := pat.Param(r, "competition_id")
-
-	competitionId, err := strconv.Atoi(competitionIdParam)
+	competitionId, err := uuid.Parse(competitionIdParam)
 	if err != nil {
-		logrus.WithError(err).Error("competition id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"500", "message":"competition id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 
@@ -215,12 +214,11 @@ func postCompetition(w http.ResponseWriter, r *http.Request) {
 
 func deleteCompetition(w http.ResponseWriter, r *http.Request) {
 	competitionIdParam := pat.Param(r, "competition_id")
-
-	competitionId, err := strconv.Atoi(competitionIdParam)
+	competitionId, err := uuid.Parse(competitionIdParam)
 	if err != nil {
-		logrus.WithError(err).Error("competition id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"500", "message":"competition id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 
@@ -260,12 +258,11 @@ func addParticipant(w http.ResponseWriter, r *http.Request) {
 	}
 
 	competitionIdParam := pat.Param(r, "competition_id")
-
-	competitionId, err := strconv.Atoi(competitionIdParam)
+	competitionId, err := uuid.Parse(competitionIdParam)
 	if err != nil {
-		logrus.WithError(err).Error("competition id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"500", "message":"competition id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 

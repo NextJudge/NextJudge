@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"goji.io"
 	"goji.io/pat"
@@ -25,13 +25,13 @@ func addProblemRoutes(mux *goji.Mux) {
 }
 
 type PostProblemRequestBody struct {
-	Prompt      string     `json:"prompt"`
-	Title       string     `json:"title"`
-	Timeout     int        `json:"timeout"`
-	Difficulty  Difficulty `json:"difficulty"`
-	UserID      int        `json:"user_id"`
-	TestCases   []TestCase `json:"test_cases"`
-	CategoryIds []int      `json:"category_ids"`
+	Prompt      string      `json:"prompt"`
+	Title       string      `json:"title"`
+	Timeout     int         `json:"timeout"`
+	Difficulty  Difficulty  `json:"difficulty"`
+	UserID      uuid.UUID   `json:"user_id"`
+	TestCases   []TestCase  `json:"test_cases"`
+	CategoryIds []uuid.UUID `json:"category_ids"`
 }
 
 func getCategories(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +150,7 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if cfg.ElasticEnabled {
-		res, err := es.Index(cfg.ElasticIndex, strings.NewReader(string(doc)), es.Index.WithDocumentID(strconv.Itoa(dbProblem.ID)))
+		res, err := es.Index(cfg.ElasticIndex, strings.NewReader(string(doc)), es.Index.WithDocumentID(dbProblem.ID.String()))
 		if err != nil {
 			logrus.WithError(err).Error("error adding problem")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -179,11 +179,11 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 
 func getProblem(w http.ResponseWriter, r *http.Request) {
 	problemIdParam := pat.Param(r, "problem_id")
-	problemId, err := strconv.Atoi(problemIdParam)
+	problemId, err := uuid.Parse(problemIdParam)
 	if err != nil {
-		logrus.WithError(err).Error("problem id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"500", "message":"problem id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 
@@ -263,14 +263,15 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 		hits := result["hits"].(map[string]interface{})["hits"].([]interface{})
 		for _, hit := range hits {
 			doc := hit.(map[string]interface{})
-			id, err := strconv.Atoi(doc["_id"].(string))
+			id := doc["_id"].(string)
+			problemId, err := uuid.Parse(id)
 			if err != nil {
-				logrus.WithError(err).Error("error parsing id from elastic index")
+				logrus.Warn("bad uuid")
 				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprint(w, `{"code":"500", "message":"error parsing id from elastic index"}`)
+				fmt.Fprint(w, `{"code":"500", "message":"bad uuid"}`)
 				return
 			}
-			problem, err := db.GetProblemByID(id)
+			problem, err := db.GetProblemByID(problemId)
 			if err != nil {
 				logrus.WithError(err).WithField("problem_id", id).Error("error getting problem")
 				w.WriteHeader(http.StatusInternalServerError)
@@ -295,12 +296,11 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 
 func deleteProblem(w http.ResponseWriter, r *http.Request) {
 	problemIdParam := pat.Param(r, "problem_id")
-
-	problemId, err := strconv.Atoi(problemIdParam)
+	problemId, err := uuid.Parse(problemIdParam)
 	if err != nil {
-		logrus.WithError(err).Error("problem id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"500", "message":"problem id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 
@@ -327,7 +327,7 @@ func deleteProblem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if cfg.ElasticEnabled {
-		res, err := es.Delete(cfg.ElasticIndex, strconv.Itoa(problemId))
+		res, err := es.Delete(cfg.ElasticIndex, problemId.String())
 		defer res.Body.Close()
 		if res.IsError() {
 			logrus.WithError(err).Error("error deleting problem from elastic search")
