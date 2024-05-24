@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"goji.io"
 	"goji.io/pat"
@@ -150,12 +150,11 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 
 func getUser(w http.ResponseWriter, r *http.Request) {
 	userIdParam := pat.Param(r, "user_id")
-
-	userId, err := strconv.Atoi(userIdParam)
+	userId, err := uuid.Parse(userIdParam)
 	if err != nil {
-		logrus.WithError(err).Error("user id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"500", "message":"user id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 
@@ -185,11 +184,11 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 
 func updateUser(w http.ResponseWriter, r *http.Request) {
 	userIdParam := pat.Param(r, "user_id")
-	userId, err := strconv.Atoi(userIdParam)
+	userId, err := uuid.Parse(userIdParam)
 	if err != nil {
-		logrus.Warn("user id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"user id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 
@@ -269,12 +268,11 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
 	userIdParam := pat.Param(r, "user_id")
-
-	userId, err := strconv.Atoi(userIdParam)
+	userId, err := uuid.Parse(userIdParam)
 	if err != nil {
-		logrus.WithError(err).Error("user id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"500", "message":"user id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 

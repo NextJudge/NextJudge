@@ -35,7 +35,8 @@ CREATE TABLE sessions
 );
 
 -- NextJudge Tables
-
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TYPE status AS ENUM(
   'ACCEPTED',
   'WRONG_ANSWER',
@@ -55,7 +56,7 @@ CREATE TYPE difficulty as ENUM(
 );
 
 CREATE TABLE "users" (
-  "id" SERIAL PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "password_hash" varchar,
   "email" varchar(255) NOT NULL UNIQUE,
   "name" varchar(255) NOT NULL UNIQUE,
@@ -66,7 +67,7 @@ CREATE TABLE "users" (
 );
 
 CREATE TABLE "problems" (
-  "id" SERIAL PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "title" varchar NOT NULL UNIQUE,
   "prompt" varchar NOT NULL,
   "timeout" integer NOT NULL,
@@ -76,7 +77,7 @@ CREATE TABLE "problems" (
 );
 
 CREATE TABLE "submissions" (
-  "id" SERIAL PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "user_id" integer NOT NULL,
   "problem_id" integer NOT NULL,
   "time_elapsed" integer NOT NULL,
@@ -88,7 +89,7 @@ CREATE TABLE "submissions" (
 );
 
 CREATE TABLE "test_cases" (
-  "id" SERIAL PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "is_public" boolean NOT NULL,
   "problem_id" integer NOT NULL,
   "input" varchar NOT NULL,
@@ -96,7 +97,7 @@ CREATE TABLE "test_cases" (
 );
 
 CREATE TABLE "competitions" (
-  "id" SERIAL PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "user_id" integer NOT NULL,
   "start_time" timestamp NOT NULL,
   "end_time" timestamp NOT NULL,
@@ -117,14 +118,14 @@ CREATE TABLE "competition_users" (
 );
 
 CREATE TABLE "languages" (
-  "id" SERIAL PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "name" varchar NOT NULL,
   "extension" varchar NOT NULL,
   "version" varchar NOT NULL
 );
 
 CREATE TABLE "categories" (
-  "id" SERIAL PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "name" varchar NOT NULL
 );
 

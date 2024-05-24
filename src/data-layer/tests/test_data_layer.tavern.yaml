@@ -133,7 +133,7 @@ stages:
         content-type: application/json
       status_code: 200
       json:
-        id: !int "{user_id}"
+        id: "{user_id}"
         name: "{test_username}"
         is_admin: false
 
@@ -160,7 +160,7 @@ stages:
         content-type: application/json
       status_code: 200
       json:
-        - id: !int "{user_id}"
+        - id: "{user_id}"
           name: "{test_username}"
           is_admin: false
 
@@ -173,7 +173,7 @@ stages:
         content-type: application/json
       status_code: 200
       json:
-        - id: !int "{user_id}"
+        - id: "{user_id}"
           name: "{test_username}"
           is_admin: false
 
@@ -222,7 +222,7 @@ stages:
         content-type: application/json
       status_code: 200
       json:
-        id: !int "{user_id}"
+        id: "{user_id}"
         name: "{test_username}"
         is_admin: true
 
@@ -281,7 +281,7 @@ stages:
       url: "{host}/v1/problems"
       method: POST
       json:
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         prompt: "solve the problem"
         title: "{test_problem}"
         difficulty: "EASY"
@@ -321,7 +321,7 @@ stages:
       url: "{host}/v1/problems"
       method: POST
       json:
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         prompt: "solve the problem"
         title: "{test_problem}"
         difficulty: "EASY"
@@ -336,7 +336,7 @@ stages:
         content-type: application/json
       status_code: 201
       json:
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         prompt: "solve the problem"
         title: "{test_problem}"
         test_cases:
@@ -354,7 +354,7 @@ stages:
       url: "{host}/v1/problems"
       method: POST
       json:
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         difficulty: "EASY"
         prompt: "solve the problem"
         title: "{test_problem}"
@@ -374,7 +374,7 @@ stages:
       url: "{host}/v1/problems"
       method: POST
       json:
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         prompt: "solve the harder problem"
         difficulty: "HARD"
         title: "{test_problem_2}"
@@ -412,7 +412,7 @@ stages:
         content-type: application/json
       status_code: 200
       json:
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         prompt: "solve the problem"
         title: "{test_problem}"
         test_cases:
@@ -430,7 +430,7 @@ stages:
         content-type: application/json
       status_code: 200
       json:
-        - user_id: !int "{user_id}"
+        - user_id: "{user_id}"
           prompt: "solve the problem"
           title: "{test_problem}"
 
@@ -441,10 +441,10 @@ stages:
       url: "{host}/v1/submissions"
       method: POST
       json:
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         problem_id: 99999
         time_elapsed: 1
-        language_id: !int "{language_id}"
+        language_id: "{language_id}"
         source_code: "int main"
     response:
       headers:
@@ -457,9 +457,9 @@ stages:
       method: POST
       json:
         user_id: 99999
-        problem_id: !int "{problem_id}"
+        problem_id: "{problem_id}"
         time_elapsed: 1
-        language_id: !int "{language_id}"
+        language_id: "{language_id}"
         source_code: "int main"
     response:
       headers:
@@ -471,8 +471,8 @@ stages:
       url: "{host}/v1/submissions"
       method: POST
       json:
-        user_id: !int "{user_id}"
-        problem_id: !int "{problem_id}"
+        user_id: "{user_id}"
+        problem_id: "{problem_id}"
         time_elapsed: 1
         language_id: 99999
         source_code: "int main"
@@ -486,20 +486,20 @@ stages:
       url: "{host}/v1/submissions"
       method: POST
       json:
-        user_id: !int "{user_id}"
-        problem_id: !int "{problem_id}"
+        user_id: "{user_id}"
+        problem_id: "{problem_id}"
         time_elapsed: 1
-        language_id: !int "{language_id}"
+        language_id: "{language_id}"
         source_code: "int main"
     response:
       headers:
         content-type: application/json
       status_code: 201
       json:
-        user_id: !int "{user_id}"
-        problem_id: !int "{problem_id}"
+        user_id: "{user_id}"
+        problem_id: "{problem_id}"
         time_elapsed: 1
-        language_id: !int "{language_id}"
+        language_id: "{language_id}"
         status: "PENDING"
         source_code: "int main"
       save:
@@ -514,11 +514,11 @@ stages:
       headers:
         content-type: application/json
       json:
-        id: !int "{submission_id}"
-        user_id: !int "{user_id}"
-        problem_id: !int "{problem_id}"
+        id: "{submission_id}"
+        user_id: "{user_id}"
+        problem_id: "{problem_id}"
         time_elapsed: 1
-        language_id: !int "{language_id}"
+        language_id: "{language_id}"
         status: "PENDING"
         source_code: "int main"
       status_code: 200
@@ -540,7 +540,7 @@ stages:
       method: PATCH
       json:
         status: "TIME_LIMIT_EXCEEDED"
-        failed_test_case_id: !int "{test_case_id}"
+        failed_test_case_id: "{test_case_id}"
     response:
       headers:
         content-type: application/json
@@ -552,7 +552,7 @@ stages:
       method: PATCH
       json:
         status: "WRONG_ANSWER"
-        failed_test_case_id: !int "{test_case_id_2}"
+        failed_test_case_id: "{test_case_id_2}"
     response:
       headers:
         content-type: application/json
@@ -576,7 +576,7 @@ stages:
       method: PATCH
       json:
         status: "WRONG_ANSWER"
-        failed_test_case_id: !int "{test_case_id}"
+        failed_test_case_id: "{test_case_id}"
     response:
       headers:
         content-type: application/json
@@ -590,13 +590,13 @@ stages:
       headers:
         content-type: application/json
       json:
-        id: !int "{submission_id}"
-        user_id: !int "{user_id}"
-        problem_id: !int "{problem_id}"
+        id: "{submission_id}"
+        user_id: "{user_id}"
+        problem_id: "{problem_id}"
         time_elapsed: 1
-        language_id: !int "{language_id}"
+        language_id: "{language_id}"
         status: "WRONG_ANSWER"
-        failed_test_case_id: !int "{test_case_id}"
+        failed_test_case_id: "{test_case_id}"
         source_code: "int main"
       status_code: 200
 
@@ -626,7 +626,7 @@ stages:
       json:
         title: "test competition"
         description: "this is a test competition"
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         start_time: "{five_minutes_ago}"
         end_time: "{ten_minutes_from_now}"
         problem_ids:
@@ -643,7 +643,7 @@ stages:
       json:
         title: "test competition"
         description: "this is a test competition"
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         start_time: "{ten_minutes_from_now}"
         end_time: "{five_minutes_from_now}"
         problem_ids:
@@ -659,7 +659,7 @@ stages:
       method: POST
       json:
         description: "this is a test competition"
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         start_time: "{ten_minutes_from_now}"
         end_time: "{five_minutes_from_now}"
         problem_ids:
@@ -676,7 +676,7 @@ stages:
       json:
         title: "test competition"
         description: "this is a test competition"
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         start_time: "{five_minutes_from_now}"
         end_time: "{ten_minutes_from_now}"
         problem_ids:
@@ -693,7 +693,7 @@ stages:
       json:
         title: "test competition"
         description: "this is a test competition"
-        user_id: !int "{user_id}"
+        user_id: "{user_id}"
         start_time: "{five_minutes_from_now}"
         end_time: "{ten_minutes_from_now}"
         problem_ids:
@@ -712,7 +712,7 @@ stages:
       url: "{host}/v1/competitions/99999/participants"
       method: POST
       json:
-        user_id: !int "{user_id_2}"
+        user_id: "{user_id_2}"
     response:
       headers:
         content-type: application/json
@@ -734,7 +734,7 @@ stages:
       url: "{host}/v1/competitions/{competition_id}/participants"
       method: POST
       json:
-        user_id: !int "{user_id_2}"
+        user_id: "{user_id_2}"
     response:
       headers:
         content-type: application/json
@@ -758,16 +758,16 @@ stages:
         content-type: application/json
       status_code: 200
       json:
-        id: !int "{competition_id}"
+        id: "{competition_id}"
         title: "test competition"
         description: "this is a test competition"
         start_time: "{five_minutes_from_now}"
         end_time: "{ten_minutes_from_now}"
         participants:
-          - id: !int "{user_id_2}"
+          - id: "{user_id_2}"
         problems:
-          - id: !int "{problem_id}"
-          - id: !int "{problem_id_2}"
+          - id: "{problem_id}"
+          - id: "{problem_id_2}"
 
   - name: get all competitions
     request:
@@ -778,7 +778,7 @@ stages:
         content-type: application/json
       status_code: 200
       json:
-        - id: !int "{competition_id}"
+        - id: "{competition_id}"
           title: "test competition"
           description: "this is a test competition"
           start_time: "{five_minutes_from_now}"

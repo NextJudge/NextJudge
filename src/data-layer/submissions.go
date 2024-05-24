@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"goji.io"
 	"goji.io/pat"
@@ -19,8 +19,8 @@ func addSubmissionRoutes(mux *goji.Mux) {
 }
 
 type UpdateSubmissionStatusPatchBody struct {
-	Status           Status `json:"status"`
-	FailedTestCaseID *int   `json:"failed_test_case_id,omitempty"`
+	Status           Status     `json:"status"`
+	FailedTestCaseID *uuid.UUID `json:"failed_test_case_id,omitempty"`
 }
 
 func postSubmission(w http.ResponseWriter, r *http.Request) {
@@ -106,12 +106,11 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 
 func getSubmission(w http.ResponseWriter, r *http.Request) {
 	submissionIdParam := pat.Param(r, "submission_id")
-
-	submissionId, err := strconv.Atoi(submissionIdParam)
+	submissionId, err := uuid.Parse(submissionIdParam)
 	if err != nil {
-		logrus.WithError(err).Error("submission id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"500", "message":"submission id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 
@@ -141,12 +140,11 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 
 func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 	submissionIdParam := pat.Param(r, "submission_id")
-
-	submissionId, err := strconv.Atoi(submissionIdParam)
+	submissionId, err := uuid.Parse(submissionIdParam)
 	if err != nil {
-		logrus.WithError(err).Error("submission id must be int")
+		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"500", "message":"submission id must be int"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
 
@@ -189,7 +187,7 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if reqData.FailedTestCaseID != nil && *reqData.FailedTestCaseID != 0 {
+	if reqData.FailedTestCaseID != nil {
 		testCase, err := db.GetTestCase(*reqData.FailedTestCaseID)
 		if err != nil {
 			logrus.WithError(err).Error("error checking test case's problem")
