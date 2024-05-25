@@ -89,6 +89,7 @@ CREATE TABLE "submissions" (
 
 CREATE TABLE "test_cases" (
   "id" SERIAL PRIMARY KEY,
+  "is_public" boolean NOT NULL,
   "problem_id" integer NOT NULL,
   "input" varchar NOT NULL,
   "expected_output" varchar NOT NULL

@@ -48,12 +48,12 @@ VALUES
 ('Invert a String',     'Given a string, print the reverse',    10,     1,  'EASY',         timestamp '2024-03-03 10:00:00'),
 ('Add two numbers',     'Given two numbers, print the sum',     5,      2,  'VERY HARD',    timestamp '2024-03-04 10:00:00');
 
-INSERT INTO "test_cases" (problem_id, input, expected_output)
+INSERT INTO "test_cases" (problem_id, input, expected_output, is_public)
 VALUES
-(1,     'abc',      'cba'),
-(1,     '123',      '321'),
-(2,     '2 1',      '3'),
-(2,     '10 10',    '20');
+(1,     'abc',      'cba',  'TRUE'),
+(1,     '123',      '321',  'FALSE'),
+(2,     '2 1',      '3',    'TRUE'),
+(2,     '10 10',    '20',   'FALSE');
 
 INSERT INTO "submissions" (user_id, problem_id, time_elapsed, language_id, status, failed_test_case_id, submit_time, source_code)
 VALUES
