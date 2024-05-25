@@ -11,16 +11,17 @@ import (
 )
 
 type config struct {
-	CORSOrigin      []string
-	Host            string
-	Port            int64
-	Username        string
-	Password        string
-	DBName          string
-	DBDriver        string
-	ElasticEndpoint string
-	ElasticIndex    string
-	ElasticEnabled  bool
+	CORSOrigin        []string
+	Host              string
+	Port              int64
+	Username          string
+	Password          string
+	DBName            string
+	DBDriver          string
+	ElasticEndpoint   string
+	ProblemsIndex     string
+	CompetitionsIndex string
+	ElasticEnabled    bool
 }
 
 var cfg config
@@ -100,11 +101,18 @@ func init() {
 		cfg.ElasticEndpoint = elasticEndpoint
 	}
 
-	elasticIndex := os.Getenv("ELASTIC_INDEX")
-	if elasticIndex == "" {
-		cfg.ElasticIndex = "nextjudge-problems"
+	problemsIndex := os.Getenv("PROBLEMS_INDEX")
+	if problemsIndex == "" {
+		cfg.ProblemsIndex = "nextjudge-problems"
 	} else {
-		cfg.ElasticIndex = elasticIndex
+		cfg.ProblemsIndex = problemsIndex
+	}
+
+	competitionsIndex := os.Getenv("COMPETITIONS_INDEX")
+	if competitionsIndex == "" {
+		cfg.CompetitionsIndex = "nextjudge-competitions"
+	} else {
+		cfg.CompetitionsIndex = competitionsIndex
 	}
 
 	elasticEnabled := os.Getenv("ELASTIC_ENABLED")

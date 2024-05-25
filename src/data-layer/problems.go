@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -137,31 +136,12 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	esDocument := map[string]string{
-		"Title":  dbProblem.Title,
-		"Prompt": dbProblem.Prompt,
-	}
-	doc, err := json.Marshal(esDocument)
-	if err != nil {
-		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
-		return
-	}
-
 	if cfg.ElasticEnabled {
-		res, err := es.Index(cfg.ElasticIndex, strings.NewReader(string(doc)), es.Index.WithDocumentID(dbProblem.ID.String()))
+		err = es.IndexProblem(dbProblem)
 		if err != nil {
-			logrus.WithError(err).Error("error adding problem")
+			logrus.WithError(err).Error("error adding problem to elastic search")
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error adding problem"}`)
-			return
-		}
-		defer res.Body.Close()
-		if res.IsError() {
-			logrus.WithError(err).Error("error adding problem to elastic index")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error adding problem to elastic index"}`)
+			fmt.Fprint(w, `{"code":"500", "message":"partial creation, problem not added to elastic search"}`)
 			return
 		}
 	}
@@ -237,63 +217,7 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		esQuery := `
-    	{
-    	    "query": {
-    	        "multi_match": {
-    	            "query": "%s",
-    	            "fields": ["Title", "Prompt"]
-    	        }
-    	    }
-    	}`
-		res, err := es.Search(
-			es.Search.WithContext(r.Context()),
-			es.Search.WithIndex(cfg.ElasticIndex),
-			es.Search.WithBody(strings.NewReader(fmt.Sprintf(esQuery, query))),
-		)
-		if err != nil {
-			logrus.WithError(err).Error("error getting info from elastic search")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error getting info from elastic search"}`)
-			return
-		}
-		defer res.Body.Close()
-		if res.IsError() {
-			logrus.WithError(err).Error("error getting problems from elastic index")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error getting problems from elastic index"}`)
-			return
-		}
-		var result map[string]interface{}
-		err = json.NewDecoder(res.Body).Decode(&result)
-		if err != nil {
-			logrus.WithError(err).Error("error getting problems from elastic index")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error getting problems from elastic index"}`)
-			return
-		}
-		hits := result["hits"].(map[string]interface{})["hits"].([]interface{})
-		for _, hit := range hits {
-			doc := hit.(map[string]interface{})
-			id := doc["_id"].(string)
-			problemId, err := uuid.Parse(id)
-			if err != nil {
-				logrus.Warn("bad uuid")
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprint(w, `{"code":"500", "message":"bad uuid"}`)
-				return
-			}
-			problem, err := db.GetProblemByID(problemId)
-			if err != nil {
-				logrus.WithError(err).WithField("problem_id", id).Error("error getting problem")
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprint(w, `{"code":"500", "message":"error getting problem"}`)
-				return
-			}
-			if problem != nil {
-				problems = append(problems, *problem)
-			}
-		}
+
 	}
 
 	respJSON, err := json.Marshal(problems)
@@ -339,12 +263,11 @@ func deleteProblem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if cfg.ElasticEnabled {
-		res, err := es.Delete(cfg.ElasticIndex, problemId.String())
-		defer res.Body.Close()
-		if res.IsError() {
+		err = es.DeleteProblem(problemIdParam)
+		if err != nil {
 			logrus.WithError(err).Error("error deleting problem from elastic search")
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"partial success, problem was deleted, error deleting from elastic search"}`)
+			fmt.Fprint(w, `{"code":"500", "message":"partial deletion, error deleting problem from elastic search"}`)
 			return
 		}
 	}
