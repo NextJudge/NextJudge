@@ -1,6 +1,6 @@
 
 param (
-    [string]$nojudge = "Whether or not to spin up the judge"
+    [string]$nojudge
 )
 
 if ($nojudge) {
