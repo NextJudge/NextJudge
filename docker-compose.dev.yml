@@ -27,7 +27,7 @@ services:
       service: nextjudge-data-layer
     environment:
       - ELASTIC_ENDPOINT=http://elasticsearch:9200
-      - ELASTIC_ENABLED="${ELASTIC_ENABLED}"
+      - ELASTIC_ENABLED="${ELASTIC_ENABLED:-false}"
     depends_on:
       db:
         condition: service_healthy
