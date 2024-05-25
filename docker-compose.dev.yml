@@ -27,11 +27,12 @@ services:
       service: nextjudge-data-layer
     environment:
       - ELASTIC_ENDPOINT=http://elasticsearch:9200
+      - ELASTIC_ENABLED="${ELASTIC_ENABLED}"
     depends_on:
       db:
         condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
+      # elasticsearch:
+        # condition: service_healthy
 
   db:
     extends: 
@@ -45,6 +46,7 @@ services:
     environment:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
+    profiles: [judge]
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -53,6 +55,7 @@ services:
     extends:
       file: src/data-layer/docker-compose.elasticsearch.yml
       service: elasticsearch
+    profiles: [elastic]
 
 volumes: 
   postgres_data:
