@@ -27,6 +27,7 @@ type NextJudgeDB interface {
 	CreateProblem(problem *Problem) (*Problem, error)
 	GetProblems() ([]Problem, error)
 	GetProblemByID(problemId uuid.UUID) (*Problem, error)
+	GetPublicProblemByID(problemId uuid.UUID) (*Problem, error)
 	GetProblemByTitle(title string) (*Problem, error)
 	DeleteProblem(problem *Problem) error
 	CreateSubmission(submission *Submission) (*Submission, error)
@@ -167,6 +168,18 @@ func (d *Database) GetProblems() ([]Problem, error) {
 func (d *Database) GetProblemByID(problemId uuid.UUID) (*Problem, error) {
 	problem := &Problem{}
 	err := d.NextJudgeDB.Model(&Problem{}).Preload("Categories").Preload("TestCases").First(problem, problemId).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return problem, nil
+}
+
+func (d *Database) GetPublicProblemByID(problemId uuid.UUID) (*Problem, error) {
+	problem := &Problem{}
+	err := d.NextJudgeDB.Model(&Problem{}).Preload("Categories").Preload("TestCases", "is_public = ?", true).First(problem, problemId).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
