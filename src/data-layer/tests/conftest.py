@@ -17,7 +17,7 @@ def setup_tests():
     for u in test_users: 
         endpoint = GLOBALS_YAML["host"] + "/v1/users"
         r = requests.get(endpoint, params={
-            "username": u
+            "name": u
         })
 
         if r.status_code != 404 and len(r.json()) > 0:

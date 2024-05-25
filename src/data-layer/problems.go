@@ -186,14 +186,26 @@ func getProblem(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
 		return
 	}
-
-	problem, err := db.GetProblemByID(problemId)
-	if err != nil {
-		logrus.WithError(err).Error("error retrieving problem")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
-		return
+	problem := &Problem{}
+	query := r.URL.Query().Get("type")
+	if query == "private" {
+		problem, err = db.GetProblemByID(problemId)
+		if err != nil {
+			logrus.WithError(err).Error("error retrieving problem")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+			return
+		}
+	} else {
+		problem, err = db.GetPublicProblemByID(problemId)
+		if err != nil {
+			logrus.WithError(err).Error("error retrieving problem")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+			return
+		}
 	}
+
 	if problem == nil {
 		logrus.Warn("problem not found")
 		w.WriteHeader(http.StatusNotFound)

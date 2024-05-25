@@ -77,7 +77,6 @@ type Submission struct {
 	SourceCode       string     `json:"source_code"`
 }
 
-// Competition model
 type Competition struct {
 	ID          uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	StartTime   time.Time `json:"start_time"`
@@ -90,7 +89,7 @@ type Competition struct {
 }
 
 type Language struct {
-	ID        uuid.UUID `json:"id"`
+	ID        uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	Name      string    `json:"name"`
 	Extension string    `json:"extension"`
 	Version   string    `json:"version"`

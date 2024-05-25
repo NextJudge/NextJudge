@@ -187,7 +187,9 @@ Response Body:
 }
 ```
 
-#### GET /v1/problems/{problem_id}
+#### GET /v1/problems/{problem_id}?type=private
+
+This endpoint contains the optional query parameter `private` that allows you to retrieve private test cases.
 
 Response Body:
 

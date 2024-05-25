@@ -1,6 +1,8 @@
 src/data-layer/bin
 src/bridge/app/bun.lockb
 src/data-layer/main
+src/data-layer/query.sql
+src/data-layer/Pipfile.lock
 .env
 .DS_Store
 .vscode
