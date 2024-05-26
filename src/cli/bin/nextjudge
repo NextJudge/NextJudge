@@ -185,6 +185,26 @@ class Language(TypedDict):
     extension: str
 
 
+class User(TypedDict):
+    id: str
+    name: str
+    email: str
+
+def get_test_user_id(endpoint: str) -> str | None:
+
+    try:
+        users = requests.get(f"{endpoint}/v1/users")
+        real_users: list[User] = users.json()
+        return real_users[0]['id']
+    except:
+        print(f"Failed to connect to {endpoint}")
+        return None
+    
+
+
+
+
+
 def get_languages(endpoint: str) -> list[Language] | None:
     
     try:
@@ -243,11 +263,12 @@ def send_solution(sol_path: str, problem_id: int | None, host: str, port: str) -
         print("Could not map the file to a language (based on extension)")
         return None
 
+    id = get_test_user_id(f"http://{host}:5000")
 
     submit = requests.post(
         f"{BRIDGE_ENDPOINT}/submission",
         json = {
-            "user_id": 1,
+            "user_id": id,
             "source_code": source_code,
             "language_id": language_id,
             "problem_id": problem_id
