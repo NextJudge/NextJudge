@@ -15,6 +15,7 @@ import (
 func addSubmissionRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/submissions"), postSubmission)
 	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id"), getSubmission)
+	mux.HandleFunc(pat.Get("/v1/user_submissions/:user_id"), getSubmissionsForUser)
 	mux.HandleFunc(pat.Patch("/v1/submissions/:submission_id"), updateSubmissionStatus)
 }
 
@@ -179,11 +180,29 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if (reqData.Status != WrongAnswer && reqData.FailedTestCaseID != nil) ||
-		(reqData.Status == WrongAnswer && reqData.FailedTestCaseID == nil) {
-		logrus.Warn("status must be WRONG_ANSWER if and only if there is a failed test case")
+	if !(reqData.Status == Accepted ||
+		reqData.Status == WrongAnswer ||
+		reqData.Status == TimeLimitExceeded ||
+		reqData.Status == MemoryLimitExceeded ||
+		reqData.Status == RuntimeError ||
+		reqData.Status == CompileTimeError) {
+		logrus.Warn("unsupported status")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"status must be WRONG_ANSWER if and only if there is a failed test case"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"unsupported status for PATCH"}`)
+		return
+	}
+
+	if (reqData.FailedTestCaseID != nil &&
+		!(reqData.Status == WrongAnswer ||
+			reqData.Status == TimeLimitExceeded ||
+			reqData.Status == MemoryLimitExceeded ||
+			reqData.Status == RuntimeError)) ||
+		(reqData.FailedTestCaseID == nil &&
+			!(reqData.Status == Accepted ||
+				reqData.Status == CompileTimeError)) {
+		logrus.Warn("must have a failed test cases if and only if the status is a non-compile failure")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"must have a failed test cases if and only if the status is a non-compile failure"}`)
 		return
 	}
 
@@ -226,4 +245,46 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func getSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
+	userIdParam := pat.Param(r, "user_id")
+	userId, err := uuid.Parse(userIdParam)
+	if err != nil {
+		logrus.Warn("bad uuid")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		return
+	}
+
+	user, err := db.GetUserByID(userId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving user")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving user"}`)
+		return
+	}
+	if user == nil {
+		logrus.WithError(err).Warn("user not found")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"user not found"}`)
+		return
+	}
+
+	submissions, err := db.GetSubmissionsByUserID(userId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving submissions")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving user"}`)
+		return
+	}
+
+	respJSON, err := json.Marshal(submissions)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
 }

@@ -14,7 +14,7 @@ const (
 	WrongAnswer         Status = "WRONG_ANSWER"
 	TimeLimitExceeded   Status = "TIME_LIMIT_EXCEEDED"
 	MemoryLimitExceeded Status = "MEMORY_LIMIT_EXCEEDED"
-	RuntimError         Status = "RUNTIME_ERROR"
+	RuntimeError        Status = "RUNTIME_ERROR"
 	CompileTimeError    Status = "COMPILE_TIME_ERROR"
 )
 

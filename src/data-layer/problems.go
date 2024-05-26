@@ -217,7 +217,13 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-
+		problems, err = es.SearchProblems(r.Context(), query)
+		if err != nil {
+			logrus.WithError(err).Error("error retrieving problems from es")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems from es"}`)
+			return
+		}
 	}
 
 	respJSON, err := json.Marshal(problems)

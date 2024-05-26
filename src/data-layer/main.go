@@ -37,6 +37,10 @@ func main() {
 			logrus.WithError(err).Error("error creating elastic search client")
 			os.Exit(1)
 		}
+		if es == nil {
+			logrus.WithError(err).Error("error creating elastic search client")
+			os.Exit(1)
+		}
 	}
 
 	mux := goji.NewMux()
@@ -50,7 +54,6 @@ func main() {
 	mux.Use(JSONMiddleware)
 	mux.Use(c.Handler)
 
-	// TODO: Add automated API tests
 	addUserRoutes(mux)
 	addProblemRoutes(mux)
 	addSubmissionRoutes(mux)
