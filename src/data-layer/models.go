@@ -68,7 +68,7 @@ type Submission struct {
 	ID          uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	UserID      uuid.UUID `json:"user_id"`
 	ProblemID   uuid.UUID `json:"problem_id"`
-	TimeElapsed int       `json:"time_elapsed"`
+	TimeElapsed float32   `json:"time_elapsed"`
 	LanguageID  uuid.UUID `json:"language_id"`
 	Status      Status    `json:"status"`
 	// gorm does not support optional relationships, so this must be managed manually

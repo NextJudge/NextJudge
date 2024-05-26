@@ -80,7 +80,7 @@ CREATE TABLE "submissions" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "user_id" UUID NOT NULL,
   "problem_id" UUID NOT NULL,
-  "time_elapsed" integer NOT NULL,
+  "time_elapsed" float NOT NULL,
   "language_id" UUID NOT NULL,
   "status" status NOT NULL,
   "failed_test_case_id" UUID,

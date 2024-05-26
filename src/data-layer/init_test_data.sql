@@ -57,8 +57,8 @@ VALUES
 
 INSERT INTO "submissions" (user_id, problem_id, time_elapsed, language_id, status, failed_test_case_id, submit_time, source_code)
 VALUES
-((SELECT "id" FROM "users" WHERE name='JohnEldenRing'),     (SELECT "id" FROM "problems" WHERE title='Invert a String'),  2,  (SELECT "id" FROM "languages" WHERE name='c++'),  'COMPILE_TIME_ERROR',    NULL,                                                  timestamp '2024-03-07 10:00:00',    'int main2(){}'),
-((SELECT "id" FROM "users" WHERE name='JohnDarksouls'),     (SELECT "id" FROM "problems" WHERE title='Add two numbers'),  2,  (SELECT "id" FROM "languages" WHERE name='c'),    'WRONG_ANSWER',          (SELECT "id" FROM "test_cases" WHERE input='2 1'),     timestamp '2024-03-08 10:00:00',    'int main(){ return 0; }');
+((SELECT "id" FROM "users" WHERE name='JohnEldenRing'),     (SELECT "id" FROM "problems" WHERE title='Invert a String'),  2.0,  (SELECT "id" FROM "languages" WHERE name='c++'),  'COMPILE_TIME_ERROR',    NULL,                                                  timestamp '2024-03-07 10:00:00',    'int main2(){}'),
+((SELECT "id" FROM "users" WHERE name='JohnDarksouls'),     (SELECT "id" FROM "problems" WHERE title='Add two numbers'),  0.04,  (SELECT "id" FROM "languages" WHERE name='c'),    'WRONG_ANSWER',          (SELECT "id" FROM "test_cases" WHERE input='2 1'),     timestamp '2024-03-08 10:00:00',    'int main(){ return 0; }');
 
 INSERT INTO "competitions" (user_id, start_time, end_time, description, title)
 VALUES

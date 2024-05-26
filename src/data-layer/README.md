@@ -13,7 +13,7 @@ Response body:
 ```json
 [
     {
-        "id": "1",
+        "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
         "name": "joe",
         "is_admin": true,
         "email": "joebiden@usa.gov",
@@ -40,7 +40,7 @@ Response Body:
 
 ```json
 {
-    "id": "1",
+    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "image": "linktoimage.com/joe.png",
     "name": "joe",
     "is_admin": true,
@@ -54,7 +54,7 @@ Response Body:
 
 ```json
 {
-    "id": "1",
+    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "image": "linktoimage.com/joe.png",
     "name": "joe",
     "is_admin": true,
@@ -85,7 +85,7 @@ Response Body:
 
 ```json
 {
-    "id": "1",
+    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "name": "joe",
     "email": "joebiden@usa.gov",
     "is_admin": true,
@@ -102,7 +102,7 @@ Response Body:
 ```json
 [
     {
-        "id": 1,
+        "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
         "name": "Sorting"
     },
 ]
@@ -115,23 +115,23 @@ Response Body:
 ```json
 [
     {
-        "id": 1,
+        "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
         "prompt": "this is a problem",
         "title": "otso's problem",
-        "timeout": 10,
-        "user_id": 1,
+        "timeout": 0,
+        "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
         "upload_date": "2024-02-14T06:26:55.12794Z",
         "test_cases": [
             {
                 "is_public": false,
-                "id": 1,
+                "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                 "input": "abc",
                 "expected_output": "cba"
             },
         ],
         "categories": [
             {
-                "id": 1,
+                "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                 "name": "Sorting"
             },
         ]
@@ -147,8 +147,8 @@ Request Body:
 {
     "prompt": "this is a problem",
     "title": "otso's problem",
-    "timeout": 10,
-    "user_id": 1,
+    "timeout": 0,
+    "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "test_cases": [
         {
             "is_public": false,
@@ -164,15 +164,15 @@ Response Body:
 
 ```json
 {
-    "id": 1,
+    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "prompt": "this is a problem",
     "title": "otso's problem",
-    "timeout": 10,
-    "user_id": 1,
+    "timeout": 0,
+    "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "upload_date": "2024-02-14T06:26:55.12794Z",
     "test_cases": [
         {
-            "id": 1,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "is_public": false,
             "input": "abc",
             "expected_output": "cba"
@@ -180,7 +180,7 @@ Response Body:
     ],
     "categories": [
         {
-            "id": 1,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "name": "Sorting"
         },
     ]
@@ -195,15 +195,15 @@ Response Body:
 
 ```json
 {
-    "id": 1,
+    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "prompt": "this is a problem",
     "title": "otso's problem",
-    "timeout": 10,
-    "user_id": 1,
+    "timeout": 0,
+    "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "upload_date": "2024-02-14T06:26:55.12794Z",
     "test_cases": [
         {
-            "id": 1,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "is_public": false,
             "input": "abc",
             "expected_output": "cba"
@@ -211,7 +211,7 @@ Response Body:
     ],
     "categories": [
         {
-            "id": 1,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "name": "Sorting"
         },
     ]
@@ -230,9 +230,9 @@ Request Body:
 
 ```json
 {
-    "user_id": 1,
-    "problem_id": 1,
-    "language_id": 1,
+    "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+    "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+    "language_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "source_code": "int main() { return 0 }"
 }
 ```
@@ -241,11 +241,11 @@ Response Body:
 
 ```json
 {
-    "id": 10,
-    "user_id": 1,
-    "problem_id": 1,
+    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d"0,
+    "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+    "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "time_elapsed": 0,
-    "language_id": 1,
+    "language_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "status": "PENDING",
     "submit_time": "2024-03-02T02:39:19.564713178Z",
     "source_code": "int main() { return 0 }"
@@ -259,7 +259,7 @@ Request Body
 ```json
 {
     "status": "WRONG_ANSWER",
-    "failed_test_case_id": 1
+    "failed_test_case_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d"
 }
 ```
 
@@ -269,17 +269,38 @@ Response Body:
 
 ```json
 {
-    "id": 11,
-    "user_id": 1,
-    "problem_id": 1,
+    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+    "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+    "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "time_elapsed": 0,
-    "language_id": 1,
+    "language_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "status": "WRONG_ANSWER",
-    "failed_test_case_id": 2,
+    "failed_test_case_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "submit_time": "2024-03-02T02:45:09.603556Z",
     "source_code": "int main 5"
 }
 ```
+
+#### GET /v1/user_submissions/{user_id}
+
+Response Body:
+
+```json
+[
+    {
+        "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+        "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+        "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+        "time_elapsed": 0,
+        "language_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+        "status": "WRONG_ANSWER",
+        "failed_test_case_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+        "submit_time": "2024-03-02T02:45:09.603556Z",
+        "source_code": "int main 5"
+    },
+]
+```
+
 
 ### Languages
 
@@ -322,12 +343,12 @@ Response Body:
 ```json
 [
     {
-        "id": 1,
+        "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
         "start_time": "2024-04-19T08:00:00Z",
         "end_time": "2024-04-19T11:00:00Z",
         "description": "this is a big competition",
         "title": "big competition",
-        "user_id": 1,
+        "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     },
 ]
 ```
@@ -342,8 +363,8 @@ Request Body:
     "description": "woah dude",
     "start_time": "2024-05-19T20:30:00Z",
     "end_time": "2024-05-20T20:30:00Z",
-    "user_id": 1,
-    "problem_ids": [1, 2]
+    "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+    "problem_ids": ["72ca26bb-15e9-4acd-a56c-f1b44fb9519d"]
 }
 ```
 
@@ -351,55 +372,54 @@ Response Body:
 
 ```json
 {
-    "id": 2,
+    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "start_time": "2024-05-19T20:30:00Z",
     "end_time": "2024-05-20T20:30:00Z",
     "description": "woah dude",
     "title": "jordans new comp",
-    "user_id": 1,
-    "participants": null, // will always be null on POST
+    "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "problems": [
         {
-            "id": 1,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "prompt": "Given a string, print the reverse",
             "title": "Invert a String",
-            "timeout": 10,
-            "user_id": 1,
+            "timeout": 0,
+            "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "upload_date": "2024-03-03T10:00:00Z",
             "test_cases": [
                 {
-                    "id": 1,
+                    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                     "is_public": false,
-                    "problem_id": 1,
+                    "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                     "input": "abc",
                     "expected_output": "cba"
                 },
                 {
-                    "id": 2,
-                    "problem_id": 1,
+                    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+                    "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                     "input": "123",
                     "expected_output": "321"
                 }
             ]
         },
         {
-            "id": 2,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "prompt": "Given two numbers, print the sum",
             "title": "Add two numbers",
             "timeout": 5,
-            "user_id": 2,
+            "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "upload_date": "2024-03-04T10:00:00Z",
             "test_cases": [
                 {
-                    "id": 3,
+                    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                     "is_public": false,
-                    "problem_id": 2,
+                    "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                     "input": "2 1",
                     "expected_output": "3"
                 },
                 {
-                    "id": 4,
-                    "problem_id": 2,
+                    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
+                    "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                     "input": "10 10",
                     "expected_output": "20"
                 }
@@ -415,27 +435,27 @@ Response Body:
 
 ```json
 {
-    "id": 1,
+    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "start_time": "2024-04-19T08:00:00Z",
     "end_time": "2024-04-19T11:00:00Z",
     "description": "this is a big competition",
     "title": "big competition",
-    "user_id": 1,
+    "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "participants": [
         {
-            "id": 1,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "name": "JohnEldenRing",
             "is_admin": true,
             "join_date": "2024-01-01T10:00:00Z"
         },
         {
-            "id": 2,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "name": "JohnDarksouls",
             "is_admin": false,
             "join_date": "2024-02-02T10:00:00Z"
         },
         {
-            "id": 3,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "name": "jordan",
             "is_admin": false,
             "join_date": "2024-05-16T20:35:05.556626Z"
@@ -443,19 +463,19 @@ Response Body:
     ],
     "problems": [
         {
-            "id": 1,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "prompt": "Given a string, print the reverse",
             "title": "Invert a String",
-            "timeout": 10,
-            "user_id": 1,
+            "timeout": 0,
+            "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "upload_date": "2024-03-03T10:00:00Z"
         },
         {
-            "id": 2,
+            "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "prompt": "Given two numbers, print the sum",
             "title": "Add two numbers",
             "timeout": 5,
-            "user_id": 2,
+            "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
             "upload_date": "2024-03-04T10:00:00Z"
         }
     ]
@@ -472,7 +492,7 @@ Request Body:
 
 ```json
 {
-    "user_id": 3
+    "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d"
 }
 ```
 

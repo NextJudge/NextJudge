@@ -641,6 +641,32 @@ stages:
         source_code: "int main"
       status_code: 200
 
+  - name: get submissions for non existent user
+    request: 
+      url: "{host}/v1/user_submissions/00000000-0000-0000-0000-000000000000"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 404
+
+  - name: get submissions for existent user
+    request: 
+      url: "{host}/v1/user_submissions/{user_id}"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      json:
+        - id: "{submission_id}"
+          user_id: "{user_id}"
+          problem_id: "{problem_id}"
+          time_elapsed: 1
+          language_id: "{language_id}"
+          status: "WRONG_ANSWER"
+          failed_test_case_id: "{test_case_id}"
+          source_code: "int main"
+      status_code: 200
   ### /v1/competitions
   
   - name: create competition with non existent host
