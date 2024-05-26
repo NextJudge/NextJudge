@@ -551,15 +551,37 @@ stages:
     response:
       headers:
         content-type: application/json
-      status_code: 500
+      status_code: 400
 
-  - name: update submission with failed test case and not wrong answer status
+  - name: update submission with failed test case and not a failed status
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: PATCH
       json:
-        status: "TIME_LIMIT_EXCEEDED"
+        status: "ACCEPTED"
         failed_test_case_id: "{test_case_id}"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: update submission with no failed test case and a failed status
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: PATCH
+      json:
+        status: "MEMORY_LIMIT_EXCEEDED"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
+  - name: update submission back to pending
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: PATCH
+      json:
+        status: "PENDING"
     response:
       headers:
         content-type: application/json

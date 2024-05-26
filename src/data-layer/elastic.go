@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v8"
@@ -24,32 +25,52 @@ func NewElasticSearch() (*ElasticSearch, error) {
 		return nil, err
 	}
 
-	res, err := es.Ping()
+	pingRes, err := es.Ping()
 	if err != nil {
 		return nil, err
 	}
-	if res.IsError() {
+	defer pingRes.Body.Close()
+	if pingRes.IsError() {
 		return nil, err
 	}
-	res.Body.Close()
 
-	res, err = es.Indices.Create(cfg.ProblemsIndex)
+	problemsExistsRes, err := es.Indices.Exists([]string{cfg.ProblemsIndex})
 	if err != nil {
 		return nil, err
 	}
-	if res.IsError() {
+	defer problemsExistsRes.Body.Close()
+	if problemsExistsRes.IsError() {
 		return nil, err
 	}
-	res.Body.Close()
+	if problemsExistsRes.StatusCode == http.StatusNotFound {
+		createProblemsRes, err := es.Indices.Create(cfg.ProblemsIndex)
+		if err != nil {
+			return nil, err
+		}
+		defer createProblemsRes.Body.Close()
+		if createProblemsRes.IsError() {
+			return nil, err
+		}
+	}
 
-	res, err = es.Indices.Create(cfg.CompetitionsIndex)
+	competitionsExistsRes, err := es.Indices.Exists([]string{cfg.CompetitionsIndex})
 	if err != nil {
 		return nil, err
 	}
-	if res.IsError() {
+	defer competitionsExistsRes.Body.Close()
+	if competitionsExistsRes.IsError() {
 		return nil, err
 	}
-	res.Body.Close()
+	if competitionsExistsRes.StatusCode == http.StatusNotFound {
+		createCompetitionsRes, err := es.Indices.Create(cfg.CompetitionsIndex)
+		if err != nil {
+			return nil, err
+		}
+		defer createCompetitionsRes.Body.Close()
+		if createCompetitionsRes.IsError() {
+			return nil, err
+		}
+	}
 
 	return &ElasticSearch{
 		ElasticSearchClient: es,

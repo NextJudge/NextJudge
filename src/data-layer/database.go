@@ -32,6 +32,7 @@ type NextJudgeDB interface {
 	DeleteProblem(problem *Problem) error
 	CreateSubmission(submission *Submission) (*Submission, error)
 	GetSubmission(submissionId uuid.UUID) (*Submission, error)
+	GetSubmissionsByUserID(userID uuid.UUID) ([]Submission, error)
 	UpdateSubmission(submission *Submission) error
 	CreateLanguage(language *Language) (*Language, error)
 	GetLanguages() ([]Language, error)
@@ -228,6 +229,18 @@ func (d *Database) GetSubmission(submissionId uuid.UUID) (*Submission, error) {
 		return nil, err
 	}
 	return submission, nil
+}
+
+func (d *Database) GetSubmissionsByUserID(userId uuid.UUID) ([]Submission, error) {
+	submissions := []Submission{}
+	err := db.NextJudgeDB.Where("user_id = ?", userId).Find(&submissions).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return submissions, nil
 }
 
 func (d *Database) UpdateSubmission(submission *Submission) error {
