@@ -11,6 +11,7 @@ from typing import TypedDict
 from dataclasses import dataclass
 import yaml
 from pathlib import Path
+import tempfile
 import configparser
 try:
     import argcomplete
@@ -42,23 +43,36 @@ def main():
     # Auth
     get_parser = toplevel_parser.add_parser("auth")
 
-    # Get
-    get_parser = toplevel_parser.add_parser("get")
-    get_parser.add_argument("id",type=int)
-
-    # Test suite
-    suite_parser = toplevel_parser.add_parser("upload-challenge-suite")
-    suite_parser.add_argument("directory")
-
     # Submit
     submit_parser = toplevel_parser.add_parser("submit")
     submit_parser.add_argument("file_path")
     submit_parser.add_argument("--id", dest="id", required=False, default=None, type=int)
 
+    # Get
+    get_parser = toplevel_parser.add_parser("get")
+    get_parser.add_argument("id",type=int)
+
+    # Upload suite
+    suite_parser = toplevel_parser.add_parser("upload-challenge-suite")
+    suite_parser.add_argument("directory")
+
+    # Run accepted tests
+    upload_icpc_test = toplevel_parser.add_parser("test-icpc-solutions")
+    upload_icpc_test.add_argument("directory")
+    upload_icpc_test.add_argument("--choose", dest="choose", default=None, required=False)
+
+    # Run accepted tests
+    upload_icpc_test_suite = toplevel_parser.add_parser("test-icpc-solutions-suite")
+    upload_icpc_test_suite.add_argument("directory")
+    upload_icpc_test_suite.add_argument("--skip", dest="skip", default="")
+
+
     # Custom run
     custom_parser = toplevel_parser.add_parser("custom-run")
     custom_parser.add_argument("solution_file_path")
     custom_parser.add_argument("stdin")
+
+
 
 
     argcomplete.autocomplete(parser)
@@ -71,12 +85,12 @@ def main():
     # Handle sub-commands
     elif args.command == "submit":
         send_solution(args.file_path, args.id, args.host, args.port)
-    elif args.command == "upload-challenge":
-        args.port = "5000"
-        parse_and_send_folder(args.directory_to_problem, args.host, args.port)
     elif args.command == "get":
         args.port = "5000"
         get_problem_data(args.id, args.host, args.port)
+    elif args.command == "upload-challenge":
+        args.port = "5000"
+        parse_and_send_folder(args.directory_to_problem, args.host, args.port)
     elif args.command == "upload-challenge-suite":
         args.port = "5000"
 
@@ -88,7 +102,7 @@ def main():
             if s:
                 success += 1
         
-        print(f"Successfully Uploaded {success} out of {len(directories)} problems ")
+        print(f"Successfully Uploaded {success} out of {len(directories)} problems")
 
     elif args.command == "custom-run":
         BRIDGE_HOST=args.host
@@ -149,6 +163,13 @@ def main():
 
             delay = min(delay+increment,max_delay)
 
+    elif args.command == "test-icpc-solutions":
+        args.port = "5000"
+        upload_and_run_icpc_solutions(args.directory, args.host, args.port, choose=args.choose)
+    elif args.command == "test-icpc-solutions-suite":
+        args.port = "5000"
+        upload_and_run_icpc_solutions_suite(args.directory, args.host, args.port, args.skip)
+    
     else:
         print("Unknown command")
         parser.print_help()
@@ -396,6 +417,79 @@ Title: {data['title']}"""
     
     print(f"{len(data['test_cases'])} tests written into 'testcases' directory")
     
+
+
+
+
+def upload_and_run_icpc_solutions(directory: str, host: str, port: str, choose=None):
+
+    s = parse_and_send_folder(f"{directory}",host,port)
+    
+    files = [f for f in Path(f"{directory}/submissions/accepted").iterdir() if f.is_file()]
+
+    for f in files:
+        if choose is not None and choose not in str(f):
+            print(f"Skipping {str(f)}")
+            continue
+
+        if str(f).endswith("java"):
+            print("Skipping java submission")
+            continue
+
+        print(f"File extension: {f.suffix}")
+
+        r = send_solution(str(f),s.id,"localhost","3000")
+        if r is not None:
+            if r["status"] != "ACCEPTED":
+                print("Failed:", (str(f)))
+
+
+def upload_and_run_icpc_solutions_suite(top_level_directory: str, host: str, port: str, skip: str):
+
+    directories = [d.name for d in Path(top_level_directory).iterdir() if d.is_dir()]
+    # print(directories)
+
+    tmp_file_name = tempfile.NamedTemporaryFile(delete=False)
+    log_file = open(tmp_file_name.name,'wb')
+
+    print("Name:", log_file.name)
+
+    skipping = skip.split(" ") if skip else []
+
+    for directory in directories:
+        print(directory)
+
+        b = False
+        for s in skipping:
+            if s in directory:
+                print(f"Skipping {directory}")
+                b = True
+                break
+        if b:
+            continue
+
+        s = parse_and_send_folder(f"{top_level_directory}/{directory}",host,port)
+        
+        # if s.success:
+
+        files = [f for f in Path(f"{top_level_directory}/{directory}/submissions/accepted").iterdir() if f.is_file()]
+
+        for f in files:
+            if str(f).endswith("java"):
+                print("Skipping java submission")
+                continue
+
+            print(f"File extension: {f.suffix}")
+
+            r = send_solution(str(f),s.id,"localhost","3000")
+            if r is not None:
+                if r["status"] != "ACCEPTED":
+                    print("Failed:", (str(f)))
+                    log_file.write(f"{str(f)}:{r['status']}\n".encode())
+                    log_file.flush()
+
+    print(log_file.name)
+
 
 if __name__ == "__main__":
     main()
