@@ -1,0 +1,495 @@
+#!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
+import argparse
+import os
+import requests
+import pathlib
+import os
+import sys
+import time
+from typing import TypedDict
+from dataclasses import dataclass
+import yaml
+from pathlib import Path
+import tempfile
+import configparser
+try:
+    import argcomplete
+    argcomplete_available = True
+except:
+    argcomplete_available = False
+
+def add_common_arguments(parser: argparse.ArgumentParser,default_port):
+    host = os.getenv("HOST") or "localhost"
+    port = os.getenv("PORT") or default_port
+
+    parser.add_argument("--host", type=str, dest="host", default=host, required=False, help="The host to connect to")
+    parser.add_argument("--port", type=int, dest="port", default=port, required=False, help="The port to connect to")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Command line interface for NextJudge"
+    )
+    
+    add_common_arguments(parser, 3000)
+
+    toplevel_parser = parser.add_subparsers(dest="command", help="Sub-commands")
+
+    # Upload
+    upload_challenge_parser = toplevel_parser.add_parser("upload-challenge")
+    upload_challenge_parser.add_argument('directory_to_problem')
+
+    # Auth
+    get_parser = toplevel_parser.add_parser("auth")
+
+    # Submit
+    submit_parser = toplevel_parser.add_parser("submit")
+    submit_parser.add_argument("file_path")
+    submit_parser.add_argument("--id", dest="id", required=False, default=None, type=int)
+
+    # Get
+    get_parser = toplevel_parser.add_parser("get")
+    get_parser.add_argument("id",type=int)
+
+    # Upload suite
+    suite_parser = toplevel_parser.add_parser("upload-challenge-suite")
+    suite_parser.add_argument("directory")
+
+    # Run accepted tests
+    upload_icpc_test = toplevel_parser.add_parser("test-icpc-solutions")
+    upload_icpc_test.add_argument("directory")
+    upload_icpc_test.add_argument("--choose", dest="choose", default=None, required=False)
+
+    # Run accepted tests
+    upload_icpc_test_suite = toplevel_parser.add_parser("test-icpc-solutions-suite")
+    upload_icpc_test_suite.add_argument("directory")
+    upload_icpc_test_suite.add_argument("--skip", dest="skip", default="")
+
+
+    # Custom run
+    custom_parser = toplevel_parser.add_parser("custom-run")
+    custom_parser.add_argument("solution_file_path")
+    custom_parser.add_argument("stdin")
+
+
+
+
+    argcomplete.autocomplete(parser)
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    if args.command == "auth":
+        pass
+    # Handle sub-commands
+    elif args.command == "submit":
+        send_solution(args.file_path, args.id, args.host, args.port)
+    elif args.command == "get":
+        args.port = "5000"
+        get_problem_data(args.id, args.host, args.port)
+    elif args.command == "upload-challenge":
+        args.port = "5000"
+        parse_and_send_folder(args.directory_to_problem, args.host, args.port)
+    elif args.command == "upload-challenge-suite":
+        args.port = "5000"
+
+        directories = [d.name for d in Path(args.directory).iterdir() if d.is_dir()]
+
+        success = 0
+        for directory in directories:
+            s = parse_and_send_folder(f"{args.directory}/{directory}",args.host,args.port)
+            if s:
+                success += 1
+        
+        print(f"Successfully Uploaded {success} out of {len(directories)} problems")
+
+    elif args.command == "custom-run":
+        BRIDGE_HOST=args.host
+        BRIDGE_PORT=args.port
+        BRIDGE_ENDPOINT = f"http://{BRIDGE_HOST}:{BRIDGE_PORT}"
+
+        sol_path: str = args.solution_file_path
+
+        source_code = get_solution(sol_path)
+
+        if source_code is None:
+            sys.exit(1)
+
+        language_id = get_language_id_from_extension(BRIDGE_ENDPOINT,sol_path)
+
+        if language_id is None:
+            print("Could not map the file to a language (based on extension)")
+            sys.exit(1)
+
+        submit = requests.post(
+            f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/custom_input",
+            json = {
+                "user_id": 1,
+                "source_code": source_code,
+                "language_id": language_id,
+                "stdin": args.stdin
+            }
+        )
+
+        if(submit.status_code != 200):
+            sys.exit(1)
+
+        print(f"Submission ID: {submit.text}")
+
+        max_polls = 12
+        initial_delay = 0.3
+        max_delay = 1.5
+        increment = (max_delay - initial_delay) / (max_polls - 1)
+
+        delay = initial_delay
+
+        for i in range(25):
+            time.sleep(delay)
+
+            verdict = requests.get(
+                f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/custom_input/{submit.text}",
+            )
+
+            result = verdict.json()
+            print(result)
+
+            status = result["status"]
+            if status != "PENDING" and status != "":
+                print(f"Result: {result['status']}")
+                print(f"stdout: {result['stdout']}")
+                print(f"stderr: {result['stderr']}")
+                break
+
+            delay = min(delay+increment,max_delay)
+
+    elif args.command == "test-icpc-solutions":
+        args.port = "5000"
+        upload_and_run_icpc_solutions(args.directory, args.host, args.port, choose=args.choose)
+    elif args.command == "test-icpc-solutions-suite":
+        args.port = "5000"
+        upload_and_run_icpc_solutions_suite(args.directory, args.host, args.port, args.skip)
+    
+    else:
+        print("Unknown command")
+        parser.print_help()
+
+
+
+
+
+class Language(TypedDict):
+    id: int
+    name: str
+    version: str
+    extension: str
+
+
+def get_languages(endpoint: str) -> list[Language] | None:
+    
+    try:
+        bridge_languages = requests.get(f"{endpoint}/languages")
+        real_langs = bridge_languages.json()
+        return real_langs
+    except:
+        print(f"Failed to connect to {endpoint}")
+        return None
+
+def get_language_id_from_extension(endpoint: str, filepath: str) -> int | None:
+
+    languages = get_languages(endpoint)
+
+    if languages:
+
+        for lang in languages:
+            if filepath.endswith(lang["extension"]):
+                return lang["id"]
+
+    return None
+
+def get_solution(filepath: str) -> str:
+    try:
+        source_code = open(filepath,"r", encoding="utf-8").read()
+        return source_code
+    except FileNotFoundError:
+        print(f"Could not find file {filepath}")
+        return None
+    except OSError as e:
+        print(f"Could not open file {filepath} - {e}")
+        return None
+ 
+def send_solution(sol_path: str, problem_id: int | None, host: str, port: str) -> dict:
+    BRIDGE_ENDPOINT = f"http://{host}:{port}"
+
+
+    if problem_id is None:
+        config = configparser.ConfigParser()
+        try:
+            with open(".nextjudge.env") as f:
+                config.read_file(f)
+                problem_id = int(config["config"]["problem_id"])
+        except IOError:
+            print("No .nextjudge.env found. Specify an ID explicitly with --id")
+            sys.exit(1)
+
+    source_code = get_solution(sol_path)
+
+    if source_code is None:
+        sys.exit(1)
+
+    language_id = get_language_id_from_extension(BRIDGE_ENDPOINT,sol_path)
+
+    if language_id is None:
+        print("Could not map the file to a language (based on extension)")
+        return None
+
+
+    submit = requests.post(
+        f"{BRIDGE_ENDPOINT}/submission",
+        json = {
+            "user_id": 1,
+            "source_code": source_code,
+            "language_id": language_id,
+            "problem_id": problem_id
+        }
+    )
+
+    if(submit.status_code != 200):
+        print(f"Failed to send submission: {submit.text}")
+        return None
+
+    print(f"Submission ID: {submit.text}")
+
+
+    max_polls = 12
+    initial_delay = 0.3
+    max_delay = 3.5
+    increment = (max_delay - initial_delay) / (max_polls - 1)
+
+    delay = initial_delay
+
+    for i in range(32):
+        time.sleep(delay)
+
+        verdict = requests.get(
+            f"{BRIDGE_ENDPOINT}/submission/{submit.text}",
+        )
+
+        result = verdict.json()
+        status = result["status"]
+
+        if status != "PENDING" and status != "":
+            print(f"Verdict: {status}")
+            return result
+
+        delay = min(delay+increment,max_delay)
+
+    return None
+
+
+
+@dataclass
+class SendResult:
+    success: bool
+    id: int
+
+def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
+    with open(f"{dir}/problem.yaml", 'r') as file:
+        problem_description = yaml.safe_load(file)
+
+    title = problem_description["name"]
+
+    try:
+        statement = open(f"{dir}/problem_statement/problem.en.tex","r").read()
+    except:
+        print("Cannot find a problem.en.tex")
+        sys.exit(1)
+
+    # Load all testcases now
+
+    testcase_files = os.listdir(f"{dir}/data/secret")
+    testcase_names = [case[:-3] for case in testcase_files if case.endswith("in")]
+
+    test_cases = []
+    for name in testcase_names:
+        test_input = open(f"{dir}/data/secret/{name}.in", 'r').read()
+        test_output = open(f"{dir}/data/secret/{name}.ans", 'r').read()
+
+        test_cases.append({
+            "input": test_input,
+            "expected_output": test_output
+        })
+
+    print(f"Title: {title}")
+    print(f"Number of testcases: {len(test_cases)}")
+
+    try:
+        submit_problem = requests.post(
+            f"http://{host}:{port}/v1/problems",
+            json = {
+            "title": title,
+            "prompt": statement,
+            "timeout": 1,
+            "difficulty": "MEDIUM",
+            "user_id": 1,
+            "test_cases": test_cases
+            }
+        )
+    except:
+        print(f"Failed to connect to database")
+        sys.exit(1)
+
+    print(submit_problem.status_code)
+
+    if 200 <= submit_problem.status_code < 300 :
+        response_json = submit_problem.json()
+        id = response_json['id']
+        print("Successfully upload problem")
+        print(f"Problem ID: {id}")
+        return SendResult(True, id)
+
+    return SendResult(False, -1)
+
+
+
+
+class TestCase(TypedDict):
+    id: int
+    input: str
+    expected_output: str
+
+class ProblemCategory(TypedDict):
+    id: int
+    name: str
+
+class Problem(TypedDict):
+    id: int
+    prompt: str
+    title: str
+    difficulty: str
+    timeout: int
+    user_id: int
+    test_cases: list[TestCase]
+    categories: list[ProblemCategory]
+
+
+def get_problem_data(id: int, host: str, port: str):
+    DATABASE_ENDPOINT = f"http://{host}:{port}"
+
+    response = requests.get(
+        f"{DATABASE_ENDPOINT}/v1/problems/{id}",
+    )
+
+    if not response.ok:
+        print(f"Failed to get problem {id}")
+        print(f"{response.text}")
+        sys.exit(1)
+
+    data: Problem = response.json()
+
+    config = configparser.ConfigParser()
+    config["config"] = {"problem_id":str(id)}
+
+
+    result = f"""ID: {id}
+Title: {data['title']}"""
+
+    print(result)
+
+
+    with open("prompt", "w") as f:
+        f.write(data["prompt"])
+        print(f"Problem statement saved to file: 'prompt'")
+
+    with open(".nextjudge.env", "w") as f:
+        config.write(f)
+
+    pathlib.Path("testcases").mkdir(exist_ok=True)
+
+    for testcase in data["test_cases"]:
+        
+        with open(f"testcases/{testcase['id']}.in","w") as f:
+            f.write(testcase["input"])
+
+        with open(f"testcases/{testcase['id']}.ans","w") as f:
+            f.write(testcase["expected_output"])
+
+    
+    print(f"{len(data['test_cases'])} tests written into 'testcases' directory")
+    
+
+
+
+
+def upload_and_run_icpc_solutions(directory: str, host: str, port: str, choose=None):
+
+    s = parse_and_send_folder(f"{directory}",host,port)
+    
+    files = [f for f in Path(f"{directory}/submissions/accepted").iterdir() if f.is_file()]
+
+    for f in files:
+        if choose is not None and choose not in str(f):
+            print(f"Skipping {str(f)}")
+            continue
+
+        if str(f).endswith("java"):
+            print("Skipping java submission")
+            continue
+
+        print(f"File extension: {f.suffix}")
+
+        r = send_solution(str(f),s.id,"localhost","3000")
+        if r is not None:
+            if r["status"] != "ACCEPTED":
+                print("Failed:", (str(f)))
+
+
+def upload_and_run_icpc_solutions_suite(top_level_directory: str, host: str, port: str, skip: str):
+
+    directories = [d.name for d in Path(top_level_directory).iterdir() if d.is_dir()]
+    # print(directories)
+
+    tmp_file_name = tempfile.NamedTemporaryFile(delete=False)
+    log_file = open(tmp_file_name.name,'wb')
+
+    print("Name:", log_file.name)
+
+    skipping = skip.split(" ") if skip else []
+
+    for directory in directories:
+        print(directory)
+
+        b = False
+        for s in skipping:
+            if s in directory:
+                print(f"Skipping {directory}")
+                b = True
+                break
+        if b:
+            continue
+
+        s = parse_and_send_folder(f"{top_level_directory}/{directory}",host,port)
+        
+        # if s.success:
+
+        files = [f for f in Path(f"{top_level_directory}/{directory}/submissions/accepted").iterdir() if f.is_file()]
+
+        for f in files:
+            if str(f).endswith("java"):
+                print("Skipping java submission")
+                continue
+
+            print(f"File extension: {f.suffix}")
+
+            r = send_solution(str(f),s.id,"localhost","3000")
+            if r is not None:
+                if r["status"] != "ACCEPTED":
+                    print("Failed:", (str(f)))
+                    log_file.write(f"{str(f)}:{r['status']}\n".encode())
+                    log_file.flush()
+
+    print(log_file.name)
+
+
+if __name__ == "__main__":
+    main()

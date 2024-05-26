@@ -7,10 +7,6 @@ import subprocess
 import tempfile
 
 from pathlib import Path
-from shared_cli import add_common_arguments 
-from upload_challenge import parse_and_send_folder
-from submit import send_solution
-
 
 def split_and_trim(code: str):
     return [x.rstrip() for x in code.split("\n")]
