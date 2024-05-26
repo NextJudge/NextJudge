@@ -66,12 +66,12 @@ async function setupBridge() {
       difficulty: "MEDIUM",
       test_cases: [
           {
-            input:"FALSE",
-            expected_output: "TRUE"
+            input:"FALSE\n",
+            expected_output: "TRUE\n"
           },
           {
-            input:"TRUE",
-            expected_output: "FALSE"
+            input:"TRUE\n",
+            expected_output: "FALSE\n"
           }
       ]
     }
