@@ -1,18 +1,20 @@
+"use client";
+import { mockSubmissions } from "@/components/landing/bento";
 import PlatformNavbar from "@/components/nav/platform-nav";
 import UserAvatar from "@/components/nav/user-avatar";
 import { ContestCard } from "./admin/contests/contest-card";
+import { SingleSubmission } from "./problems/(problem)/[id]/page";
 import { RecentSubmissionCard } from "./problems/components/recent-submissions";
 import SubmissionDrawer from "./problems/components/submission-drawer";
-import { recentSubmissions } from "./problems/data/data";
 
-export default async function PlatformHome() {
+export default function PlatformHome() {
   const recentContests = [
     {
       id: 1,
       userId: 1,
       description:
         "The 10th annual ACM at OSU programming competition. Meant for all skill levels.",
-      title: "Codeforces Round #745 (Div. 2)",
+      title: "ACM@OSU Programming Contest",
       startTime: new Date(),
       endTime: new Date(),
       participants: [1, 2, 3, 4, 5],
@@ -22,8 +24,8 @@ export default async function PlatformHome() {
       id: 2,
       userId: 2,
       description:
-        "The 10th annual ACM at OSU programming competition. Meant for all skill levels.",
-      title: "Codeforces Round #744 (Div. 3)",
+        "This competition is meant to help prepare for the upcoming ICPC competition! Join us to simulate the real thing.",
+      title: "ICPC Practice Session",
       startTime: new Date(),
       endTime: new Date(),
       participants: [1, 2, 3, 4, 5],
@@ -33,8 +35,8 @@ export default async function PlatformHome() {
       id: 3,
       userId: 3,
       description:
-        "The 10th annual ACM at OSU programming competition. Meant for all skill levels.",
-      title: "Codeforces Round #743 (Div. 2)",
+        "Preparation for the upcoming ACM at OSU programming competition. Meant for all skill levels.",
+      title: "ACM@OSU Programming Contest Prep Sesh",
       startTime: new Date(),
       endTime: new Date(),
       participants: [1, 2, 3, 4, 5],
@@ -44,8 +46,8 @@ export default async function PlatformHome() {
       id: 4,
       userId: 4,
       description:
-        "The 10th annual ACM at OSU programming competition. Meant for all skill levels.",
-      title: "Codeforces Round #742 (Div. 2)",
+        "Preparation for the upcoming Lucid programming competition with the ACM team.",
+      title: "Lucid Programming Contest Prep Sesh",
       startTime: new Date(),
       endTime: new Date(),
       participants: [1, 2, 3, 4, 5],
@@ -55,7 +57,7 @@ export default async function PlatformHome() {
       id: 5,
       userId: 5,
       description:
-        "The 10th annual ACM at OSU programming competition. Meant for all skill levels.",
+        "The 741st Codeforces round. Join us to practice for the upcoming competition.",
       title: "Codeforces Round #741 (Div. 2)",
       startTime: new Date(),
       endTime: new Date(),
@@ -64,10 +66,10 @@ export default async function PlatformHome() {
     },
   ];
 
-  const deleteContest = async (id: number) => {
-    "use server";
-    console.log("Deleting contest with id: ", id);
-  };
+  //   const deleteContest = async (id: number) => {
+  //     "use server";
+  //     console.log("Deleting contest with id: ", id);
+  //   };
   return (
     <>
       <PlatformNavbar>
@@ -102,7 +104,7 @@ export default async function PlatformHome() {
 
           {/* Submission Cards */}
           <div className="grid grid-cols-1 gap-4">
-            {recentSubmissions.map((submission) => (
+            {mockSubmissions.map((submission: SingleSubmission) => (
               <RecentSubmissionCard
                 key={submission.id}
                 submission={submission}

@@ -3,9 +3,12 @@ import "@/app/globals.css";
 import { EditorSkeleton } from "@/components/editor/editor-skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { ZodProblemDetails } from "@/app/platform/problems/(problem)/[id]/page";
+import {
+  TestCases,
+  TRecentSubmission,
+  ZodProblemDetails,
+} from "@/app/platform/problems/(problem)/[id]/page";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
-import { recentSubmissions } from "@/app/platform/problems/data/data";
 import {
   Drawer,
   DrawerClose,
@@ -26,11 +29,12 @@ import { useEditorTheme } from "@/hooks/useEditorTheme";
 import { useThemesLoader } from "@/hooks/useThemeLoader";
 import { cn } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
-import { Theme } from "@/types";
+import { Language, Theme } from "@/types";
 import "katex/dist/katex.min.css";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { useContext, useState } from "react";
+
+import { useContext, useEffect, useState } from "react";
 import { Icons } from "../icons";
 import { Expected, Input as InputCase, Output } from "../submit-box";
 import { Badge } from "../ui/badge";
@@ -42,7 +46,6 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import CodeEditor from "./code-editor";
-import * as React from "react";
 
 const problemStatement = `
 Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
@@ -61,10 +64,16 @@ export default function EditorComponent({
   details,
   slot,
   tags,
+  testCases,
+  recentSubmissions,
+  languages,
 }: {
   details: ZodProblemDetails;
   tags: string[];
   slot: React.ReactNode;
+  testCases: TestCases;
+  recentSubmissions: TRecentSubmission;
+  languages: Language[];
 }) {
   const { isCollapsed, ref, collapse, expand } = useEditorCollapse();
   const {
@@ -84,6 +93,44 @@ export default function EditorComponent({
   const [output, setOutput] = useState("[0, 1]");
   const [expected, setExpected] = useState("[0, 1]");
   const router = useRouter();
+  const [submissionId, setSubmissionId] = useState<number | null>(null);
+
+  const [currentSubmissionDetails, setCurrentSubmissionDetails] =
+    useState(null);
+
+  console.log({
+    currentSubmissionDetails,
+    submissionId,
+  });
+
+  useEffect(() => {
+    async function fetchSubmissionDetails() {
+      try {
+        const response = await fetch(
+          `/api/submission?submissionId=${submissionId}`
+        );
+        const data = await response.json();
+        setCurrentSubmissionDetails(data);
+
+        if (data.status === "PENDING") {
+          setTimeout(fetchSubmissionDetails, 1000);
+        } else {
+          ref2.current?.isCollapsed && expand2();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    (async () => {
+      if (submissionId !== null) {
+        try {
+          await fetchSubmissionDetails();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    })();
+  }, [submissionId]);
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -182,7 +229,11 @@ export default function EditorComponent({
               <div className="flex w-full h-full items-center justify-center overflow-y-scroll">
                 {loading && <EditorSkeleton />}
                 {!loading && (
-                  <CodeEditor themes={themes} problemId={details.id} />
+                  <CodeEditor
+                    themes={themes}
+                    problemId={details.id}
+                    setSubmissionId={setSubmissionId}
+                  />
                 )}
               </div>
             </ResizablePanel>
@@ -215,7 +266,8 @@ export default function EditorComponent({
               style={{
                 overflow: "auto",
               }}
-              minSize={10}
+              minSize={0}
+              maxSize={50}
               collapsible
               onCollapse={collapse2}
               ref={ref2}
@@ -224,8 +276,32 @@ export default function EditorComponent({
             >
               <div className="mx-5 my-4 space-y-4 h-100 overflow-auto">
                 <div className="flex items-center">
-                  <div className="text-xl font-semibold text-red-600 dark:text-dark-red-800">
-                    Not Accepted
+                  {/* TODO: clean this up */}
+                  <div
+                    className={cn("text-xl font-semibold", {
+                      "text-red-600":
+                        currentSubmissionDetails &&
+                        currentSubmissionDetails.status === "WRONG_ANSWER",
+                      "text-green-600":
+                        currentSubmissionDetails &&
+                        currentSubmissionDetails.status === "ACCEPTED",
+                      "text-yellow-600":
+                        currentSubmissionDetails &&
+                        currentSubmissionDetails.status === "PENDING",
+                    })}
+                  >
+                    {currentSubmissionDetails &&
+                    currentSubmissionDetails.status === "WRONG_ANSWER" ? (
+                      <p>Wrong Answer</p>
+                    ) : currentSubmissionDetails &&
+                      currentSubmissionDetails.status === "ACCEPTED" ? (
+                      <p>Accepted</p>
+                    ) : currentSubmissionDetails &&
+                      currentSubmissionDetails.status === "PENDING" ? (
+                      <Icons.loader className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <p>Submission Details</p>
+                    )}
                   </div>
                   <div className="ml-4 text-sm text-accent-foreground">
                     Runtime: 36 ms
@@ -245,21 +321,19 @@ export default function EditorComponent({
                         <DrawerHeader>
                           <DrawerTitle>Your Submissions</DrawerTitle>
                           <DrawerDescription>
-                            See your submissions to both this problem and this
-                            category.
+                            See your submissions to both this problem and these
+                            tags.
                           </DrawerDescription>
                         </DrawerHeader>
 
                         <div className="mx-6 flex flex-col gap-4">
                           <Tabs
                             defaultValue="problem"
-                            className={cn("w-full max-h-96")}
+                            className={cn("w-full max-h-96 overflow-y-scroll")}
                           >
                             <TabsList>
                               <TabsTrigger value="problem">Problem</TabsTrigger>
-                              <TabsTrigger value="category">
-                                Category
-                              </TabsTrigger>
+                              <TabsTrigger value="tag">Tag</TabsTrigger>
                             </TabsList>
                             <TabsContent value="problem">
                               <ul className="grid grid-flow-row grid-cols-3 gap-4">

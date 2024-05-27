@@ -1,3 +1,5 @@
+"use client";
+
 import { defaultEditorOptions, defaultLanguage } from "@/lib/constants";
 import { getBridgeUrl } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
@@ -93,12 +95,14 @@ const main = () => {
 export default function CodeEditor({
   themes,
   problemId,
+  setSubmissionId,
 }: {
   themes: any;
   problemId: number;
+  setSubmissionId: (id: number) => void;
 }) {
   const [code, setCode] = useState<string>(templates["TypeScript"]);
-  const [submissionId, setSubmissionId] = useState<number>(0);
+  //   const [submissionId, setSubmissionId] = useState<number>(0);
   const { theme } = useContext(ThemeContext);
   const [languages, setLanguages] = useState([]);
   const [currentLanguage, setCurrentLanguage] =
@@ -148,8 +152,8 @@ export default function CodeEditor({
       try {
         const response = await fetch(`${getBridgeUrl()}/languages`);
         const data = await response.json();
-        setLanguages(data)
-        setCode(templates[normalizeLanguageKey(data[0].name)]);
+        setLanguages(data);
+        setCode(templates[normalizeLanguageKey(defaultLanguage.name)]);
       } catch (error) {
         console.error("Failed to fetch languages", error);
       }
@@ -172,14 +176,6 @@ export default function CodeEditor({
     setSubmissionLoading(true);
     setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const selectedLanguage = languages.find(
-        (lang: Language) => lang.extension === currentLanguage?.extension
-      );
-      if (!selectedLanguage) {
-        throw new Error("Language not found");
-      }
-
       const response = await fetch(`${getBridgeUrl()}/submission`, {
         method: "POST",
         headers: {
@@ -189,22 +185,23 @@ export default function CodeEditor({
           source_code: code,
           language_id: currentLanguage.id,
           problem_id: problemId,
-          user_id: 1, // Also gonna need to change this to the actual user ID
+          user_id: 1,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to submit code");
+        throw new Error("An error occurred.");
       }
 
       const data = await response.json();
-      setSubmissionResult(data);
-      toast.success("Accepted!");
+      setSubmissionId(data);
     } catch (error: unknown) {
       toast.error("There was an error submitting your code.");
       setError(error instanceof Error ? error.message : "An error occurred.");
     } finally {
-      setSubmissionLoading(false);
+      setTimeout(() => {
+        setSubmissionLoading(false);
+      }, 5000);
     }
   };
 
@@ -265,7 +262,7 @@ export default function CodeEditor({
       <AnimatePresence mode="wait">
         {theme?.name && (
           <motion.div
-            key={submissionId}
+            key={theme?.name}
             initial={{ y: 0, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -10, opacity: 0 }}
