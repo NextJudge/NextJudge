@@ -1,7 +1,7 @@
 "use client";
 import { ContestCard } from "@/app/platform/admin/contests/contest-card";
+import { SingleSubmission } from "@/app/platform/problems/(problem)/[id]/page";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
-import { serverRenderRecents } from "@/app/platform/problems/data/data";
 import { cn } from "@/lib/utils";
 import { Editor } from "@monaco-editor/react";
 import {
@@ -219,10 +219,54 @@ const ContestCardPreview = () => {
   );
 };
 
+export const mockSubmissions: SingleSubmission[] = [
+  {
+    id: 1,
+    problems: { title: "First Bad Version", users: { name: "Nyumat" } },
+    languages: { name: "TypeScript" },
+    submit_time: new Date(),
+    status: "ACCEPTED",
+  },
+  {
+    id: 2,
+    problems: { title: "Cherry Pickup II", users: { name: "Nyumat" } },
+    languages: { name: "Rust" },
+    submit_time: new Date(),
+    status: "WRONG_ANSWER",
+  },
+  {
+    id: 3,
+    problems: { title: "Xen Tree", users: { name: "Nyumat" } },
+    languages: { name: "Swift" },
+    submit_time: new Date(),
+    status: "ACCEPTED",
+  },
+  {
+    id: 4,
+    problems: {
+      title: "Intersection of Two Arrays",
+      users: { name: "Nyumat" },
+    },
+    languages: { name: "Go" },
+    submit_time: new Date(),
+    status: "ACCEPTED",
+  },
+  {
+    id: 5,
+    problems: {
+      title: "Count Sorted Vowel Strings",
+      users: { name: "Nyumat" },
+    },
+    languages: { name: "Python" },
+    submit_time: new Date(),
+    status: "PENDING",
+  },
+];
+
 const ThreeSubmissionsCard = () => {
   return (
     <div className="grid grid-cols-1 gap-2">
-      {serverRenderRecents.map((submission) => (
+      {mockSubmissions.map((submission: SingleSubmission) => (
         <RecentSubmissionCard key={submission.id} submission={submission} />
       ))}
     </div>

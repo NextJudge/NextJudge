@@ -106,10 +106,7 @@ export function ContestCard({
             </div>
             <div className="flex items-center">
               <Clock className="mr-1 size-4 md:mr-2 md:size-4" />
-              <p className="w-[200%] md:w-full">
-                {format(new Date(startTime), "MMM d, h:mm a")} -{" "}
-                {format(new Date(endTime), "MMM d, h:mm a")}
-              </p>
+              <p className="w-[200%] md:w-full">0</p>
             </div>
           </div>
         </div>
