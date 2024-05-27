@@ -11,6 +11,8 @@ import { DataTable } from "./components/data-table";
 import { RecentSubmissionCard } from "./components/recent-submissions";
 import { recentSubmissions } from "./data/data";
 import { Problem, RecentSubmission, problemSchema } from "./data/schema";
+import { mockSubmissions } from "@/components/landing/bento";
+import { SingleSubmission } from "./(problem)/[id]/page";
 
 export const metadata: Metadata = {
   title: "NextJudge - Problems",
@@ -30,10 +32,10 @@ async function getProblems2() {
   return problems;
 }
 
-async function getRecentSubmissions(): Promise<RecentSubmission[]> {
-  const promise = new Promise<RecentSubmission[]>((resolve) => {
+async function getRecentSubmissions(): Promise<SingleSubmission[]> {
+  const promise = new Promise<SingleSubmission[]>((resolve) => {
     setTimeout(() => {
-      resolve(recentSubmissions);
+      resolve(mockSubmissions);
     }, 1000);
   });
   return promise;
@@ -68,7 +70,7 @@ export default async function ProblemsPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center justify-between space-y-2">
+        {/* <div className="flex items-center justify-between space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {recentSubmissions.map((submission) => (
               <RecentSubmissionCard
@@ -77,7 +79,7 @@ export default async function ProblemsPage() {
               />
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </>
   );
