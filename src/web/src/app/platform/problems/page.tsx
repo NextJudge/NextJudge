@@ -70,16 +70,17 @@ export default async function ProblemsPage() {
             </p>
           </div>
         </div>
-        {/* <div className="flex items-center justify-between space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex items-center justify-between space-y-2">
+          {/* <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {recentSubmissions.map((submission) => (
               <RecentSubmissionCard
                 key={submission.id}
                 submission={submission}
               />
             ))}
-          </div>
-        </div> */}
+          </div> */}
+          <p>No Recent Submissions</p>
+        </div>
       </div>
     </>
   );
