@@ -22,6 +22,8 @@ func addSubmissionRoutes(mux *goji.Mux) {
 type UpdateSubmissionStatusPatchBody struct {
 	Status           Status     `json:"status"`
 	FailedTestCaseID *uuid.UUID `json:"failed_test_case_id,omitempty"`
+	Stdout           string     `json:"stdout"`
+	Stderr           string     `json:"stderr"`
 }
 
 func postSubmission(w http.ResponseWriter, r *http.Request) {
@@ -86,6 +88,8 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 
 	reqData.Status = Pending
 	reqData.FailedTestCaseID = nil
+	reqData.Stderr = ""
+	reqData.Stdout = ""
 	response, err := db.CreateSubmission(reqData)
 	if err != nil {
 		logrus.WithError(err).Error("error inserting submission into db")
@@ -206,6 +210,13 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if reqData.FailedTestCaseID == nil && (reqData.Stderr != "" || reqData.Stdout != "") {
+		logrus.Warn("storing output for non failed test cases is not supported")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"storing output for non failed test cases is not supported"}`)
+		return
+	}
+
 	if reqData.FailedTestCaseID != nil {
 		testCase, err := db.GetTestCase(*reqData.FailedTestCaseID)
 		if err != nil {
@@ -236,6 +247,8 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 
 	submission.FailedTestCaseID = reqData.FailedTestCaseID
 	submission.Status = reqData.Status
+	submission.Stderr = reqData.Stderr
+	submission.Stdout = reqData.Stdout
 	err = db.UpdateSubmission(submission)
 	if err != nil {
 		logrus.WithError(err).Error("error updating submission status in db")
