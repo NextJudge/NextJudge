@@ -75,6 +75,8 @@ type Submission struct {
 	FailedTestCaseID *uuid.UUID `json:"failed_test_case_id,omitempty"`
 	SubmitTime       time.Time  `json:"submit_time"`
 	SourceCode       string     `json:"source_code"`
+	Stdout           string     `json:"stdout"`
+	Stderr           string     `json:"stderr"`
 }
 
 type Competition struct {

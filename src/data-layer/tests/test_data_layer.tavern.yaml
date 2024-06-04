@@ -565,6 +565,18 @@ stages:
         content-type: application/json
       status_code: 400
 
+  - name: update submission with output and not a failed status
+    request: 
+      url: "{host}/v1/submissions/{submission_id}"
+      method: PATCH
+      json:
+        status: "ACCEPTED"
+        stderr: "123"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 400
+
   - name: update submission with no failed test case and a failed status
     request: 
       url: "{host}/v1/submissions/{submission_id}"
@@ -618,6 +630,7 @@ stages:
       json:
         status: "WRONG_ANSWER"
         failed_test_case_id: "{test_case_id}"
+        stdout: "123"
     response:
       headers:
         content-type: application/json
@@ -639,6 +652,7 @@ stages:
         status: "WRONG_ANSWER"
         failed_test_case_id: "{test_case_id}"
         source_code: "int main"
+        stdout: "123"
       status_code: 200
 
   - name: get submissions for non existent user

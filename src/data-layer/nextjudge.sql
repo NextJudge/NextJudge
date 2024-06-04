@@ -85,7 +85,9 @@ CREATE TABLE "submissions" (
   "status" status NOT NULL,
   "failed_test_case_id" UUID,
   "submit_time" timestamp NOT NULL,
-  "source_code" varchar NOT NULL
+  "source_code" varchar NOT NULL,
+  "stdout" varchar,
+  "stderr" varchar
 );
 
 CREATE TABLE "test_cases" (
