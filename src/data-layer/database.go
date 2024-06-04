@@ -26,8 +26,8 @@ type NextJudgeDB interface {
 	GetCategories() ([]Category, error)
 	CreateProblem(problem *Problem) (*Problem, error)
 	GetProblems() ([]Problem, error)
-	GetProblemByID(problemId uuid.UUID) (*Problem, error)
-	GetPublicProblemByID(problemId uuid.UUID) (*Problem, error)
+	GetProblemByID(problemId int) (*Problem, error)
+	GetPublicProblemByID(problemId int) (*Problem, error)
 	GetProblemByTitle(title string) (*Problem, error)
 	DeleteProblem(problem *Problem) error
 	CreateSubmission(submission *Submission) (*Submission, error)
@@ -166,7 +166,7 @@ func (d *Database) GetProblems() ([]Problem, error) {
 	return problems, nil
 }
 
-func (d *Database) GetProblemByID(problemId uuid.UUID) (*Problem, error) {
+func (d *Database) GetProblemByID(problemId int) (*Problem, error) {
 	problem := &Problem{}
 	err := d.NextJudgeDB.Model(&Problem{}).Preload("Categories").Preload("TestCases").First(problem, problemId).Error
 	if err != nil {
@@ -178,7 +178,7 @@ func (d *Database) GetProblemByID(problemId uuid.UUID) (*Problem, error) {
 	return problem, nil
 }
 
-func (d *Database) GetPublicProblemByID(problemId uuid.UUID) (*Problem, error) {
+func (d *Database) GetPublicProblemByID(problemId int) (*Problem, error) {
 	problem := &Problem{}
 	err := d.NextJudgeDB.Model(&Problem{}).Preload("Categories").Preload("TestCases", "is_public = ?", true).First(problem, problemId).Error
 	if err != nil {

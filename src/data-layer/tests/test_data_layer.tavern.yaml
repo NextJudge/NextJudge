@@ -412,7 +412,7 @@ stages:
 
   - name: get non existent problem
     request: 
-      url: "{host}/v1/problems/00000000-0000-0000-0000-000000000000"
+      url: "{host}/v1/problems/999999"
       method: GET
     response:
       headers:
@@ -461,7 +461,7 @@ stages:
       method: POST
       json:
         user_id: "{user_id}"
-        problem_id: 00000000-0000-0000-0000-000000000000
+        problem_id: !int 999999
         time_elapsed: 1
         language_id: "{language_id}"
         source_code: "int main"
@@ -476,7 +476,7 @@ stages:
       method: POST
       json:
         user_id: 00000000-0000-0000-0000-000000000000
-        problem_id: "{problem_id}"
+        problem_id: !int "{problem_id}"
         time_elapsed: 1
         language_id: "{language_id}"
         source_code: "int main"
@@ -491,7 +491,7 @@ stages:
       method: POST
       json:
         user_id: "{user_id}"
-        problem_id: "{problem_id}"
+        problem_id: !int "{problem_id}"
         time_elapsed: 1
         language_id: 00000000-0000-0000-0000-000000000000
         source_code: "int main"
@@ -506,7 +506,7 @@ stages:
       method: POST
       json:
         user_id: "{user_id}"
-        problem_id: "{problem_id}"
+        problem_id: !int "{problem_id}"
         time_elapsed: 1
         language_id: "{language_id}"
         source_code: "int main"
@@ -516,7 +516,7 @@ stages:
       status_code: 201
       json:
         user_id: "{user_id}"
-        problem_id: "{problem_id}"
+        problem_id: !int "{problem_id}"
         time_elapsed: 1
         language_id: "{language_id}"
         status: "PENDING"
@@ -535,7 +535,7 @@ stages:
       json:
         id: "{submission_id}"
         user_id: "{user_id}"
-        problem_id: "{problem_id}"
+        problem_id: !int "{problem_id}"
         time_elapsed: 1
         language_id: "{language_id}"
         status: "PENDING"
@@ -633,7 +633,7 @@ stages:
       json:
         id: "{submission_id}"
         user_id: "{user_id}"
-        problem_id: "{problem_id}"
+        problem_id: !int "{problem_id}"
         time_elapsed: 1
         language_id: "{language_id}"
         status: "WRONG_ANSWER"
@@ -660,13 +660,14 @@ stages:
       json:
         - id: "{submission_id}"
           user_id: "{user_id}"
-          problem_id: "{problem_id}"
+          problem_id: !int "{problem_id}"
           time_elapsed: 1
           language_id: "{language_id}"
           status: "WRONG_ANSWER"
           failed_test_case_id: "{test_case_id}"
           source_code: "int main"
       status_code: 200
+
   ### /v1/competitions
   
   - name: create competition with non existent host
@@ -680,7 +681,7 @@ stages:
         start_time: "{five_minutes_from_now}"
         end_time: "{ten_minutes_from_now}"
         problem_ids:
-          - "{problem_id}"
+          - !int "{problem_id}"
     response:
       headers:
         content-type: application/json
@@ -697,7 +698,7 @@ stages:
         start_time: "{five_minutes_ago}"
         end_time: "{ten_minutes_from_now}"
         problem_ids:
-          - "{problem_id}"
+          - !int "{problem_id}"
     response:
       headers:
         content-type: application/json
@@ -714,7 +715,7 @@ stages:
         start_time: "{ten_minutes_from_now}"
         end_time: "{five_minutes_from_now}"
         problem_ids:
-          - "{problem_id}"
+          - !int "{problem_id}"
     response:
       headers:
         content-type: application/json
@@ -730,7 +731,7 @@ stages:
         start_time: "{ten_minutes_from_now}"
         end_time: "{five_minutes_from_now}"
         problem_ids:
-          - "{problem_id}"
+          - !int "{problem_id}"
     response:
       headers:
         content-type: application/json
@@ -747,7 +748,7 @@ stages:
         start_time: "{five_minutes_from_now}"
         end_time: "{ten_minutes_from_now}"
         problem_ids:
-          - 00000000-0000-0000-0000-000000000000
+          - !int 9999999
     response:
       headers:
         content-type: application/json
@@ -764,8 +765,8 @@ stages:
         start_time: "{five_minutes_from_now}"
         end_time: "{ten_minutes_from_now}"
         problem_ids:
-          - "{problem_id}"
-          - "{problem_id_2}"
+          - !int "{problem_id}"
+          - !int "{problem_id_2}"
     response:
       headers:
         content-type: application/json
@@ -833,8 +834,8 @@ stages:
         participants:
           - id: "{user_id_2}"
         problems:
-          - id: "{problem_id}"
-          - id: "{problem_id_2}"
+          - id: !int "{problem_id}"
+          - id: !int "{problem_id_2}"
 
   - name: get all competitions
     request:
@@ -882,7 +883,7 @@ stages:
 
   - name: delete non existent problem
     request: 
-      url: "{host}/v1/problems/00000000-0000-0000-0000-000000000000"
+      url: "{host}/v1/problems/999999999"
       method: DELETE
     response:
       headers:
