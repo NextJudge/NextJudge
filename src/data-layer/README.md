@@ -241,7 +241,7 @@ Response Body:
 
 ```json
 {
-    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d"0,
+    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "time_elapsed": 0,

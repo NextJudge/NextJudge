@@ -132,6 +132,12 @@ class RunResult:
     stderr: bytes
 
 @dataclass
+class TestResult:
+    result: TestCaseResult
+    stdout: bytes
+    stderr: bytes
+
+@dataclass
 class FullResult:
     result: ResultReason
     stdout: bytes
@@ -176,19 +182,23 @@ BRIDGE_LANG_ID_MAP: dict[str,int] = dict()
 rabbitmq: RabbitMQClient = None
 
 
-async def submit_judgement(submission, result: ResultReason, failed_test_case: int = -1):
+async def submit_judgement(submission, result: ResultReason, stdout: bytes, stderr: bytes, failed_test_case: int = -1):
 
 
-    if result != "WRONG_ANSWER":
+    if result == "COMPILE_TIME_ERROR":
         body = {
             "submission_id": submission["id"],
-            "success": result
+            "success": result,
+            "stdout": stdout.decode("utf-8"),
+            "stderr": stderr.decode("utf-8")
         }
     else:
         body = {
             "submission_id": submission["id"],
             "success": result,
-            "failed_test_case_id":failed_test_case
+            "failed_test_case_id":failed_test_case,
+            "stdout": stdout.decode("utf-8"),
+            "stderr": stderr.decode("utf-8")
         }
 
     print("Submitting judgement to bridge")
@@ -265,7 +275,7 @@ def simple_compile_and_run(source_code: str, language: Language) -> FullResult:
     environment = create_program_environment()
     environment.create_directories()
 
-    if not compile_in_jail(source_code, language, environment):
+    if not compile_in_jail(source_code, language, environment).success:
         environment.remove_files()
         return FullResult("COMPILE_TIME_ERROR",b'', b'')
 
@@ -287,9 +297,6 @@ async def handle_test_submission(submission_id: str):
     raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
     test_data = json.loads(raw_test_data)
 
-    print("*********"*10000)
-    print(test_data)
-
     environment = create_program_environment()
     environment.create_directories()
 
@@ -300,23 +307,25 @@ async def handle_test_submission(submission_id: str):
         print("No such language!")
         environment.remove_files()
         return
+    
+    compile_result = compile_in_jail(submission_data["source_code"], LOCAL_LANGUAGES_MAP[local_language_id], environment)
 
-    if not compile_in_jail(submission_data["source_code"], LOCAL_LANGUAGES_MAP[local_language_id], environment):
+    if not compile_result.success:
         # Compile time error
         environment.remove_files()
-        await submit_judgement(submission_data, "COMPILE_TIME_ERROR")
+        await submit_judgement(submission_data, "COMPILE_TIME_ERROR", compile_result.stdout, compile_result.stderr)
         return
     
     for test in test_data["test_cases"]:
         run_result = run_single_test_case(test, environment)
-        if run_result != "ACCEPTED":
+        if run_result.result != "ACCEPTED":
             environment.remove_files()
-            await submit_judgement(submission_data, run_result, test["id"])
+            await submit_judgement(submission_data, run_result.result, run_result.stdout, run_result.stderr, test["id"])
             return
     
     environment.remove_files()
 
-    await submit_judgement(submission_data, "ACCEPTED")
+    await submit_judgement(submission_data, "ACCEPTED",b"",b"")
 
 
 async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
@@ -346,7 +355,7 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
                 environment.remove_files()
                 return
             
-            if not compile_in_jail(source_code, LOCAL_LANGUAGES_MAP[local_language_id], environment):
+            if not compile_in_jail(source_code, LOCAL_LANGUAGES_MAP[local_language_id], environment).success:
                 # Compile time error
                 environment.remove_files()
                 await submit_custom_input_judgement(json_data["id"], "COMPILE_TIME_ERROR", b"", b"")
@@ -360,10 +369,10 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
 
 
 
-def compile_in_jail(source_code: str, language: Language | None, environment: ProgramEnvironment) -> bool:
+def compile_in_jail(source_code: str, language: Language | None, environment: ProgramEnvironment) -> CompileResult:
 
     if language is None:
-        return False
+        return CompileResult(False,b"",b"")
 
     print("Source code")
     print(source_code)
@@ -468,18 +477,19 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
         print(f"Compile-time error - {compile_result.returncode}")
         print(f"stdout: {compile_result.stdout}")
         print(f"stderr: {compile_result.stderr}")
-        return False
+        return CompileResult(False,compile_result.stdout,compile_result.stderr)
 
     print(f"stdout: {compile_result.stdout}")
     print(f"stderr: {compile_result.stderr}")
     
     # shutil.copyfile(f"/chroot/{dir}/main", f"/chroot/{dir}/{RUN_SCRIPT_NAME}")
     print("Compiling succeeded!")
-    return True
+    return CompileResult(True,compile_result.stdout,compile_result.stderr)
 
 
 
-def run_single_test_case(testcase, environment: ProgramEnvironment) -> TestCaseResult:
+
+def run_single_test_case(testcase, environment: ProgramEnvironment) -> TestResult:
 
     # print(testcase["input"].encode("utf-8"))
 
@@ -489,19 +499,17 @@ def run_single_test_case(testcase, environment: ProgramEnvironment) -> TestCaseR
     print("EXPECTED:",testcase["expected_output"])
     
     if(run_result.result != "ACCEPTED"):
-        return run_result.result
+        return TestResult(run_result.result, run_result.stdout, run_result.stderr)
     else:
         standard_out = run_result.stdout.decode("utf-8")
         expected_output = testcase["expected_output"]
 
-       
-
         success = compare_input_output(expected_output, standard_out)
 
         if success:
-            return "ACCEPTED"
+            return TestResult("ACCEPTED",run_result.stdout,run_result.stderr)
         else:
-            return "WRONG_ANSWER"
+            return TestResult("WRONG_ANSWER",run_result.stdout,run_result.stderr)
 
 def run_single(environment: ProgramEnvironment, input: bytes) -> RunResult:
 
