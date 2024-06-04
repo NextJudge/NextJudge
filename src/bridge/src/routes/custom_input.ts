@@ -20,8 +20,8 @@ export function add_custom_run_result(key: string, res: CustomRunResult){
 
 const createCustomSubmissionHook = {
     body: t.Object({
-      user_id: t.Integer(),
-      language_id: t.Integer(),
+      user_id: t.String(),
+      language_id: t.String(),
       source_code: t.String(),
       stdin: t.String(),
     }),
@@ -32,7 +32,7 @@ const customSubmitEndpoint = new Elysia()
 
     .post("/custom_input", async ({ bearer, body }: {
             bearer: string;
-            body: { user_id: number; source_code: string; language_id: number; stdin: string};
+            body: { user_id: string; source_code: string; language_id: string; stdin: string};
         }) => {
 
             const id = randomUUID()

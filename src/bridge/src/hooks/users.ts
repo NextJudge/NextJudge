@@ -24,8 +24,8 @@ export const getUsersHook = {
 export const createSubmissionHook = {
   ...userSwaggerTags,
   body: t.Object({
-    user_id: t.Integer(),
-    language_id: t.Integer(),
+    user_id: t.String(),
+    language_id: t.String(),
     problem_id: t.Integer(),
     source_code: t.String(),
   }),
