@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/google/uuid"
 )
 
 type ElasticSearch struct {
@@ -87,7 +87,7 @@ func (es *ElasticSearch) IndexProblem(problem *Problem) error {
 		return err
 	}
 
-	res, err := es.ElasticSearchClient.Index(cfg.ProblemsIndex, strings.NewReader(string(doc)), es.ElasticSearchClient.Index.WithDocumentID(problem.ID.String()))
+	res, err := es.ElasticSearchClient.Index(cfg.ProblemsIndex, strings.NewReader(string(doc)), es.ElasticSearchClient.Index.WithDocumentID(strconv.Itoa(problem.ID)))
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (es *ElasticSearch) SearchProblems(ctx context.Context, query string) ([]Pr
 	for _, hit := range hits {
 		doc := hit.(map[string]interface{})
 		id := doc["_id"].(string)
-		problemId, err := uuid.Parse(id)
+		problemId, err := strconv.Atoi(id)
 		if err != nil {
 			return nil, err
 		}

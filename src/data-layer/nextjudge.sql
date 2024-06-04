@@ -67,7 +67,7 @@ CREATE TABLE "users" (
 );
 
 CREATE TABLE "problems" (
-  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "id" SERIAL PRIMARY KEY,
   "title" varchar NOT NULL UNIQUE,
   "prompt" varchar NOT NULL,
   "timeout" integer NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE "problems" (
 CREATE TABLE "submissions" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "user_id" UUID NOT NULL,
-  "problem_id" UUID NOT NULL,
+  "problem_id" integer NOT NULL,
   "time_elapsed" float NOT NULL,
   "language_id" UUID NOT NULL,
   "status" status NOT NULL,
@@ -91,7 +91,7 @@ CREATE TABLE "submissions" (
 CREATE TABLE "test_cases" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "is_public" boolean NOT NULL,
-  "problem_id" UUID NOT NULL,
+  "problem_id" integer NOT NULL,
   "input" varchar NOT NULL,
   "expected_output" varchar NOT NULL
 );
@@ -107,7 +107,7 @@ CREATE TABLE "competitions" (
 
 CREATE TABLE "competition_problems" (
   "competition_id" UUID NOT NULL,
-  "problem_id" UUID NOT NULL,
+  "problem_id" integer NOT NULL,
   PRIMARY KEY("competition_id", "problem_id")
 );
 
@@ -131,7 +131,7 @@ CREATE TABLE "categories" (
 
 CREATE TABLE "problem_categories" (
   "category_id" UUID NOT NULL,
-  "problem_id" UUID NOT NULL,
+  "problem_id" integer NOT NULL,
   PRIMARY KEY("category_id", "problem_id")
 );
 

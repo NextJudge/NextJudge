@@ -22,12 +22,12 @@ func addCompetitionsRoutes(mux *goji.Mux) {
 }
 
 type PostCompetitionRequestBody struct {
-	Title       string      `json:"title"`
-	Description string      `json:"description"`
-	StartTime   string      `json:"start_time"`
-	EndTime     string      `json:"end_time"`
-	UserID      uuid.UUID   `json:"user_id"`
-	ProblemIDs  []uuid.UUID `json:"problem_ids"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	StartTime   string    `json:"start_time"`
+	EndTime     string    `json:"end_time"`
+	UserID      uuid.UUID `json:"user_id"`
+	ProblemIDs  []int     `json:"problem_ids"`
 }
 
 type PostCompetitionParticipantRequestBody struct {

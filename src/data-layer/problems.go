@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -159,7 +160,7 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 
 func getProblem(w http.ResponseWriter, r *http.Request) {
 	problemIdParam := pat.Param(r, "problem_id")
-	problemId, err := uuid.Parse(problemIdParam)
+	problemId, err := strconv.Atoi(problemIdParam)
 	if err != nil {
 		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
@@ -238,7 +239,7 @@ func getProblems(w http.ResponseWriter, r *http.Request) {
 
 func deleteProblem(w http.ResponseWriter, r *http.Request) {
 	problemIdParam := pat.Param(r, "problem_id")
-	problemId, err := uuid.Parse(problemIdParam)
+	problemId, err := strconv.Atoi(problemIdParam)
 	if err != nil {
 		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)

@@ -45,7 +45,7 @@ type Category struct {
 }
 
 type Problem struct {
-	ID         uuid.UUID  `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	ID         int        `json:"id"`
 	Prompt     string     `json:"prompt"`
 	Title      string     `json:"title"`
 	Timeout    int        `json:"timeout"`
@@ -58,7 +58,7 @@ type Problem struct {
 
 type TestCase struct {
 	ID             uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
-	ProblemID      uuid.UUID `json:"problem_id"`
+	ProblemID      int       `json:"problem_id"`
 	Input          string    `json:"input"`
 	IsPublic       bool      `json:"is_public"`
 	ExpectedOutput string    `json:"expected_output"`
@@ -67,7 +67,7 @@ type TestCase struct {
 type Submission struct {
 	ID          uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	UserID      uuid.UUID `json:"user_id"`
-	ProblemID   uuid.UUID `json:"problem_id"`
+	ProblemID   int       `json:"problem_id"`
 	TimeElapsed float32   `json:"time_elapsed"`
 	LanguageID  uuid.UUID `json:"language_id"`
 	Status      Status    `json:"status"`
