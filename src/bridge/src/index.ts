@@ -71,12 +71,12 @@ async function setupBridge() {
           {
             input:"FALSE\n",
             expected_output: "TRUE\n",
-            is_public: false,
+            is_public: true,
           },
           {
             input:"TRUE\n",
             expected_output: "FALSE\n",
-            is_public: false,
+            is_public: true,
           }
       ]
     }

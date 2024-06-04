@@ -328,11 +328,12 @@ def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
         sys.exit(1)
 
     # Load all testcases now
+    test_cases = []
 
+    # Private test cases
     testcase_files = os.listdir(f"{dir}/data/secret")
     testcase_names = [case[:-3] for case in testcase_files if case.endswith("in")]
 
-    test_cases = []
     for name in testcase_names:
         test_input = open(f"{dir}/data/secret/{name}.in", 'r').read()
         test_output = open(f"{dir}/data/secret/{name}.ans", 'r').read()
@@ -342,6 +343,24 @@ def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
             "expected_output": test_output,
             "is_public": False
         })
+    
+    # Public test cases
+    try:
+        testcase_files = os.listdir(f"{dir}/data/sample")
+        testcase_names = [case[:-3] for case in testcase_files if case.endswith("in")]
+        for name in testcase_names:
+            test_input = open(f"{dir}/data/sample/{name}.in", 'r').read()
+            test_output = open(f"{dir}/data/sample/{name}.ans", 'r').read()
+
+            test_cases.append({
+                "input": test_input,
+                "expected_output": test_output,
+                "is_public": True
+            })
+    except:
+        pass
+
+
 
     id = get_test_user_id(f"http://{host}:5000")
     print(f"Title: {title}")
@@ -429,17 +448,17 @@ Title: {data['title']}"""
         config.write(f)
 
     pathlib.Path("testcases").mkdir(exist_ok=True)
+    if "test_cases" in data:
+        for testcase in data["test_cases"]:
+            
+            with open(f"testcases/{testcase['id']}.in","w") as f:
+                f.write(testcase["input"])
 
-    for testcase in data["test_cases"]:
-        
-        with open(f"testcases/{testcase['id']}.in","w") as f:
-            f.write(testcase["input"])
-
-        with open(f"testcases/{testcase['id']}.ans","w") as f:
-            f.write(testcase["expected_output"])
+            with open(f"testcases/{testcase['id']}.ans","w") as f:
+                f.write(testcase["expected_output"])
 
     
-    print(f"{len(data['test_cases'])} tests written into 'testcases' directory")
+        print(f"{len(data['test_cases'])} tests written into 'testcases' directory")
     
 
 
