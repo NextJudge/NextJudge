@@ -165,7 +165,7 @@ export class RabbitMQConnection {
       // Send submission to the database
       console.log("querying database");
       ApiService.get(
-        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/problems/${id}`
+        `http://${DATABASE_HOST}:${DATABASE_PORT}/v1/problems/${id}?type=private`
       )
         .then((response) => response.json())
         .then((response) => {

@@ -26,7 +26,7 @@ const submissionEndpoints = new Elysia()
   .post("/submission", createSubmission, createSubmissionHook)
   .get("/submission/:submission_id", async ({ bearer, params }: {
           bearer: string;
-          params: { submission_id: number };
+          params: { submission_id: string };
         }) => {
           try {
             // Query and return whatever the database returns
@@ -41,7 +41,7 @@ const submissionEndpoints = new Elysia()
         }, 
     {
     params: t.Object({
-      submission_id:t.Numeric()
+      submission_id:t.String()
     })
   });
 

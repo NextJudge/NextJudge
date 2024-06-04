@@ -171,7 +171,7 @@ def get_language_by_extension(ext: str) -> Language | None:
             return lang
     return None
 
-BRIDGE_LANG_ID_MAP: dict[int,int] = dict()
+BRIDGE_LANG_ID_MAP: dict[str,int] = dict()
 
 rabbitmq: RabbitMQClient = None
 
@@ -287,11 +287,14 @@ async def handle_test_submission(submission_id: str):
     raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
     test_data = json.loads(raw_test_data)
 
+    print("*********"*10000)
+    print(test_data)
+
     environment = create_program_environment()
     environment.create_directories()
 
     print(BRIDGE_LANG_ID_MAP)
-    local_language_id = BRIDGE_LANG_ID_MAP.get(int(submission_data["language_id"]))
+    local_language_id = BRIDGE_LANG_ID_MAP.get(submission_data["language_id"])
 
     if local_language_id == None:
         print("No such language!")
@@ -336,7 +339,7 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
             environment = create_program_environment()
             environment.create_directories()
 
-            local_language_id = BRIDGE_LANG_ID_MAP.get(int(language_id))
+            local_language_id = BRIDGE_LANG_ID_MAP.get(language_id)
 
             if local_language_id == None:
                 print("No such language!")

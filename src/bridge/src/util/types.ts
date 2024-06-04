@@ -3,11 +3,11 @@ export interface SubmissionRequest {
   source_code: string;
   language_id: number;
   problem_id: number;
-  user_id: number;
+  user_id: string;
 }
 
 export interface User {
-  id: number;
+  id: string;
   username: string;
   password_hash: string;
   join_date: string;

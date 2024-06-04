@@ -48,12 +48,15 @@ const errorHandler: ErrorHandler = ({
 async function setupBridge() {
   // // Create basic user as a test
   const userService = new UserService();
-  const users = await userService.getUsers();
+  let users = await userService.getUsers();
   if (users.length === 0) {
     await userService.createUser("test", "test", true);
   } else {
     console.log("[Main] Test user already exist...");
   }
+
+  users = await userService.getUsers();
+
 
   console.log("Setting up dummy problem")
   const response = await ApiService.post(
@@ -62,16 +65,18 @@ async function setupBridge() {
       title: "Boolean or not boolean",
       prompt: "If the input is 'TRUE', print 'FALSE'. Otherwise, print 'TRUE'",
       timeout: 1,
-      user_id: 1,
+      user_id: users[0].id,
       difficulty: "MEDIUM",
       test_cases: [
           {
             input:"FALSE\n",
-            expected_output: "TRUE\n"
+            expected_output: "TRUE\n",
+            is_public: false,
           },
           {
             input:"TRUE\n",
-            expected_output: "FALSE\n"
+            expected_output: "FALSE\n",
+            is_public: false,
           }
       ]
     }
