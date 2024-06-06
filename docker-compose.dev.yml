@@ -39,10 +39,10 @@ services:
       file: src/data-layer/docker-compose.db.yml
       service: db
 
-  nextjudge-judge:
+  nextjudge-judge-dev:
     extends: 
       file: src/judge/docker-compose.dev.yml
-      service: nextjudge-judge
+      service: nextjudge-judge-dev
     environment:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
