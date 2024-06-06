@@ -79,6 +79,7 @@ def main():
     test_parser = toplevel_parser.add_parser("test")
     test_parser.add_argument("file")
     test_parser.add_argument("--tests", dest="tests", default=None, required=False)
+    test_parser.add_argument("--local-image", dest="local_image", action="store_const",const=True,default=False, required=False)
 
 
     argcomplete.autocomplete(parser)
@@ -177,7 +178,7 @@ def main():
         args.port = "5000"
         upload_and_run_icpc_solutions_suite(args.directory, args.host, args.port, args.skip)
     elif args.command == "test":
-        run_local_tests(args.file, args.tests)
+        run_local_tests(args.file, args.tests, args.local_image)
     else:
         print("Unknown command")
         parser.print_help()
@@ -548,7 +549,7 @@ def upload_and_run_icpc_solutions_suite(top_level_directory: str, host: str, por
     print(log_file.name)
 
 
-def run_local_tests(file: str, tests_dir: str | None) -> None:
+def run_local_tests(file: str, tests_dir: str | None, local_image: bool) -> None:
     
     if tests_dir is None:
         if os.path.isdir("testcases"):
@@ -556,6 +557,9 @@ def run_local_tests(file: str, tests_dir: str | None) -> None:
         else:
             print("You must specify the path to the testcase folder - not found automatically")
             sys.exit(1)
+
+
+    IMAGE_NAME="ghcr.io/nextjudge/judge:latest" if not local_image else "nextjudge/judge"
 
     result = subprocess.run(
         [
@@ -566,7 +570,7 @@ def run_local_tests(file: str, tests_dir: str | None) -> None:
             f"./{file}:/{file}:ro",
             "-v",
             f"./{tests_dir}:/tests/:ro",
-            "nextjudge-nextjudge-judge",
+            IMAGE_NAME,
             "--file",
             f"/{file}",
             "--tests",

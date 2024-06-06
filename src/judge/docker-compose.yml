@@ -5,4 +5,5 @@ services:
       context: .
       args:
         - USAGE=prod
+    image: nextjudge/judge
     privileged: true
