@@ -13,6 +13,8 @@ import yaml
 from pathlib import Path
 import tempfile
 import configparser
+import subprocess
+
 try:
     import argcomplete
     argcomplete_available = True
@@ -73,6 +75,10 @@ def main():
     custom_parser.add_argument("stdin")
 
 
+    # Test
+    test_parser = toplevel_parser.add_parser("test")
+    test_parser.add_argument("file")
+    test_parser.add_argument("--tests", dest="tests", default=None, required=False)
 
 
     argcomplete.autocomplete(parser)
@@ -170,7 +176,8 @@ def main():
     elif args.command == "test-icpc-solutions-suite":
         args.port = "5000"
         upload_and_run_icpc_solutions_suite(args.directory, args.host, args.port, args.skip)
-    
+    elif args.command == "test":
+        run_local_tests(args.file, args.tests)
     else:
         print("Unknown command")
         parser.print_help()
@@ -419,9 +426,13 @@ class Problem(TypedDict):
 def get_problem_data(id: int, host: str, port: str):
     DATABASE_ENDPOINT = f"http://{host}:{port}"
 
-    response = requests.get(
-        f"{DATABASE_ENDPOINT}/v1/problems/{id}",
-    )
+    try:
+        response = requests.get(
+            f"{DATABASE_ENDPOINT}/v1/problems/{id}",
+        )
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to connect to endpoint - {DATABASE_ENDPOINT}")
+        sys.exit(1)
 
     if not response.ok:
         print(f"Failed to get problem {id}")
@@ -449,12 +460,15 @@ Title: {data['title']}"""
 
     pathlib.Path("testcases").mkdir(exist_ok=True)
     if "test_cases" in data:
-        for testcase in data["test_cases"]:
+        for i, testcase in enumerate(data["test_cases"]):
             
-            with open(f"testcases/{testcase['id']}.in","w") as f:
+            testcase_name = i
+            # testcase_name = testcase["id"]
+
+            with open(f"testcases/{testcase_name}.in","w") as f:
                 f.write(testcase["input"])
 
-            with open(f"testcases/{testcase['id']}.ans","w") as f:
+            with open(f"testcases/{testcase_name}.ans","w") as f:
                 f.write(testcase["expected_output"])
 
     
@@ -533,6 +547,34 @@ def upload_and_run_icpc_solutions_suite(top_level_directory: str, host: str, por
 
     print(log_file.name)
 
+
+def run_local_tests(file: str, tests_dir: str | None) -> None:
+    
+    if tests_dir is None:
+        if os.path.isdir("testcases"):
+            tests_dir = "testcases"
+        else:
+            print("You must specify the path to the testcase folder - not found automatically")
+            sys.exit(1)
+
+    result = subprocess.run(
+        [
+            "docker",
+            "run",
+            "--privileged",
+            "-v",
+            f"./{file}:/{file}:ro",
+            "-v",
+            f"./{tests_dir}:/tests/:ro",
+            "nextjudge-nextjudge-judge",
+            "--file",
+            f"/{file}",
+            "--tests",
+            "/tests/"
+        ]
+    )
+
+    
 
 if __name__ == "__main__":
     main()
