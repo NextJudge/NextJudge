@@ -14,6 +14,7 @@ import aio_pika
 import aio_pika.abc
 import shutil
 import time
+import argparse
 
 RABBITMQ_HOST=os.getenv("RABBITMQ_HOST", "localhost") 
 RABBITMQ_PORT=os.getenv("RABBITMQ_PORT", 5672) 
@@ -115,6 +116,12 @@ class Submission:
     problem_id: str
     id: int
 
+
+@dataclass
+class Test:
+    input: str
+    expected_output: str
+
 RunResultReason = Literal["ACCEPTED"] | Literal["TIME_LIMIT_EXCEEDED"] | Literal["MEMORY_LIMIT_EXCEEDED"] | Literal["RUNTIME_ERROR"]
 TestCaseResult = Literal["WRONG_ANSWER"] | RunResultReason
 ResultReason = TestCaseResult | Literal["COMPILE_TIME_ERROR"]
@@ -185,17 +192,17 @@ rabbitmq: RabbitMQClient = None
 async def submit_judgement(submission, result: ResultReason, stdout: bytes, stderr: bytes, failed_test_case: int = -1):
 
 
-    if result == "COMPILE_TIME_ERROR":
+    if result == "COMPILE_TIME_ERROR" or result == "ACCEPTED":
         body = {
             "submission_id": submission["id"],
-            "success": result,
+            "status": result,
             "stdout": stdout.decode("utf-8"),
             "stderr": stderr.decode("utf-8")
         }
     else:
         body = {
             "submission_id": submission["id"],
-            "success": result,
+            "status": result,
             "failed_test_case_id":failed_test_case,
             "stdout": stdout.decode("utf-8"),
             "stderr": stderr.decode("utf-8")
@@ -211,7 +218,7 @@ async def submit_custom_input_judgement(id: str, result: ResultReason, stdout: b
 
     body = {
         "submission_id": id,
-        "success": result,
+        "status": result,
         "stdout": stdout.decode("utf-8"),
         "stderr": stderr.decode("utf-8")
     }
@@ -287,6 +294,23 @@ def simple_compile_and_run(source_code: str, language: Language) -> FullResult:
 
     return FullResult(output.result, output.stdout, output.stderr)
 
+def simple_compile_and_run_tests(source_code: str, tests:list[Test], language: Language) -> FullResult:
+    environment = create_program_environment()
+    environment.create_directories()
+
+    if not compile_in_jail(source_code, language, environment).success:
+        environment.remove_files()
+        return FullResult("COMPILE_TIME_ERROR",b'', b'')
+
+
+    for t in tests:
+        run_result = run_single_test_case(t, environment)
+        print(run_result.result)
+        
+    environment.remove_files()
+
+    return None
+
 
 async def handle_test_submission(submission_id: str):
     # Get all the relevent information regarding this submission ID
@@ -325,7 +349,7 @@ async def handle_test_submission(submission_id: str):
     
     environment.remove_files()
 
-    await submit_judgement(submission_data, "ACCEPTED",b"",b"")
+    await submit_judgement(submission_data,"ACCEPTED",b"",b"")
 
 
 async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
@@ -437,7 +461,10 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             # // Read/write mounts
             "--bindmount", f"{environment.top_level_dir_build_dir}:{environment.inside_chroot_build_dir}", # Map build dir as read/write
             "--bindmount", f"{environment.top_level_dir_executable_dir}:{environment.inside_chroot_executable_dir}", # Map executable dir as read/write
-            "--bindmount", f"/chroot/root/.cache:/root/.cache", # Map build dir as read/write
+
+            "--bindmount", f"/chroot/home/NEXTJUDGE_USER/.cache:/home/NEXTJUDGE_USER/.cache", # Map build dir as read/write
+            # '--mount', 'none:/home/NEXTJUDGE_USER/.cache:tmpfs:size=419430400', # // Mount /tmp as tmpfs, make it larger than default (4194304)
+
 
             # // Readonly mounts
             # // "--bindmount_ro", `/dev/zero:/dev/zero`,
@@ -451,7 +478,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             '--mount', 'none:/tmp:tmpfs:size=419430400', # // Mount /tmp as tmpfs, make it larger than default (4194304)
 
             "--env", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-            "--env", "HOME=/root", # User is not really root, but some Dockerfile commands for compilers/runtimes add application files to root home
+            "--env", "HOME=/home/NEXTJUDGE_USER", # User is not really root, but some Dockerfile commands for compilers/runtimes add application files to root home
             
             "--exec_file",f"{environment.inside_chroot_build_script}",
             
@@ -659,4 +686,25 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--file", dest="file", required=False, default=None, type=int)
+    parser.add_argument("--tests", dest="tests", required=False, default=None, type=int)
+
+    args = parser.parse_args()
+
+    if args.file is not None and args.tests is not None:
+
+        try:
+            source_code = open(args.file,"r",encoding="utf-8").read()
+        except OSError as e:
+            print(f"Could not open file {args.file} - {e}")
+
+        extension = Path(args.file).suffix[1:]
+        language = get_language_by_extension(extension)
+
+        if language is not None:
+            simple_compile_and_run(source_code, language)
+
+    else:
+        asyncio.run(main())
