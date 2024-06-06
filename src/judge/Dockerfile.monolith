@@ -3,18 +3,27 @@ ARG USAGE
 
 FROM ubuntu:24.04 as BUILD
 
-RUN apt-get update -y && apt-get install -y curl tar wget g++ gcc python3 ruby build-essential openjdk-21-jdk
+RUN apt-get update -y && apt-get install -y curl tar wget g++ gcc python3 ruby build-essential openjdk-21-jdk strace ghc pypy3
+
+# User level stuff below
+# Make dummy user so files have the correct UID/GID
+RUN groupadd -g 99999 NEXTJUDGE_USER_GROUP
+RUN useradd NEXTJUDGE_USER -u 99999 -g 99999 -s /bin/bash
+
+USER NEXTJUDGE_USER
+WORKDIR /home/NEXTJUDGE_USER
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-RUN wget https://go.dev/dl/go1.22.1.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.22.1.linux-amd64.tar.gz
-# Make go compile the stdlib now, and not on the first use of the go build command
-RUN /usr/local/go/bin/go install std
+RUN wget https://go.dev/dl/go1.22.1.linux-amd64.tar.gz && tar -C /home/NEXTJUDGE_USER -xzf go1.22.1.linux-amd64.tar.gz
+# # Make go compile the stdlib now, and not on the first use of the go build command
+RUN /home/NEXTJUDGE_USER/go/bin/go install std
+
 
 
 # Node
 ENV NODE_VERSION=21.6.2
 RUN wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-ENV NVM_DIR=/root/.nvm
+ENV NVM_DIR=/home/NEXTJUDGE_USER/.nvm
 RUN \. "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION} && nvm use ${NODE_VERSION} && nvm alias default ${NODE_VERSION}
 
 # TypeScript
@@ -24,29 +33,19 @@ RUN \. "$NVM_DIR/nvm.sh" && npm install typescript -g
 RUN curl -L -R -O https://www.lua.org/ftp/lua-5.4.6.tar.gz && \
     tar zxf lua-5.4.6.tar.gz && \
     cd lua-5.4.6 && \
-    make linux install INSTALL_TOP=/usr/local/lua/5_4_6
+    make linux install INSTALL_TOP=/home/NEXTJUDGE_USER/lua/5_4_6
 
-# Kotlin
+# # Kotlin
 RUN wget https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-compiler-1.9.24.zip && \
     unzip kotlin-compiler-1.9.24.zip
 
-RUN apt-get install -y strace
 
-RUN apt-get install -y ghc
-
-RUN apt-get install -y pypy3
-
-RUN curl -L https://dot.net/v1/dotnet-install.sh | bash -s -- --version latest
+# RUN curl -L https://dot.net/v1/dotnet-install.sh | bash -s -- --version latest
 
 FROM basejudge:"$USAGE"
 
 COPY --from=BUILD / /chroot
-# RUN mkdir -p /chroot/root/.cache
-RUN chown -R 99999:99999 /chroot/root
-RUN chown -R 99999:99999 /chroot/usr
 RUN chown -R 99999:99999 /chroot/dev
-
-
 
 
 COPY <<-'EOF' /app/languages.toml
@@ -98,7 +97,7 @@ version = "1.78.0"
 extension = "rs"
 script="""
 #!/bin/sh
-/root/.cargo/bin/rustc {IN_FILE} -o /executable/main
+HOME=/home/NEXTJUDGE_USER /home/NEXTJUDGE_USER/.cargo/bin/rustc {IN_FILE} -o /executable/main
 """
 
 [[language]]
@@ -107,7 +106,7 @@ version = "1.22.1"
 extension = "go"
 script= """
 #!/bin/sh
-/usr/local/go/bin/go build -o /executable/main {IN_FILE}
+HOME=/home/NEXTJUDGE_USER /home/NEXTJUDGE_USER/go/bin/go build -o /executable/main {IN_FILE}
 """
 
 
@@ -118,7 +117,7 @@ extension = "js"
 script= """
 #!/bin/sh
 echo "#!/bin/sh" >> /executable/main
-echo 'export PATH="/root/.nvm/versions/node/v21.6.2/bin/:$PATH"' >> /executable/main
+echo 'export PATH="/home/NEXTJUDGE_USER/.nvm/versions/node/v21.6.2/bin/:$PATH"' >> /executable/main
 echo "node /build/{IN_FILE}" >> /executable/main
 chmod +x /executable/main
 """
@@ -129,13 +128,13 @@ version = "5.4.5"
 extension = "ts"
 script= """
 #!/bin/sh
-export PATH="/root/.nvm/versions/node/v21.6.2/bin/:$PATH"
+export PATH="/home/NEXTJUDGE_USER/.nvm/versions/node/v21.6.2/bin/:$PATH"
 export NODE_OPTIONS="--max_old_space_size=2048"
 export GENERATE_SOURCEMAP=false
 tsc {IN_FILE} --outfile main2
 
 echo "#!/bin/sh" >> /executable/main
-echo 'export PATH="/root/.nvm/versions/node/v21.6.2/bin/:$PATH"' >> /executable/main
+echo 'export PATH="/home/NEXTJUDGE_USER/.nvm/versions/node/v21.6.2/bin/:$PATH"' >> /executable/main
 echo "node /build/main2" >> /executable/main
 chmod +x /executable/main
 """
@@ -160,7 +159,7 @@ extension = "lua"
 script= """
 #!/bin/sh
 echo "#!/bin/sh" >> /executable/main
-echo "/usr/local/lua/5_4_6/bin/lua /build/{IN_FILE}" >> /executable/main
+echo "//home/NEXTJUDGE_USER/lua/5_4_6/bin/lua /build/{IN_FILE}" >> /executable/main
 chmod +x /executable/main
 """
 
@@ -210,10 +209,10 @@ extension = "kt"
 script= """
 #!/bin/sh
 
-/kotlinc/bin/kotlinc -d /executable {IN_FILE}
+/home/NEXTJUDGE_USER/kotlinc/bin/kotlinc -d /executable {IN_FILE}
 
 echo "#!/bin/sh" >> /executable/main
-echo "/kotlinc/bin/kotlin /executable/InputKt.class" >> /executable/main
+echo "/home/NEXTJUDGE_USER/kotlinc/bin/kotlin /executable/InputKt.class" >> /executable/main
 chmod +x /executable/main
 
 ls /executable
