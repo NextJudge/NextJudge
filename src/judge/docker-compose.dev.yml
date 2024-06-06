@@ -1,5 +1,5 @@
 services:
-  nextjudge-judge:
+  nextjudge-judge-dev:
     build: 
       dockerfile: ./Dockerfile.monolith
       context: .
