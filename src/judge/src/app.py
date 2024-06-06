@@ -5,6 +5,7 @@ from typing import Callable, Literal
 from pathlib import Path
 import asyncio
 import os
+import sys
 import uuid
 import time
 import json
@@ -14,6 +15,7 @@ import aio_pika
 import aio_pika.abc
 import shutil
 import time
+import argparse
 
 RABBITMQ_HOST=os.getenv("RABBITMQ_HOST", "localhost") 
 RABBITMQ_PORT=os.getenv("RABBITMQ_PORT", 5672) 
@@ -115,6 +117,13 @@ class Submission:
     problem_id: str
     id: int
 
+
+@dataclass
+class Test:
+    input: str
+    expected_output: str
+    id: str
+
 RunResultReason = Literal["ACCEPTED"] | Literal["TIME_LIMIT_EXCEEDED"] | Literal["MEMORY_LIMIT_EXCEEDED"] | Literal["RUNTIME_ERROR"]
 TestCaseResult = Literal["WRONG_ANSWER"] | RunResultReason
 ResultReason = TestCaseResult | Literal["COMPILE_TIME_ERROR"]
@@ -182,20 +191,20 @@ BRIDGE_LANG_ID_MAP: dict[str,int] = dict()
 rabbitmq: RabbitMQClient = None
 
 
-async def submit_judgement(submission, result: ResultReason, stdout: bytes, stderr: bytes, failed_test_case: int = -1):
+async def submit_judgement(submission, result: ResultReason, stdout: bytes, stderr: bytes, failed_test_case: str = "-1"):
 
 
-    if result == "COMPILE_TIME_ERROR":
+    if result == "COMPILE_TIME_ERROR" or result == "ACCEPTED":
         body = {
             "submission_id": submission["id"],
-            "success": result,
+            "status": result,
             "stdout": stdout.decode("utf-8"),
             "stderr": stderr.decode("utf-8")
         }
     else:
         body = {
             "submission_id": submission["id"],
-            "success": result,
+            "status": result,
             "failed_test_case_id":failed_test_case,
             "stdout": stdout.decode("utf-8"),
             "stderr": stderr.decode("utf-8")
@@ -211,7 +220,7 @@ async def submit_custom_input_judgement(id: str, result: ResultReason, stdout: b
 
     body = {
         "submission_id": id,
-        "success": result,
+        "status": result,
         "stdout": stdout.decode("utf-8"),
         "stderr": stderr.decode("utf-8")
     }
@@ -279,13 +288,41 @@ def simple_compile_and_run(source_code: str, language: Language) -> FullResult:
         environment.remove_files()
         return FullResult("COMPILE_TIME_ERROR",b'', b'')
 
-    print("Running")
     output = run_single(environment, b"")
-    print(output)
 
     environment.remove_files()
 
     return FullResult(output.result, output.stdout, output.stderr)
+
+def simple_compile_and_run_tests(source_code: str, tests:list[Test], language: Language) -> FullResult:
+    environment = create_program_environment()
+    environment.create_directories()
+
+    compile_result = compile_in_jail(source_code, language, environment, verbose=False)
+
+    if not compile_result.success:
+        print(compile_result.stdout)
+        print(compile_result.stderr)
+        environment.remove_files()
+        return FullResult("COMPILE_TIME_ERROR",b'', b'')
+
+    for t in tests:
+        run_result = run_single_test_case(t, environment, verbose=False)
+        print(f"Test {t.id}: {run_result.result}")
+
+        if run_result.result != "ACCEPTED":
+            print("STDOUT")
+            print(run_result.stdout)
+            print("STDERR")
+            print(run_result.stderr)
+
+            print("EXPECTED")
+            print(t.expected_output)
+
+        
+    environment.remove_files()
+
+    return None
 
 
 async def handle_test_submission(submission_id: str):
@@ -296,6 +333,11 @@ async def handle_test_submission(submission_id: str):
     # Get test data for this ID
     raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
     test_data = json.loads(raw_test_data)
+
+    tests: list[Test] = []
+
+    for test in test_data["test_cases"]:
+        tests.append(Test(test["input"], test["expected_output"], test["id"]))
 
     environment = create_program_environment()
     environment.create_directories()
@@ -316,16 +358,16 @@ async def handle_test_submission(submission_id: str):
         await submit_judgement(submission_data, "COMPILE_TIME_ERROR", compile_result.stdout, compile_result.stderr)
         return
     
-    for test in test_data["test_cases"]:
+    for test in tests:
         run_result = run_single_test_case(test, environment)
         if run_result.result != "ACCEPTED":
             environment.remove_files()
-            await submit_judgement(submission_data, run_result.result, run_result.stdout, run_result.stderr, test["id"])
+            await submit_judgement(submission_data, run_result.result, run_result.stdout, run_result.stderr, test.id)
             return
     
     environment.remove_files()
 
-    await submit_judgement(submission_data, "ACCEPTED",b"",b"")
+    await submit_judgement(submission_data,"ACCEPTED",b"",b"")
 
 
 async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
@@ -369,28 +411,28 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
 
 
 
-def compile_in_jail(source_code: str, language: Language | None, environment: ProgramEnvironment) -> CompileResult:
+def compile_in_jail(source_code: str, language: Language | None, environment: ProgramEnvironment, verbose=True) -> CompileResult:
 
     if language is None:
         return CompileResult(False,b"",b"")
 
-    print("Source code")
-    print(source_code)
+    # print("Source code")
+    # print(source_code)
 
     build_script = language.script
     extension = language.extension
 
     INPUT_FILE_NAME = f"input.{extension}"
 
-    print(f"Writing code to {environment.top_level_dir_build_dir}/{INPUT_FILE_NAME}")
+    # print(f"Writing code to {environment.top_level_dir_build_dir}/{INPUT_FILE_NAME}")
 
     with open(f"/{environment.top_level_dir_build_dir}/{INPUT_FILE_NAME}", "w") as f:
         f.write(source_code)
 
     build_script = build_script.replace("{IN_FILE}", f"input.{extension}")
 
-    print("Build script")
-    print(build_script)
+    # print("Build script")
+    # print(build_script)
 
     with open(f"{environment.top_level_dir_build_script}", "w") as f:
         f.write(build_script)
@@ -403,7 +445,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
     os.chown(f"{environment.top_level_dir_executable_dir}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
 
 
-    print("Compiling")
+    # print("Compiling")
 
     # subprocess.run(["ls","-pla", "/"])
     # subprocess.run(["ls","-pla", "/program_files"])
@@ -437,7 +479,10 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             # // Read/write mounts
             "--bindmount", f"{environment.top_level_dir_build_dir}:{environment.inside_chroot_build_dir}", # Map build dir as read/write
             "--bindmount", f"{environment.top_level_dir_executable_dir}:{environment.inside_chroot_executable_dir}", # Map executable dir as read/write
-            "--bindmount", f"/chroot/root/.cache:/root/.cache", # Map build dir as read/write
+
+            "--bindmount", f"/chroot/home/NEXTJUDGE_USER/.cache:/home/NEXTJUDGE_USER/.cache", # Map build dir as read/write
+            # '--mount', 'none:/home/NEXTJUDGE_USER/.cache:tmpfs:size=419430400', # // Mount /tmp as tmpfs, make it larger than default (4194304)
+
 
             # // Readonly mounts
             # // "--bindmount_ro", `/dev/zero:/dev/zero`,
@@ -451,7 +496,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             '--mount', 'none:/tmp:tmpfs:size=419430400', # // Mount /tmp as tmpfs, make it larger than default (4194304)
 
             "--env", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-            "--env", "HOME=/root", # User is not really root, but some Dockerfile commands for compilers/runtimes add application files to root home
+            "--env", "HOME=/home/NEXTJUDGE_USER", # User is not really root, but some Dockerfile commands for compilers/runtimes add application files to root home
             
             "--exec_file",f"{environment.inside_chroot_build_script}",
             
@@ -466,43 +511,48 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
 
     os.close(nsjail_log_pipes[1])
 
-    print("Done!")
+    if verbose:
+        print("Done compiling!")
     read_from = os.fdopen(nsjail_log_pipes[0])
     nsjail_errors = read_from.read()
     read_from.close()
-    print("nsjail output")
-    print(nsjail_errors)
+
+    if verbose:
+        print("nsjail output")
+        print(nsjail_errors)
 
     if compile_result.returncode:
-        print(f"Compile-time error - {compile_result.returncode}")
-        print(f"stdout: {compile_result.stdout}")
-        print(f"stderr: {compile_result.stderr}")
+        if verbose:
+            print(f"Compile-time error - {compile_result.returncode}")
+            print(f"stdout: {compile_result.stdout}")
+            print(f"stderr: {compile_result.stderr}")
         return CompileResult(False,compile_result.stdout,compile_result.stderr)
 
-    print(f"stdout: {compile_result.stdout}")
-    print(f"stderr: {compile_result.stderr}")
+    if verbose:
+        print(f"stdout: {compile_result.stdout}")
+        print(f"stderr: {compile_result.stderr}")
+        print("Compiling succeeded!")
     
-    # shutil.copyfile(f"/chroot/{dir}/main", f"/chroot/{dir}/{RUN_SCRIPT_NAME}")
-    print("Compiling succeeded!")
     return CompileResult(True,compile_result.stdout,compile_result.stderr)
 
 
 
 
-def run_single_test_case(testcase, environment: ProgramEnvironment) -> TestResult:
+def run_single_test_case(testcase: Test, environment: ProgramEnvironment, verbose=True) -> TestResult:
 
-    # print(testcase["input"].encode("utf-8"))
+    # print(testcase.input.encode("utf-8"))
 
-    run_result = run_single(environment, testcase["input"].encode("utf-8"))
+    run_result = run_single(environment, testcase.input.encode("utf-8"), verbose)
 
-    print("OUTPUT:",run_result.stdout.decode("utf-8"))
-    print("EXPECTED:",testcase["expected_output"])
+    if verbose:
+        print("OUTPUT:",run_result.stdout.decode("utf-8"))
+        print("EXPECTED:",testcase.expected_output)
     
     if(run_result.result != "ACCEPTED"):
         return TestResult(run_result.result, run_result.stdout, run_result.stderr)
     else:
         standard_out = run_result.stdout.decode("utf-8")
-        expected_output = testcase["expected_output"]
+        expected_output = testcase.expected_output
 
         success = compare_input_output(expected_output, standard_out)
 
@@ -511,7 +561,7 @@ def run_single_test_case(testcase, environment: ProgramEnvironment) -> TestResul
         else:
             return TestResult("WRONG_ANSWER",run_result.stdout,run_result.stderr)
 
-def run_single(environment: ProgramEnvironment, input: bytes) -> RunResult:
+def run_single(environment: ProgramEnvironment, input: bytes, verbose=True) -> RunResult:
 
     # os.chmod(f"{environment.top_level_dir_executable_script}", 0o755)
     # os.chown(f"{environment.top_level_dir_executable_dir}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
@@ -519,9 +569,11 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> RunResult:
 
     nsjail_log_pipes = os.pipe()
 
-    print(f"Input: {input}")
-
-    print("Starting execution")
+    if verbose:
+        print(f"Input: {input}")
+        print("Starting execution")
+    
+    
     t = time.time()
     run_result = subprocess.run(
         [
@@ -560,7 +612,8 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> RunResult:
     )
     os.close(nsjail_log_pipes[1])
 
-    print("Program finished execution", time.time() - t)
+    if verbose:
+        print("Program finished execution", time.time() - t)
 
     read_from = os.fdopen(nsjail_log_pipes[0])
     nsjail_errors = read_from.read()
@@ -570,9 +623,10 @@ def run_single(environment: ProgramEnvironment, input: bytes) -> RunResult:
     # print(nsjail_errors)
 
     if run_result.returncode:
-        print(f"Runtime error - {run_result.returncode}")
-        print(f"stdout: {run_result.stdout}")
-        print(f"stderr: {run_result.stderr}")
+        if verbose:
+            print(f"Runtime error - {run_result.returncode}")
+            print(f"stdout: {run_result.stdout}")
+            print(f"stderr: {run_result.stderr}")
         return RunResult("RUNTIME_ERROR", run_result.stdout, run_result.stderr)
 
     return RunResult("ACCEPTED", run_result.stdout, run_result.stderr)
@@ -659,4 +713,45 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--file", dest="file", required=False, default=None)
+    parser.add_argument("--tests", dest="tests", required=False, default=None)
+
+    args = parser.parse_args()
+
+    if args.file is not None and args.tests is not None:
+        parse_languages()
+
+        print("Running local tests")
+        try:
+            source_code = open(args.file,"r",encoding="utf-8").read()
+        except OSError as e:
+            print(f"Could not open file {args.file} - {e}")
+
+        # Get tests
+        testcase_files = os.listdir(f"{args.tests}")
+
+        if not testcase_files:
+            print("No test cases found")
+            sys.exit(1)
+
+        testcase_names = [case[:-3] for case in testcase_files if case.endswith("in")]
+
+        tests: list[Test] = []
+
+        for name in testcase_names:
+            test_input = open(f"{args.tests}/{name}.in", 'r').read()
+            test_output = open(f"{args.tests}/{name}.ans", 'r').read()
+
+            tests.append(Test(test_input,test_output,name))
+        
+
+        extension = Path(args.file).suffix[1:]
+        language = get_language_by_extension(extension)
+
+        if language is not None:
+            simple_compile_and_run_tests(source_code, tests, language)
+
+    else:
+        asyncio.run(main())

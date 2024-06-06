@@ -30,7 +30,7 @@ FROM nextjudge-jail as dev
 
 RUN apt-get update && apt-get install -y entr && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-CMD sh -c "echo app.py | entr -n -r python3 -u app.py "
+ENTRYPOINT sh -c "echo app.py | entr -n -r python3 -u app.py"
 # CMD [ "", "", "entr", "-r", "python3 -u", "app.py" ]
 
 
@@ -38,5 +38,5 @@ FROM nextjudge-jail as prod
 
 COPY src/app.py .
 
-CMD [ "python3", "app.py" ]
+ENTRYPOINT [ "python3", "app.py" ]
 
