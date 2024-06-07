@@ -31,12 +31,13 @@ import {
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu";
-import { useReducer } from "react";
+import { useCallback, useReducer } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import Editor from "../editor/rich-text/editor";
 import { ScrollArea } from "../ui/scroll-area";
+import { CreateProblemTestCaseForm } from "./test-case-form";
 
 const problemFormSchema = z.object({
   title: z
@@ -58,6 +59,13 @@ const problemFormSchema = z.object({
       message: "Difficulty must be selected.",
     }),
   problem_categories: z.array(z.number().int().positive()).default([]),
+  input: z.string().min(1, {
+    message: "Input is required.",
+  }),
+  output: z.string().min(1, {
+    message: "Output is required.",
+  }),
+  is_public: z.boolean().default(true),
 });
 
 type ProblemFormValues = z.infer<typeof problemFormSchema>;
@@ -77,6 +85,9 @@ export function CreateProblemForm({ categories }: { categories: Categories }) {
     timeout: 0,
     difficulty: undefined,
     problem_categories: [],
+    input: "",
+    output: "",
+    is_public: true,
   };
 
   const form = useForm<ProblemFormValues>({
@@ -87,31 +98,41 @@ export function CreateProblemForm({ categories }: { categories: Categories }) {
 
   async function onSubmit(data: z.infer<typeof problemFormSchema>) {
     try {
-      const { title, prompt, timeout, difficulty } = JSON.parse(
-        JSON.stringify(data)
-      );
+      const { title, prompt, timeout, difficulty, input, output, is_public } =
+        JSON.parse(JSON.stringify(data));
       const parsed: Difficulty = difficulty as Difficulty;
-      await createProblem({
+      const status = await createProblem({
         categories: selectedCategories.map((c) => c.id),
         difficulty: parsed,
         prompt,
         title,
         timeout,
         upload_date: new Date(),
+        input: input,
+        output: output,
+        is_public: is_public,
       });
-      toast.success("Problem created successfully.");
+      toast.success(status.message);
     } catch (error) {
       toast.error("Something went wrong.");
     }
   }
 
+  // TODO: Support multiple test cases on problem creation
+  const setTestCases = useCallback(
+    (input: string, output: string, is_public: boolean) => {
+      form.setValue("input", input);
+      form.setValue("output", output);
+      form.setValue("is_public", is_public);
+    },
+    [form]
+  );
+
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn(
-          "grid md:grid-cols-2 gap-6 overflow-y-scroll max-h[450px] md:max-h-[600px] min-h-full p-2"
-        )}
+        className={cn("grid md:grid-cols-2 gap-6 min-h-full p-2")}
       >
         <FormField
           control={form.control}
@@ -144,32 +165,6 @@ export function CreateProblemForm({ categories }: { categories: Categories }) {
                 />
               </FormControl>
               <FormDescription>The timeout of the problem.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="prompt"
-          render={({ field }) => (
-            <FormItem className="col-span-2">
-              <FormLabel htmlFor="prompt">Prompt</FormLabel>
-              <FormControl>
-                {/* <Textarea
-                  className="max-h-[120px] lg:max-h-[180px]"
-                  {...field}
-                  id="prompt"
-                /> */}
-                <Editor
-                  content={field.value}
-                  onChange={(value) => field.onChange(value)}
-                  placeholder="Enter the prompt here..."
-                  //   readOnly={false}
-                />
-              </FormControl>
-              <FormDescription>
-                Supports Latex! (<code>.md</code> support coming soon.)
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -248,7 +243,32 @@ export function CreateProblemForm({ categories }: { categories: Categories }) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="col-span-2">
+        <CreateProblemTestCaseForm form={form} setTestCases={setTestCases} />
+        <FormField
+          control={form.control}
+          name="prompt"
+          render={({ field }) => (
+            <FormItem className="col-span-2">
+              <FormLabel htmlFor="prompt">Prompt</FormLabel>
+              <FormControl>
+                {/* <Textarea
+                  className="max-h-[120px] lg:max-h-[180px]"
+                  {...field}
+                  id="prompt"
+                /> */}
+                <Editor
+                  content={field.value}
+                  onChange={(value) => field.onChange(value)}
+                  placeholder="Enter the prompt here..."
+                  //   readOnly={false}
+                />
+              </FormControl>
+              <FormDescription>Supports Latex and Markdown.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-1/2 self-end mt-2">
           Create Problem
         </Button>
       </form>

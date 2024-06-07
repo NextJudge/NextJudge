@@ -1,8 +1,14 @@
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { CheckedState } from "@radix-ui/react-checkbox";
+import { Mathematics } from "@tiptap-pro/extension-mathematics";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import EditorToolbar from "./toolbar/editor-toolbar";
-import { Mathematics } from "@tiptap-pro/extension-mathematics";
 import "katex/dist/katex.min.css";
+import { useCallback } from "react";
+import "./styles.scss";
+import EditorToolbar from "./toolbar/editor-toolbar";
+
 interface EditorProps {
   content: string;
   placeholder?: string;
@@ -25,15 +31,36 @@ const Editor = ({ content, placeholder, onChange }: EditorProps) => {
     },
   });
 
-  if (!editor) return <></>;
+  const toggleEditing = useCallback(
+    (e: CheckedState) => {
+      if (!editor) return;
+      const checked = e;
+      editor.setEditable(!checked, true);
+      editor.view.dispatch(editor.view.state.tr.scrollIntoView());
+    },
+    [editor]
+  );
+
+  if (!editor) {
+    return null;
+  }
 
   return (
-    <div className="prose max-w-none w-full border border-input bg-background dark:prose-invert">
-      <EditorToolbar editor={editor} />
-      <div className="editor">
-        <EditorContent editor={editor} placeholder={placeholder} />
+    <>
+      <div className="flex flex-row justify-center float-right gap-4">
+        <Label htmlFor="editor">Readonly</Label>
+        <Checkbox
+          checked={!editor.isEditable}
+          onCheckedChange={toggleEditing}
+        />
       </div>
-    </div>
+      <div className="prose max-w-none w-full border border-input bg-background dark:prose-invert">
+        <EditorToolbar editor={editor} />
+        <div className="editor">
+          <EditorContent editor={editor} placeholder={placeholder} />
+        </div>
+      </div>
+    </>
   );
 };
 

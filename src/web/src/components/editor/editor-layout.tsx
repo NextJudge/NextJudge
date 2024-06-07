@@ -1,4 +1,5 @@
 "use client";
+
 import "@/app/globals.css";
 import { EditorSkeleton } from "@/components/editor/editor-skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,7 +37,13 @@ import { useRouter } from "next/navigation";
 
 import { useContext, useEffect, useState } from "react";
 import { Icons } from "../icons";
-import { Expected, Input as InputCase, Output } from "../submit-box";
+import {
+  CustomInput,
+  CustomInputResult,
+  Expected,
+  Input as InputCase,
+  Output,
+} from "../submit-box";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
@@ -46,6 +53,7 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import CodeEditor from "./code-editor";
+import { revalidatePath } from "next/cache";
 
 const problemStatement = `
 Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
@@ -67,6 +75,7 @@ export default function EditorComponent({
   testCases,
   recentSubmissions,
   languages,
+  userId,
 }: {
   details: ZodProblemDetails;
   tags: string[];
@@ -74,6 +83,7 @@ export default function EditorComponent({
   testCases: TestCases;
   recentSubmissions: TRecentSubmission;
   languages: Language[];
+  userId: number;
 }) {
   const { isCollapsed, ref, collapse, expand } = useEditorCollapse();
   const {
@@ -94,14 +104,24 @@ export default function EditorComponent({
   const [expected, setExpected] = useState("[0, 1]");
   const router = useRouter();
   const [submissionId, setSubmissionId] = useState<number | null>(null);
+  const [recentSubs, setRecentSubs] = useState(recentSubmissions);
 
   const [currentSubmissionDetails, setCurrentSubmissionDetails] =
     useState(null);
 
-  console.log({
-    currentSubmissionDetails,
-    submissionId,
-  });
+  async function getRecentSubmissionsForProblem() {
+    try {
+      const data = await fetch(`/api/submissions?problemId=${details.id}`);
+      //TODO: Address this
+      //   revalidatePath(`/api/submissions?problemId=${details.id}`);
+      const submissions = await data.json();
+      console.log({ submissions });
+      return submissions;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
 
   useEffect(() => {
     async function fetchSubmissionDetails() {
@@ -112,7 +132,9 @@ export default function EditorComponent({
         const data = await response.json();
         setCurrentSubmissionDetails(data);
 
-        if (data.status === "PENDING") {
+        console.log(data);
+
+        if (data.status) {
           setTimeout(fetchSubmissionDetails, 1000);
         } else {
           ref2.current?.isCollapsed && expand2();
@@ -122,8 +144,10 @@ export default function EditorComponent({
       }
     }
     (async () => {
+      console.log(submissionId);
       if (submissionId !== null) {
         try {
+          await getRecentSubmissionsForProblem();
           await fetchSubmissionDetails();
         } catch (error) {
           console.error(error);
@@ -131,6 +155,8 @@ export default function EditorComponent({
       }
     })();
   }, [submissionId]);
+
+  console.log("submission", submissionId);
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -230,6 +256,7 @@ export default function EditorComponent({
                 {loading && <EditorSkeleton />}
                 {!loading && (
                   <CodeEditor
+                    userId={userId}
                     themes={themes}
                     problemId={details.id}
                     setSubmissionId={setSubmissionId}
@@ -311,7 +338,7 @@ export default function EditorComponent({
                       <DrawerTrigger asChild>
                         <Button
                           variant="outline"
-                          className="scale-75 flex gap-2"
+                          className="scale-90 flex gap-2"
                         >
                           <Icons.eye className="w-4 h-4" />
                           <span>View Submissions</span>
@@ -369,49 +396,37 @@ export default function EditorComponent({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-x-2 gap-y-4">
-                  <Tabs defaultValue="case-2" className={cn("w-full")}>
+                  <Tabs
+                    defaultValue={`case-${testCases.length - 1}`}
+                    className={cn("w-full")}
+                  >
                     <TabsList>
-                      <TabsTrigger value="case-1">Case 1</TabsTrigger>
-                      <TabsTrigger value="case-2">Case 2</TabsTrigger>
+                      <>
+                        <TabsTrigger key="custom" value={"case-custom"}>
+                          Custom Test Case
+                        </TabsTrigger>
+                        {testCases.map((_, index) => (
+                          <TabsTrigger key={index} value={`case-${index}`}>
+                            Test Case {index + 1}
+                          </TabsTrigger>
+                        ))}
+                      </>
                     </TabsList>
-                    <TabsContent value="case-1">
-                      <div className="space-y-4">
-                        <InputCase />
-                        <Expected />
-                        <Output />
-                      </div>
-                      <div className="mx-auto flex items-center justify-center mt-3 ">
-                        <button className="group cursor-pointer relative shadow-2xl rounded-full p-px text-xs font-semibold leading-6 inline-block">
-                          <span className="absolute inset-0 overflow-hidden rounded-full">
-                            <span className="absolute inset-0 rounded-full bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(255,89,28,0.1)_0%,rgba(56,189,248,0)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                          </span>
-                          <div className="relative flex space-x-2 items-center z-10 rounded-full py-0.5 px-4 ring-1 ring-orange-400/10 ">
-                            <span>Help make NextJudge better!</span>
-                            <svg
-                              fill="none"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              width="16"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M10.75 8.75L14.25 12L10.75 15.25"
-                                stroke="currentColor"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="1.5"
-                              />
-                            </svg>
-                          </div>
-                          <span className="absolute -bottom-0 left-[1.125rem] h-px w-[calc(100%-2.25rem)] bg-gradient-to-r from-orange-400/0 via-orange-800/90 to-emerald-400/0 transition-opacity duration-500 group-hover:opacity-40" />
-                        </button>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="case-2">
-                      <div className="space-y-4">
-                        <InputCase />
-                        <Expected />
-                        <Output />
+                    {testCases.map((testCase, index) => (
+                      <TabsContent key={index} value={`case-${index}`}>
+                        <div className="space-y-4">
+                          <InputCase input={testCase.input} />
+                          <Expected expected={testCase.expected_output} />
+                          {/* TODO: Use actual solution output */}
+                          <Output output={testCase.expected_output} />
+                        </div>
+                      </TabsContent>
+                    ))}
+                    <TabsContent value={"case-custom"}>
+                      <div>
+                        {/* TODO: Control these inputs */}
+                        <CustomInput input={input} />
+                        <CustomInputResult result={output} />
                       </div>
                     </TabsContent>
                   </Tabs>

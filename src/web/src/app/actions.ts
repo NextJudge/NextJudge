@@ -3,10 +3,11 @@
 import { EmailTemplate } from "@/components/email/template";
 
 import { LoginFormValues, SignUpFormValues } from "@/types";
+import prisma from "@db/prismaClient";
 import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { ZodError } from "zod";
-import { auth, prisma, signIn } from "./auth";
+import { auth, signIn } from "./auth";
 import { newsletterFormSchema } from "./validation";
 
 export interface ReturnType {
@@ -176,6 +177,9 @@ interface CreateProblemData {
   difficulty: Difficulty;
   upload_date: Date;
   categories?: number[];
+  input?: string;
+  output?: string;
+  is_public?: boolean;
 }
 
 export async function createProblem(data: CreateProblemData) {
@@ -194,8 +198,17 @@ export async function createProblem(data: CreateProblemData) {
     };
   }
   try {
-    const { title, prompt, timeout, difficulty, upload_date, categories } =
-      data;
+    const {
+      title,
+      prompt,
+      timeout,
+      difficulty,
+      upload_date,
+      categories,
+      input,
+      output,
+      is_public,
+    } = data;
 
     const problem = await prisma.problems.create({
       data: {
@@ -221,17 +234,58 @@ export async function createProblem(data: CreateProblemData) {
       });
     }
 
+    if (input && output) {
+      await prisma.test_cases.create({
+        data: {
+          input,
+          expected_output: output,
+          is_public: is_public ?? true,
+          problem_id: problem.id,
+        },
+      });
+    }
+
     revalidatePath("/platform/admin/problems");
+
     return {
       status: "success",
       message: "Problem created",
     };
+  } catch (error: unknown) {
+    return {
+      status: "error",
+      message: "Something went wrong",
+    };
+  }
+}
+
+interface TestCaseData {
+  input: string;
+  output: string;
+  problem_id: number;
+  is_public?: boolean;
+}
+
+export async function createTestCase(data: TestCaseData) {
+  try {
+    await prisma.test_cases.create({
+      data: {
+        is_public: data.is_public ?? true,
+        input: data.input,
+        expected_output: data.output,
+        problem_id: data.problem_id,
+      },
+    });
   } catch (error) {
     return {
       status: "error",
       message: "Something went wrong",
     };
   }
+  return {
+    status: "success",
+    message: "Test case created",
+  };
 }
 
 export async function fetchCategories() {

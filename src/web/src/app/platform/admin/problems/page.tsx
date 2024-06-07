@@ -1,18 +1,10 @@
 import { fetchCategories, fetchProblems } from "@/app/actions";
-import { CreateProblemForm } from "@/components/forms/create-problem-form";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/toaster";
-import { PlusIcon } from "@radix-ui/react-icons";
+import { cn } from "@/lib/utils";
 import { Metadata } from "next";
+import Link from "next/link";
 import { columns } from "../../problems/components/columns";
 import { DataTable } from "../../problems/components/data-table";
 import { Categories, Problem } from "../../problems/data/schema";
@@ -47,22 +39,12 @@ export default async function AdminProblemsPage() {
             Manage the problems in the official NextJudge problem set.
           </p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="flex items-center space-x-4">
-              <PlusIcon /> <span>Create new problem</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] lg:max-w-[640px]">
-            <DialogHeader>
-              <DialogTitle>Create a new problem</DialogTitle>
-              <DialogDescription>
-                Fill out the form below to create a new problem.
-              </DialogDescription>
-            </DialogHeader>
-            <CreateProblemForm categories={categories} />
-          </DialogContent>
-        </Dialog>
+        <Link
+          className={cn(`text-white ${buttonVariants({ variant: "link" })}`)}
+          href="/platform/admin/problems/create"
+        >
+          Create a new problem
+        </Link>
       </div>
       <Separator />
       <DataTable columns={columns} data={problems} />

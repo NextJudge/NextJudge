@@ -19,7 +19,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@nextjudge/*": ["./public/*"]
+      "@nextjudge/*": ["./public/*"],
+      "@db/*": ["./prisma/*"]
     }
   },
   "include": [

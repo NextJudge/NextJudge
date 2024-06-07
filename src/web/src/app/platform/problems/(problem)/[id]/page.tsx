@@ -1,4 +1,4 @@
-import { prisma } from "@/app/auth";
+import { auth, prisma } from "@/app/auth";
 import EditorComponent from "@/components/editor/editor-layout";
 import EditorNavbar from "@/components/editor/editor-nav";
 import MarkdownRenderer from "@/components/markdown-renderer";
@@ -144,9 +144,14 @@ export type SingleSubmission = z.infer<
 async function getRecentSubmissionsForProblem(
   id: number
 ): Promise<TRecentSubmission> {
+  const session = await auth();
+  if (!session || !session.user) {
+    throw new Error("Unauthorized");
+  }
   const submissions = await prisma.submissions.findMany({
     where: {
       problem_id: id,
+      user_id: parseInt(session.user.id as string),
     },
     select: {
       id: true,
@@ -183,6 +188,10 @@ async function getLanguages() {
 
 export default async function Editor({ params }: { params: { id: string } }) {
   const { id } = params;
+  const session = await auth();
+  if (!session || !session.user) {
+    throw new Error("Unauthorized");
+  }
   const details = await getDetails(parseInt(id));
   const tags = await getProblemTags(parseInt(id));
   const testCases = await getTestCasesForProblem(parseInt(id));
@@ -195,6 +204,7 @@ export default async function Editor({ params }: { params: { id: string } }) {
           <UserAvatar />
         </EditorNavbar>
         <EditorComponent
+          userId={parseInt(session.user.id as string)}
           details={details}
           testCases={testCases}
           recentSubmissions={recentSubmissions}

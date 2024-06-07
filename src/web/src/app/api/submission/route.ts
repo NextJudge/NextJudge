@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const query = searchParams.get("submissionId");
 
+  console.log(query);
+
   if (!query) {
     return NextResponse.error();
   }
@@ -18,6 +20,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    console.log({ submissionId });
     const submission = await prisma.submissions.findUnique({
       where: {
         id: submissionId,
@@ -26,6 +29,8 @@ export async function GET(request: NextRequest) {
         test_cases: true,
       },
     });
+
+    console.log(submission);
 
     return NextResponse.json(submission);
   } catch (error) {

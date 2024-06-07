@@ -66,7 +66,9 @@ export const columns: ColumnDef<Problem>[] = [
       <DataTableColumnHeader column={column} title="Prompt" />
     ),
     cell: ({ row }) => (
-      <div className="max-w-[450px] truncate">{row.getValue("prompt")}</div>
+      <div className="max-w-[450px] hidden truncate">
+        {row.getValue("prompt")}
+      </div>
     ),
   },
 
