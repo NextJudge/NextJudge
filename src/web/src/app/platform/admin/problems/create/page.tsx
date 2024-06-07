@@ -1,37 +1,34 @@
-"use client";
-
-import KatexSpan from "@/components/katex-wrapper";
+import { fetchCategories } from "@/app/actions";
+import { Categories } from "@/app/platform/problems/data/schema";
+import { CreateProblemForm } from "@/components/forms/create-problem-form";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { LoadingButton } from "@/components/ui/loading-button";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster } from "@/components/ui/toaster";
-import { toast } from "@/components/ui/use-toast";
 import "katex/dist/katex.min.css";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { PlusIcon } from "lucide-react";
 
-const quadraticEquationTest = `Given a general quadratic equation of the form
-$$ax^{2} + bx + c = 0$$
-with $x$ representing an unknown, with $a$, $b$ and $c$ representing constants, and with $a \\ne 0$, the quadratic formula is:
-$$x = \\frac{-b \\pm \\sqrt{b^{2} - 4ac}}{2a}$$`;
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
-export default function AdminProblemsPage() {
-  const router = useRouter();
-  const [problemDesc, setProblemDesc] = useState("");
-  const [loading, setLoading] = useState(false);
-  const onClick = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      toast({
-        title: "Problem saved successfully",
-        description: "The problem has been saved successfully.",
-      });
-      router.push("/platform/admin/problems");
-    }, 1000);
-  };
-
+async function getCategories(): Promise<Categories> {
+  const categories = await fetchCategories();
+  if (categories === null || categories === undefined) {
+    return [];
+  }
+  return categories as Categories;
+}
+export default async function CreateProblemPage() {
+  const categories: Categories = await getCategories();
   return (
     <>
       <div className="space-y-6">
@@ -53,35 +50,11 @@ export default function AdminProblemsPage() {
         </div>
         <Separator />
         <div className="max-w-5xl">
-          <h1>
-            An Example:{" "}
-            <a
-              href="https://en.wikipedia.org/wiki/Quadratic_equation"
-              target="_blank"
-              className="text-osu"
-            >
-              The Quadratic Equation
-            </a>
-          </h1>
-          <KatexSpan text={quadraticEquationTest} className="my-20 text-xl" />
-          <KatexSpan text={problemDesc} className="my-20 text-xl" />
+          <CreateProblemForm categories={categories} />
         </div>
 
-        <div className="grid w-full gap-1.5">
-          <Label htmlFor="message">Input the problem</Label>
-          <Textarea
-            className="min-h-[20rem]"
-            placeholder={quadraticEquationTest}
-            value={problemDesc}
-            onChange={(e) => setProblemDesc(e.target.value)}
-            id="message"
-          />
-        </div>
-        <LoadingButton loading={loading} onClick={onClick}>
-          Create problem
-        </LoadingButton>
+        <Toaster />
       </div>
-      <Toaster />
     </>
   );
 }

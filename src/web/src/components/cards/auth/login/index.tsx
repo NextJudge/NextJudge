@@ -1,5 +1,4 @@
 "use client";
-
 import { logUserIn, ReturnType } from "@/app/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -22,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { LoginFormSchema } from "@/lib/zod";
 import { LoginCardProps } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -36,11 +35,10 @@ export function LoginCard({ children }: LoginCardProps) {
     },
   });
 
-  const router = useRouter();
-
   async function onSubmit(data: z.infer<typeof LoginFormSchema>) {
+    form.clearErrors();
     try {
-      const { email, password } = JSON.parse(JSON.stringify(data));
+      const { email, password } = data;
       const res: ReturnType = await logUserIn({ email, password });
 
       if (!res) {
@@ -48,11 +46,18 @@ export function LoginCard({ children }: LoginCardProps) {
         return;
       }
       if (res.status === "error") {
-        toast.error(res.message);
+        toast.error("An error occurred");
         return;
       }
-      toast.success("Welcome back to NextJudge!");
-      router.push("/platform");
+      if (res.status === "success") {
+        toast.success("Logged in successfully");
+        setTimeout(() => {
+          window.location.href = "/platform";
+        }, 1000);
+        return;
+      }
+
+      toast.error("An error occurred");
     } catch (error) {
       toast(error as string);
     }

@@ -109,41 +109,10 @@
 }
 
 .editor .ProseMirror {
-  min-height: 100px;
+  min-height: 350px;
   padding: 5px 10px;
 }
 
 .ProseMirror:focus {
   outline: none;
-}
-
-.ProseMirror {
-  > * + * {
-    margin-top: 0.75em;
-  }
-
-  .Tiptap-mathematics-editor {
-    background: #202020;
-    color: #fff;
-    font-family: monospace;
-    padding: 0.2rem 0.5rem;
-  }
-
-  .Tiptap-mathematics-render {
-    padding: 0 0.25rem;
-
-    &--editable {
-      cursor: pointer;
-      transition: background 0.2s;
-      &:hover {
-        background: #eee;
-      }
-    }
-  }
-
-  .Tiptap-mathematics-editor,
-  .Tiptap-mathematics-render {
-    border-radius: 0.25rem;
-    display: inline-block;
-  }
 }

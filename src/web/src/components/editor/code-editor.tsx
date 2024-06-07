@@ -1,5 +1,6 @@
 "use client";
 
+import { useSubmitCode } from "@/hooks/useSubmitCode";
 import { defaultEditorOptions, defaultLanguage } from "@/lib/constants";
 import { getBridgeUrl } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
@@ -7,7 +8,7 @@ import { Language } from "@/types";
 import Editor, { Monaco } from "@monaco-editor/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { editor } from "monaco-editor";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Icons } from "../icons";
 import { Button } from "../ui/button";
@@ -96,10 +97,12 @@ export default function CodeEditor({
   themes,
   problemId,
   setSubmissionId,
+  userId,
 }: {
   themes: any;
   problemId: number;
   setSubmissionId: (id: number) => void;
+  userId: number;
 }) {
   const [code, setCode] = useState<string>(templates["TypeScript"]);
   //   const [submissionId, setSubmissionId] = useState<number>(0);
@@ -107,13 +110,11 @@ export default function CodeEditor({
   const [languages, setLanguages] = useState([]);
   const [currentLanguage, setCurrentLanguage] =
     useState<Language>(defaultLanguage);
-  const [submissionLoading, setSubmissionLoading] = useState(false);
+  //   const [submissionLoading, setSubmissionLoading] = useState(false);
   const [submissionResult, setSubmissionResult] = useState(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleCodeChange = (value: string | undefined) => {
-    setCode(value || "");
-  };
+  //   const [error, setError] = useState<string | null>(null);
+  const { handleSubmitCode, error, submissionId, submissionLoading } =
+    useSubmitCode(userId, code);
 
   const normalizeLanguageKey = (languageName: string) => {
     const normalizedLanguageNames: Record<string, string> = {
@@ -126,6 +127,12 @@ export default function CodeEditor({
       python: "Python",
     };
     return normalizedLanguageNames[languageName.toLowerCase()];
+  };
+
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+
+  const getEditorValue = () => {
+    return editorRef.current?.getValue();
   };
 
   const handleEditorDidMount = (
@@ -172,38 +179,38 @@ export default function CodeEditor({
     }
   };
 
-  const handleSubmitCode = async () => {
-    setSubmissionLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${getBridgeUrl()}/submission`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          source_code: code,
-          language_id: currentLanguage.id,
-          problem_id: problemId,
-          user_id: 1,
-        }),
-      });
+  //   const handleSubmitCode = async () => {
+  //     setSubmissionLoading(true);
+  //     setError(null);
+  //     try {
+  //       const response = await fetch(`${getBridgeUrl()}/submission`, {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({
+  //           source_code: code,
+  //           language_id: currentLanguage.id,
+  //           problem_id: problemId,
+  //           user_id: 1,
+  //         }),
+  //       });
 
-      if (!response.ok) {
-        throw new Error("An error occurred.");
-      }
+  //       if (!response.ok) {
+  //         throw new Error("An error occurred.");
+  //       }
 
-      const data = await response.json();
-      setSubmissionId(data);
-    } catch (error: unknown) {
-      toast.error("There was an error submitting your code.");
-      setError(error instanceof Error ? error.message : "An error occurred.");
-    } finally {
-      setTimeout(() => {
-        setSubmissionLoading(false);
-      }, 5000);
-    }
-  };
+  //       const data = await response.json();
+  //       setSubmissionId(data);
+  //     } catch (error: unknown) {
+  //       toast.error("There was an error submitting your code.");
+  //       setError(error instanceof Error ? error.message : "An error occurred.");
+  //     } finally {
+  //       setTimeout(() => {
+  //         setSubmissionLoading(false);
+  //       }, 5000);
+  //     }
+  //   };
 
   // TODO: Create a store for the editor options
   const editorOptions = useMemo(
@@ -212,6 +219,14 @@ export default function CodeEditor({
     }),
     []
   );
+
+  const handleSubmit = async () => {
+    console.log("submitting code", code);
+    await handleSubmitCode(currentLanguage.id, problemId);
+    if (submissionId) {
+      setSubmissionId(submissionId);
+    }
+  };
 
   return (
     <div className="h-full overflow-y-scroll min-w-full">
@@ -225,7 +240,7 @@ export default function CodeEditor({
         <div className="flex justify-center my-2 px-2 gap-2">
           <Button
             className="w-full"
-            onClick={handleSubmitCode}
+            onClick={handleSubmit}
             disabled={submissionLoading}
             variant={error ? "destructive" : "ghost"}
           >
@@ -269,6 +284,7 @@ export default function CodeEditor({
             transition={{ duration: 0.7 }}
           >
             <Editor
+              loading={<div>Loading...</div>}
               language={
                 currentLanguage?.name === "PyPy"
                   ? "python"
@@ -281,7 +297,10 @@ export default function CodeEditor({
               theme={theme.name}
               className="min-h-screen w-[100%] overflow-y-scroll"
               options={editorOptions}
-              onChange={handleCodeChange}
+              onChange={(value) => {
+                // @ts-ignore
+                setCode(value);
+              }}
               onMount={handleEditorDidMount}
             />
           </motion.div>

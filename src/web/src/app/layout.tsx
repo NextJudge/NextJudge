@@ -9,13 +9,13 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "NextJudge - Elevate your coding skills to the next level.",
   description:
-    "An all-new, competitive programming platform built for organizers, developers, and participants.",
+    "An all-new competitive programming platform built for organizers, developers, and participants.",
   openGraph: {
     type: "website",
     url: "https://nextjudge.vercel.app/",
     title: "NextJudge - Elevate your coding skills to the next level.",
     description:
-      "An all-new, competitive programming platform built for organizers, developers, and participants.",
+      "An all-new competitive programming platform built for organizers, developers, and participants.",
     siteName: "NextJudge",
     images: [
       {
