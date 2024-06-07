@@ -17,40 +17,67 @@ First, the user submission is compiled, and if the compilation succeeds, the pro
 
 The `stdout` of the process is captured, and is compared against the expected values.
 
-# Make a judge support a new compiler
+## Prebuilt image
+```sh
+docker pull ghcr.io/nextjudge/judge:latest
+```
+
+## Adding support for new toolchains in the judge
 
 If you wish to create a judge that can support additional compilers, you can create a new Dockerfile.
 
-Use the `basejudge` image as the base image. 
+You can start the Dockerfile by inheriting from any image of your choice. In this example, we will use `ubuntu:24.04`. Inside of it, install all the toolchains/compilers/runtimes necessary to support the new language.
 
-The judge will `chroot` the contents of the `/chroot` directory during compilation and runtime.
+```Dockerfile
+FROM ubuntu:24.04 as BUILD
 
-First, build the base image locally
+# Initially, the commands in the Dockerfile run as root.
+# Run any commands that need to be run as root, such as `apt-get`
+RUN apt-get install -y ruby
+
+# Now that we done installing tools as root, we can `su` to the NEXTJUDGE_USER to install the rest of the toolchains which can be installed as a non-root user.
+# Run the following 4 commands that create the dummy user, which simply ensures that the files have the correct UID/GID
+RUN groupadd -g 99999 NEXTJUDGE_USER_GROUP
+RUN useradd NEXTJUDGE_USER -u 99999 -g 99999 -s /bin/bash
+USER NEXTJUDGE_USER
+WORKDIR /home/NEXTJUDGE_USER
+
+# Install the toolchains using any method
+## Install Rust (Blazingly fast!)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Now, we are finished installing toolchains
+
+# Start a new build state
+FROM basejudge
+
+# Copy the entire filesystem from above into /chroot.
+## Inside the isolated context, this directory will be `chrooted` and act as the root file system.
+COPY --from=BUILD / /chroot
+# This line is necessary to allow mounting of a couple /dev files.
+RUN chown -R 99999:99999 /chroot/dev
+
+# Finally, you need to let the judge know how to build code for all the languages it supports. You can do this via a `heredoc` inside the Dockerfile.
+
+RUN <<EOF /app/languages.toml
+[[language]]
+name = "rust"
+version = "1.78.0"
+extension = "rs"
+script="""
+#!/bin/sh
+HOME=/home/NEXTJUDGE_USER /home/NEXTJUDGE_USER/.cargo/bin/rustc {IN_FILE} -o /executable/main
+"""
+EOF
+```
+
+## basejudge
+To build the basejudge, use the following command:
 
 ```sh
 docker build -f Dockerfile.base -t basejudge .
 ```
 
-Then, specify it as the base image, and install any packages necessary to support the compiler you want to add. The base image is `Ubuntu` based.
-```Dockerfile
-FROM base-judge
-
-# Install Rust (Blazingly fast!)
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# Need to ensure it is in the path
-
-# Finally, add the language tag to this instance, so the system knows that this container can compile and judge Rust programs!
-```
-
-Finally, you need to let the judge know how to build code for all the languages it supports. You can do this via a `heredoc` inside the Dockerfile.
-
-```Dockerfile
-
-RUN <<EOF /app/languages.toml
-
-EOF
-```
 
 # Notes
 It is recommended that you dedicate sufficient resources to each judge to ensure consistent performance. While a judge is handling submission, it is blocked.
