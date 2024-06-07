@@ -1,6 +1,5 @@
 "use client";
 
-import { useSubmitCode } from "@/hooks/useSubmitCode";
 import { defaultEditorOptions, defaultLanguage } from "@/lib/constants";
 import { getBridgeUrl } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
@@ -98,13 +97,27 @@ export default function CodeEditor({
   problemId,
   setSubmissionId,
   userId,
+  code,
+  setCode,
+  submissionLoading,
+  error,
+  submissionId,
+  handleSubmitCode,
+  fetchSubmissionDetails,
 }: {
   themes: any;
   problemId: number;
-  setSubmissionId: (id: number) => void;
+  setSubmissionId: (submissionId: number) => void;
   userId: number;
+  code: string;
+  setCode: (code: string) => void;
+  submissionLoading: boolean;
+  error: string | null;
+  submissionId: number | null;
+  handleSubmitCode: (languageId: number, problemId: number) => Promise<void>;
+  fetchSubmissionDetails: () => Promise<void>;
 }) {
-  const [code, setCode] = useState<string>(templates["TypeScript"]);
+  //   const [code, setCode] = useState<string>(templates["TypeScript"]);
   //   const [submissionId, setSubmissionId] = useState<number>(0);
   const { theme } = useContext(ThemeContext);
   const [languages, setLanguages] = useState([]);
@@ -113,8 +126,8 @@ export default function CodeEditor({
   //   const [submissionLoading, setSubmissionLoading] = useState(false);
   const [submissionResult, setSubmissionResult] = useState(null);
   //   const [error, setError] = useState<string | null>(null);
-  const { handleSubmitCode, error, submissionId, submissionLoading } =
-    useSubmitCode(userId, code);
+  //   const { handleSubmitCode, error, submissionId, submissionLoading } =
+  //     useSubmitCode(userId, code);
 
   const normalizeLanguageKey = (languageName: string) => {
     const normalizedLanguageNames: Record<string, string> = {
@@ -179,39 +192,6 @@ export default function CodeEditor({
     }
   };
 
-  //   const handleSubmitCode = async () => {
-  //     setSubmissionLoading(true);
-  //     setError(null);
-  //     try {
-  //       const response = await fetch(`${getBridgeUrl()}/submission`, {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //         body: JSON.stringify({
-  //           source_code: code,
-  //           language_id: currentLanguage.id,
-  //           problem_id: problemId,
-  //           user_id: 1,
-  //         }),
-  //       });
-
-  //       if (!response.ok) {
-  //         throw new Error("An error occurred.");
-  //       }
-
-  //       const data = await response.json();
-  //       setSubmissionId(data);
-  //     } catch (error: unknown) {
-  //       toast.error("There was an error submitting your code.");
-  //       setError(error instanceof Error ? error.message : "An error occurred.");
-  //     } finally {
-  //       setTimeout(() => {
-  //         setSubmissionLoading(false);
-  //       }, 5000);
-  //     }
-  //   };
-
   // TODO: Create a store for the editor options
   const editorOptions = useMemo(
     () => ({
@@ -220,12 +200,9 @@ export default function CodeEditor({
     []
   );
 
-  const handleSubmit = async () => {
-    console.log("submitting code", code);
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
     await handleSubmitCode(currentLanguage.id, problemId);
-    if (submissionId) {
-      setSubmissionId(submissionId);
-    }
   };
 
   return (

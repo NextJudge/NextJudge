@@ -35,6 +35,7 @@ import "katex/dist/katex.min.css";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 
+import { useSubmitCode } from "@/hooks/useSubmitCode";
 import { useContext, useEffect, useState } from "react";
 import { Icons } from "../icons";
 import {
@@ -53,7 +54,7 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import CodeEditor from "./code-editor";
-import { revalidatePath } from "next/cache";
+import { SubmissionState } from "./editor-submission-state";
 
 const problemStatement = `
 Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
@@ -103,11 +104,20 @@ export default function EditorComponent({
   const [output, setOutput] = useState("[0, 1]");
   const [expected, setExpected] = useState("[0, 1]");
   const router = useRouter();
-  const [submissionId, setSubmissionId] = useState<number | null>(null);
+  //   const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [recentSubs, setRecentSubs] = useState(recentSubmissions);
+  const [code, setCode] = useState<string>("");
 
-  const [currentSubmissionDetails, setCurrentSubmissionDetails] =
-    useState(null);
+  const {
+    handleSubmitCode,
+    error,
+    submissionId,
+    submissionLoading,
+    setSubmissionId,
+    currentSubmissionDetails,
+    setCurrentSubmissionDetails,
+    fetchSubmissionDetails,
+  } = useSubmitCode(userId, code);
 
   async function getRecentSubmissionsForProblem() {
     try {
@@ -124,39 +134,14 @@ export default function EditorComponent({
   }
 
   useEffect(() => {
-    async function fetchSubmissionDetails() {
-      try {
-        const response = await fetch(
-          `/api/submission?submissionId=${submissionId}`
-        );
-        const data = await response.json();
-        setCurrentSubmissionDetails(data);
-
-        console.log(data);
-
-        if (data.status) {
-          setTimeout(fetchSubmissionDetails, 1000);
-        } else {
-          ref2.current?.isCollapsed && expand2();
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    }
     (async () => {
-      console.log(submissionId);
-      if (submissionId !== null) {
-        try {
-          await getRecentSubmissionsForProblem();
-          await fetchSubmissionDetails();
-        } catch (error) {
-          console.error(error);
-        }
-      }
+      await fetchSubmissionDetails();
+      ref2.current?.expand();
+      expand2();
+      const submissions = await getRecentSubmissionsForProblem();
+      setRecentSubs(submissions);
     })();
   }, [submissionId]);
-
-  console.log("submission", submissionId);
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -259,7 +244,14 @@ export default function EditorComponent({
                     userId={userId}
                     themes={themes}
                     problemId={details.id}
-                    setSubmissionId={setSubmissionId}
+                    code={code}
+                    setCode={setCode}
+                    setSubmissionId={setSubmissionId as any}
+                    error={error}
+                    submissionLoading={submissionLoading}
+                    handleSubmitCode={handleSubmitCode}
+                    submissionId={submissionId}
+                    fetchSubmissionDetails={fetchSubmissionDetails}
                   />
                 )}
               </div>
@@ -289,7 +281,7 @@ export default function EditorComponent({
             </Tooltip>
             {/* Submission Section */}
             <ResizablePanel
-              defaultSize={0}
+              defaultSize={5}
               style={{
                 overflow: "auto",
               }}
@@ -303,35 +295,25 @@ export default function EditorComponent({
             >
               <div className="mx-5 my-4 space-y-4 h-100 overflow-auto">
                 <div className="flex items-center">
-                  {/* TODO: clean this up */}
-                  <div
-                    className={cn("text-xl font-semibold", {
-                      "text-red-600":
-                        currentSubmissionDetails &&
-                        currentSubmissionDetails.status === "WRONG_ANSWER",
-                      "text-green-600":
-                        currentSubmissionDetails &&
-                        currentSubmissionDetails.status === "ACCEPTED",
-                      "text-yellow-600":
-                        currentSubmissionDetails &&
-                        currentSubmissionDetails.status === "PENDING",
-                    })}
-                  >
-                    {currentSubmissionDetails &&
-                    currentSubmissionDetails.status === "WRONG_ANSWER" ? (
-                      <p>Wrong Answer</p>
-                    ) : currentSubmissionDetails &&
-                      currentSubmissionDetails.status === "ACCEPTED" ? (
-                      <p>Accepted</p>
-                    ) : currentSubmissionDetails &&
-                      currentSubmissionDetails.status === "PENDING" ? (
-                      <Icons.loader className="w-6 h-6 animate-spin" />
-                    ) : (
-                      <p>Submission Details</p>
+                  <div className="text-lg font-bold">
+                    {/* TODO: clean this up */}
+                    {submissionLoading && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-yellow-500">
+                          Pending
+                        </span>
+                        <Icons.loader className="mr-2 w-6 h-6 animate-spin" />
+                      </div>
                     )}
-                  </div>
-                  <div className="ml-4 text-sm text-accent-foreground">
-                    Runtime: 36 ms
+                    {error && (
+                      <div className="text-sm text-center">{error}</div>
+                    )}
+                    {!currentSubmissionDetails &&
+                      !submissionLoading &&
+                      !error && <span>Submission Details</span>}
+                    {currentSubmissionDetails && !submissionLoading && (
+                      <SubmissionState submission={currentSubmissionDetails} />
+                    )}
                   </div>
                   <div className="ml-auto flex min-w-0 items-center space-x-4">
                     <Drawer>
