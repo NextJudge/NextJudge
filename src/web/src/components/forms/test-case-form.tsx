@@ -22,10 +22,12 @@ import {
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Checkbox } from "../ui/checkbox";
 import { Textarea } from "../ui/textarea";
+import { toast } from "sonner";
 
 const testCaseFormSchema = z.object({
   input: z.string().min(1, {
@@ -130,13 +132,16 @@ export function CreateProblemTestCaseForm({
   form: any;
   setTestCases: any;
 }) {
+  const [open, setOpen] = useState(false);
   function onSubmitTestCase() {
     const { input, output, is_public } = form.getValues();
     setTestCases(input, output, is_public);
+    setOpen(false);
+    toast.success("Test case added successfully.");
   }
   return (
     <>
-      <Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button
             variant="outline"

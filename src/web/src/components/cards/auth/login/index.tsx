@@ -21,12 +21,14 @@ import { cn } from "@/lib/utils";
 import { LoginFormSchema } from "@/lib/zod";
 import { LoginCardProps } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 export function LoginCard({ children }: LoginCardProps) {
+  const router = useRouter();
   const form = useForm<z.infer<typeof LoginFormSchema>>({
     resolver: zodResolver(LoginFormSchema),
     defaultValues: {
@@ -52,7 +54,7 @@ export function LoginCard({ children }: LoginCardProps) {
       if (res.status === "success") {
         toast.success("Logged in successfully");
         setTimeout(() => {
-          window.location.href = "/platform";
+          router.push("/platform");
         }, 1000);
         return;
       }

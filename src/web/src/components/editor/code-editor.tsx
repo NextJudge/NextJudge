@@ -5,7 +5,6 @@ import { getBridgeUrl } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
 import { Language } from "@/types";
 import Editor, { Monaco } from "@monaco-editor/react";
-import { AnimatePresence, motion } from "framer-motion";
 import { editor } from "monaco-editor";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -250,39 +249,28 @@ export default function CodeEditor({
           <EditorThemeSelector themes={themes} />
         </div>
       </div>
-
-      <AnimatePresence mode="wait">
-        {theme?.name && (
-          <motion.div
-            key={theme?.name}
-            initial={{ y: 0, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -10, opacity: 0 }}
-            transition={{ duration: 0.7 }}
-          >
-            <Editor
-              loading={<div>Loading...</div>}
-              language={
-                currentLanguage?.name === "PyPy"
-                  ? "python"
-                  : currentLanguage?.name === "C++"
-                  ? "cpp"
-                  : currentLanguage?.name.toLowerCase()
-              }
-              defaultLanguage={currentLanguage?.name.toLowerCase()}
-              value={code}
-              theme={theme.name}
-              className="min-h-screen w-[100%] overflow-y-scroll"
-              options={editorOptions}
-              onChange={(value) => {
-                // @ts-ignore
-                setCode(value);
-              }}
-              onMount={handleEditorDidMount}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Editor
+        loading={
+          <Icons.loader className="w-6 h-6 animate-spin text-orange-700" />
+        }
+        language={
+          currentLanguage?.name === "PyPy"
+            ? "python"
+            : currentLanguage?.name === "C++"
+            ? "cpp"
+            : currentLanguage?.name.toLowerCase()
+        }
+        defaultLanguage={currentLanguage?.name.toLowerCase()}
+        value={code}
+        theme={theme?.name}
+        className="min-h-screen w-[100%] overflow-y-scroll"
+        options={editorOptions}
+        onChange={(value) => {
+          // @ts-ignore
+          setCode(value);
+        }}
+        onMount={handleEditorDidMount}
+      />
     </div>
   );
 }

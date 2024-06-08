@@ -101,9 +101,15 @@ function main() {
 
 interface DummyCodeEditorProps {
   mock?: boolean;
+  sourceCode: string;
+  language: string;
 }
 
-export const DummyCodeEditor = ({ mock }: DummyCodeEditorProps) => {
+export const DummyCodeEditor = ({
+  mock,
+  sourceCode,
+  language,
+}: DummyCodeEditorProps) => {
   const { resolvedTheme } = useTheme();
   // TODO: Handle edge case when this is rendered on mobile
   return (
@@ -115,8 +121,8 @@ export const DummyCodeEditor = ({ mock }: DummyCodeEditorProps) => {
           { "rounded pointer-events-none select-none shadow-none": mock },
           "w-full h-full"
         )}
-        defaultLanguage="typescript"
-        defaultValue={mock ? mergeSort : selectionSort}
+        defaultLanguage={language}
+        defaultValue={mock ? mergeSort : sourceCode}
         options={{
           lineNumbers: "off",
           minimap: { enabled: false },

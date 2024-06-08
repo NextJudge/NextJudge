@@ -1,5 +1,4 @@
 import { z } from "zod";
-
 // TODO: Actually migrate here
 export const oldProblemSchema = z.object({
   id: z.string(),
@@ -13,11 +12,12 @@ export const oldProblemSchema = z.object({
 export const problemSchema = z.object({
   id: z.number(),
   title: z.string(),
-  prompt: z.string(),
+  difficulty: z.enum(["VERY EASY", "EASY", "MEDIUM", "HARD", "VERY HARD"]),
+  submissions: z.array(z.object({ id: z.number() })),
+  categories: z.array(z.string()),
   timeout: z.number(),
   user_id: z.number(),
   upload_date: z.date(),
-  author: z.string(),
 });
 
 export const recentSubmissionSchema = z.object({

@@ -66,10 +66,6 @@ export default function PlatformHome() {
     },
   ];
 
-  //   const deleteContest = async (id: number) => {
-  //     "use server";
-  //     console.log("Deleting contest with id: ", id);
-  //   };
   return (
     <>
       <PlatformNavbar>

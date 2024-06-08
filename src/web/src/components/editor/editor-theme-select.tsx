@@ -16,7 +16,6 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
-import { useTheme } from "next-themes";
 import * as React from "react";
 
 export type Theme = {
@@ -37,33 +36,7 @@ const defaultThemes: Theme[] = [
 
 export function EditorThemeSelector({ themes }: { themes: Theme[] }) {
   const { theme: currentTheme, setTheme } = React.useContext(ThemeContext);
-  const { resolvedTheme } = useTheme();
   const [open, setOpen] = React.useState(false);
-  //   const [value, setValue] = React.useState(
-  //     selectedTheme?.name.toUpperCase() || ""
-  //   )
-  //   const [themes, setThemes] = React.useState<Theme[]>([]);
-
-  //   React.useEffect(() => {
-  //     (async () => {
-  //       const response = await fetch(
-  //         "http://localhost:3000/themes/themelist.json"
-  //       );
-  //       const data = await response.json();
-  //       const themes = Object.keys(data).map((theme) => ({
-  //         name: theme,
-  //         fetch: `http://localhost:3000/themes/${data[theme]}.json`,
-  //       }));
-  //       setThemes(themes);
-  //     })();
-  //   }, []);
-
-  //   console.log({
-  //     themes,
-  //     selectedTheme,
-  //     onSelect,
-  //     value,
-  //   });
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -74,10 +47,6 @@ export function EditorThemeSelector({ themes }: { themes: Theme[] }) {
           aria-expanded={open}
           className="w-[200px] justify-between"
         >
-          {/* {value
-            ? themes.find((theme: any) => selectedTheme?.name === theme.name)
-                ?.name
-            : "Editor theme..."} */}
           {themes.find((theme: any) => currentTheme?.name === theme.name)?.name}
           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>

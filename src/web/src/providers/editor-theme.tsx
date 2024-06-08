@@ -43,14 +43,10 @@ export const EditorThemeProvider: React.FC<ThemeProviderProps> = ({
 
   // On mount, set the default theme
   useEffect(() => {
-    if (!theme) {
-      setTheme(
-        resolvedTheme === "dark" ? defaultThemes.dark : defaultThemes.light
-      );
+    if (resolvedTheme === "dark") {
+      setTheme(defaultThemes.dark);
     } else {
-      loader.init().then((monaco) => {
-        monaco.editor.setTheme(theme.name);
-      });
+      setTheme(defaultThemes.light);
     }
   }, [resolvedTheme, theme]);
 
