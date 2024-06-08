@@ -4,13 +4,20 @@ import { ColumnDef } from "@tanstack/react-table";
 
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { Problem } from "../data/schema";
-
-import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 
-export const columns: ColumnDef<Problem>[] = [
+let isAdmin = false;
+if (typeof window !== "undefined") {
+  const location = window.location.href;
+  if (location.includes("admin")) isAdmin = true;
+}
+
+// TODO: Type this correctly.
+export const columns: ColumnDef<any>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -53,35 +60,54 @@ export const columns: ColumnDef<Problem>[] = [
     cell: ({ row }) => {
       return (
         <div className="flex space-x-2">
-          <span className="max-w-[500px] truncate font-medium">
+          <span className="max-w-[400px] truncate font-medium">
             {row.getValue("title")}
           </span>
         </div>
       );
     },
   },
+
   {
-    accessorKey: "prompt",
+    accessorKey: "difficulty",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Prompt" />
+      <DataTableColumnHeader column={column} title="Difficulty" />
     ),
-    cell: ({ row }) => (
-      <div className="max-w-[450px] hidden truncate">
-        {row.getValue("prompt")}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const difficulty = row.getValue("difficulty");
+      return (
+        <div className="flex items-center">
+          <span className="sr-only">{row.getValue("difficulty")}</span>
+          <Badge
+            variant={"outline"}
+            className={cn({
+              "border-[0.5px] border-red-500":
+                difficulty === "VERY_HARD" || difficulty === "HARD",
+              "border-[0.5px] border-yellow-500": difficulty === "MEDIUM",
+              "border-[0.5px] border-green-500":
+                difficulty === "EASY" || difficulty === "VERY_EASY",
+            })}
+          >
+            {row.getValue("difficulty")}
+          </Badge>
+        </div>
+      );
+    },
   },
 
   {
-    accessorKey: "author",
+    accessorKey: "submissions",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Author" />
+      <DataTableColumnHeader column={column} title="Submissions" />
     ),
-    cell: ({ row }) => {
+    cell: ({ row }: { row: any }) => {
       return (
         <div className="flex w-[120px] items-center">
-          <span className="flex-shrink-0 w-3 h-3 rounded-full bg-osu" />
-          <span className="ml-2">{row.getValue("author")}</span>
+          <span className="ml-2">
+            {row.getValue("submissions").length > 0
+              ? row.getValue("submissions").length
+              : "None"}
+          </span>
         </div>
       );
     },
@@ -89,6 +115,24 @@ export const columns: ColumnDef<Problem>[] = [
       return value.includes(row.getValue(id));
     },
   },
+
+  {
+    accessorKey: "users",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Author" />
+    ),
+    cell: ({ row }: { row: any }) => {
+      return (
+        <div className="flex w-[120px] items-center">
+          <span className="ml-2">{row.getValue("users").name}</span>
+        </div>
+      );
+    },
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id));
+    },
+  },
+
   {
     accessorKey: "upload_date",
     header: ({ column }) => (
@@ -98,7 +142,9 @@ export const columns: ColumnDef<Problem>[] = [
       const value = row.getValue("upload_date");
       return (
         <div className="w-[100px]">
-          {format(new Date(value as any), "yyyy-MM-dd")}
+          {formatDistanceToNow(new Date(value as any), {
+            addSuffix: true,
+          })}
         </div>
       );
     },
@@ -108,6 +154,14 @@ export const columns: ColumnDef<Problem>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <DataTableRowActions row={row} />,
+    cell: ({ row }) => {
+      return (
+        <div
+          className={`${isAdmin ? "flex" : "hidden"} items-center space-x-2`}
+        >
+          <DataTableRowActions row={row} />
+        </div>
+      );
+    },
   },
 ];

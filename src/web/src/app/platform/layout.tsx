@@ -1,3 +1,4 @@
+import { Footer } from "@/components/footer";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -16,6 +17,7 @@ export default function PlatformLayout({ children }: PlatformLayoutProps) {
       <main className="flex flex-col items-center justify-center overflow-x-hidden">
         {children}
       </main>
+      <Footer />
     </>
   );
 }

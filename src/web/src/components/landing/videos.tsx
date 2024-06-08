@@ -26,11 +26,11 @@ export function PreviewVideo() {
           width="100%"
           height="100%"
         >
-          <source src={"/demo/dark.mp4"} type="video/mp4" />
+          <source src={"/demo/new-dark.webm"} type="video/webm" />
           Your browser does not support the video tag.
         </video>
         {/* Gradient Mask */}
-        <div className="hidden md:block absolute bottom-0 left-0 w-full h-5/6 bg-gradient-to-t from-neutral-950 to-neutral-950/5 via-neutral-950/95" />
+        {/* <div className="hidden md:block absolute bottom-0 left-0 w-full h-5/6 bg-gradient-to-t from-neutral-950 to-neutral-950/5 via-neutral-950/95" /> */}
         <BorderBeam />
       </Card>
       <Card
@@ -52,7 +52,7 @@ export function PreviewVideo() {
           height="100%"
           className="rounded-lg border border-muted bg-white p-2 object-cover w-full h-full max-w-7xl sm:h-[300px] md:h-[400px] lg:h-full shadow-xl"
         >
-          <source src={"/demo/light.mp4"} type="video/mp4" />
+          <source src={"/demo/new-light.webm"} type="video/webm" />
           Your browser does not support the video tag.
         </video>
         {/* Gradient Mask */}

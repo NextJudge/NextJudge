@@ -107,7 +107,7 @@ export function Navbar() {
         <div className="hidden md:flex justify-end w-full">
           <NavigationMenuItem className="flex items-center justify-end gap-4">
             <ModeToggle />
-            <div className="flex items-center gap-0">
+            <div className="items-center gap-0 hidden">
               <Link
                 href="/auth/login"
                 className={cn(

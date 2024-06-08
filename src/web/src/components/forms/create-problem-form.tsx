@@ -49,7 +49,7 @@ const problemFormSchema = z.object({
       message: "Title must not be longer than 100 characters.",
     }),
   prompt: z.string().min(8, {
-    message: "Prompt must be at least 8 characters.",
+    message: "You must enter a problem statement.",
   }),
   timeout: z.number().int().positive(),
   difficulty: z
@@ -141,7 +141,12 @@ export function CreateProblemForm({ categories }: { categories: Categories }) {
             <FormItem>
               <FormLabel htmlFor="title">Title</FormLabel>
               <FormControl>
-                <Input {...field} id="title" type="text" />
+                <Input
+                  {...field}
+                  id="title"
+                  type="text"
+                  placeholder="e.g. Add Two Numbers"
+                />
               </FormControl>
               <FormDescription>The title of the problem.</FormDescription>
               <FormMessage />
@@ -244,6 +249,9 @@ export function CreateProblemForm({ categories }: { categories: Categories }) {
           )}
         />
         <CreateProblemTestCaseForm form={form} setTestCases={setTestCases} />
+        <FormDescription className="col-span-2 -mt-3">
+          The input and output format of the problem.
+        </FormDescription>
         <FormField
           control={form.control}
           name="prompt"

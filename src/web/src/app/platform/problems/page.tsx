@@ -1,18 +1,16 @@
+import { auth } from "@/app/auth";
+import PlatformNavbar from "@/components/nav/platform-nav";
+import UserAvatar from "@/components/nav/user-avatar";
+import prisma from "@db/prismaClient";
 import { promises as fs } from "fs";
 import { Metadata } from "next";
 import path from "path";
 import { z } from "zod";
-
-import { fetchProblems } from "@/app/actions";
-import PlatformNavbar from "@/components/nav/platform-nav";
-import UserAvatar from "@/components/nav/user-avatar";
+import { SingleSubmission } from "./(problem)/[id]/page";
 import { columns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { RecentSubmissionCard } from "./components/recent-submissions";
-import { recentSubmissions } from "./data/data";
-import { Problem, RecentSubmission, problemSchema } from "./data/schema";
-import { mockSubmissions } from "@/components/landing/bento";
-import { SingleSubmission } from "./(problem)/[id]/page";
+import { problemSchema } from "./data/schema";
 
 export const metadata: Metadata = {
   title: "NextJudge - Problems",
@@ -28,17 +26,76 @@ async function getProblems() {
 }
 
 async function getProblems2() {
-  const problems = (await fetchProblems()) as Problem[];
+  const problems = await prisma.problems.findMany({
+    select: {
+      id: true,
+      title: true,
+      difficulty: true,
+      problem_categories: {
+        select: {
+          categories: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+      upload_date: true,
+      submissions: {
+        select: {
+          id: true,
+          source_code: true,
+        },
+      },
+      users: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
   return problems;
 }
 
 async function getRecentSubmissions(): Promise<SingleSubmission[]> {
-  const promise = new Promise<SingleSubmission[]>((resolve) => {
-    setTimeout(() => {
-      resolve(mockSubmissions);
-    }, 1000);
+  const authObj = await auth();
+  const userId = parseInt(authObj?.user?.id as string);
+  if (!userId || isNaN(userId)) {
+    return [];
+  }
+  const submissions = await prisma.submissions.findMany({
+    where: {
+      user_id: userId,
+    },
+    take: 8,
+    orderBy: {
+      id: "desc",
+    },
+    include: {
+      problems: {
+        select: {
+          title: true,
+          users: {
+            select: {
+              name: true,
+            },
+          },
+          submissions: {
+            select: {
+              source_code: true,
+            },
+          },
+        },
+      },
+      languages: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
-  return promise;
+
+  return submissions;
 }
 
 export default async function ProblemsPage() {
@@ -70,16 +127,10 @@ export default async function ProblemsPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center justify-between space-y-2">
-          {/* <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentSubmissions.map((submission) => (
-              <RecentSubmissionCard
-                key={submission.id}
-                submission={submission}
-              />
-            ))}
-          </div> */}
-          <p>No Recent Submissions</p>
+        <div className="grid grid-cols-2 gap-4">
+          {recentSubmissions.map((submission) => (
+            <RecentSubmissionCard key={submission.id} submission={submission} />
+          ))}
         </div>
       </div>
     </>

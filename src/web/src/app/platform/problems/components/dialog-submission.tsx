@@ -20,7 +20,7 @@ export function DialogSubmission({
   submission,
   children,
 }: {
-  submission: SingleSubmission;
+  submission: any;
   children?: React.ReactNode;
 }) {
   if (!submission) return null;
@@ -61,7 +61,7 @@ export function DialogSubmission({
                 {submission.status.toUpperCase()}
               </h1>
             </div>
-            <DummyCodeEditor />
+            <DummyCodeEditor sourceCode={submission.source_code as any} language={submission.languages.name} />
             <DialogFooter className="sm:justify-start">
               <DialogClose asChild>
                 <Button type="button" variant="secondary">
