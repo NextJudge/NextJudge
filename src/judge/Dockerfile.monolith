@@ -1,7 +1,7 @@
 # prod or dev
 ARG USAGE
 
-FROM ubuntu:24.04 as BUILD
+FROM ubuntu:24.04 AS build
 
 RUN apt-get update -y && apt-get install -y curl tar wget g++ gcc python3 ruby build-essential openjdk-21-jdk strace ghc pypy3
 
@@ -13,7 +13,7 @@ RUN useradd NEXTJUDGE_USER -u 99999 -g 99999 -s /bin/bash
 USER NEXTJUDGE_USER
 WORKDIR /home/NEXTJUDGE_USER
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal -y
 RUN wget https://go.dev/dl/go1.22.1.linux-amd64.tar.gz && tar -C /home/NEXTJUDGE_USER -xzf go1.22.1.linux-amd64.tar.gz
 # # Make go compile the stdlib now, and not on the first use of the go build command
 RUN /home/NEXTJUDGE_USER/go/bin/go install std
@@ -44,7 +44,7 @@ RUN wget https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-co
 
 FROM basejudge:"$USAGE"
 
-COPY --from=BUILD / /chroot
+COPY --from=build / /chroot
 RUN chown -R 99999:99999 /chroot/dev
 
 

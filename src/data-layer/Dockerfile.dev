@@ -1,0 +1,25 @@
+
+FROM golang:1.23-alpine AS build-stage
+WORKDIR /app
+
+
+RUN go install github.com/air-verse/air@latest
+
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+RUN mkdir /config
+COPY <<EOF /config/.air.toml
+root = "."
+watch_dir = "src"
+[build]
+cmd = "go build -o ./tmp/main ./src"
+bin = "tmp/main"
+EOF
+
+
+EXPOSE 5000
+
+ENTRYPOINT ["air", "-c", "/config/.air.toml"]
+

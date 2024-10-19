@@ -11,7 +11,6 @@ The competitive programming [platform][site-url], [backend framework][bridge-url
 ![Licese][license-image]
 
 [site-url]: https://nextjudge.org
-[bridge-url]: https://github.com/NextJudge/NextJudge/tree/main/src/bridge
 [judge-url]: https://github.com/NextJudge/NextJudge/tree/main/src/judge
 [cli-url]: https://github.com/NextJudge/NextJudge/tree/main/src/cli
 [license-image]: https://img.shields.io/github/license/nextjudge/nextjudge?style=flat-square&color=dc4405
@@ -83,11 +82,11 @@ The top-level `./deploy.sh` will instantiate all modules using Docker compose in
 
 ### Local Development 🛠️
 
-There are two ways to run the services locally:
+To run the services locally while developing, you can use `Docker` with hot reload.
 
-#### 1. Docker with hot reload 🐳 (recommended)
+The source code is mounted, and a process is set up to detect changes and restart the service when you save files. 
 
-The first involves running everything in Docker containers. This is the recommended way to run the services locally. You can run the following script to start the services:
+You can run the following script to start the services:
 
 ```sh
 ./dev-deploy.sh
@@ -97,31 +96,6 @@ To flush the database and remove all volumes (completely refreshing the Docker e
 
 ```sh
 ./fully-reset.sh
-```
-
-#### 2. Running everything on host 🖥️
-
-The second way involves running the services on your own machine.
-
-> [!NOTE]
-> This doesn't mean certain services won't be running in Docker containers. The database and judge will still be running in Docker containers.
-
-First, run the `./init-dev-host.sh` script for a one-time setup of these Docker containers.
-
-```sh
-./init-dev-host.sh
-```
-
-Now, whenever you want to start the service:
-
-```sh
-./start-dev-host.sh
-```
-
-To bring it all down, run:
-
-```sh
-./kill-dev-host.sh
 ```
 
 ## Configuration ⚙️
@@ -150,9 +124,3 @@ Currently, while we are in primary stages of development, we are not accepting c
 However, we will be opening up the project for contributions in the near future. Community contributions are what made us decide to open-source the project in the first place. We're excited to make this project a community-driven project.
 
 Until then, please read [CONTRIBUTING.md](/CONTRIBUTING.md) for our code of conduct and the process for submitting both pull requests and issues to the project.
-
-## License 📄
-
-This project is licensed under the MIT License - see the [file](/LICENSE) for more details.
-
-More information coming soon. Stay tuned! :octocat:!
