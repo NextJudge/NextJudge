@@ -8,7 +8,7 @@ RUN git clone https://github.com/google/nsjail.git
 RUN cd /app/nsjail && make -j
 
 
-FROM python:3.12.3-slim-bookworm as nextjudge-jail
+FROM python:3.12.3-slim-bookworm AS nextjudge-jail
 # Credit to https://github.com/redpwn/jail/blob/main/Dockerfile for the method of creating this slim Docker image & copying the correct library files
 COPY --from=build-nsjail /usr/lib/*-linux-gnu/libprotobuf.so.32 /usr/lib/*-linux-gnu/libnl-route-3.so.200 \
 /lib/*-linux-gnu/libnl-3.so.200 /lib/*-linux-gnu/libz.so.1 /usr/lib/*-linux-gnu/libstdc++.so.6 \
@@ -26,7 +26,7 @@ COPY requirements.txt .
 RUN pip install --break-system-packages -r requirements.txt 
 
 # copy production dependencies and source code into final image
-FROM nextjudge-jail as dev
+FROM nextjudge-jail AS dev
 
 RUN apt-get update && apt-get install -y entr && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -34,7 +34,7 @@ ENTRYPOINT sh -c "echo app.py | entr -n -r python3 -u app.py"
 # CMD [ "", "", "entr", "-r", "python3 -u", "app.py" ]
 
 
-FROM nextjudge-jail as prod
+FROM nextjudge-jail AS prod
 
 COPY src/app.py .
 

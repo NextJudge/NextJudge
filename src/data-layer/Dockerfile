@@ -1,26 +1,31 @@
 
-FROM golang:1.22-alpine AS build-stage
+FROM golang:1.23-alpine AS build
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY *.go ./
+COPY ./src ./src
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /main
+RUN CGO_ENABLED=0 GOOS=linux go build -o /main ./src
 
+# Dummy user
+RUN addgroup -S scratchuser && adduser -S scratchuser -G scratchuser
 
 # Deploy the application binary into a lean image
-FROM gcr.io/distroless/base-debian11 AS build-release-stage
+FROM scratch AS release
 
 WORKDIR /
 
-COPY --from=build-stage /main /main
+COPY --from=build /main /main
+COPY --from=build /etc/passwd /etc/passwd
+COPY --from=build /etc/group /etc/group
 
-USER nonroot:nonroot
+USER scratchuser:scratchuser
 
 EXPOSE 5000
 
 ENTRYPOINT ["/main"]
+
 
 

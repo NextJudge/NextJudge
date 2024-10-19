@@ -29,7 +29,7 @@ If you wish to create a judge that can support additional compilers, you can cre
 You can start the Dockerfile by inheriting from any image of your choice. In this example, we will use `ubuntu:24.04`. Inside of it, install all the toolchains/compilers/runtimes necessary to support the new language.
 
 ```Dockerfile
-FROM ubuntu:24.04 as BUILD
+FROM ubuntu:24.04 AS build
 
 # Initially, the commands in the Dockerfile run as root.
 # Run any commands that need to be run as root, such as `apt-get`
@@ -53,7 +53,7 @@ FROM basejudge
 
 # Copy the entire filesystem from above into /chroot.
 ## Inside the isolated context, this directory will be `chrooted` and act as the root file system.
-COPY --from=BUILD / /chroot
+COPY --from=build / /chroot
 # This line is necessary to allow mounting of a couple /dev files.
 RUN chown -R 99999:99999 /chroot/dev
 

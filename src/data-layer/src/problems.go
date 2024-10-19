@@ -94,8 +94,8 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 	}
 	if problem != nil {
 		logrus.Warn("problem already exists")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"problem already exists"}`)
+		w.WriteHeader(http.StatusConflict)
+		fmt.Fprintf(w, `{"code":"409", "message":"problem already exists", "id":%d}`, problem.ID)
 		return
 	}
 

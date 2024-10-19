@@ -16,9 +16,15 @@ import aio_pika.abc
 import shutil
 import time
 import argparse
+import requests
 
-RABBITMQ_HOST=os.getenv("RABBITMQ_HOST", "localhost") 
-RABBITMQ_PORT=os.getenv("RABBITMQ_PORT", 5672) 
+RABBITMQ_HOST=os.getenv("RABBITMQ_HOST", "localhost")
+RABBITMQ_PORT=os.getenv("RABBITMQ_PORT", 5672)
+
+NEXTJUDGE_HOST=os.getenv("NEXTJUDGE_HOST", "localhost")
+NEXTJUDGE_PORT=os.getenv("NEXTJUDGE_PORT", 5000)
+
+NEXTJUDGE_ENDPOINT = f"http://{NEXTJUDGE_HOST}:{NEXTJUDGE_PORT}"
 
 SUBMISSION_QUEUE_NAME="submission_queue"
 BRIDGE_QUEUE_NAME="bridge_queue"
@@ -102,6 +108,43 @@ class RabbitMQClient(object):
     async def send_custom_input_result(self, body: dict):
         return await self.generic_call({"type":"custom_result", "body":body})
 
+
+def get_languages():
+    response = requests.get(f"{NEXTJUDGE_ENDPOINT}/v1/languages")
+    data = response.json()
+    # print(data)
+    return data
+
+def get_submission_data(submission_id: str):
+    print(f"{NEXTJUDGE_ENDPOINT}/v1/submissions/{submission_id}")
+    response = requests.get(f"{NEXTJUDGE_ENDPOINT}/v1/submissions/{submission_id}")
+    data = response.json()
+    # print(data)
+    return data
+
+def get_test_data(problem_id: str):
+    """
+    Get all tests for a given problem_id
+    """
+    response = requests.get(f"{NEXTJUDGE_ENDPOINT}/v1/problems/{problem_id}?type=private")
+    data = response.json()
+    # print(data)
+    return data
+
+def post_judgement(submission_id: str, data):
+    response = requests.patch(
+        f"{NEXTJUDGE_ENDPOINT}/v1/submissions/{submission_id}",
+        json=data
+    )
+    # print(data)
+    return data
+    
+def post_custom_input_result(submission_id: str, body):
+    response = requests.patch(
+        f"{NEXTJUDGE_ENDPOINT}/v1/input_submissions/{submission_id}",
+        json=body
+    )
+    print(response)
 
 @dataclass
 class Language:
@@ -213,20 +256,21 @@ async def submit_judgement(submission, result: ResultReason, stdout: bytes, stde
     print("Submitting judgement to bridge")
     print(body)
 
-    r = await rabbitmq.send_judgement(body)
-    print(r)
+    # r = await rabbitmq.send_judgement(body)
+    r = post_judgement(submission["id"], body)
+    # print(r)
 
 async def submit_custom_input_judgement(id: str, result: ResultReason, stdout: bytes, stderr: bytes):
 
     body = {
-        "submission_id": id,
         "status": result,
         "stdout": stdout.decode("utf-8"),
         "stderr": stderr.decode("utf-8")
     }
 
-    r = await rabbitmq.send_custom_input_result(body)
-    print(r)
+    # r = await rabbitmq.send_custom_input_result(body)
+    # print(r)
+    post_custom_input_result(id,body)
 
 @dataclass
 class ProgramEnvironment:
@@ -279,16 +323,18 @@ def create_program_environment() -> ProgramEnvironment:
     return ProgramEnvironment()
 
 
-# Used for testing. Compile and run code with no stdin
-def simple_compile_and_run(source_code: str, language: Language) -> FullResult:
+# Used for testing. Compile and run code with optional stdin
+def simple_compile_and_run(source_code: str, language: Language, stdin_input=b"") -> FullResult:
     environment = create_program_environment()
     environment.create_directories()
 
-    if not compile_in_jail(source_code, language, environment).success:
-        environment.remove_files()
-        return FullResult("COMPILE_TIME_ERROR",b'', b'')
+    compile_result = compile_in_jail(source_code, language, environment)
 
-    output = run_single(environment, b"")
+    if not compile_result.success:
+        environment.remove_files()
+        return FullResult("COMPILE_TIME_ERROR",compile_result.stdout, compile_result.stderr)
+
+    output = run_single(environment, stdin_input)
 
     environment.remove_files()
 
@@ -304,7 +350,7 @@ def simple_compile_and_run_tests(source_code: str, tests:list[Test], language: L
         print(compile_result.stdout)
         print(compile_result.stderr)
         environment.remove_files()
-        return FullResult("COMPILE_TIME_ERROR",b'', b'')
+        return FullResult("COMPILE_TIME_ERROR",compile_result.stdout, compile_result.stderr)
 
     for t in tests:
         run_result = run_single_test_case(t, environment, verbose=False)
@@ -327,12 +373,16 @@ def simple_compile_and_run_tests(source_code: str, tests:list[Test], language: L
 
 async def handle_test_submission(submission_id: str):
     # Get all the relevent information regarding this submission ID
-    raw_submission_data = await rabbitmq.get_submission_data(submission_id)
-    submission_data = json.loads(raw_submission_data)
+    # raw_submission_data = await rabbitmq.get_submission_data(submission_id)
+    # submission_data = json.loads(raw_submission_data)
+
+    submission_data = get_submission_data(submission_id)
 
     # Get test data for this ID
-    raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
-    test_data = json.loads(raw_test_data)
+    # raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
+    # test_data = json.loads(raw_test_data)
+
+    test_data = get_test_data(submission_data["problem_id"])
 
     tests: list[Test] = []
 
@@ -372,10 +422,11 @@ async def handle_test_submission(submission_id: str):
 
 async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
 
-    async with message.process():
+    # Requeue the message if we fail, and reject attempts to redeliver it to us
+    async with message.process(requeue=True,reject_on_redelivered=True):
         print(f"Judge received a submission")
         print(message.body)
-
+        
         json_data = json.loads(message.body.decode("utf-8"))
 
         work_item_type = json_data["type"]
@@ -517,9 +568,9 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
     nsjail_errors = read_from.read()
     read_from.close()
 
-    if verbose:
-        print("nsjail output")
-        print(nsjail_errors)
+    # if verbose:
+    #     print("nsjail output")
+    #     print(nsjail_errors)
 
     if compile_result.returncode:
         if verbose:
@@ -544,9 +595,9 @@ def run_single_test_case(testcase: Test, environment: ProgramEnvironment, verbos
 
     run_result = run_single(environment, testcase.input.encode("utf-8"), verbose)
 
-    if verbose:
-        print("OUTPUT:",run_result.stdout.decode("utf-8"))
-        print("EXPECTED:",testcase.expected_output)
+    # if verbose:
+    #     print("OUTPUT:",run_result.stdout.decode("utf-8"))
+    #     print("EXPECTED:",testcase.expected_output)
     
     if(run_result.result != "ACCEPTED"):
         return TestResult(run_result.result, run_result.stdout, run_result.stderr)
@@ -569,9 +620,9 @@ def run_single(environment: ProgramEnvironment, input: bytes, verbose=True) -> R
 
     nsjail_log_pipes = os.pipe()
 
-    if verbose:
-        print(f"Input: {input}")
-        print("Starting execution")
+    # if verbose:
+    #     print(f"Input: {input}")
+    #     print("Starting execution")
     
     
     t = time.time()
@@ -619,8 +670,11 @@ def run_single(environment: ProgramEnvironment, input: bytes, verbose=True) -> R
     nsjail_errors = read_from.read()
     read_from.close()
 
-    # print("nsjail output")
-    # print(nsjail_errors)
+    print("nsjail output")
+    print(nsjail_errors)
+
+    print(f"stdout: {run_result.stdout}")
+    print(f"stderr: {run_result.stderr}")
 
     if run_result.returncode:
         if verbose:
@@ -672,6 +726,31 @@ async def connect_to_rabbitmq():
             connection_attempts += 1
             time.sleep(2)
 
+def ensure_nextjudge_healthy():
+    """
+    The judge has to talk to the core service, so this checks that it's accessible before booting
+    """
+    connection_attempts = 0
+
+    while(connection_attempts < 30):
+        try:
+            print(f"Connection attempt {connection_attempts} - {NEXTJUDGE_ENDPOINT}/healthy",flush=True)
+
+            connection = requests.get(
+                f"{NEXTJUDGE_ENDPOINT}/healthy",
+            )
+
+            if connection.status_code == 200:
+                return
+
+        except requests.exceptions.ConnectionError as e:
+            print(str(e))
+            connection_attempts += 1
+            time.sleep(3)
+
+    raise Exception("Cannot connect to core server")
+
+
 async def main():
 
     print("Reading languages.toml file")
@@ -679,9 +758,10 @@ async def main():
     connection = await connect_to_rabbitmq()
     if not connection:
         return
-    
-    print("Successfully connected!")
+    print("Successfully connected to RabbitMQ!")
 
+    ensure_nextjudge_healthy()
+    print("Can contact the core service")
     # TODO:
     # This RPC breaks if the other side is not there to respond
     # Need another wait here to see that the rpc_queue is open
@@ -690,7 +770,8 @@ async def main():
     rabbitmq = RabbitMQClient(connection)
     await rabbitmq.setup()
     
-    languages = await rabbitmq.get_languages()
+    languages = get_languages()
+    # languages = await rabbitmq.get_languages()
     for bridge_lang in languages:
         for supported_lang in LOCAL_LANGUAGES:
             if supported_lang.name == bridge_lang["name"]:
@@ -702,6 +783,7 @@ async def main():
     await submission_channel.set_qos(prefetch_count=1)
     queue = await submission_channel.declare_queue(SUBMISSION_QUEUE_NAME, durable=True)
     
+    print("consuming")
     await queue.consume(handle_submission)
 
     # rabbitmq.call_test(14, lambda x: print(x))
@@ -717,40 +799,57 @@ if __name__ == '__main__':
 
     parser.add_argument("--file", dest="file", required=False, default=None)
     parser.add_argument("--tests", dest="tests", required=False, default=None)
+    parser.add_argument("--stdin", dest="stdin", required=False, default=None)
+
 
     args = parser.parse_args()
 
-    if args.file is not None and args.tests is not None:
+    if args.file is not None:
+
         parse_languages()
 
+        print(args.file)
+        os.system("ls -pla /")
         print("Running local tests")
         try:
             source_code = open(args.file,"r",encoding="utf-8").read()
         except OSError as e:
             print(f"Could not open file {args.file} - {e}")
-
-        # Get tests
-        testcase_files = os.listdir(f"{args.tests}")
-
-        if not testcase_files:
-            print("No test cases found")
             sys.exit(1)
-
-        testcase_names = [case[:-3] for case in testcase_files if case.endswith("in")]
-
-        tests: list[Test] = []
-
-        for name in testcase_names:
-            test_input = open(f"{args.tests}/{name}.in", 'r').read()
-            test_output = open(f"{args.tests}/{name}.ans", 'r').read()
-
-            tests.append(Test(test_input,test_output,name))
         
-
         extension = Path(args.file).suffix[1:]
         language = get_language_by_extension(extension)
 
-        if language is not None:
+        if language is None:
+            print(f"Cannot resolve language from filename: {args.file}")
+            sys.exit(1)
+
+        if args.stdin is not None:
+            result = simple_compile_and_run(source_code, language, args.stdin.encode("utf-8"))
+
+            print(result.result)
+            print(result.stdout.decode("utf-8"))
+            print(result.stderr.decode("utf-8"))
+
+        elif args.tests is not None:
+
+            # Get tests
+            testcase_files = os.listdir(f"{args.tests}")
+
+            if not testcase_files:
+                print("No test cases found")
+                sys.exit(1)
+
+            testcase_names = [case[:-3] for case in testcase_files if case.endswith("in")]
+
+            tests: list[Test] = []
+
+            for name in testcase_names:
+                test_input = open(f"{args.tests}/{name}.in", 'r').read()
+                test_output = open(f"{args.tests}/{name}.ans", 'r').read()
+
+                tests.append(Test(test_input,test_output,name))
+
             simple_compile_and_run_tests(source_code, tests, language)
 
     else:

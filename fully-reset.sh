@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Remove all volumes/persistent data in the 
-docker compose down --volumes
+# Remove all volumes/persistent data
 
-docker compose -f docker-compose.dev.yml down --volumes
+docker compose -f docker-compose.dev.yml down --volumes --remove-orphans
 
+docker compose down --volumes --remove-orphans

@@ -21,6 +21,8 @@ try:
 except:
     argcomplete_available = False
 
+NEXTJUDGE_PORT = 5000
+
 def add_common_arguments(parser: argparse.ArgumentParser,default_port):
     host = os.getenv("HOST") or "localhost"
     port = os.getenv("PORT") or default_port
@@ -34,7 +36,7 @@ def main():
         description="Command line interface for NextJudge"
     )
     
-    add_common_arguments(parser, 3000)
+    add_common_arguments(parser, NEXTJUDGE_PORT)
 
     toplevel_parser = parser.add_subparsers(dest="command", help="Sub-commands")
 
@@ -79,6 +81,12 @@ def main():
     test_parser = toplevel_parser.add_parser("test")
     test_parser.add_argument("file")
     test_parser.add_argument("--tests", dest="tests", default=None, required=False)
+    test_parser.add_argument("--local-image", dest="local_image", action="store_const",const=True,default=False, required=False)
+
+    # run-with-input
+    test_parser = toplevel_parser.add_parser("run-with-input")
+    test_parser.add_argument("file")
+    test_parser.add_argument("stdin")
     test_parser.add_argument("--local-image", dest="local_image", action="store_const",const=True,default=False, required=False)
 
 
@@ -130,7 +138,7 @@ def main():
             sys.exit(1)
 
         submit = requests.post(
-            f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/custom_input",
+            f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/v1/input_submissions",
             json = {
                 "user_id": get_test_user_id(f"http://{BRIDGE_HOST}:5000"),
                 "source_code": source_code,
@@ -139,7 +147,7 @@ def main():
             }
         )
 
-        if(submit.status_code != 200):
+        if not submit.ok:
             print(submit.text)
             sys.exit(1)
 
@@ -156,11 +164,11 @@ def main():
             time.sleep(delay)
 
             verdict = requests.get(
-                f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/custom_input/{submit.text}",
+                f"http://{BRIDGE_HOST}:{BRIDGE_PORT}/v1/input_submissions/{submit.text}",
             )
-
+            
+            print(verdict.text)
             result = verdict.json()
-            print(result)
 
             status = result["status"]
             if status != "PENDING" and status != "":
@@ -179,6 +187,8 @@ def main():
         upload_and_run_icpc_solutions_suite(args.directory, args.host, args.port, args.skip)
     elif args.command == "test":
         run_local_tests(args.file, args.tests, args.local_image)
+    elif args.command == "run-with-input":
+        local_run_custom(args.file, args.stdin, args.local_image)
     else:
         print("Unknown command")
         parser.print_help()
@@ -206,6 +216,7 @@ def get_test_user_id(endpoint: str) -> str | None:
         real_users: list[User] = users.json()
         return real_users[0]['id']
     except:
+        print("Getting test user ID")
         print(f"Failed to connect to {endpoint}")
         return None
     
@@ -217,10 +228,11 @@ def get_test_user_id(endpoint: str) -> str | None:
 def get_languages(endpoint: str) -> list[Language] | None:
     
     try:
-        bridge_languages = requests.get(f"{endpoint}/languages")
+        bridge_languages = requests.get(f"{endpoint}/v1/languages")
         real_langs = bridge_languages.json()
         return real_langs
     except:
+        print("Getting languages")
         print(f"Failed to connect to {endpoint}")
         return None
 
@@ -247,9 +259,10 @@ def get_solution(filepath: str) -> str:
         print(f"Could not open file {filepath} - {e}")
         return None
  
-def send_solution(sol_path: str, problem_id: int | None, host: str, port: str) -> dict:
-    BRIDGE_ENDPOINT = f"http://{host}:{port}"
+def send_solution(sol_path: str, problem_id: int | None, host: str, port: int) -> dict:
+    BRIDGE_ENDPOINT = f"http://{host}:{str(port)}"
 
+    print(BRIDGE_ENDPOINT)
 
     if problem_id is None:
         config = configparser.ConfigParser()
@@ -275,21 +288,23 @@ def send_solution(sol_path: str, problem_id: int | None, host: str, port: str) -
     id = get_test_user_id(f"http://{host}:5000")
 
     submit = requests.post(
-        f"{BRIDGE_ENDPOINT}/submission",
+        f"{BRIDGE_ENDPOINT}/v1/submissions",
         json = {
             "user_id": id,
-            "source_code": source_code,
+            "problem_id": int(problem_id),
             "language_id": language_id,
-            "problem_id": problem_id
+            "source_code": source_code,
         }
     )
 
-    if(submit.status_code != 200):
+    if not submit.ok:
+        print(submit.status_code)
         print(f"Failed to send submission: {submit.text}")
         return None
 
-    print(f"Submission ID: {submit.text}")
+    print(f"Response: {submit.text}")
 
+    submission_id = submit.json()["id"]
 
     max_polls = 12
     initial_delay = 0.3
@@ -302,10 +317,11 @@ def send_solution(sol_path: str, problem_id: int | None, host: str, port: str) -
         time.sleep(delay)
 
         verdict = requests.get(
-            f"{BRIDGE_ENDPOINT}/submission/{submit.text}",
+            f"{BRIDGE_ENDPOINT}/v1/submissions/{submission_id}",
         )
 
         result = verdict.json()
+        print(result)
         status = result["status"]
 
         if status != "PENDING" and status != "":
@@ -390,13 +406,18 @@ def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
         print(f"Failed to connect to database")
         sys.exit(1)
 
-    print(submit_problem.status_code)
+    print(submit_problem.text)
 
-    if 200 <= submit_problem.status_code < 300 :
+    if submit_problem.ok:
         response_json = submit_problem.json()
         id = response_json['id']
         print("Successfully upload problem")
         print(f"Problem ID: {id}")
+        return SendResult(True, id)
+    elif submit_problem.status_code == 409:
+        response_json = submit_problem.json()
+        print("Problem already exists on the server!")
+        id = response_json['id']
         return SendResult(True, id)
 
     return SendResult(False, -1)
@@ -496,7 +517,7 @@ def upload_and_run_icpc_solutions(directory: str, host: str, port: str, choose=N
 
         print(f"File extension: {f.suffix}")
 
-        r = send_solution(str(f),s.id,"localhost","3000")
+        r = send_solution(str(f),s.id,"localhost",NEXTJUDGE_PORT)
         if r is not None:
             if r["status"] != "ACCEPTED":
                 print("Failed:", (str(f)))
@@ -528,22 +549,24 @@ def upload_and_run_icpc_solutions_suite(top_level_directory: str, host: str, por
 
         s = parse_and_send_folder(f"{top_level_directory}/{directory}",host,port)
         
-        # if s.success:
+        if s.id == -1:
+            print("Failure uploading challenge and it doesn't already exist")
+            sys.exit(1)
 
         files = [f for f in Path(f"{top_level_directory}/{directory}/submissions/accepted").iterdir() if f.is_file()]
 
         for f in files:
-            if str(f).endswith("java"):
-                print("Skipping java submission")
+            if not str(f).endswith("java"):
+                print("Doing only java submission")
                 continue
 
             print(f"File extension: {f.suffix}")
 
-            r = send_solution(str(f),s.id,"localhost","3000")
+            r = send_solution(str(f),s.id,"localhost",NEXTJUDGE_PORT)
             if r is not None:
                 if r["status"] != "ACCEPTED":
                     print("Failed:", (str(f)))
-                    log_file.write(f"{str(f)}:{r['status']}\n".encode())
+                    log_file.write(f"{s.id}:{str(f)}:{r['status']}\n".encode())
                     log_file.flush()
 
     print(log_file.name)
@@ -561,20 +584,58 @@ def run_local_tests(file: str, tests_dir: str | None, local_image: bool) -> None
 
     IMAGE_NAME="ghcr.io/nextjudge/judge:latest" if not local_image else "nextjudge/judge"
 
+
+    # Works with absolute paths and 
+    path = Path(file).resolve()
+
+    # We retain the file extension this way
+    filename = path.name
+
+
     result = subprocess.run(
         [
             "docker",
             "run",
             "--privileged",
-            "-v",
-            f"./{file}:/{file}:ro",
+            "--mount",
+            f"type=bind,src={path},target=/{filename},readonly",
             "-v",
             f"./{tests_dir}:/tests/:ro",
             IMAGE_NAME,
             "--file",
-            f"/{file}",
+            f"/{filename}",
             "--tests",
             "/tests/"
+        ]
+    )
+
+def local_run_custom(file: str, stdin: str, local_image: bool) -> None:
+    """
+    Take a file and STDIN, and run the program
+    """
+
+    IMAGE_NAME="ghcr.io/nextjudge/judge:latest" if not local_image else "nextjudge/judge"
+
+    IMAGE_NAME = "nextjudge/judge"
+
+    # Works with absolute paths and 
+    path = Path(file).resolve()
+
+    # We retain the file extension this way
+    filename = path.name
+
+    result = subprocess.run(
+        [
+            "docker",
+            "run",
+            "--privileged",
+            "--mount",
+            f"type=bind,src={path},target=/{filename},readonly",
+            IMAGE_NAME,
+            "--file",
+            f"/{filename}",
+            "--stdin",
+            stdin
         ]
     )
 

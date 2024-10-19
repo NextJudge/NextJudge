@@ -8,6 +8,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"goji.io"
+	"goji.io/pat"
 )
 
 var (
@@ -24,6 +25,8 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
 	}
+
+	SetupRabbitMQConnection()
 
 	db, err = NewDatabase()
 	if err != nil {
@@ -57,8 +60,10 @@ func main() {
 	addUserRoutes(mux)
 	addProblemRoutes(mux)
 	addSubmissionRoutes(mux)
+	addInputSubmissionRoutes(mux)
 	addLanguageRoutes(mux)
 	addCompetitionsRoutes(mux)
+	addHealthyRoute(mux)
 
 	logrus.Info("Starting data layer API")
 
@@ -66,8 +71,17 @@ func main() {
 	err = http.ListenAndServe(addr, mux)
 	if err != nil {
 		logrus.WithError(err).Error("http listener error")
+		CloseRabbitMQConnection()
 		os.Exit(1)
 	}
+}
+
+func addHealthyRoute(mux *goji.Mux) {
+	mux.HandleFunc(pat.Get("/healthy"), getHealthy)
+}
+
+func getHealthy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
 }
 
 func JSONMiddleware(h http.Handler) http.Handler {

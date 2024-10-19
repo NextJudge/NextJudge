@@ -21,9 +21,3 @@ Please review our [Code of Conduct](/CODE_OF_CONDUCT.md). It is in effect at all
 ## :inbox_tray: Opening an Issue
 
 Before [creating an issue](https://help.github.com/en/github/managing-your-work-on-github/creating-an-issue), check if you are using the latest version of the project. If you are not up-to-date, see if updating fixes your issue first.
-
-### :lock: Reporting Security Issues
-
-**Do not** file a public issue for security vulnerabilities. Instead, please email **nyumat@oregonstate.edu**. This will help ensure that any vulnerabilities that are found are addressed as quickly as possible. If you are not sure whether you are dealing with a security issue, please err on the side of caution, and report it via email.
-
-## TODO: Finish the rest of the contributing guidelines

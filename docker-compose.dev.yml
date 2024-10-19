@@ -1,38 +1,19 @@
 services:
 
-  nextjudge-bridge:
+  nextjudge-data-layer-dev:
     extends: 
-      file: src/bridge/docker-compose.dev.yml
-      service: nextjudge-bridge
-    environment:
-      - DATABASE_HOST=nextjudge-data-layer
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      nextjudge-data-layer:
-        condition: service_started
-      
-  rabbitmq:
-    extends: 
-      file: src/bridge/docker-compose.dev.yml
-      service: rabbitmq
-    environment:
-      - RABBITMQ_LOGS="error"
-
-  nextjudge-data-layer:
-    extends: 
-      file: src/data-layer/docker-compose.go.yml
-      service: nextjudge-data-layer
+      file: src/data-layer/docker-compose.dev.yml
+      service: nextjudge-data-layer-dev
     environment:
       - ELASTIC_ENDPOINT=http://elasticsearch:9200
       - ELASTIC_ENABLED="${ELASTIC_ENABLED:-false}"
     depends_on:
       db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
       # elasticsearch:
-        # condition: service_healthy
+    #     # condition: service_healthy
 
   db:
     extends: 
@@ -46,16 +27,27 @@ services:
     environment:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
+      - NEXTJUDGE_HOST=nextjudge-data-layer-dev
+      - NEXTJUDGE_PORT=5000
     profiles: [judge]
     depends_on:
       rabbitmq:
         condition: service_healthy
-  
-  elasticsearch:
-    extends:
-      file: src/data-layer/docker-compose.elasticsearch.yml
-      service: elasticsearch
-    profiles: [elastic]
+      nextjudge-data-layer-dev:
+        condition: service_healthy
+
+  rabbitmq:
+    extends: 
+      file: src/data-layer/docker-compose.rabbitmq.yml
+      service: rabbitmq
+    environment:
+      - RABBITMQ_LOGS="error"
+
+  # elasticsearch:
+  #   extends:
+  #     file: src/data-layer/docker-compose.elasticsearch.yml
+  #     service: elasticsearch
+  #   profiles: [elastic]
 
 volumes: 
   postgres_data:

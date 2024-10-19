@@ -105,6 +105,9 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
+
+	RabbitMQPublishSubmission(response.ID.String())
+
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, string(respJSON))
 }
