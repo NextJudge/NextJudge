@@ -9,6 +9,8 @@ import { ZodError } from "zod";
 import { auth, prisma, signIn } from "./auth";
 import { newsletterFormSchema } from "./validation";
 
+import { fetchProblems as apiFetchProblems } from "@/lib/api";
+
 export interface ReturnType {
   status: "error" | "success";
   message: string;
@@ -82,6 +84,10 @@ export async function signUpUser(data: SignUpFormValues) {
 }
 
 export async function fetchProblems(page?: number, limit?: number) {
+  // TODO revisit this
+  return await apiFetchProblems()
+
+
   if (!page || !limit) {
     const problems = await prisma.problems.findMany({
       include: {

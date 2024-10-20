@@ -8,6 +8,6 @@ export function cn(...inputs: ClassValue[]) {
 export function getBridgeUrl() {
   return process.env.NEXT_PUBLIC_VERCEL_BRIDGE_URL ?
   process.env.NEXT_PUBLIC_VERCEL_BRIDGE_URL
-    : `http://localhost:3000`
+    : `http://localhost:5000`
 }
 

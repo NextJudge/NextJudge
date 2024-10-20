@@ -15,9 +15,9 @@ export const problemSchema = z.object({
   title: z.string(),
   prompt: z.string(),
   timeout: z.number(),
-  user_id: z.number(),
-  upload_date: z.date(),
-  author: z.string(),
+  user_id: z.string(),
+  upload_date: z.string(),
+  // author: z.string(),
 });
 
 export const recentSubmissionSchema = z.object({

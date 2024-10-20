@@ -11,6 +11,7 @@ import { Icons } from "../icons";
 import { Button } from "../ui/button";
 import { EditorLanguageSelect } from "./editor-language-select";
 import { EditorThemeSelector } from "./editor-theme-select";
+import { fetchLanguages as apiFetchLanguages, postSolution } from "@/lib/api";
 
 const templates: Record<string, string> = {
   "C++": `#include <bits/stdc++.h>
@@ -86,8 +87,8 @@ const main = () => {
     process.exit();
 };
 `,
-  Python: ` `,
-  PyPy: ` `,
+  Python: ``,
+  PyPy: ``,
 };
 
 export default function CodeEditor({
@@ -146,8 +147,7 @@ export default function CodeEditor({
   useEffect(() => {
     async function fetchLanguages() {
       try {
-        const response = await fetch(`${getBridgeUrl()}/languages`);
-        const data = await response.json();
+        const data = await apiFetchLanguages()
         setLanguages(data)
         setCode(templates[normalizeLanguageKey(data[0].name)]);
       } catch (error) {
@@ -180,24 +180,7 @@ export default function CodeEditor({
         throw new Error("Language not found");
       }
 
-      const response = await fetch(`${getBridgeUrl()}/submission`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          source_code: code,
-          language_id: currentLanguage.id,
-          problem_id: problemId,
-          user_id: 1, // Also gonna need to change this to the actual user ID
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to submit code");
-      }
-
-      const data = await response.json();
+      const data = await postSolution(code, currentLanguage.id, problemId, "25c054a1-e306-4851-b229-67acffa65e56");
       setSubmissionResult(data);
       toast.success("Accepted!");
     } catch (error: unknown) {
