@@ -12,6 +12,7 @@ import { Icons } from "../icons";
 import { Button } from "../ui/button";
 import { EditorLanguageSelect } from "./editor-language-select";
 import { EditorThemeSelector } from "./editor-theme-select";
+import { fetchLanguages as apiFetchLanguages, postSolution } from "@/lib/api";
 
 const templates: Record<string, string> = {
   "C++": `#include <bits/stdc++.h>
@@ -87,8 +88,8 @@ const main = () => {
     process.exit();
 };
 `,
-  Python: ` `,
-  PyPy: ` `,
+  Python: ``,
+  PyPy: ``,
 };
 
 export default function CodeEditor({
@@ -169,10 +170,9 @@ export default function CodeEditor({
   useEffect(() => {
     async function fetchLanguages() {
       try {
-        const response = await fetch(`${getBridgeUrl()}/languages`);
-        const data = await response.json();
-        setLanguages(data);
-        setCode(templates[normalizeLanguageKey(defaultLanguage.name)]);
+        const data = await apiFetchLanguages()
+        setLanguages(data)
+        setCode(templates[normalizeLanguageKey(data[0].name)]);
       } catch (error) {
         console.error("Failed to fetch languages", error);
       }
@@ -188,6 +188,29 @@ export default function CodeEditor({
       setCode(templates["TypeScript"]);
     } else {
       setCode("");
+    }
+  };
+
+  const handleSubmitCode = async () => {
+    setSubmissionLoading(true);
+    setError(null);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const selectedLanguage = languages.find(
+        (lang: Language) => lang.extension === currentLanguage?.extension
+      );
+      if (!selectedLanguage) {
+        throw new Error("Language not found");
+      }
+
+      const data = await postSolution(code, currentLanguage.id, problemId, "25c054a1-e306-4851-b229-67acffa65e56");
+      setSubmissionResult(data);
+      toast.success("Accepted!");
+    } catch (error: unknown) {
+      toast.error("There was an error submitting your code.");
+      setError(error instanceof Error ? error.message : "An error occurred.");
+    } finally {
+      setSubmissionLoading(false);
     }
   };
 

@@ -17,6 +17,7 @@ import { defaultLanguage } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import * as React from "react";
+import { fetchLanguages as apiFetchLanguages } from "@/lib/api";
 
 export type Language = {
   id: number;
@@ -40,12 +41,7 @@ export function EditorLanguageSelect({
   React.useEffect(() => {
     async function fetchLanguages() {
       try {
-        // const response = await fetch(`${getBridgeUrl()}/api/languages`);
-        const response = await fetch(`/api/languages`);
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
+        const data = await apiFetchLanguages()
         setLanguages(data);
       } catch (error) {
         console.error("Failed to fetch languages", error);

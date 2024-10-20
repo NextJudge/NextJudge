@@ -16,8 +16,9 @@ export const problemSchema = z.object({
   submissions: z.array(z.object({ id: z.number() })),
   categories: z.array(z.string()),
   timeout: z.number(),
-  user_id: z.number(),
-  upload_date: z.date(),
+  user_id: z.string(),
+  upload_date: z.string(),
+  // author: z.string(),
 });
 
 export const recentSubmissionSchema = z.object({

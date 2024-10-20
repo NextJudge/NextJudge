@@ -3,6 +3,7 @@ import EditorComponent from "@/components/editor/editor-layout";
 import EditorNavbar from "@/components/editor/editor-nav";
 import MarkdownRenderer from "@/components/markdown-renderer";
 import UserAvatar from "@/components/nav/user-avatar";
+import { fetchProblemID } from "@/lib/api";
 import { EditorThemeProvider } from "@/providers/editor-theme";
 import { z } from "zod";
 
@@ -49,6 +50,8 @@ const problemDetailsSchema = z.object({
 export type ZodProblemDetails = z.infer<typeof problemDetailsSchema>;
 
 async function getDetails(id: number): Promise<ProblemDetails> {
+  return fetchProblemID(id);
+
   const details = await prisma.problems.findUnique({
     where: {
       id: id,
