@@ -2,7 +2,7 @@
 
 This module is responsible for the actual code execution and judging of submissions.
 
-When a judge is spun up, it will start listening to a RabbitMQ queue for submissions from the `bridge`. 
+When a judge is spun up, it will start listening to a RabbitMQ queue for submissions. 
 
 To add another judge to your pool, all you need to do is instantiate another instance of the judge and point it at the RabbitMQ server.
 

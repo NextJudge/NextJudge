@@ -1,13 +1,13 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function getBridgeUrl() {
-  return process.env.NEXT_PUBLIC_VERCEL_BRIDGE_URL ?
-  process.env.NEXT_PUBLIC_VERCEL_BRIDGE_URL
-    : `http://localhost:3000`
+  console.log(process.env.NODE_ENV);
+  return process.env.NODE_ENV === "production"
+    ? "https://nextjudge.org"
+    : "http://localhost:5000";
 }
-

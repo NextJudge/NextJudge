@@ -1,8 +1,9 @@
-import React from "react";
-import { Label } from "./ui/label";
+import { cn } from "@/lib/utils";
 import { Card } from "./ui/card";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
 
-export function Input() {
+export function Input({ input, label }: { input: string; label?: string }) {
   return (
     <>
       <div>
@@ -10,8 +11,12 @@ export function Input() {
         <div className="mt-2">
           <Card className="group relative">
             <div className="relative py-3">
-              <div className="mx-3 mb-2 text-xs text-muted-foreground">
-                score =
+              <div
+                className={cn("mx-3 mb-2 text-xs text-muted-foreground", {
+                  hidden: !label,
+                })}
+              >
+                {label}
               </div>
               <div className="z-base-1 hidden rounded border group-hover:block border-border-quaternary dark:border-border-quaternary bg-layer-02 dark:bg-layer-02 absolute right-3 top-2.5 z-base-1">
                 <div
@@ -42,7 +47,7 @@ export function Input() {
               <div className="font-mono mx-3 whitespace-pre-wrap break-all leading-5 text-label-1 dark:text-dark-label-1">
                 <div className="break-words whitespace-pre-wrap overflow-scroll">
                   <div className="align-middle">
-                    <div>[5,4,3,2,1]</div>
+                    <div>{input}</div>
                   </div>
                 </div>
               </div>
@@ -54,7 +59,30 @@ export function Input() {
   );
 }
 
-export function Expected() {
+export function CustomInput({ input }: { input: string }) {
+  return (
+    <div className="space-y-2 p-2">
+      <p className="text-sm font-medium text-label-3 dark:text-dark-label-3">
+        Input
+      </p>
+      <Textarea value={input} />
+    </div>
+  );
+}
+
+// TODO: Make this a generic component of "Output"
+export function CustomInputResult({ result }: { result: string }) {
+  return (
+    <div className="space-y-2 p-2">
+      <p className="text-sm font-medium text-label-3 dark:text-dark-label-3">
+        Result
+      </p>
+      <Textarea value={result} />
+    </div>
+  );
+}
+
+export function Expected({ expected }: { expected: string }) {
   return (
     <div className="flex h-full w-full flex-col space-y-2">
       <div className="flex text-xs font-medium text-label-3 dark:text-dark-label-3">
@@ -92,11 +120,11 @@ export function Expected() {
                   </div>
                 </div>
               </div>
-              <span>["</span>
-              <span className="leading-3.5 text-green-s dark:text-dark-green-s ">
-                Gold Medal","Silver Medal","Bronze Medal","4","5
-              </span>
-              <span>"]</span>
+              <div className="break-words whitespace-pre-wrap overflow-scroll">
+                <div className="align-middle">
+                  <div>{expected}</div>
+                </div>
+              </div>
             </div>
           </div>
         </Card>
@@ -105,7 +133,7 @@ export function Expected() {
   );
 }
 
-export function Output() {
+export function Output({ output }: { output: string }) {
   return (
     <div>
       <Label>Output</Label>
@@ -141,7 +169,7 @@ export function Output() {
             <div className="font-mono mx-3 whitespace-pre-wrap break-all leading-5 text-label-1 dark:text-dark-label-1">
               <div className="break-words whitespace-pre-wrap overflow-scroll">
                 <div className="align-middle">
-                  <div>[5,4,3,2,1]</div>
+                  <div>{output}</div>
                 </div>
               </div>
             </div>

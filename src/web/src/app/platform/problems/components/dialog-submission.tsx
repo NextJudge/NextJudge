@@ -12,19 +12,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Submission } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { RecentSubmission } from "../data/schema";
 
 export function DialogSubmission({
   submission,
   children,
 }: {
-  submission: RecentSubmission;
+  submission: Submission;
   children?: React.ReactNode;
 }) {
   if (!submission) return null;
-  if (!submission.problem) return null;
   return (
     <>
       <div className="flex flex-col gap-4">
@@ -39,25 +38,30 @@ export function DialogSubmission({
           <DialogContent className="min-w-2xl max-w-3xl">
             <DialogHeader>
               <DialogTitle>
-                Submission to {submission.problem?.title}
+                Submission to {submission.problem.title}
               </DialogTitle>
               <DialogDescription>
-                Submitted by {submission.problem.author} on{" "}
-                {format(submission.time, "PPP 'at' p")}
+                Submitted by {submission.problem.user_id} on{" "}
+                {format(submission.submit_time, "PPP 'at' p")}
               </DialogDescription>
             </DialogHeader>
             <div>
               <h1
                 className={cn("text-lg font-bold", "text-primary-foreground", {
-                  "text-green-500": submission.status === "accepted",
-                  "text-red-500": submission.status === "rejected",
-                  "text-yellow-500": submission.status === "pending",
+                  "text-green-500": submission.status === "ACCEPTED",
+                  "text-red-500":
+                    submission.status === "WRONG_ANSWER" ||
+                    submission.status === "TIME_LIMIT_EXCEEDED" ||
+                    submission.status === "MEMORY_LIMIT_EXCEEDED" ||
+                    submission.status === "RUNTIME_ERROR" ||
+                    submission.status === "COMPILE_TIME_ERROR",
+                  "text-yellow-500": submission.status === "PENDING",
                 })}
               >
                 {submission.status.toUpperCase()}
               </h1>
             </div>
-            <DummyCodeEditor />
+            <DummyCodeEditor sourceCode={submission.source_code as any} language={submission.language.name} />
             <DialogFooter className="sm:justify-start">
               <DialogClose asChild>
                 <Button type="button" variant="secondary">

@@ -4,7 +4,7 @@
 
 <div align="center">
 
-The competitive programming [platform][site-url], [backend framework][bridge-url], and [command-line interface][cli-url]—for everyone.
+The competitive programming [platform][site-url] and [command-line interface][cli-url]—for everyone.
 
 ![Last commit][last-commit-image]
 ![:)][with-love-image]
@@ -35,15 +35,6 @@ We're building NextJudge to be a platform, tool, and experience for everyone. Wa
 
 ## Getting Started 🚀
 
-### Pre-requeisites
-
-- [Bun.js](https://bun.sh/)
-- [Docker](https://www.docker.com/)
-- [Docker Compose](https://docs.docker.com/compose/)
-- [Go](https://golang.org/)
-- [Node.js](https://nodejs.org/en/)
-- [Python](https://www.python.org/)
-
 ### Repository structure 📁
 
 NextJudge is a monorepo with the following structure:
@@ -51,7 +42,6 @@ NextJudge is a monorepo with the following structure:
 ```
 .
 ├── src
-│   ├── bridge - "middleman" that sends requests to data-layer and engine
 │   ├── cli - command-line interface for interacting with the platform
 │   ├── data-layer - HTTP wrapper over underlying database
 │   ├── judge - runs and judges code submissions
@@ -102,20 +92,12 @@ To flush the database and remove all volumes (completely refreshing the Docker e
 
 ### Installation 🔧
 
-1. Clone the repo
+Clone the repo:
 
 ```sh
 git clone https://github.com/NextJudge/NextJudge.git
 ```
 
-2. Get environment variables
-
-```sh
-cp .env.example .env
-```
-
-> [!IMPORTANT]
-> Be sure to fill in the environment variables in the `.env` file.
 
 ## Contributing 🤝
 

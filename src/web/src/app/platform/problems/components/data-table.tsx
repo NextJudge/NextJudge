@@ -25,7 +25,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+
+import { randomUUID } from "crypto";
 import { DataTablePagination } from "../components/data-table-pagination";
 import { DataTableToolbar } from "../components/data-table-toolbar";
 
@@ -45,8 +47,8 @@ export function DataTable<TData, TValue>({
     []
   );
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const location = usePathname();
   const router = useRouter();
-
   const table = useReactTable({
     data,
     columns,
@@ -100,18 +102,32 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      //   className="cursor-pointer"
-                      key={cell.id}
-                      //   onClick={() => {
-                      //     router.push(`/platform/problems/${row.getValue("id")}`);
-                      //   }}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
+                    <React.Fragment key={cell.id}>
+                      {location?.includes("admin") && (
+                        <TableCell className="cursor-pointer" key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
                       )}
-                    </TableCell>
+                      {!location?.includes("admin") && (
+                        <TableCell
+                          className="cursor-pointer"
+                          key={cell.id}
+                          onClick={() => {
+                            router.push(
+                              `/platform/problems/${row.getValue("id")}`
+                            );
+                          }}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      )}
+                    </React.Fragment>
                   ))}
                 </TableRow>
               ))

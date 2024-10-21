@@ -1,14 +1,18 @@
 import { Footer } from "@/components/footer";
 import { AltHero } from "@/components/landing/alt-hero";
 import { LanguagesBanner } from "@/components/landing/banner";
-import { WhyNextJudge } from "@/components/landing/bento";
 import { EarlyAccess } from "@/components/landing/early-access";
 import { FAQ } from "@/components/landing/faq";
 import { ScrollToTop } from "@/components/landing/scroll-up";
 import { Services } from "@/components/landing/services";
 import { Navbar } from "@/components/nav/navbar";
 import { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Image from "next/image";
+const WhyNextJudge = dynamic(
+  () => import("@/components/landing/bento").then((mod) => mod.WhyNextJudge),
+  { ssr: false }
+);
 
 export const metadata: Metadata = {
   title: "NextJudge - Elevate your coding skills to the next level.",

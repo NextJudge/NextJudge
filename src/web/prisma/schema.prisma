@@ -61,6 +61,7 @@ model submissions {
 
 model test_cases {
   id              Int           @id @default(autoincrement())
+  is_public       Boolean
   problem_id      Int
   input           String        @db.VarChar
   expected_output String        @db.VarChar

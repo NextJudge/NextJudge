@@ -14,19 +14,20 @@ export const useEditorTheme = (
     [theme]
   );
 
-  useLayoutEffect(() => {
-    loader.init().then((monaco) => {
-      monaco.editor.setTheme(defaultColorScheme.name!);
-      onSelect(defaultColorScheme);
-    });
-  }, [defaultTheme]);
+  // useLayoutEffect(() => {
+  //   loader.init().then((monaco) => {
+  //     monaco.editor.setTheme(defaultColorScheme.name!);
+  //     onSelect(defaultColorScheme);
+  //   });
+  // }, [defaultTheme]);
 
-  useLayoutEffect(() => {
-    loader.init().then((monaco) => {
-      if (theme) monaco.editor.setTheme(theme.name);
-      onSelect(theme || defaultColorScheme);
-    });
-  }, [theme]);
+  // useLayoutEffect(() => {
+  //   loader.init().then((monaco) => {
+  //     console.log("THEME", theme)
+  //     if (theme) monaco.editor.setTheme(theme.name);
+  //     onSelect(theme || defaultColorScheme);
+  //   });
+  // }, [theme]);
 
   return { theme, onSelect };
 };

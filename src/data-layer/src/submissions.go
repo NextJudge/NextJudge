@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -16,6 +17,7 @@ func addSubmissionRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/submissions"), postSubmission)
 	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id"), getSubmission)
 	mux.HandleFunc(pat.Get("/v1/user_submissions/:user_id"), getSubmissionsForUser)
+	mux.HandleFunc(pat.Get("/v1/user_problem_submissions/:user_id/:problem_id"), getProblemSubmissionsForUser)
 	mux.HandleFunc(pat.Patch("/v1/submissions/:submission_id"), updateSubmissionStatus)
 }
 
@@ -288,6 +290,59 @@ func getSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	submissions, err := db.GetSubmissionsByUserID(userId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving submissions")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving user"}`)
+		return
+	}
+
+	respJSON, err := json.Marshal(submissions)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
+
+func getProblemSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
+	userIdParam := pat.Param(r, "user_id")
+	problemIdParam := pat.Param(r, "problem_id")
+
+	userId, err := uuid.Parse(userIdParam)
+
+	if err != nil {
+		logrus.Warn("bad uuid")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		return
+	}
+
+	problemId, err := strconv.Atoi(problemIdParam)
+	if err != nil {
+		logrus.Warn("bad uuid")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		return
+	}
+
+	user, err := db.GetUserByID(userId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving user")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving user"}`)
+		return
+	}
+	if user == nil {
+		logrus.WithError(err).Warn("user not found")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"user not found"}`)
+		return
+	}
+
+	submissions, err := db.GetProblemSubmissionsByUserID(userId, problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving submissions")
 		w.WriteHeader(http.StatusInternalServerError)

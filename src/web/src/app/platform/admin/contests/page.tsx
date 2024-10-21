@@ -48,8 +48,8 @@ export default function AdminContestsPage() {
         <div className="space-y-1">
           <h3 className="text-lg font-medium">Contest Management</h3>
           <p className="text-sm text-muted-foreground">
-            Manage the details of your contests. You can also create a new
-            contest below.
+            The hub of all the NextJudge contests. Create, edit, and delete
+            contests here.
           </p>
         </div>
         <Dialog>

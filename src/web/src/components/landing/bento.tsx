@@ -1,7 +1,6 @@
 "use client";
 import { ContestCard } from "@/app/platform/admin/contests/contest-card";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
-import { serverRenderRecents } from "@/app/platform/problems/data/data";
 import { cn } from "@/lib/utils";
 import { Editor } from "@monaco-editor/react";
 import {
@@ -14,6 +13,7 @@ import { useTheme } from "next-themes";
 import Image from "next/image";
 import { BentoGrid, BentoGridItem } from "../ui/bento-grid";
 import { Card } from "../ui/card";
+import { Submission } from "@/lib/types";
 
 export function WhyNextJudge() {
   return (
@@ -101,9 +101,15 @@ function main() {
 
 interface DummyCodeEditorProps {
   mock?: boolean;
+  sourceCode?: string;
+  language?: string;
 }
 
-export const DummyCodeEditor = ({ mock }: DummyCodeEditorProps) => {
+export const DummyCodeEditor = ({
+  mock,
+  sourceCode,
+  language,
+}: DummyCodeEditorProps) => {
   const { resolvedTheme } = useTheme();
   // TODO: Handle edge case when this is rendered on mobile
   return (
@@ -115,8 +121,8 @@ export const DummyCodeEditor = ({ mock }: DummyCodeEditorProps) => {
           { "rounded pointer-events-none select-none shadow-none": mock },
           "w-full h-full"
         )}
-        defaultLanguage="typescript"
-        defaultValue={mock ? mergeSort : selectionSort}
+        defaultLanguage={language}
+        defaultValue={mock ? mergeSort : sourceCode}
         options={{
           lineNumbers: "off",
           minimap: { enabled: false },
@@ -219,10 +225,52 @@ const ContestCardPreview = () => {
   );
 };
 
+export const mockSubmissions: any[] = [
+  {
+    id: "1",
+    problem: { title: "First Bad Version"},
+    language: { name: "TypeScript" },
+    submit_time: new Date().toLocaleString(),
+    status: "ACCEPTED",
+  },
+  {
+    id: "2",
+    problem: { title: "Cherry Pickup II" },
+    language: { name: "Rust" },
+    submit_time: new Date().toLocaleString(),
+    status: "WRONG_ANSWER",
+  },
+  {
+    id: "3",
+    problem: { title: "Xen Tree" } as any,
+    language: { name: "Swift" } as any,
+    submit_time: new Date().toLocaleString(),
+    status: "ACCEPTED",
+  },
+  {
+    id: "4",
+    problem: {
+      title: "Intersection of Two Arrays",
+    },
+    language: { name: "Go" },
+    submit_time: new Date().toLocaleString(),
+    status: "ACCEPTED",
+  },
+  {
+    id: "5",
+    problem: {
+      title: "Count Sorted Vowel Strings",
+    },
+    language: { name: "Python" },
+    submit_time: new Date().toLocaleString(),
+    status: "PENDING",
+  },
+];
+
 const ThreeSubmissionsCard = () => {
   return (
     <div className="grid grid-cols-1 gap-2">
-      {serverRenderRecents.map((submission) => (
+      {mockSubmissions.map((submission: Submission) => (
         <RecentSubmissionCard key={submission.id} submission={submission} />
       ))}
     </div>

@@ -1,8 +1,8 @@
-import { prisma } from "@/app/auth";
 import EditorComponent from "@/components/editor/editor-layout";
 import EditorNavbar from "@/components/editor/editor-nav";
 import MarkdownRenderer from "@/components/markdown-renderer";
 import UserAvatar from "@/components/nav/user-avatar";
+import { apiGetLanguages, apiGetProblemCategories, apiGetRecentSubmissionsForProblem, apiGetTestCasesForProblem, fetchProblemID } from "@/lib/api";
 import { EditorThemeProvider } from "@/providers/editor-theme";
 import { z } from "zod";
 
@@ -48,50 +48,30 @@ const problemDetailsSchema = z.object({
 
 export type ZodProblemDetails = z.infer<typeof problemDetailsSchema>;
 
-async function getDetails(id: number): Promise<ProblemDetails> {
-  const details = await prisma.problems.findUnique({
-    where: {
-      id: id,
-    },
-    include: {
-      users: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
 
-  if (!details) {
-    throw new Error("Problem not found");
-  }
+const testCasesSchema = z.array(
+  z.object({
+    id: z.number(),
+    problem_id: z.number(),
+    input: z.string(),
+    expected_output: z.string(),
+  })
+);
 
-  const transformedDetails = {
-    ...details,
-  };
-  return problemDetailsSchema.parse(transformedDetails);
-}
+export type TestCases = z.infer<typeof testCasesSchema>;
 
-async function getProblemTags(id: number): Promise<string[]> {
-  const categories = await prisma.problem_categories.findMany({
-    where: {
-      problem_id: id,
-    },
-    select: {
-      categories: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
-  return categories.map((c) => c.categories.name);
-}
 
 export default async function Editor({ params }: { params: { id: string } }) {
   const { id } = params;
-  const details = await getDetails(parseInt(id));
-  const tags = await getProblemTags(parseInt(id));
+  // const session = await auth();
+  // if (!session || !session.user) {
+  //   throw new Error("Unauthorized");
+  // }
+  const details = await fetchProblemID(parseInt(id));
+  const tags = await apiGetProblemCategories(parseInt(id));
+  const testCases = await apiGetTestCasesForProblem(parseInt(id));
+  const recentSubmissions = await apiGetRecentSubmissionsForProblem(parseInt(id),"25c054a1-e306-4851-b229-67acffa65e56");
+  const languages = await apiGetLanguages();
   return (
     <>
       <EditorThemeProvider>
@@ -99,7 +79,11 @@ export default async function Editor({ params }: { params: { id: string } }) {
           <UserAvatar />
         </EditorNavbar>
         <EditorComponent
+          userId={123123} //{parseInt(session.user.id as string)}
           details={details}
+          testCases={testCases}
+          recentSubmissions={recentSubmissions}
+          languages={languages}
           tags={tags}
           slot={<MarkdownRenderer prompt={details.prompt} />}
         />

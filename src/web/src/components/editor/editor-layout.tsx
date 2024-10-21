@@ -1,11 +1,14 @@
 "use client";
+
 import "@/app/globals.css";
 import { EditorSkeleton } from "@/components/editor/editor-skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { ZodProblemDetails } from "@/app/platform/problems/(problem)/[id]/page";
+import {
+  TestCases,
+  ZodProblemDetails,
+} from "@/app/platform/problems/(problem)/[id]/page";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
-import { recentSubmissions } from "@/app/platform/problems/data/data";
 import {
   Drawer,
   DrawerClose,
@@ -25,14 +28,20 @@ import { useEditorCollapse } from "@/hooks/useEditorCollapse";
 import { useEditorTheme } from "@/hooks/useEditorTheme";
 import { useThemesLoader } from "@/hooks/useThemeLoader";
 import { cn } from "@/lib/utils";
-import { ThemeContext } from "@/providers/editor-theme";
 import { Theme } from "@/types";
 import "katex/dist/katex.min.css";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { useContext, useState } from "react";
+
+import { useContext, useEffect, useRef, useState } from "react";
 import { Icons } from "../icons";
-import { Expected, Input as InputCase, Output } from "../submit-box";
+import {
+  CustomInput,
+  CustomInputResult,
+  Expected,
+  Input as InputCase,
+  Output,
+} from "../submit-box";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
@@ -42,29 +51,27 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import CodeEditor from "./code-editor";
-import * as React from "react";
-
-const problemStatement = `
-Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
-`;
-
-const darkDefault: Theme = {
-  name: "brilliance-black",
-  fetch: "/themes/Brilliance Black.json",
-};
-const lightDefault: Theme = {
-  name: "github-light",
-  fetch: "/themes/GitHub Light.json".replace(" ", "%20"),
-};
+import { SubmissionState } from "./editor-submission-state";
+import { apiGetSubmissionsStatus, postSolution } from "@/lib/api";
+import { Language, Submission } from "@/lib/types";
+import { toast } from "sonner";
 
 export default function EditorComponent({
   details,
   slot,
   tags,
+  testCases,
+  recentSubmissions,
+  languages,
+  userId,
 }: {
   details: ZodProblemDetails;
   tags: string[];
   slot: React.ReactNode;
+  testCases: TestCases;
+  recentSubmissions: Submission[];
+  languages: Language[];
+  userId: number;
 }) {
   const { isCollapsed, ref, collapse, expand } = useEditorCollapse();
   const {
@@ -74,16 +81,62 @@ export default function EditorComponent({
     expand: expand2,
   } = useEditorCollapse();
   const { resolvedTheme } = useTheme();
-  const defaultColorScheme =
-    resolvedTheme === "dark" ? darkDefault : lightDefault;
-  const { setTheme } = useContext(ThemeContext);
   const { themes, loading } = useThemesLoader();
-  const { onSelect } = useEditorTheme(resolvedTheme, defaultColorScheme);
+  // const { onSelect } = useEditorTheme(resolvedTheme, defaultColorScheme);
   const [runtime, setRuntime] = useState(40);
   const [input, setInput] = useState("[2, 7, 11, 15], 9");
   const [output, setOutput] = useState("[0, 1]");
   const [expected, setExpected] = useState("[0, 1]");
   const router = useRouter();
+  //   const [submissionId, setSubmissionId] = useState<number | null>(null);
+  const [recentSubs, setRecentSubs] = useState(recentSubmissions);
+  const [code, setCode] = useState<string>("");
+
+  // Submission button stuff
+  const [submissionLoading, setSubmissionLoading] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string>("");
+  const [submissionId, setSubmissionId] = useState<number | null>(null);
+  const [currentSubmissionDetails, setCurrentSubmissionDetails] = useState<Submission | null>(null);
+
+  const handleSubmitCode = async (languageId: string, problemId: number) => {
+    setSubmissionLoading(true);
+    setSubmissionError("");
+    try {
+      const data = await postSolution(code, languageId, problemId, "25c054a1-e306-4851-b229-67acffa65e56");
+      setSubmissionId(data.id);
+      toast.success("Accepted!");
+      await fetchSubmissionDetails(data.id)
+    } 
+    catch (error: unknown) {
+      toast.error("There was an error submitting your code.");
+      setSubmissionError(error instanceof Error ? error.message : "An error occurred.");
+    } finally {
+      setSubmissionLoading(false);
+    }
+  };
+
+  const fetchSubmissionDetails = (async (submissionId: string) => {
+    try {
+      console.log("Submission ID",submissionId)
+      let data: Submission = await apiGetSubmissionsStatus(submissionId)
+      while (data.status === "PENDING") {
+        console.log("Waiting for submission to complete...");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        data = await apiGetSubmissionsStatus(submissionId)
+      }
+
+      // ref2.current?.expand();
+      // expand2();
+      // const submissions = await apiGetRecentSubmissionsForProblem(details.id);
+      // setRecentSubs(submissions);
+
+      setSubmissionLoading(false);
+      console.log("Setting currentSubmissionDetails to: ", data);
+      setCurrentSubmissionDetails(data);
+    } catch (error) {
+      console.error(error);
+    }
+  });
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -182,7 +235,19 @@ export default function EditorComponent({
               <div className="flex w-full h-full items-center justify-center overflow-y-scroll">
                 {loading && <EditorSkeleton />}
                 {!loading && (
-                  <CodeEditor themes={themes} problemId={details.id} />
+                  <CodeEditor
+                    languages={languages}
+                    userId={userId}
+                    themes={themes}
+                    problemId={details.id}
+                    code={code}
+                    setCode={setCode}
+                    setSubmissionId={setSubmissionId as any}
+                    error={submissionError}
+                    submissionLoading={submissionLoading}
+                    handleSubmitCode={handleSubmitCode}
+                    submissionId={submissionId}
+                  />
                 )}
               </div>
             </ResizablePanel>
@@ -211,11 +276,12 @@ export default function EditorComponent({
             </Tooltip>
             {/* Submission Section */}
             <ResizablePanel
-              defaultSize={0}
+              defaultSize={5}
               style={{
                 overflow: "auto",
               }}
-              minSize={10}
+              minSize={0}
+              maxSize={50}
               collapsible
               onCollapse={collapse2}
               ref={ref2}
@@ -224,18 +290,32 @@ export default function EditorComponent({
             >
               <div className="mx-5 my-4 space-y-4 h-100 overflow-auto">
                 <div className="flex items-center">
-                  <div className="text-xl font-semibold text-red-600 dark:text-dark-red-800">
-                    Not Accepted
-                  </div>
-                  <div className="ml-4 text-sm text-accent-foreground">
-                    Runtime: 36 ms
+                  <div className="text-lg font-bold">
+                    {/* TODO: clean this up */}
+                    {submissionLoading && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-yellow-500">
+                          Pending
+                        </span>
+                        <Icons.loader className="mr-2 w-6 h-6 animate-spin" />
+                      </div>
+                    )}
+                    {submissionError && (
+                      <div className="text-sm text-center">{submissionError}</div>
+                    )}
+                    {!currentSubmissionDetails &&
+                      !submissionLoading &&
+                      !submissionError && <span>Submission Details</span>}
+                    {currentSubmissionDetails && !submissionLoading && (
+                      <SubmissionState submission={currentSubmissionDetails} />
+                    )}
                   </div>
                   <div className="ml-auto flex min-w-0 items-center space-x-4">
                     <Drawer>
                       <DrawerTrigger asChild>
                         <Button
                           variant="outline"
-                          className="scale-75 flex gap-2"
+                          className="scale-90 flex gap-2"
                         >
                           <Icons.eye className="w-4 h-4" />
                           <span>View Submissions</span>
@@ -245,21 +325,19 @@ export default function EditorComponent({
                         <DrawerHeader>
                           <DrawerTitle>Your Submissions</DrawerTitle>
                           <DrawerDescription>
-                            See your submissions to both this problem and this
-                            category.
+                            See your submissions to both this problem and these
+                            tags.
                           </DrawerDescription>
                         </DrawerHeader>
 
                         <div className="mx-6 flex flex-col gap-4">
                           <Tabs
                             defaultValue="problem"
-                            className={cn("w-full max-h-96")}
+                            className={cn("w-full max-h-96 overflow-y-scroll")}
                           >
                             <TabsList>
                               <TabsTrigger value="problem">Problem</TabsTrigger>
-                              <TabsTrigger value="category">
-                                Category
-                              </TabsTrigger>
+                              <TabsTrigger value="tag">Tag</TabsTrigger>
                             </TabsList>
                             <TabsContent value="problem">
                               <ul className="grid grid-flow-row grid-cols-3 gap-4">
@@ -295,49 +373,37 @@ export default function EditorComponent({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-x-2 gap-y-4">
-                  <Tabs defaultValue="case-2" className={cn("w-full")}>
+                  <Tabs
+                    defaultValue={`case-${testCases.length - 1}`}
+                    className={cn("w-full")}
+                  >
                     <TabsList>
-                      <TabsTrigger value="case-1">Case 1</TabsTrigger>
-                      <TabsTrigger value="case-2">Case 2</TabsTrigger>
+                      <>
+                        <TabsTrigger key="custom" value={"case-custom"}>
+                          Custom Test Case
+                        </TabsTrigger>
+                        {testCases.map((_, index) => (
+                          <TabsTrigger key={index} value={`case-${index}`}>
+                            Test Case {index + 1}
+                          </TabsTrigger>
+                        ))}
+                      </>
                     </TabsList>
-                    <TabsContent value="case-1">
-                      <div className="space-y-4">
-                        <InputCase />
-                        <Expected />
-                        <Output />
-                      </div>
-                      <div className="mx-auto flex items-center justify-center mt-3 ">
-                        <button className="group cursor-pointer relative shadow-2xl rounded-full p-px text-xs font-semibold leading-6 inline-block">
-                          <span className="absolute inset-0 overflow-hidden rounded-full">
-                            <span className="absolute inset-0 rounded-full bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(255,89,28,0.1)_0%,rgba(56,189,248,0)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                          </span>
-                          <div className="relative flex space-x-2 items-center z-10 rounded-full py-0.5 px-4 ring-1 ring-orange-400/10 ">
-                            <span>Help make NextJudge better!</span>
-                            <svg
-                              fill="none"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              width="16"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M10.75 8.75L14.25 12L10.75 15.25"
-                                stroke="currentColor"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="1.5"
-                              />
-                            </svg>
-                          </div>
-                          <span className="absolute -bottom-0 left-[1.125rem] h-px w-[calc(100%-2.25rem)] bg-gradient-to-r from-orange-400/0 via-orange-800/90 to-emerald-400/0 transition-opacity duration-500 group-hover:opacity-40" />
-                        </button>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="case-2">
-                      <div className="space-y-4">
-                        <InputCase />
-                        <Expected />
-                        <Output />
+                    {testCases.map((testCase, index) => (
+                      <TabsContent key={index} value={`case-${index}`}>
+                        <div className="space-y-4">
+                          <InputCase input={testCase.input} />
+                          <Expected expected={testCase.expected_output} />
+                          {/* TODO: Use actual solution output */}
+                          <Output output={testCase.expected_output} />
+                        </div>
+                      </TabsContent>
+                    ))}
+                    <TabsContent value={"case-custom"}>
+                      <div>
+                        {/* TODO: Control these inputs */}
+                        <CustomInput input={input} />
+                        <CustomInputResult result={output} />
                       </div>
                     </TabsContent>
                   </Tabs>
