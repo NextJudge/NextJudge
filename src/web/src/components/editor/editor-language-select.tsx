@@ -13,42 +13,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { defaultLanguage } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import * as React from "react";
-import { fetchLanguages as apiFetchLanguages } from "@/lib/api";
+import { Language } from "@/lib/types";
 
-export type Language = {
-  id: number;
-  name: string;
-  extension: string;
-  version: string;
-};
 
 interface EditorLanguageSelectProps {
+  languages: Language[],
   onLanguageSelect: (language: Language) => void;
 }
 
 export function EditorLanguageSelect({
+  languages,
   onLanguageSelect,
 }: EditorLanguageSelectProps) {
   const [open, setOpen] = React.useState(false);
-  const [languages, setLanguages] = React.useState<Language[]>([]);
-  const [currentLanguage, setCurrentLanguage] =
-    React.useState<Language>(defaultLanguage);
-
-  React.useEffect(() => {
-    async function fetchLanguages() {
-      try {
-        const data = await apiFetchLanguages()
-        setLanguages(data);
-      } catch (error) {
-        console.error("Failed to fetch languages", error);
-      }
-    }
-    fetchLanguages();
-  }, []);
+  const [currentLanguage, setCurrentLanguage] = React.useState<Language>();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

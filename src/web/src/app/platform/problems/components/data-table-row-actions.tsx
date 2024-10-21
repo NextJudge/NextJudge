@@ -22,9 +22,8 @@ import { deleteProblem } from "@/app/actions";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { labels } from "../data/data";
-import { problemSchema } from "../data/schema";
 import { useRouter } from "next/navigation";
-import { TProblem } from "../../admin/problems/page";
+import { Problem } from "@/lib/types";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -36,7 +35,7 @@ export function DataTableRowActions<TData>({
   const router = useRouter();
   // TODO: Migrate this to the new schema
   //   const problem = problemSchema.parse(row.original);
-  const problem = row.original as TProblem;
+  const problem = row.original as Problem;
   const onDeleteProblem = useCallback(async () => {
     const response = await deleteProblem(problem.id);
     if (response.status === "error") toast.error(response.message);

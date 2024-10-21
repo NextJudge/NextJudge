@@ -1,6 +1,5 @@
 "use client";
 import { ContestCard } from "@/app/platform/admin/contests/contest-card";
-import { SingleSubmission } from "@/app/platform/problems/(problem)/[id]/page";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
 import { cn } from "@/lib/utils";
 import { Editor } from "@monaco-editor/react";
@@ -14,6 +13,7 @@ import { useTheme } from "next-themes";
 import Image from "next/image";
 import { BentoGrid, BentoGridItem } from "../ui/bento-grid";
 import { Card } from "../ui/card";
+import { Submission } from "@/lib/types";
 
 export function WhyNextJudge() {
   return (
@@ -101,8 +101,8 @@ function main() {
 
 interface DummyCodeEditorProps {
   mock?: boolean;
-  sourceCode: string;
-  language: string;
+  sourceCode?: string;
+  language?: string;
 }
 
 export const DummyCodeEditor = ({
@@ -225,46 +225,44 @@ const ContestCardPreview = () => {
   );
 };
 
-export const mockSubmissions: SingleSubmission[] = [
+export const mockSubmissions: any[] = [
   {
-    id: 1,
-    problems: { title: "First Bad Version", users: { name: "Nyumat" } },
-    languages: { name: "TypeScript" },
-    submit_time: new Date(),
+    id: "1",
+    problem: { title: "First Bad Version"},
+    language: { name: "TypeScript" },
+    submit_time: new Date().toLocaleString(),
     status: "ACCEPTED",
   },
   {
-    id: 2,
-    problems: { title: "Cherry Pickup II", users: { name: "Nyumat" } },
-    languages: { name: "Rust" },
-    submit_time: new Date(),
+    id: "2",
+    problem: { title: "Cherry Pickup II" },
+    language: { name: "Rust" },
+    submit_time: new Date().toLocaleString(),
     status: "WRONG_ANSWER",
   },
   {
-    id: 3,
-    problems: { title: "Xen Tree", users: { name: "Nyumat" } },
-    languages: { name: "Swift" },
-    submit_time: new Date(),
+    id: "3",
+    problem: { title: "Xen Tree" } as any,
+    language: { name: "Swift" } as any,
+    submit_time: new Date().toLocaleString(),
     status: "ACCEPTED",
   },
   {
-    id: 4,
-    problems: {
+    id: "4",
+    problem: {
       title: "Intersection of Two Arrays",
-      users: { name: "Nyumat" },
     },
-    languages: { name: "Go" },
-    submit_time: new Date(),
+    language: { name: "Go" },
+    submit_time: new Date().toLocaleString(),
     status: "ACCEPTED",
   },
   {
-    id: 5,
-    problems: {
+    id: "5",
+    problem: {
       title: "Count Sorted Vowel Strings",
-      users: { name: "Nyumat" },
     },
-    languages: { name: "Python" },
-    submit_time: new Date(),
+    language: { name: "Python" },
+    submit_time: new Date().toLocaleString(),
     status: "PENDING",
   },
 ];
@@ -272,7 +270,7 @@ export const mockSubmissions: SingleSubmission[] = [
 const ThreeSubmissionsCard = () => {
   return (
     <div className="grid grid-cols-1 gap-2">
-      {mockSubmissions.map((submission: SingleSubmission) => (
+      {mockSubmissions.map((submission: Submission) => (
         <RecentSubmissionCard key={submission.id} submission={submission} />
       ))}
     </div>

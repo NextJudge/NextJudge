@@ -68,8 +68,10 @@ type Submission struct {
 	ID          uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	UserID      uuid.UUID `json:"user_id"`
 	ProblemID   int       `json:"problem_id"`
+	Problem     *Problem  `json:"problem" gorm:"foreignKey:ProblemID;references:ID"`
 	TimeElapsed float32   `json:"time_elapsed"`
 	LanguageID  uuid.UUID `json:"language_id"`
+	Language    *Language `json:"language" gorm:"foreignKey:LanguageID;references:ID"`
 	Status      Status    `json:"status"`
 	// gorm does not support optional relationships, so this must be managed manually
 	FailedTestCaseID *uuid.UUID `json:"failed_test_case_id,omitempty"`
@@ -95,4 +97,9 @@ type Language struct {
 	Name      string    `json:"name"`
 	Extension string    `json:"extension"`
 	Version   string    `json:"version"`
+}
+
+type ProblemCategory struct {
+	CategoryID uuid.UUID `json:"category_id"`
+	ProblemID  int       `json:"problem_id"`
 }

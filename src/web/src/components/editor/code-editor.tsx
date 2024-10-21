@@ -1,9 +1,8 @@
 "use client";
 
-import { defaultEditorOptions, defaultLanguage } from "@/lib/constants";
-import { getBridgeUrl } from "@/lib/utils";
+import { defaultEditorOptions } from "@/lib/constants";
 import { ThemeContext } from "@/providers/editor-theme";
-import { Language } from "@/types";
+import { Language } from "@/lib/types";
 import Editor, { Monaco } from "@monaco-editor/react";
 import { editor } from "monaco-editor";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -12,10 +11,9 @@ import { Icons } from "../icons";
 import { Button } from "../ui/button";
 import { EditorLanguageSelect } from "./editor-language-select";
 import { EditorThemeSelector } from "./editor-theme-select";
-import { fetchLanguages as apiFetchLanguages, postSolution } from "@/lib/api";
 
 const templates: Record<string, string> = {
-  "C++": `#include <bits/stdc++.h>
+  "c++": `#include <bits/stdc++.h>
 using namespace std;
 
 int main()
@@ -25,7 +23,7 @@ int main()
 
 }
 `,
-  Java: `import java.io.*;
+  java: `import java.io.*;
 import java.util.*;
 
 public class Solution {
@@ -37,7 +35,7 @@ public class Solution {
     }
 }
 `,
-  C: `#include <stdlib.h>
+  c: `#include <stdlib.h>
 #include <stdio.h>
 
 int main(int argc, char** argv) {
@@ -47,14 +45,14 @@ int main(int argc, char** argv) {
     return 0;
 }
 `,
-  Kotlin: `import java.io.*
+  kotlin: `import java.io.*
 import java.util.*
 
 fun main(args: Array<String>) {
 
 }
 `,
-  TypeScript: `"use strict";
+  typescript: `"use strict";
 const printLine = (x: string) => {
   console.log(x);
 };
@@ -88,11 +86,12 @@ const main = () => {
     process.exit();
 };
 `,
-  Python: ``,
-  PyPy: ``,
+  python: ``,
+  pypy: ``,
 };
 
 export default function CodeEditor({
+  languages,
   themes,
   problemId,
   setSubmissionId,
@@ -103,8 +102,8 @@ export default function CodeEditor({
   error,
   submissionId,
   handleSubmitCode,
-  fetchSubmissionDetails,
 }: {
+  languages: Language[],
   themes: any;
   problemId: number;
   setSubmissionId: (submissionId: number) => void;
@@ -114,33 +113,15 @@ export default function CodeEditor({
   submissionLoading: boolean;
   error: string | null;
   submissionId: number | null;
-  handleSubmitCode: (languageId: number, problemId: number) => Promise<void>;
-  fetchSubmissionDetails: () => Promise<void>;
+  handleSubmitCode: (languageId: string, problemId: number) => Promise<void>;
 }) {
   //   const [code, setCode] = useState<string>(templates["TypeScript"]);
-  //   const [submissionId, setSubmissionId] = useState<number>(0);
   const { theme } = useContext(ThemeContext);
-  const [languages, setLanguages] = useState([]);
-  const [currentLanguage, setCurrentLanguage] =
-    useState<Language>(defaultLanguage);
-  //   const [submissionLoading, setSubmissionLoading] = useState(false);
-  const [submissionResult, setSubmissionResult] = useState(null);
-  //   const [error, setError] = useState<string | null>(null);
-  //   const { handleSubmitCode, error, submissionId, submissionLoading } =
-  //     useSubmitCode(userId, code);
+  const [currentLanguage, setCurrentLanguage] = useState<Language>();
 
-  const normalizeLanguageKey = (languageName: string) => {
-    const normalizedLanguageNames: Record<string, string> = {
-      "c++": "C++",
-      java: "Java",
-      c: "C",
-      kotlin: "Kotlin",
-      typescript: "TypeScript",
-      pypy: "PyPy",
-      python: "Python",
-    };
-    return normalizedLanguageNames[languageName.toLowerCase()];
-  };
+  // Need to wait to do this - it updates parent component otherwise causing a crash
+  // setCode(templates[normalizeLanguageKey(languages[0].name)]);
+
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
@@ -167,50 +148,15 @@ export default function CodeEditor({
     );
   };
 
-  useEffect(() => {
-    async function fetchLanguages() {
-      try {
-        const data = await apiFetchLanguages()
-        setLanguages(data)
-        setCode(templates[normalizeLanguageKey(data[0].name)]);
-      } catch (error) {
-        console.error("Failed to fetch languages", error);
-      }
-    }
-    fetchLanguages();
-  }, []);
 
   const handleLanguageSelect = (language: Language) => {
     setCurrentLanguage(language);
-    if (templates[normalizeLanguageKey(language.name)]) {
-      setCode(templates[normalizeLanguageKey(language.name)]);
+    if (templates[language.name]) {
+      setCode(templates[language.name]);
     } else if (language.name === "javascript") {
       setCode(templates["TypeScript"]);
     } else {
       setCode("");
-    }
-  };
-
-  const handleSubmitCode = async () => {
-    setSubmissionLoading(true);
-    setError(null);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const selectedLanguage = languages.find(
-        (lang: Language) => lang.extension === currentLanguage?.extension
-      );
-      if (!selectedLanguage) {
-        throw new Error("Language not found");
-      }
-
-      const data = await postSolution(code, currentLanguage.id, problemId, "25c054a1-e306-4851-b229-67acffa65e56");
-      setSubmissionResult(data);
-      toast.success("Accepted!");
-    } catch (error: unknown) {
-      toast.error("There was an error submitting your code.");
-      setError(error instanceof Error ? error.message : "An error occurred.");
-    } finally {
-      setSubmissionLoading(false);
     }
   };
 
@@ -224,7 +170,7 @@ export default function CodeEditor({
 
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    await handleSubmitCode(currentLanguage.id, problemId);
+    await handleSubmitCode(currentLanguage?.id as string, problemId);
   };
 
   return (
@@ -232,8 +178,8 @@ export default function CodeEditor({
       <div className="flex justify-between">
         <div className="justify-start my-2 px-2">
           <EditorLanguageSelect
+            languages={languages}
             onLanguageSelect={handleLanguageSelect}
-            // languages={languages}
           />
         </div>
         <div className="flex justify-center my-2 px-2 gap-2">
@@ -277,15 +223,18 @@ export default function CodeEditor({
           <Icons.loader className="w-6 h-6 animate-spin text-orange-700" />
         }
         language={
-          currentLanguage?.name === "PyPy"
+          currentLanguage?.name === "pypy"
             ? "python"
-            : currentLanguage?.name === "C++"
+            : currentLanguage?.name === "c++"
             ? "cpp"
-            : currentLanguage?.name.toLowerCase()
+            : currentLanguage?.name
         }
-        defaultLanguage={currentLanguage?.name.toLowerCase()}
+        defaultLanguage={currentLanguage?.name}
         value={code}
-        theme={theme?.name}
+        // The theme might not be loaded at this point yet
+        // TODO FIX: the theme we want may not be loaded yet,
+        // And so it defaults to the light theme
+        theme={"vs-dark" }  // theme?.name
         className="min-h-screen w-[100%] overflow-y-scroll"
         options={editorOptions}
         onChange={(value) => {

@@ -95,43 +95,43 @@ export const columns: ColumnDef<any>[] = [
     },
   },
 
-  {
-    accessorKey: "submissions",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Submissions" />
-    ),
-    cell: ({ row }: { row: any }) => {
-      return (
-        <div className="flex w-[120px] items-center">
-          <span className="ml-2">
-            {row.getValue("submissions").length > 0
-              ? row.getValue("submissions").length
-              : "None"}
-          </span>
-        </div>
-      );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
+  // {
+  //   accessorKey: "submissions",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Submissions" />
+  //   ),
+  //   cell: ({ row }: { row: any }) => {
+  //     return (
+  //       <div className="flex w-[120px] items-center">
+  //         <span className="ml-2">
+  //           {row.getValue("submissions").length > 0
+  //             ? row.getValue("submissions").length
+  //             : "None"}
+  //         </span>
+  //       </div>
+  //     );
+  //   },
+  //   filterFn: (row, id, value) => {
+  //     return value.includes(row.getValue(id));
+  //   },
+  // },
 
-  {
-    accessorKey: "users",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Author" />
-    ),
-    cell: ({ row }: { row: any }) => {
-      return (
-        <div className="flex w-[120px] items-center">
-          <span className="ml-2">{row.getValue("users").name}</span>
-        </div>
-      );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
+  // {
+  //   accessorKey: "users",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Author" />
+  //   ),
+  //   cell: ({ row }: { row: any }) => {
+  //     return (
+  //       <div className="flex w-[120px] items-center">
+  //         <span className="ml-2">{row.getValue("users").name}</span>
+  //       </div>
+  //     );
+  //   },
+  //   filterFn: (row, id, value) => {
+  //     return value.includes(row.getValue(id));
+  //   },
+  // },
 
   {
     accessorKey: "upload_date",

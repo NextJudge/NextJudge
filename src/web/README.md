@@ -17,7 +17,15 @@ The frontend web application for the [NextJudge][site-url] platform.
 
 </div>
 
-## Getting Started
+## Build and run
+
+```sh
+npm run build
+npm start
+```
+
+
+## Development
 
 1. Copy `.env.example` to `.env.local` and fill in the necessary environment variables.
 
@@ -49,4 +57,4 @@ pnpm dev
 bun dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:8080](http://localhost:8080) with your browser to see the result.

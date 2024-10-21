@@ -23,17 +23,6 @@ export type Theme = {
   fetch: string;
 };
 
-const defaultThemes: Theme[] = [
-  {
-    name: "brilliance-black",
-    fetch: "/themes/brilliance-black.json",
-  },
-  {
-    name: "github-light",
-    fetch: "/themes/github-light.json",
-  },
-];
-
 export function EditorThemeSelector({ themes }: { themes: Theme[] }) {
   const { theme: currentTheme, setTheme } = React.useContext(ThemeContext);
   const [open, setOpen] = React.useState(false);

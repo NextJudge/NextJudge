@@ -3,9 +3,9 @@ import { mockSubmissions } from "@/components/landing/bento";
 import PlatformNavbar from "@/components/nav/platform-nav";
 import UserAvatar from "@/components/nav/user-avatar";
 import { ContestCard } from "./admin/contests/contest-card";
-import { SingleSubmission } from "./problems/(problem)/[id]/page";
 import { RecentSubmissionCard } from "./problems/components/recent-submissions";
 import SubmissionDrawer from "./problems/components/submission-drawer";
+import { Submission } from "@/lib/types";
 
 export default function PlatformHome() {
   const recentContests = [
@@ -100,7 +100,7 @@ export default function PlatformHome() {
 
           {/* Submission Cards */}
           <div className="grid grid-cols-1 gap-4">
-            {mockSubmissions.map((submission: SingleSubmission) => (
+            {mockSubmissions.map((submission: Submission) => (
               <RecentSubmissionCard
                 key={submission.id}
                 submission={submission}

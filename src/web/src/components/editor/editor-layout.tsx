@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import {
   TestCases,
-  TRecentSubmission,
   ZodProblemDetails,
 } from "@/app/platform/problems/(problem)/[id]/page";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
@@ -29,14 +28,12 @@ import { useEditorCollapse } from "@/hooks/useEditorCollapse";
 import { useEditorTheme } from "@/hooks/useEditorTheme";
 import { useThemesLoader } from "@/hooks/useThemeLoader";
 import { cn } from "@/lib/utils";
-import { ThemeContext } from "@/providers/editor-theme";
-import { Language, Theme } from "@/types";
+import { Theme } from "@/types";
 import "katex/dist/katex.min.css";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 
-import { useSubmitCode } from "@/hooks/useSubmitCode";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Icons } from "../icons";
 import {
   CustomInput,
@@ -55,19 +52,9 @@ import {
 } from "../ui/tooltip";
 import CodeEditor from "./code-editor";
 import { SubmissionState } from "./editor-submission-state";
-
-const problemStatement = `
-Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
-`;
-
-const darkDefault: Theme = {
-  name: "brilliance-black",
-  fetch: "/themes/Brilliance Black.json",
-};
-const lightDefault: Theme = {
-  name: "github-light",
-  fetch: "/themes/GitHub Light.json".replace(" ", "%20"),
-};
+import { apiGetSubmissionsStatus, postSolution } from "@/lib/api";
+import { Language, Submission } from "@/lib/types";
+import { toast } from "sonner";
 
 export default function EditorComponent({
   details,
@@ -82,7 +69,7 @@ export default function EditorComponent({
   tags: string[];
   slot: React.ReactNode;
   testCases: TestCases;
-  recentSubmissions: TRecentSubmission;
+  recentSubmissions: Submission[];
   languages: Language[];
   userId: number;
 }) {
@@ -94,11 +81,8 @@ export default function EditorComponent({
     expand: expand2,
   } = useEditorCollapse();
   const { resolvedTheme } = useTheme();
-  const defaultColorScheme =
-    resolvedTheme === "dark" ? darkDefault : lightDefault;
-  const { setTheme } = useContext(ThemeContext);
   const { themes, loading } = useThemesLoader();
-  const { onSelect } = useEditorTheme(resolvedTheme, defaultColorScheme);
+  // const { onSelect } = useEditorTheme(resolvedTheme, defaultColorScheme);
   const [runtime, setRuntime] = useState(40);
   const [input, setInput] = useState("[2, 7, 11, 15], 9");
   const [output, setOutput] = useState("[0, 1]");
@@ -108,40 +92,51 @@ export default function EditorComponent({
   const [recentSubs, setRecentSubs] = useState(recentSubmissions);
   const [code, setCode] = useState<string>("");
 
-  const {
-    handleSubmitCode,
-    error,
-    submissionId,
-    submissionLoading,
-    setSubmissionId,
-    currentSubmissionDetails,
-    setCurrentSubmissionDetails,
-    fetchSubmissionDetails,
-  } = useSubmitCode(userId, code);
+  // Submission button stuff
+  const [submissionLoading, setSubmissionLoading] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string>("");
+  const [submissionId, setSubmissionId] = useState<number | null>(null);
+  const [currentSubmissionDetails, setCurrentSubmissionDetails] = useState<Submission | null>(null);
 
-  async function getRecentSubmissionsForProblem() {
+  const handleSubmitCode = async (languageId: string, problemId: number) => {
+    setSubmissionLoading(true);
+    setSubmissionError("");
     try {
-      const data = await fetch(`/api/submissions?problemId=${details.id}`);
-      //TODO: Address this
-      //   revalidatePath(`/api/submissions?problemId=${details.id}`);
-      const submissions = await data.json();
-      console.log({ submissions });
-      return submissions;
+      const data = await postSolution(code, languageId, problemId, "25c054a1-e306-4851-b229-67acffa65e56");
+      setSubmissionId(data.id);
+      toast.success("Accepted!");
+      await fetchSubmissionDetails(data.id)
+    } 
+    catch (error: unknown) {
+      toast.error("There was an error submitting your code.");
+      setSubmissionError(error instanceof Error ? error.message : "An error occurred.");
+    } finally {
+      setSubmissionLoading(false);
+    }
+  };
+
+  const fetchSubmissionDetails = (async (submissionId: string) => {
+    try {
+      console.log("Submission ID",submissionId)
+      let data: Submission = await apiGetSubmissionsStatus(submissionId)
+      while (data.status === "PENDING") {
+        console.log("Waiting for submission to complete...");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        data = await apiGetSubmissionsStatus(submissionId)
+      }
+
+      // ref2.current?.expand();
+      // expand2();
+      // const submissions = await apiGetRecentSubmissionsForProblem(details.id);
+      // setRecentSubs(submissions);
+
+      setSubmissionLoading(false);
+      console.log("Setting currentSubmissionDetails to: ", data);
+      setCurrentSubmissionDetails(data);
     } catch (error) {
       console.error(error);
-      throw error;
     }
-  }
-
-  useEffect(() => {
-    (async () => {
-      await fetchSubmissionDetails();
-      ref2.current?.expand();
-      expand2();
-      const submissions = await getRecentSubmissionsForProblem();
-      setRecentSubs(submissions);
-    })();
-  }, [submissionId]);
+  });
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -241,17 +236,17 @@ export default function EditorComponent({
                 {loading && <EditorSkeleton />}
                 {!loading && (
                   <CodeEditor
+                    languages={languages}
                     userId={userId}
                     themes={themes}
                     problemId={details.id}
                     code={code}
                     setCode={setCode}
                     setSubmissionId={setSubmissionId as any}
-                    error={error}
+                    error={submissionError}
                     submissionLoading={submissionLoading}
                     handleSubmitCode={handleSubmitCode}
                     submissionId={submissionId}
-                    fetchSubmissionDetails={fetchSubmissionDetails}
                   />
                 )}
               </div>
@@ -305,12 +300,12 @@ export default function EditorComponent({
                         <Icons.loader className="mr-2 w-6 h-6 animate-spin" />
                       </div>
                     )}
-                    {error && (
-                      <div className="text-sm text-center">{error}</div>
+                    {submissionError && (
+                      <div className="text-sm text-center">{submissionError}</div>
                     )}
                     {!currentSubmissionDetails &&
                       !submissionLoading &&
-                      !error && <span>Submission Details</span>}
+                      !submissionError && <span>Submission Details</span>}
                     {currentSubmissionDetails && !submissionLoading && (
                       <SubmissionState submission={currentSubmissionDetails} />
                     )}

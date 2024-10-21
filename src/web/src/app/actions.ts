@@ -10,7 +10,7 @@ import { ZodError } from "zod";
 import { auth, signIn } from "./auth";
 import { newsletterFormSchema } from "./validation";
 
-import { fetchProblems as apiFetchProblems } from "@/lib/api";
+import { apiGetProblems as apiFetchProblems } from "@/lib/api";
 
 export interface ReturnType {
   status: "error" | "success";
@@ -107,7 +107,7 @@ export async function fetchProblems(page?: number, limit?: number) {
   }
   const problems = await prisma.problems.findMany({
     take: limit,
-    skip: (page - 1) * limit,
+    // skip: (page - 1) * limit,
     include: {
       users: true,
     },
@@ -182,7 +182,7 @@ interface CreateProblemData {
   timeout: number;
   difficulty: Difficulty;
   upload_date: Date;
-  categories?: number[];
+  categories?: string[];
   input?: string;
   output?: string;
   is_public?: boolean;
@@ -231,25 +231,25 @@ export async function createProblem(data: CreateProblemData) {
       },
     });
 
-    if (categories) {
-      await prisma.problem_categories.createMany({
-        data: categories.map((categoryId) => ({
-          category_id: categoryId,
-          problem_id: problem.id,
-        })),
-      });
-    }
+    // if (categories) {
+    //   await prisma.problem_categories.createMany({
+    //     data: categories.map((categoryId) => ({
+    //       category_id: categoryId,
+    //       problem_id: problem.id,
+    //     })),
+    //   });
+    // }
 
-    if (input && output) {
-      await prisma.test_cases.create({
-        data: {
-          input,
-          expected_output: output,
-          is_public: is_public ?? true,
-          problem_id: problem.id,
-        },
-      });
-    }
+    // if (input && output) {
+    //   await prisma.test_cases.create({
+    //     data: {
+    //       input,
+    //       expected_output: output,
+    // //       is_public: true,
+    // //       problem_id: problem.id,
+    // //     },
+    // //   });
+    // }
 
     revalidatePath("/platform/admin/problems");
 
@@ -274,14 +274,14 @@ interface TestCaseData {
 
 export async function createTestCase(data: TestCaseData) {
   try {
-    await prisma.test_cases.create({
-      data: {
-        is_public: data.is_public ?? true,
-        input: data.input,
-        expected_output: data.output,
-        problem_id: data.problem_id,
-      },
-    });
+    // await prisma.test_cases.create({
+    //   data: {
+    //     // is_public: data.is_public ?? true,
+    //     input: data.input,
+    //     expected_output: data.output,
+    //     problem_id: data.problem_id,
+    //   },
+    // });
   } catch (error) {
     return {
       status: "error",
@@ -292,25 +292,6 @@ export async function createTestCase(data: TestCaseData) {
     status: "success",
     message: "Test case created",
   };
-}
-
-export async function fetchCategories() {
-  try {
-    const session = await auth();
-    if (!session || !session.user || !session.user.id) {
-      return {
-        status: "error",
-        message: "Invalid session",
-      };
-    }
-    const categories = await prisma.categories.findMany();
-    return categories;
-  } catch (error) {
-    return {
-      status: "error",
-      message: "Something went wrong",
-    };
-  }
 }
 
 export async function deleteProblem(id: number) {

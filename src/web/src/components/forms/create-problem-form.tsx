@@ -1,7 +1,6 @@
 "use client";
 
 import { createProblem, Difficulty } from "@/app/actions";
-import { Categories, Category } from "@/app/platform/problems/data/schema";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,6 +37,7 @@ import { z } from "zod";
 import Editor from "../editor/rich-text/editor";
 import { ScrollArea } from "../ui/scroll-area";
 import { CreateProblemTestCaseForm } from "./test-case-form";
+import { Category } from "@/lib/types";
 
 const problemFormSchema = z.object({
   title: z
@@ -73,9 +73,9 @@ type ProblemFormValues = z.infer<typeof problemFormSchema>;
 type Checked = DropdownMenuCheckboxItemProps["checked"];
 
 // TODO: Make the multi-select more UI/UX friendly
-export function CreateProblemForm({ categories }: { categories: Categories }) {
+export function CreateProblemForm({ categories }: { categories: Category[] }) {
   const [selectedCategories, setSelectedCategories] = useReducer(
-    (state: Categories, action: Categories) => action,
+    (state: Category[], action: Category[]) => action,
     []
   );
 

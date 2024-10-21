@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CircleDot } from "lucide-react";
 import moment from "moment";
-import { SingleSubmission } from "../(problem)/[id]/page";
 import { DialogSubmission } from "./dialog-submission";
+import { Submission, SubmissionStatus } from "@/lib/types";
 
 const languageColors: { [key: string]: string } = {
   python: "text-python fill-python",
@@ -25,15 +25,6 @@ const languageColors: { [key: string]: string } = {
 const getColorClass = (language: string) => {
   return languageColors[language.toLowerCase()];
 };
-
-type SubmissionStatus =
-  | "ACCEPTED"
-  | "WRONG_ANSWER"
-  | "TIME_LIMIT_EXCEEDED"
-  | "MEMORY_LIMIT_EXCEEDED"
-  | "RUNTIME_ERROR"
-  | "COMPILE_TIME_ERROR"
-  | "PENDING";
 
 function SubmissionStatusBadge({ status }: { status: SubmissionStatus }) {
   const variantStyles = {
@@ -73,7 +64,7 @@ function SubmissionStatusBadge({ status }: { status: SubmissionStatus }) {
 export function RecentSubmissionCard({
   submission,
 }: {
-  submission: SingleSubmission;
+  submission: Submission;
 }) {
   const submissionStatus = submission.status as SubmissionStatus;
   return (
@@ -83,7 +74,7 @@ export function RecentSubmissionCard({
           <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200 ease-in-out">
             <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
               <div className="space-y-1">
-                <CardTitle>{submission.problems.title}</CardTitle>
+                <CardTitle>{submission.problem.title}</CardTitle>
               </div>
               <div className="flex items-center justify-end space-x-1">
                 <SubmissionStatusBadge status={submissionStatus} />
@@ -95,11 +86,11 @@ export function RecentSubmissionCard({
                   <CircleDot
                     className={cn(
                       "mr-2 size-2",
-                      submission.languages.name &&
-                        getColorClass(submission.languages.name)
+                      submission.language.name &&
+                        getColorClass(submission.language.name)
                     )}
                   />
-                  {submission.languages.name}
+                  {submission.language.name}
                 </div>
                 <div>{moment(submission.submit_time).fromNow()}</div>
               </div>
@@ -114,7 +105,7 @@ export function RecentSubmissionCard({
       >
         <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
           <div className="space-y-1">
-            <CardTitle>{submission.problems.title}</CardTitle>
+            <CardTitle>{submission.problem.title}</CardTitle>
           </div>
           <div className="flex items-center justify-end space-x-1">
             <SubmissionStatusBadge status={submissionStatus} />
@@ -126,11 +117,11 @@ export function RecentSubmissionCard({
               <CircleDot
                 className={cn(
                   "mr-2 size-2",
-                  submission.languages.name &&
-                    getColorClass(submission.languages.name)
+                  submission.language.name &&
+                    getColorClass(submission.language.name)
                 )}
               />
-              {submission.languages.name}
+              {submission.language.name}
             </div>
             <div>{moment(submission.submit_time).fromNow()}</div>
           </div>

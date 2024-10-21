@@ -1,9 +1,8 @@
-import { auth, prisma } from "@/app/auth";
 import EditorComponent from "@/components/editor/editor-layout";
 import EditorNavbar from "@/components/editor/editor-nav";
 import MarkdownRenderer from "@/components/markdown-renderer";
 import UserAvatar from "@/components/nav/user-avatar";
-import { fetchProblemID } from "@/lib/api";
+import { apiGetLanguages, apiGetProblemCategories, apiGetRecentSubmissionsForProblem, apiGetTestCasesForProblem, fetchProblemID } from "@/lib/api";
 import { EditorThemeProvider } from "@/providers/editor-theme";
 import { z } from "zod";
 
@@ -49,47 +48,6 @@ const problemDetailsSchema = z.object({
 
 export type ZodProblemDetails = z.infer<typeof problemDetailsSchema>;
 
-async function getDetails(id: number): Promise<ProblemDetails> {
-  return fetchProblemID(id);
-
-  const details = await prisma.problems.findUnique({
-    where: {
-      id: id,
-    },
-    include: {
-      users: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
-
-  if (!details) {
-    throw new Error("Problem not found");
-  }
-
-  const transformedDetails = {
-    ...details,
-  };
-  return problemDetailsSchema.parse(transformedDetails);
-}
-
-async function getProblemTags(id: number): Promise<string[]> {
-  const categories = await prisma.problem_categories.findMany({
-    where: {
-      problem_id: id,
-    },
-    select: {
-      categories: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
-  return categories.map((c) => c.categories.name);
-}
 
 const testCasesSchema = z.array(
   z.object({
@@ -102,104 +60,18 @@ const testCasesSchema = z.array(
 
 export type TestCases = z.infer<typeof testCasesSchema>;
 
-async function getTestCasesForProblem(id: number): Promise<TestCases> {
-  const testCases = await prisma.test_cases.findMany({
-    where: {
-      problem_id: id,
-    },
-  });
-  return testCases;
-}
-
-const RecentSubmissionSchema = z.array(
-  z.object({
-    id: z.number(),
-    status: z.enum([
-      "PENDING",
-      "ACCEPTED",
-      "WRONG_ANSWER",
-      "TIME_LIMIT_EXCEEDED",
-      "MEMORY_LIMIT_EXCEEDED",
-      "RUNTIME_ERROR",
-      "COMPILE_TIME_ERROR",
-    ]),
-    submit_time: z.date(),
-    languages: z.object({
-      name: z.string(),
-    }),
-    problems: z.object({
-      title: z.string(),
-      users: z.object({
-        name: z.string(),
-      }),
-    }),
-  })
-);
-
-export type TRecentSubmission = z.infer<typeof RecentSubmissionSchema>;
-
-export type SingleSubmission = z.infer<
-  typeof RecentSubmissionSchema
-> extends Array<infer T>
-  ? T
-  : never;
-
-async function getRecentSubmissionsForProblem(
-  id: number
-): Promise<TRecentSubmission> {
-  const session = await auth();
-  if (!session || !session.user) {
-    throw new Error("Unauthorized");
-  }
-  const submissions = await prisma.submissions.findMany({
-    where: {
-      problem_id: id,
-      user_id: parseInt(session.user.id as string),
-    },
-    select: {
-      id: true,
-      problems: {
-        select: {
-          title: true,
-          users: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      },
-      status: true,
-      submit_time: true,
-      languages: {
-        select: {
-          name: true,
-        },
-      },
-    },
-    orderBy: {
-      submit_time: "desc",
-    },
-    take: 10,
-  });
-  return submissions;
-}
-
-async function getLanguages() {
-  const languages = await prisma.languages.findMany();
-  return languages;
-}
 
 export default async function Editor({ params }: { params: { id: string } }) {
   const { id } = params;
-  const session = await auth();
-  if (!session || !session.user) {
-    throw new Error("Unauthorized");
-  }
-  const details = await getDetails(parseInt(id));
-  const tags = await getProblemTags(parseInt(id));
-  const testCases = await getTestCasesForProblem(parseInt(id));
-  const recentSubmissions = await getRecentSubmissionsForProblem(parseInt(id));
-  const languages = await getLanguages();
+  // const session = await auth();
+  // if (!session || !session.user) {
+  //   throw new Error("Unauthorized");
+  // }
+  const details = await fetchProblemID(parseInt(id));
+  const tags = await apiGetProblemCategories(parseInt(id));
+  const testCases = await apiGetTestCasesForProblem(parseInt(id));
+  const recentSubmissions = await apiGetRecentSubmissionsForProblem(parseInt(id),"25c054a1-e306-4851-b229-67acffa65e56");
+  const languages = await apiGetLanguages();
   return (
     <>
       <EditorThemeProvider>
@@ -207,7 +79,7 @@ export default async function Editor({ params }: { params: { id: string } }) {
           <UserAvatar />
         </EditorNavbar>
         <EditorComponent
-          userId={parseInt(session.user.id as string)}
+          userId={123123} //{parseInt(session.user.id as string)}
           details={details}
           testCases={testCases}
           recentSubmissions={recentSubmissions}

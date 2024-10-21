@@ -18,6 +18,7 @@ import (
 
 func addProblemRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Get("/v1/categories"), getCategories)
+	mux.HandleFunc(pat.Get("/v1/categories/:problem_id"), getProblemCategories)
 	mux.HandleFunc(pat.Post("/v1/problems"), postProblem)
 	mux.HandleFunc(pat.Get("/v1/problems"), getProblems)
 	mux.HandleFunc(pat.Get("/v1/problems/:problem_id"), getProblem)
@@ -36,6 +37,34 @@ type PostProblemRequestBody struct {
 
 func getCategories(w http.ResponseWriter, r *http.Request) {
 	categories, err := db.GetCategories()
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving categories")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving categories"}`)
+		return
+	}
+
+	respJSON, err := json.Marshal(categories)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
+
+func getProblemCategories(w http.ResponseWriter, r *http.Request) {
+	problemIdParam := pat.Param(r, "problem_id")
+	problemId, err := strconv.Atoi(problemIdParam)
+	if err != nil {
+		logrus.Warn("bad uuid")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		return
+	}
+
+	categories, err := db.GetProblemCategories(problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving categories")
 		w.WriteHeader(http.StatusInternalServerError)

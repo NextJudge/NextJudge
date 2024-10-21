@@ -1,106 +1,20 @@
-import { auth } from "@/app/auth";
 import PlatformNavbar from "@/components/nav/platform-nav";
 import UserAvatar from "@/components/nav/user-avatar";
-import prisma from "@db/prismaClient";
-import { promises as fs } from "fs";
 import { Metadata } from "next";
-import path from "path";
-import { z } from "zod";
-import { SingleSubmission } from "./(problem)/[id]/page";
 import { columns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { RecentSubmissionCard } from "./components/recent-submissions";
-import { problemSchema } from "./data/schema";
+import { apiGetProblems, apiGetRecentSubmissions } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "NextJudge - Problems",
   description: "Our curated list of problems for you to solve.",
 };
 
-async function getProblems() {
-  const data = await fs.readFile(
-    path.join(process.cwd(), "src/app/platform/problems/data/problems.json")
-  );
-  const mProblems = JSON.parse(data.toString());
-  return z.array(problemSchema).parse(mProblems);
-}
-
-async function getProblems2() {
-  const problems = await prisma.problems.findMany({
-    select: {
-      id: true,
-      title: true,
-      difficulty: true,
-      problem_categories: {
-        select: {
-          categories: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      },
-      upload_date: true,
-      submissions: {
-        select: {
-          id: true,
-          source_code: true,
-        },
-      },
-      users: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
-  return problems;
-}
-
-async function getRecentSubmissions(): Promise<SingleSubmission[]> {
-  const authObj = await auth();
-  const userId = parseInt(authObj?.user?.id as string);
-  if (!userId || isNaN(userId)) {
-    return [];
-  }
-  const submissions = await prisma.submissions.findMany({
-    where: {
-      user_id: userId,
-    },
-    take: 8,
-    orderBy: {
-      id: "desc",
-    },
-    include: {
-      problems: {
-        select: {
-          title: true,
-          users: {
-            select: {
-              name: true,
-            },
-          },
-          submissions: {
-            select: {
-              source_code: true,
-            },
-          },
-        },
-      },
-      languages: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
-
-  return submissions;
-}
-
 export default async function ProblemsPage() {
-  const problems = await getProblems2();
-  const recentSubmissions = await getRecentSubmissions();
+  // TODO: fix this - this should run adhoc
+  const problems = await apiGetProblems();
+  const recentSubmissions = await apiGetRecentSubmissions("25c054a1-e306-4851-b229-67acffa65e56");
   return (
     <>
       <PlatformNavbar>

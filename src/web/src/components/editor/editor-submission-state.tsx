@@ -1,9 +1,9 @@
-import { CurrentSubmissionDetails, statusMap } from "@/hooks/useSubmitCode";
+import { statusMap, Submission } from "@/lib/types";
 import { cn } from "@/lib/utils";
 export function SubmissionState({
   submission,
 }: {
-  submission: CurrentSubmissionDetails;
+  submission: Submission;
 }) {
   const parsedStatus = statusMap[submission.status];
   return (

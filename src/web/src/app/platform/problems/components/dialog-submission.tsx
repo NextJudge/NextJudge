@@ -12,15 +12,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Submission } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { SingleSubmission } from "../(problem)/[id]/page";
 
 export function DialogSubmission({
   submission,
   children,
 }: {
-  submission: any;
+  submission: Submission;
   children?: React.ReactNode;
 }) {
   if (!submission) return null;
@@ -38,10 +38,10 @@ export function DialogSubmission({
           <DialogContent className="min-w-2xl max-w-3xl">
             <DialogHeader>
               <DialogTitle>
-                Submission to {submission.problems.title}
+                Submission to {submission.problem.title}
               </DialogTitle>
               <DialogDescription>
-                Submitted by {submission.problems.users.name} on{" "}
+                Submitted by {submission.problem.user_id} on{" "}
                 {format(submission.submit_time, "PPP 'at' p")}
               </DialogDescription>
             </DialogHeader>
@@ -61,7 +61,7 @@ export function DialogSubmission({
                 {submission.status.toUpperCase()}
               </h1>
             </div>
-            <DummyCodeEditor sourceCode={submission.source_code as any} language={submission.languages.name} />
+            <DummyCodeEditor sourceCode={submission.source_code as any} language={submission.language.name} />
             <DialogFooter className="sm:justify-start">
               <DialogClose asChild>
                 <Button type="button" variant="secondary">

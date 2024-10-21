@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function getBridgeUrl() {
   console.log(process.env.NODE_ENV);
-  return process.env.NODE_ENV === "development"
-    ? "http://localhost:3000"
-    : "https://nextjudge.org";
+  return process.env.NODE_ENV === "production"
+    ? "https://nextjudge.org"
+    : "http://localhost:5000";
 }

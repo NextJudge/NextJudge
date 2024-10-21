@@ -1,19 +1,12 @@
-import { fetchCategories } from "@/app/actions";
-import { Categories } from "@/app/platform/problems/data/schema";
 import { CreateProblemForm } from "@/components/forms/create-problem-form";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/toaster";
+import { apiGetCategories } from "@/lib/api";
+import { Category } from "@/lib/types";
 import "katex/dist/katex.min.css";
 
-async function getCategories(): Promise<Categories> {
-  const categories = await fetchCategories();
-  if (categories === null || categories === undefined) {
-    return [];
-  }
-  return categories as Categories;
-}
 export default async function CreateProblemPage() {
-  const categories: Categories = await getCategories();
+  const categories: Category[] = await apiGetCategories();
   return (
     <>
       <div className="space-y-6">

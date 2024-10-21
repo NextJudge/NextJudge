@@ -22,18 +22,6 @@ export interface TestCase {
   expectedOutput: string;
 }
 
-export interface Submission {
-  id: number;
-  userId: number;
-  problemId: number;
-  timeElapsed: number;
-  languageId: number;
-  status: string;
-  failedTestCaseId?: number;
-  submitTime: Date;
-  sourceCode: string;
-}
-
 export interface Competition {
   id: number;
   userId: number;
@@ -46,13 +34,6 @@ export interface Competition {
 }
 
 export type Contest = Competition;
-
-export interface Language {
-  id: number;
-  name: string;
-  extension: string;
-  version: string;
-}
 
 export type Theme = {
   name: string;

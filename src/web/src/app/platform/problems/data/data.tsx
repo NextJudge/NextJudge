@@ -1,3 +1,4 @@
+import { Submission } from "@/lib/types";
 import {
   ArrowDownIcon,
   ArrowRightIcon,
@@ -8,7 +9,6 @@ import {
   QuestionMarkCircledIcon,
   StopwatchIcon,
 } from "@radix-ui/react-icons";
-import { Problem, RecentSubmission } from "./schema";
 
 export const labels = [
   {
@@ -71,18 +71,6 @@ export const priorities = [
   },
 ];
 
-export const problems: Problem[] = [
-  {
-    id: 1,
-    title: "Array Manipulation",
-    prompt: "Perform a series of operations on an array.",
-    timeout: 1000,
-    user_id: 1,
-    upload_date: new Date(),
-    author: "HackerRank",
-  },
-];
-
 export const problemsTwo: any[] = [
   {
     id: 1,
@@ -121,71 +109,85 @@ const getDate = () => {
   return date;
 };
 
-export const recentSubmissions: RecentSubmission[] = [
+
+// Dummy data
+export const recentSubmissions: Submission[] = [
   {
     id: "submission-1",
-    time: new Date(),
     problem: problemsTwo[0],
-    language: "JavaScript",
-    status: "accepted",
+    language: { name:"javascript" } as any,
+    status: "ACCEPTED",
+
+    source_code:"1",
+    stdout:"",
+    stderr:"",
+    submit_time: getDate().toLocaleTimeString(),
+    language_id: "1",
+    problem_id:1,
+    time_elapsed:1,
+    user_id:"1",
+
   },
   {
     id: "submission-2",
-    time: getDate(),
     problem: problemsTwo[0],
-    language: "Python",
-    status: "rejected",
+    language: { name: "Python" } as any,
+    status: "MEMORY_LIMIT_EXCEEDED",
+
+    source_code:"1",
+    stdout:"",
+    stderr:"",
+    submit_time: getDate().toLocaleTimeString(),
+    language_id: "1",
+    problem_id:1,
+    time_elapsed:1,
+    user_id:"1",
+
   },
   {
     id: "submission-3",
-    time: getDate(),
     problem: problemsTwo[0],
-    language: "C++",
-    status: "pending",
+    language: {name:"C++"} as any,
+    status: "PENDING",
+
+    source_code:"1",
+    stdout:"",
+    stderr:"",
+    submit_time: getDate().toLocaleTimeString(),
+    language_id: "1",
+    problem_id:1,
+    time_elapsed:1,
+    user_id:"1"
   },
   {
     id: "submission-4",
-    time: getDate(),
     problem: problemsTwo[0],
-    language: "Java",
-    status: "accepted",
+    language: { name: "Java"} as any,
+    status: "ACCEPTED",
+    
+    source_code:"1",
+    stdout:"",
+    stderr:"",
+    submit_time: getDate().toLocaleTimeString(),
+    language_id: "1",
+    problem_id:1,
+    time_elapsed:1,
+    user_id:"1"
   },
   {
     id: "submission-5",
-    time: getDate(),
     problem: problemsTwo[0],
-    language: "C",
-    status: "rejected",
+    language: {name:"C"} as any,
+    status: "COMPILE_TIME_ERROR",
+
+    source_code:"1",
+    stdout:"",
+    stderr:"",
+    submit_time: getDate().toLocaleTimeString(),
+    language_id: "1",
+    problem_id:1,
+    time_elapsed:1,
+    user_id:"1"
   },
 ];
 
-export const serverRenderRecents: RecentSubmission[] = [
-  {
-    id: "submission-1",
-    time: "2024-03-02T00:00:00Z" as unknown as Date,
-    problem: problems[3],
-    language: "Go",
-    status: "rejected",
-  },
-  {
-    id: "submission-4",
-    time: "2024-03-12T00:00:00Z" as unknown as Date,
-    problem: problems[2],
-    language: "Swift",
-    status: "accepted",
-  },
-  {
-    id: "submission-5",
-    time: "2024-02-22T00:00:00Z" as unknown as Date,
-    problem: problems[4],
-    language: "JavaScript",
-    status: "pending",
-  },
-  {
-    id: "submission-6",
-    time: "2024-03-17T00:00:00Z" as unknown as Date,
-    problem: problems[1],
-    language: "Rust",
-    status: "accepted",
-  },
-];
