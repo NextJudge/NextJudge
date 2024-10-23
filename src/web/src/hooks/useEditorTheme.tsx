@@ -2,6 +2,7 @@ import { Theme, ThemeContext } from "@/providers/editor-theme";
 import { loader } from "@monaco-editor/react";
 import { useCallback, useContext, useLayoutEffect } from "react";
 
+// This is currently not used anywhere in the codebase
 export const useEditorTheme = (
   defaultTheme: string | undefined,
   defaultColorScheme: Theme
@@ -14,20 +15,20 @@ export const useEditorTheme = (
     [theme]
   );
 
-  // useLayoutEffect(() => {
-  //   loader.init().then((monaco) => {
-  //     monaco.editor.setTheme(defaultColorScheme.name!);
-  //     onSelect(defaultColorScheme);
-  //   });
-  // }, [defaultTheme]);
+  useLayoutEffect(() => {
+    loader.init().then((monaco) => {
+      monaco.editor.setTheme(defaultColorScheme.name!);
+      onSelect(defaultColorScheme);
+    });
+  }, [defaultTheme]);
 
-  // useLayoutEffect(() => {
-  //   loader.init().then((monaco) => {
-  //     console.log("THEME", theme)
-  //     if (theme) monaco.editor.setTheme(theme.name);
-  //     onSelect(theme || defaultColorScheme);
-  //   });
-  // }, [theme]);
+  useLayoutEffect(() => {
+    loader.init().then((monaco) => {
+      console.log("THEME", theme)
+      if (theme) monaco.editor.setTheme(theme.name);
+      onSelect(theme || defaultColorScheme);
+    });
+  }, [theme]);
 
   return { theme, onSelect };
 };

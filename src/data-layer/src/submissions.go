@@ -217,9 +217,9 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 
 	if reqData.FailedTestCaseID == nil && (reqData.Stderr != "" || reqData.Stdout != "") {
 		logrus.Warn("storing output for non failed test cases is not supported")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"storing output for non failed test cases is not supported"}`)
-		return
+		// w.WriteHeader(http.StatusBadRequest)
+		// fmt.Fprint(w, `{"code":"400", "message":"storing output for non failed test cases is not supported"}`)
+		// return
 	}
 
 	if reqData.FailedTestCaseID != nil {

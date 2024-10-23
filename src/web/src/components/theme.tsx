@@ -26,6 +26,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
 }
 
 export function ModeToggle() {
+  // TODO: make this use our custom theme provider maybe?
   const { setTheme } = useTheme();
 
   return (

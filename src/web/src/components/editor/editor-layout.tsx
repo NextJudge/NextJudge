@@ -25,7 +25,6 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useEditorCollapse } from "@/hooks/useEditorCollapse";
-import { useEditorTheme } from "@/hooks/useEditorTheme";
 import { useThemesLoader } from "@/hooks/useThemeLoader";
 import { cn } from "@/lib/utils";
 import { Theme } from "@/types";

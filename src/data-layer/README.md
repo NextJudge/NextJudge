@@ -16,7 +16,7 @@ Response body:
         "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
         "name": "joe",
         "is_admin": true,
-        "email": "joebiden@usa.gov",
+        "email": "joe@example.com",
         "join_date": "2024-02-14T06:26:55.12794Z"
     },
 ]
@@ -31,7 +31,7 @@ Request Body:
     "name": "joe",
     "password_hash": "asdfjoisdafjasdk",
     "image": "linktoimage.com/joe.png",
-    "email": "joebiden@usa.gov",
+    "email": "joe@example.com",
     "is_admin": true,
 }
 ```
@@ -58,7 +58,7 @@ Response Body:
     "image": "linktoimage.com/joe.png",
     "name": "joe",
     "is_admin": true,
-    "email": "joebiden@usa.gov",
+    "email": "joe@example.com",
     "join_date": "2024-02-14T06:26:55.12794Z"
 }
 ```
@@ -76,7 +76,7 @@ Request Body:
     "name": "joe",
     "password_hash": "asdfjoisdafjasdk",
     "image": "linktoimage.com/joe.png",
-    "email": "joebiden@usa.gov",
+    "email": "joe@example.com",
     "is_admin": true,
 }
 ```
@@ -87,7 +87,7 @@ Response Body:
 {
     "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "name": "joe",
-    "email": "joebiden@usa.gov",
+    "email": "joe@example.com",
     "is_admin": true,
     "join_date": "2024-02-14T06:26:55.12794Z"
 }
@@ -117,7 +117,7 @@ Response Body:
     {
         "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
         "prompt": "this is a problem",
-        "title": "otso's problem",
+        "title": "our problem",
         "timeout": 0,
         "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
         "upload_date": "2024-02-14T06:26:55.12794Z",
@@ -146,7 +146,7 @@ Request Body:
 ```json
 {
     "prompt": "this is a problem",
-    "title": "otso's problem",
+    "title": "our problem",
     "timeout": 0,
     "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "test_cases": [
@@ -166,7 +166,7 @@ Response Body:
 {
     "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "prompt": "this is a problem",
-    "title": "otso's problem",
+    "title": "our problem",
     "timeout": 0,
     "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "upload_date": "2024-02-14T06:26:55.12794Z",
@@ -197,7 +197,7 @@ Response Body:
 {
     "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "prompt": "this is a problem",
-    "title": "otso's problem",
+    "title": "our problem",
     "timeout": 0,
     "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "upload_date": "2024-02-14T06:26:55.12794Z",
@@ -358,7 +358,7 @@ Request Body:
 
 ```json
 {
-    "title": "jordans new competition",
+    "title": "our new competition",
     "description": "woah dude",
     "start_time": "2024-05-19T20:30:00Z",
     "end_time": "2024-05-20T20:30:00Z",
@@ -375,7 +375,7 @@ Response Body:
     "start_time": "2024-05-19T20:30:00Z",
     "end_time": "2024-05-20T20:30:00Z",
     "description": "woah dude",
-    "title": "jordans new comp",
+    "title": "our new comp",
     "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "problems": [
         {
@@ -455,7 +455,7 @@ Response Body:
         },
         {
             "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
-            "name": "jordan",
+            "name": "our",
             "is_admin": false,
             "join_date": "2024-05-16T20:35:05.556626Z"
         }

@@ -13,7 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Submission } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, convertToMonacoLanguageName } from "@/lib/utils";
 import { format } from "date-fns";
 
 export function DialogSubmission({
@@ -61,7 +61,7 @@ export function DialogSubmission({
                 {submission.status.toUpperCase()}
               </h1>
             </div>
-            <DummyCodeEditor sourceCode={submission.source_code as any} language={submission.language.name} />
+            <DummyCodeEditor sourceCode={submission.source_code as any} language={convertToMonacoLanguageName(submission.language)} />
             <DialogFooter className="sm:justify-start">
               <DialogClose asChild>
                 <Button type="button" variant="secondary">
