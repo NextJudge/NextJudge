@@ -11,6 +11,7 @@ import { Icons } from "../icons";
 import { Button } from "../ui/button";
 import { EditorLanguageSelect } from "./editor-language-select";
 import { EditorThemeSelector } from "./editor-theme-select";
+import { convertToMonacoLanguageName } from "@/lib/utils";
 
 const templates: Record<string, string> = {
   "c++": `#include <bits/stdc++.h>
@@ -116,7 +117,7 @@ export default function CodeEditor({
   handleSubmitCode: (languageId: string, problemId: number) => Promise<void>;
 }) {
   //   const [code, setCode] = useState<string>(templates["TypeScript"]);
-  const { theme } = useContext(ThemeContext);
+  const { theme, setTheme } = useContext(ThemeContext);
   const [currentLanguage, setCurrentLanguage] = useState<Language>();
 
   // Need to wait to do this - it updates parent component otherwise causing a crash
@@ -222,19 +223,10 @@ export default function CodeEditor({
         loading={
           <Icons.loader className="w-6 h-6 animate-spin text-orange-700" />
         }
-        language={
-          currentLanguage?.name === "pypy"
-            ? "python"
-            : currentLanguage?.name === "c++"
-            ? "cpp"
-            : currentLanguage?.name
-        }
+        language={convertToMonacoLanguageName(currentLanguage)}
         defaultLanguage={currentLanguage?.name}
         value={code}
-        // The theme might not be loaded at this point yet
-        // TODO FIX: the theme we want may not be loaded yet,
-        // And so it defaults to the light theme
-        theme={"vs-dark" }  // theme?.name
+        theme={theme?.name}
         className="min-h-screen w-[100%] overflow-y-scroll"
         options={editorOptions}
         onChange={(value) => {

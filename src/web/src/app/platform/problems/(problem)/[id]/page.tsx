@@ -60,7 +60,6 @@ const testCasesSchema = z.array(
 
 export type TestCases = z.infer<typeof testCasesSchema>;
 
-
 export default async function Editor({ params }: { params: { id: string } }) {
   const { id } = params;
   // const session = await auth();

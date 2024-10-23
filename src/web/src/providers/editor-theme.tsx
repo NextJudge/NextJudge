@@ -17,7 +17,29 @@ export interface ThemeContextType {
     setTheme: (theme: Theme | null) => void;
 }
 
-const defaultThemes: Record<string, Theme> = {
+const MEDIA = '(prefers-color-scheme: dark)'
+
+export const getSystemTheme = (e?: MediaQueryList | MediaQueryListEvent) => {
+    if (!e) e = window.matchMedia(MEDIA)
+    const isDark = e.matches
+    const systemTheme = isDark ? 'dark' : 'light'
+    return systemTheme
+}
+
+export const resolveDefaultThemeToUse = (themeToUse: string) => {
+    // It's 'system' sometimes
+    if (themeToUse === "system") {
+        themeToUse = getSystemTheme()
+    }
+
+    if (themeToUse === "dark") {
+        return defaultThemes.builtin_dark;
+    } else {
+        return defaultThemes.builtin_light;
+    }
+}
+
+const defaultThemes= {
     dark: {
         name: "brilliance-black",
         fetch: "/themes/brilliance-black.json",
@@ -26,46 +48,44 @@ const defaultThemes: Record<string, Theme> = {
         name: "github-light",
         fetch: "/themes/github-light.json",
     },
-};
+    builtin_dark: {
+        name: "vs-dark",
+        fetch: ""
+    },
+    builtin_light: {
+        name: "light",
+        fetch: ""
+    }
+} as const;
+
 
 export const ThemeContext = React.createContext<ThemeContextType>({
     theme: null,
     setTheme: () => { },
 });
 
-const MEDIA = '(prefers-color-scheme: dark)'
 
-const getSystemTheme = (e?: MediaQueryList | MediaQueryListEvent) => {
-    if (!e) e = window.matchMedia(MEDIA)
-    const isDark = e.matches
-    const systemTheme = isDark ? 'dark' : 'light'
-    return systemTheme
-}
 
 export const EditorThemeProvider: React.FC<ThemeProviderProps> = ({
     children,
 }) => {
+    
+    // Theme from "next-theme" - this is set implicitly
+    // by the global "dark-mode"/"light-mode" switch
+    const { resolvedTheme: nextThemeResolvedTheme } = useTheme();
 
-    // It's 'system' sometimes
-    const resolveThemeToUse = (themeToUse: string) => {
-        if (themeToUse === "system") {
-            themeToUse = getSystemTheme()
-        }
+    // The vs-dark and light are baked in and always available.
+    // The other ones we need to wait to get downloaded to work
+    const startingTheme = getSystemTheme() === "dark" ? defaultThemes.builtin_dark : defaultThemes.builtin_light
+    const [theme, setTheme] = useState<Theme | null>(startingTheme);
 
-        if (themeToUse === "dark") {
-            return defaultThemes.dark;
-        } else {
-            return defaultThemes.light;
-        }
-    }
-
-    const { resolvedTheme } = useTheme();
-    const [theme, setTheme] = useState<Theme | null>(resolveThemeToUse(resolvedTheme as string));
-
-    // On mount, set the default theme
     useEffect(() => {
-        setTheme(resolveThemeToUse(resolvedTheme as string))
-    }, [resolvedTheme, theme]);
+        // nextThemeResolvedTheme is either "system","light","dark"
+        // TODO: if custom themes are loaded, resolve this to the defaults in defaultThemes (or user selected defaults for light + dark mode)
+        if (nextThemeResolvedTheme){
+            setTheme(resolveDefaultThemeToUse(nextThemeResolvedTheme))
+        }
+    }, [nextThemeResolvedTheme]);
 
     // Explicitly set custom themes
     const setCustomTheme = (selectedTheme: Theme | null) => {
@@ -75,6 +95,9 @@ export const EditorThemeProvider: React.FC<ThemeProviderProps> = ({
             selectedTheme.name !== "light"
         ) {
             setTheme(selectedTheme);
+            loader.init().then((monaco) => {
+                if (selectedTheme) monaco.editor.setTheme(selectedTheme.name);
+            });
         } else {
             console.trace(selectedTheme)
             console.warn("Cannot set default themes as custom themes.");
