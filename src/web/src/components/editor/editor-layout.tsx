@@ -59,7 +59,6 @@ export default function EditorComponent({
   testCases,
   recentSubmissions,
   languages,
-  userId,
 }: {
   details: Problem;
   tags: string[];
@@ -67,7 +66,6 @@ export default function EditorComponent({
   testCases: TestCase[];
   recentSubmissions: Submission[];
   languages: Language[];
-  userId: number;
 }) {
   const {  data: session } = useSession()
 
@@ -97,6 +95,11 @@ export default function EditorComponent({
   const [currentSubmissionDetails, setCurrentSubmissionDetails] = useState<Submission | null>(null);
 
   const handleSubmitCode = async (languageId: string, problemId: number) => {
+    if(!languageId){
+      toast.error("Please select a language.");
+      return
+    }
+
     setSubmissionLoading(true);
     setSubmissionError("");
     try {
@@ -241,7 +244,6 @@ export default function EditorComponent({
                 {!loading && (
                   <CodeEditor
                     languages={languages}
-                    userId={userId}
                     themes={themes}
                     problemId={details.id}
                     code={code}

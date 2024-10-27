@@ -9,8 +9,6 @@ import { ZodError } from "zod";
 import { auth, signIn } from "./auth";
 import { newsletterFormSchema } from "./validation";
 
-import { apiGetProblems as apiFetchProblems } from "@/lib/api";
-
 export interface ReturnType {
   status: "error" | "success";
   message: string;

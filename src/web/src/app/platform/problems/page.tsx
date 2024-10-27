@@ -21,8 +21,20 @@ export default async function ProblemsPage() {
     throw "You must be signed-in to view this page"
   }
 
-  const problems = await apiGetProblems(session.nextjudge_token)
-  const recentSubmissions = await apiGetRecentSubmissions(session.nextjudge_token,session.nextjudge_id)
+  const results = await Promise.allSettled(
+    [
+        apiGetProblems(session.nextjudge_token),
+        apiGetRecentSubmissions(session.nextjudge_token,session.nextjudge_id)
+    ]
+)
+
+  const [problemsResult, recentSubmissionsResult ] = results
+  
+  const problems = problemsResult.status === 'fulfilled' ? problemsResult.value : []
+  const recentSubmissions = recentSubmissionsResult.status === 'fulfilled' ? recentSubmissionsResult.value : []
+
+  // const problems = await apiGetProblems(session.nextjudge_token)
+  // const recentSubmissions = await apiGetRecentSubmissions(session.nextjudge_token,session.nextjudge_id)
 
   return (
     <>

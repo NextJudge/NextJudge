@@ -22,14 +22,16 @@ import { Language } from "@/lib/types";
 interface EditorLanguageSelectProps {
   languages: Language[],
   onLanguageSelect: (language: Language) => void;
+  defaultLanguage: Language
 }
 
 export function EditorLanguageSelect({
   languages,
   onLanguageSelect,
+  defaultLanguage
 }: EditorLanguageSelectProps) {
   const [open, setOpen] = React.useState(false);
-  const [currentLanguage, setCurrentLanguage] = React.useState<Language>();
+  const [currentLanguage, setCurrentLanguage] = React.useState<Language>(defaultLanguage);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

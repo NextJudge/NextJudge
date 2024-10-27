@@ -39,26 +39,36 @@ export async function apiGetProblemCategories(token: string, problem_id: number)
 }
 
 export async function apiGetProblems(token: string): Promise<Problem[]> {
-    const data = await fetch(
-        `${getBridgeUrl()}/v1/problems`, {
-        headers: {
-            "Authorization": token
-        }
+    try {
+
+        const data = await fetch(
+            `${getBridgeUrl()}/v1/problems`, {
+                headers: {
+                    "Authorization": token
+                }
+            }
+        );
+        return data.json()
+    } catch (e) {
+        throw new Error("Failed to fetch problems")
     }
-    );
-    return data.json()
 }
 
 
 export async function fetchProblemID(token: string, id: number): Promise<Problem> {
-    const data = await fetch(
-        `${getBridgeUrl()}/v1/problems/${id}`, {
-        headers: {
-            "Authorization": token
-        }
+    try {
+
+        const data = await fetch(
+            `${getBridgeUrl()}/v1/problems/${id}`, {
+                headers: {
+                    "Authorization": token
+                }
+            }
+        );
+        return data.json()
+    } catch (e) {
+        throw new Error("Failed to fetch problem")
     }
-    );
-    return data.json()
 }
 
 
