@@ -37,10 +37,10 @@ VALUES
 ('Probability'),
 ('Geometry');
 
-INSERT INTO "users" (name, join_date, email, is_admin)
+INSERT INTO "users" (name, account_identifier, join_date, email, is_admin)
 VALUES 
-('JohnEldenRing',   timestamp '2024-01-01 10:00:00', 'joe@example.com',    'TRUE'),
-('JohnDarksouls',   timestamp '2024-02-02 10:00:00', 'bob@example.com',     'FALSE');
+('JohnEldenRing',  "test-JohnEldenRing", timestamp '2024-01-01 10:00:00', 'joe@example.com',    'TRUE'),
+('JohnDarksouls',  "test-JohnDarksouls", timestamp '2024-02-02 10:00:00', 'bob@example.com',     'FALSE');
 
 -- deleting these using that API WILL returnd a 500 since they aren't in elastic search
 INSERT INTO "problems" (title, prompt, timeout, user_id, difficulty, upload_date)

@@ -13,9 +13,9 @@ import (
 )
 
 func addLanguageRoutes(mux *goji.Mux) {
-	mux.HandleFunc(pat.Post("/v1/languages"), postLanguage)
+	mux.HandleFunc(pat.Post("/v1/languages"), AdminRequired(postLanguage))
 	mux.HandleFunc(pat.Get("/v1/languages"), getLanguages)
-	mux.HandleFunc(pat.Delete("/v1/languages/:language_id"), deleteLanguage)
+	mux.HandleFunc(pat.Delete("/v1/languages/:language_id"), AdminRequired(deleteLanguage))
 }
 
 func postLanguage(w http.ResponseWriter, r *http.Request) {

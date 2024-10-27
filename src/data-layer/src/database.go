@@ -66,6 +66,12 @@ func NewDatabase() (*Database, error) {
 	return &Database{NextJudgeDB: db}, nil
 }
 
+func (d *Database) GetOrCreateUserByAccountIdentifier(newUserData *User) (*User, error) {
+	var user User
+	err := d.NextJudgeDB.Where(User{AccountIdentifier: newUserData.AccountIdentifier}).FirstOrCreate(&user, newUserData).Error
+	return &user, err
+}
+
 func (d *Database) CreateUser(user *User) (*User, error) {
 	user.JoinDate = time.Now()
 	err := d.NextJudgeDB.Create(user).Error

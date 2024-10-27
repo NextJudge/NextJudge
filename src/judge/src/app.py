@@ -24,6 +24,8 @@ RABBITMQ_PORT=os.getenv("RABBITMQ_PORT", 5672)
 NEXTJUDGE_HOST=os.getenv("NEXTJUDGE_HOST", "localhost")
 NEXTJUDGE_PORT=os.getenv("NEXTJUDGE_PORT", 5000)
 
+JUDGE_PASSWORD = os.getenv("JUDGE_PASSWORD")
+
 NEXTJUDGE_ENDPOINT = f"http://{NEXTJUDGE_HOST}:{NEXTJUDGE_PORT}"
 
 SUBMISSION_QUEUE_NAME="submission_queue"
@@ -39,6 +41,8 @@ RUN_DIRECTORY_NAME = "executable"
 BUILD_SCRIPT_NAME = "build.sh"
 RUN_SCRIPT_NAME = "main"
 
+
+JUDGE_JWT_TOKEN=""
 
 class RabbitMQClient(object):
 
@@ -117,7 +121,12 @@ def get_languages():
 
 def get_submission_data(submission_id: str):
     print(f"{NEXTJUDGE_ENDPOINT}/v1/submissions/{submission_id}")
-    response = requests.get(f"{NEXTJUDGE_ENDPOINT}/v1/submissions/{submission_id}")
+    response = requests.get(
+        f"{NEXTJUDGE_ENDPOINT}/v1/submissions/{submission_id}",
+        headers={
+            "Authorization":JUDGE_JWT_TOKEN
+        }
+    )
     data = response.json()
     # print(data)
     return data
@@ -126,7 +135,12 @@ def get_test_data(problem_id: str):
     """
     Get all tests for a given problem_id
     """
-    response = requests.get(f"{NEXTJUDGE_ENDPOINT}/v1/problems/{problem_id}?type=private")
+    response = requests.get(
+        f"{NEXTJUDGE_ENDPOINT}/v1/problems/{problem_id}?type=private",
+        headers={
+            "Authorization":JUDGE_JWT_TOKEN
+        }
+    )
     data = response.json()
     # print(data)
     return data
@@ -134,7 +148,10 @@ def get_test_data(problem_id: str):
 def post_judgement(submission_id: str, data):
     response = requests.patch(
         f"{NEXTJUDGE_ENDPOINT}/v1/submissions/{submission_id}",
-        json=data
+        json=data,
+        headers={
+            "Authorization":JUDGE_JWT_TOKEN
+        }
     )
     # print(data)
     return data
@@ -142,7 +159,10 @@ def post_judgement(submission_id: str, data):
 def post_custom_input_result(submission_id: str, body):
     response = requests.patch(
         f"{NEXTJUDGE_ENDPOINT}/v1/input_submissions/{submission_id}",
-        json=body
+        json=body,
+        headers={
+            "Authorization":JUDGE_JWT_TOKEN
+        }
     )
     print(response)
 
@@ -726,7 +746,7 @@ async def connect_to_rabbitmq():
             connection_attempts += 1
             time.sleep(2)
 
-def ensure_nextjudge_healthy():
+def ensure_nextjudge_healthy_and_login(password: str):
     """
     The judge has to talk to the core service, so this checks that it's accessible before booting
     """
@@ -741,8 +761,17 @@ def ensure_nextjudge_healthy():
             )
 
             if connection.status_code == 200:
-                return
+                response = requests.post(
+                    f"{NEXTJUDGE_ENDPOINT}/v1/login_judge",
+                    headers={
+                        "Authorization":password
+                    }
+                )
 
+                global JUDGE_JWT_TOKEN
+                JUDGE_JWT_TOKEN = response.json()["token"]
+
+                return
         except requests.exceptions.ConnectionError as e:
             print(str(e))
             connection_attempts += 1
@@ -760,7 +789,11 @@ async def main():
         return
     print("Successfully connected to RabbitMQ!")
 
-    ensure_nextjudge_healthy()
+    if not JUDGE_PASSWORD:
+        print("Judge password is empty!")
+        sys.exit(1)
+
+    ensure_nextjudge_healthy_and_login(JUDGE_PASSWORD)
     print("Can contact the core service")
     # TODO:
     # This RPC breaks if the other side is not there to respond

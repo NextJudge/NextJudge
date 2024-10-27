@@ -1,5 +1,18 @@
 
 
+export interface User {
+    id: string;
+    account_identifier: string;
+    name: string;
+    email: string;
+    emailVerified: string;
+    image: string;
+    join_date: string;
+    is_admin: boolean;
+}
+
+
+
 export interface Language {
     id: string;
     name: string;
@@ -15,7 +28,7 @@ export interface Problem {
     difficulty: Difficulty;
     user_id: string;
     upload_date: string;
-    test_cases?: TestCase[];
+    test_cases: TestCase[];
     categories: Category[];
 }
 
@@ -33,7 +46,7 @@ export interface Category {
     name: string;
 }
 
-type Difficulty = "VERY EASY" | "EASY" | "MEDIUM" | "HARD" | "VERY HARD"
+export type Difficulty = "VERY EASY" | "EASY" | "MEDIUM" | "HARD" | "VERY HARD"
 
 
 export enum status {
@@ -82,3 +95,16 @@ export interface Submission {
     stdout: string;
     stderr: string;
 }
+
+
+// export interface Competition {
+//     id: number;
+//     userId: number;
+//     startTime: Date;
+//     endTime: Date;
+//     description: string;
+//     title: string;
+//     problems: Problem[];
+//     participants: User[];
+// }
+

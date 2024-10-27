@@ -1,26 +1,18 @@
-import { auth, prisma } from "@/app/auth";
+import { auth } from "@/app/auth";
 import { ProfileForm } from "@/components/forms/profile-form";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/toaster";
-import { Prisma } from "@prisma/client";
+import { apiGetUser } from "@/lib/api";
 
-async function getAdminDetails() {
-  const session = await auth();
-  if (session && session.user && session.user.email) {
-    const admin = await prisma.users.findFirst({
-      where: {
-        email: session.user.email,
-      },
-    });
-    return admin;
-  }
-  return null;
-}
-
-export type AdminDetails = Prisma.PromiseReturnType<typeof getAdminDetails>;
 
 export default async function SettingsProfilePage() {
-  const details = await getAdminDetails();
+
+  const session = await auth()
+
+  if (!session || !session.user) {
+    throw new Error("Unauthorized");
+  }
+  const details = await apiGetUser(session.nextjudge_token,session.nextjudge_id);
   return (
     <>
       <Toaster />

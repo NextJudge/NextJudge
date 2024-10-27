@@ -38,8 +38,8 @@ export function DataTableRowActions<TData>({
   const problem = row.original as Problem;
   const onDeleteProblem = useCallback(async () => {
     const response = await deleteProblem(problem.id);
-    if (response.status === "error") toast.error(response.message);
-    if (response.status === "success") toast.success(response.message);
+    // if (response.status === "error") toast.error(response.message);
+    // if (response.status === "success") toast.success(response.message);
   }, []);
 
   return (

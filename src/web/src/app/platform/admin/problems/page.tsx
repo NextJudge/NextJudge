@@ -8,7 +8,7 @@ import Link from "next/link";
 import { columns } from "../../problems/components/columns";
 import { DataTable } from "../../problems/components/data-table";
 import { apiGetCategories, apiGetProblems } from "@/lib/api";
-import { Category } from "@/lib/types";
+import { Category, Problem } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "NextJudge Admin - Problem Management",
@@ -16,7 +16,8 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminProblemsPage() {
-  const problems = await apiGetProblems();
+  // const problems = await apiGetProblems();
+  const problems: Problem[] = []
   const categories = await apiGetCategories();
   return (
     <div className="space-y-6">

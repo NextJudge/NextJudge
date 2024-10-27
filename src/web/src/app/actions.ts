@@ -3,7 +3,6 @@
 import { EmailTemplate } from "@/components/email/template";
 
 import { LoginFormValues, SignUpFormValues } from "@/types";
-import prisma from "@db/prismaClient";
 import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { ZodError } from "zod";
@@ -58,70 +57,10 @@ export async function sendEmail(formData: FormData): Promise<ReturnType> {
 
 export async function signUpUser(data: SignUpFormValues) {
   const { email, password } = data;
-  const hasUser = await prisma.users.findUnique({
-    where: { email },
-  });
 
-  if (hasUser) {
-    return {
-      status: "error",
-      message: "User already exists",
-    };
-  }
-  const image = `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`;
-  await prisma.users.create({
-    data: {
-      email,
-      password_hash: password,
-      name: email.split("@")[0],
-      image,
-    },
-  });
-
-  return {
-    status: "success",
-    message: "User created!",
-  };
+  // const image = `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`;
 }
 
-export async function fetchProblems(page?: number, limit?: number) {
-  // TODO revisit this
-  return await apiFetchProblems()
-
-
-  if (!page || !limit) {
-    const problems = await prisma.problems.findMany({
-      include: {
-        users: true,
-      },
-    });
-    return problems.map((problem) => ({
-      id: problem.id,
-      title: problem.title,
-      prompt: problem.prompt,
-      timeout: problem.timeout,
-      user_id: problem.user_id,
-      upload_date: problem.upload_date,
-      author: problem.users?.name ?? "Unknown",
-    }));
-  }
-  const problems = await prisma.problems.findMany({
-    take: limit,
-    // skip: (page - 1) * limit,
-    include: {
-      users: true,
-    },
-  });
-  return problems.map((problem) => ({
-    id: problem.id,
-    title: problem.title,
-    prompt: problem.prompt,
-    timeout: problem.timeout,
-    user_id: problem.user_id,
-    upload_date: problem.upload_date,
-    author: problem.users?.name ?? "Unknown",
-  }));
-}
 
 export async function logUserIn(data: LoginFormValues): Promise<ReturnType> {
   const { email, password } = data;
@@ -144,51 +83,41 @@ export async function logUserIn(data: LoginFormValues): Promise<ReturnType> {
   }
 }
 interface ProfileData {
-  id: number;
+  id: string;
   name: string;
   password: string;
 }
+
 export async function changeProfile(data: ProfileData) {
-  try {
-    const { id, name, password } = data;
-    await prisma.users.update({
-      where: { id },
-      data: {
-        name,
-        password_hash: password,
-      },
-    });
-    return {
-      status: "success",
-      message: "Profile updated",
-      newProfile: {
-        name,
-        password,
-      },
-    };
-  } catch (error) {
-    return {
-      status: "error",
-      message: "Something went wrong",
-    };
-  }
+  return
+
+  // try {
+  //   const { id, name } = data;
+  //   await prisma.users.update({
+  //     where: { id },
+  //     data: {
+  //       name,
+  //     },
+  //   });
+  //   return {
+  //     status: "success",
+  //     message: "Profile updated",
+  //     newProfile: {
+  //       name,
+  //       password,
+  //     },
+  //   };
+  // } catch (error) {
+  //   return {
+  //     status: "error",
+  //     message: "Something went wrong",
+  //   };
+  // }
 }
 
-export type Difficulty = "VERY_EASY" | "EASY" | "MEDIUM" | "HARD" | "VERY_HARD";
 
-interface CreateProblemData {
-  title: string;
-  prompt: string;
-  timeout: number;
-  difficulty: Difficulty;
-  upload_date: Date;
-  categories?: string[];
-  input?: string;
-  output?: string;
-  is_public?: boolean;
-}
 
-export async function createProblem(data: CreateProblemData) {
+export async function createProblem(data: any) {
   const session = await auth();
   if (!session || !session.user || !session.user.id) {
     return {
@@ -196,73 +125,17 @@ export async function createProblem(data: CreateProblemData) {
       message: "Invalid session",
     };
   }
-  const id = parseInt(session.user.id);
-  if (isNaN(id) || !id) {
-    return {
-      status: "error",
-      message: "Invalid user",
-    };
-  }
-  try {
-    const {
-      title,
-      prompt,
-      timeout,
-      difficulty,
-      upload_date,
-      categories,
-      input,
-      output,
-      is_public,
-    } = data;
 
-    const problem = await prisma.problems.create({
-      data: {
-        title,
-        prompt,
-        timeout,
-        difficulty,
-        upload_date,
-        users: {
-          connect: {
-            id: id,
-          },
-        },
-      },
-    });
+  //   revalidatePath("/platform/admin/problems");
 
-    // if (categories) {
-    //   await prisma.problem_categories.createMany({
-    //     data: categories.map((categoryId) => ({
-    //       category_id: categoryId,
-    //       problem_id: problem.id,
-    //     })),
-    //   });
-    // }
-
-    // if (input && output) {
-    //   await prisma.test_cases.create({
-    //     data: {
-    //       input,
-    //       expected_output: output,
-    // //       is_public: true,
-    // //       problem_id: problem.id,
-    // //     },
-    // //   });
-    // }
-
-    revalidatePath("/platform/admin/problems");
-
-    return {
-      status: "success",
-      message: "Problem created",
-    };
-  } catch (error: unknown) {
-    return {
-      status: "error",
-      message: "Something went wrong",
-    };
-  }
+  //   return {
+  //     status: "success",
+  //     message: "Problem created",
+  //   };
+  //   return {
+  //     status: "error",
+  //     message: "Something went wrong",
+  //   };
 }
 
 interface TestCaseData {
@@ -295,20 +168,5 @@ export async function createTestCase(data: TestCaseData) {
 }
 
 export async function deleteProblem(id: number) {
-  try {
-    await prisma.problems.delete({
-      where: { id },
-    });
-    revalidatePath("/platform/admin/problems");
-    return {
-      status: "success",
-      message: "Problem deleted!",
-    };
-  } catch (error) {
-    console.log(error);
-    return {
-      status: "error",
-      message: "Something went wrong",
-    };
-  }
+  return
 }

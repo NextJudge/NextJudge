@@ -17,12 +17,12 @@ import (
 // TODO: add PUT endpoints for problems and test cases
 
 func addProblemRoutes(mux *goji.Mux) {
-	mux.HandleFunc(pat.Get("/v1/categories"), getCategories)
-	mux.HandleFunc(pat.Get("/v1/categories/:problem_id"), getProblemCategories)
-	mux.HandleFunc(pat.Post("/v1/problems"), postProblem)
-	mux.HandleFunc(pat.Get("/v1/problems"), getProblems)
-	mux.HandleFunc(pat.Get("/v1/problems/:problem_id"), getProblem)
-	mux.HandleFunc(pat.Delete("/v1/problems/:problem_id"), deleteProblem)
+	mux.HandleFunc(pat.Get("/v1/categories"), AuthRequired(getCategories))
+	mux.HandleFunc(pat.Get("/v1/categories/:problem_id"), AuthRequired(getProblemCategories))
+	mux.HandleFunc(pat.Post("/v1/problems"), AdminRequired(postProblem))
+	mux.HandleFunc(pat.Get("/v1/problems"), AuthRequired(getProblems))
+	mux.HandleFunc(pat.Get("/v1/problems/:problem_id"), AuthRequired(getProblem))
+	mux.HandleFunc(pat.Delete("/v1/problems/:problem_id"), AdminRequired(deleteProblem))
 }
 
 type PostProblemRequestBody struct {

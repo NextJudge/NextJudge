@@ -25,13 +25,12 @@ import {
 } from "@radix-ui/react-icons";
 
 import { cn } from "@/lib/utils";
-import { Competition } from "@/types";
 import { format } from "date-fns";
 import { Clock, EditIcon } from "lucide-react";
 
 type ContestCardProps = {
   className?: string;
-  contest: Competition | any;
+  contest: any;
   deleteContest?: (id: number) => void;
   mock?: boolean;
 };

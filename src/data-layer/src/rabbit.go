@@ -34,13 +34,16 @@ func SetupRabbitMQConnection() {
 	conn, err := amqp.Dial(
 		"amqp://rabbitmq:5672",
 	)
+
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Warn(err)
+		return
 	}
 
 	channel, err := conn.Channel()
 	if err != nil {
 		logrus.Fatal(err)
+		return
 	}
 
 	submission_queue, err := channel.QueueDeclare(
@@ -53,6 +56,7 @@ func SetupRabbitMQConnection() {
 	)
 	if err != nil {
 		logrus.Fatal(err)
+		return
 	}
 
 	rabbit_connection = &RabbitMQService{

@@ -1,10 +1,12 @@
 import PlatformNavbar from "@/components/nav/platform-nav";
 import UserAvatar from "@/components/nav/user-avatar";
-import { Metadata } from "next";
 import { columns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { RecentSubmissionCard } from "./components/recent-submissions";
 import { apiGetProblems, apiGetRecentSubmissions } from "@/lib/api";
+ 
+import { auth } from "@/app/auth";
+import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "NextJudge - Problems",
@@ -12,9 +14,16 @@ export const metadata: Metadata = {
 };
 
 export default async function ProblemsPage() {
-  // TODO: fix this - this should run adhoc
-  const problems = await apiGetProblems();
-  const recentSubmissions = await apiGetRecentSubmissions("25c054a1-e306-4851-b229-67acffa65e56");
+
+  const session = await auth()
+
+  if(!session) {
+    throw "You must be signed-in to view this page"
+  }
+
+  const problems = await apiGetProblems(session.nextjudge_token)
+  const recentSubmissions = await apiGetRecentSubmissions(session.nextjudge_token,session.nextjudge_id)
+
   return (
     <>
       <PlatformNavbar>
