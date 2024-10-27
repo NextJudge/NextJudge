@@ -4,10 +4,6 @@ import "@/app/globals.css";
 import { EditorSkeleton } from "@/components/editor/editor-skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import {
-  TestCases,
-  ZodProblemDetails,
-} from "@/app/platform/problems/(problem)/[id]/page";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
 import {
   Drawer,
@@ -52,8 +48,9 @@ import {
 import CodeEditor from "./code-editor";
 import { SubmissionState } from "./editor-submission-state";
 import { apiGetSubmissionsStatus, postSolution } from "@/lib/api";
-import { Language, Submission } from "@/lib/types";
+import { Language, Problem, Submission, TestCase } from "@/lib/types";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 
 export default function EditorComponent({
   details,
@@ -64,14 +61,16 @@ export default function EditorComponent({
   languages,
   userId,
 }: {
-  details: ZodProblemDetails;
+  details: Problem;
   tags: string[];
   slot: React.ReactNode;
-  testCases: TestCases;
+  testCases: TestCase[];
   recentSubmissions: Submission[];
   languages: Language[];
   userId: number;
 }) {
+  const {  data: session } = useSession()
+
   const { isCollapsed, ref, collapse, expand } = useEditorCollapse();
   const {
     isCollapsed: isCollapsed2,
@@ -101,7 +100,10 @@ export default function EditorComponent({
     setSubmissionLoading(true);
     setSubmissionError("");
     try {
-      const data = await postSolution(code, languageId, problemId, "25c054a1-e306-4851-b229-67acffa65e56");
+      if (!session) {
+        throw "Need to be logged in"
+      }
+      const data = await postSolution(session.nextjudge_token, code, languageId, problemId, session.nextjudge_id);
       setSubmissionId(data.id);
       toast.success("Accepted!");
       await fetchSubmissionDetails(data.id)
@@ -116,12 +118,15 @@ export default function EditorComponent({
 
   const fetchSubmissionDetails = (async (submissionId: string) => {
     try {
+      if(!session) {
+        throw "Need to be logged in"
+      }
       console.log("Submission ID",submissionId)
-      let data: Submission = await apiGetSubmissionsStatus(submissionId)
+      let data: Submission = await apiGetSubmissionsStatus(session.nextjudge_token, submissionId)
       while (data.status === "PENDING") {
         console.log("Waiting for submission to complete...");
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        data = await apiGetSubmissionsStatus(submissionId)
+        data = await apiGetSubmissionsStatus(session.nextjudge_token, submissionId)
       }
 
       // ref2.current?.expand();

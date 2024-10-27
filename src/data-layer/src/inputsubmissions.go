@@ -25,10 +25,10 @@ type CustomInputSubmissionResult struct {
 }
 
 type CustomInputSubmissionStatusPostBody struct {
-	UserID     *uuid.UUID `json:"user_id"`
-	SourceCode string     `json:"source_code"`
-	LanguageID *uuid.UUID `json:"language_id"`
-	Stdin      string     `json:"stdin"`
+	UserID     uuid.UUID `json:"user_id"`
+	SourceCode string    `json:"source_code"`
+	LanguageID uuid.UUID `json:"language_id"`
+	Stdin      string    `json:"stdin"`
 }
 
 type UpdateCustomInputSubmissionStatusPatchBody struct {
@@ -41,9 +41,9 @@ var customSubmissionMap = make(map[string]*CustomInputSubmissionResult)
 
 // These API endpoints don't touch the database
 func addInputSubmissionRoutes(mux *goji.Mux) {
-	mux.HandleFunc(pat.Post("/v1/input_submissions"), postInputSubmission)
-	mux.HandleFunc(pat.Get("/v1/input_submissions/:submission_id"), getInputSubmission)
-	mux.HandleFunc(pat.Patch("/v1/input_submissions/:submission_id"), updateCustomInputSubmissionStatus)
+	mux.HandleFunc(pat.Post("/v1/input_submissions"), AuthRequired(postInputSubmission))
+	mux.HandleFunc(pat.Get("/v1/input_submissions/:submission_id"), AuthRequired(getInputSubmission))
+	mux.HandleFunc(pat.Patch("/v1/input_submissions/:submission_id"), AtLeastJudgeRequired(updateCustomInputSubmissionStatus))
 }
 
 func postInputSubmission(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +63,31 @@ func postInputSubmission(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
+
+	// User ID boilerplate
+	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if token == nil {
+		logrus.Error("Error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Error in token"}`)
+		return
+	}
+
+	userId := token.Id
+
+	if reqData.UserID != userId && reqData.UserID != uuid.Nil {
+		// Admins can access all users
+		if token.Role == AdminRoleEnum {
+			userId = reqData.UserID
+		} else {
+			logrus.Error("Unauthorized post input submission")
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, `{"message":"Unauthorized"}`)
+			return
+		}
+	}
+
+	reqData.UserID = userId
 
 	new_uuid := uuid.New()
 

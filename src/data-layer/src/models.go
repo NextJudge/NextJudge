@@ -29,14 +29,14 @@ const (
 )
 
 type User struct {
-	ID            uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
-	Name          string    `json:"name"`
-	PasswordHash  string    `json:"password_hash"`
-	Email         string    `json:"email"`
-	EmailVerified time.Time `json:"emailVerified" gorm:"column:emailVerified"`
-	Image         string    `json:"image"`
-	IsAdmin       bool      `json:"is_admin"`
-	JoinDate      time.Time `json:"join_date"`
+	ID                uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	AccountIdentifier string    `json:"account_identifier"`
+	Name              string    `json:"name"`
+	Email             string    `json:"email"`
+	EmailVerified     time.Time `json:"emailVerified" gorm:"column:emailVerified"`
+	Image             string    `json:"image"`
+	JoinDate          time.Time `json:"join_date"`
+	IsAdmin           bool      `json:"is_admin"`
 }
 
 type Category struct {

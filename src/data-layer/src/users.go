@@ -13,18 +13,17 @@ import (
 )
 
 func addUserRoutes(mux *goji.Mux) {
-	mux.HandleFunc(pat.Get("/v1/users"), getUsers)
-	mux.HandleFunc(pat.Get("/v1/users/:user_id"), getUser)
-	mux.HandleFunc(pat.Delete("/v1/users/:user_id"), deleteUser)
-	mux.HandleFunc(pat.Post("/v1/users"), postUser)
-	mux.HandleFunc(pat.Put("/v1/users/:user_id"), updateUser)
+	mux.HandleFunc(pat.Get("/v1/users"), AdminRequired(getUsers))
+	mux.HandleFunc(pat.Get("/v1/users/:user_id"), AuthRequired(getUser))
+	mux.HandleFunc(pat.Delete("/v1/users/:user_id"), AdminRequired(deleteUser))
+	mux.HandleFunc(pat.Post("/v1/users"), AdminRequired(postUser))
+	mux.HandleFunc(pat.Put("/v1/users/:user_id"), AdminRequired(updateUser))
 }
 
 type PutUserRequestBody struct {
-	Name         string `json:"name"`
-	Image        string `json:"image"`
-	IsAdmin      *bool  `json:"is_admin"`
-	PasswordHash string `json:"password_hash"`
+	Name    string `json:"name"`
+	Image   string `json:"image"`
+	IsAdmin *bool  `json:"is_admin"`
 }
 
 func postUser(w http.ResponseWriter, r *http.Request) {
@@ -158,6 +157,23 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Make sure the user has access to this
+	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if token == nil {
+		logrus.Error("Error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"Error in token"}`)
+		return
+	}
+
+	// Only admins can users that are not themselves
+	if userId != token.Id && token.Role != AdminRoleEnum {
+		logrus.Error("User attempting to get info on another user")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Authentication error"}`)
+		return
+	}
+
 	user, err := db.GetUserByID(userId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving user")
@@ -236,11 +252,6 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, `{"code":"400", "message":"user with desired name already exists"}`)
 			return
 		}
-	}
-
-	// update user
-	if reqData.PasswordHash != "" {
-		user.PasswordHash = reqData.PasswordHash
 	}
 
 	if reqData.Image != "" {

@@ -14,11 +14,11 @@ import (
 )
 
 func addCompetitionsRoutes(mux *goji.Mux) {
-	mux.HandleFunc(pat.Post("/v1/competitions"), postCompetition)
-	mux.HandleFunc(pat.Get("/v1/competitions"), getCompetitions)
-	mux.HandleFunc(pat.Get("/v1/competitions/:competition_id"), getCompetition)
-	mux.HandleFunc(pat.Delete("/v1/competitions/:competition_id"), deleteCompetition)
-	mux.HandleFunc(pat.Post("/v1/competitions/:competition_id/participants"), addParticipant)
+	mux.HandleFunc(pat.Post("/v1/competitions"), AdminRequired(postCompetition))
+	mux.HandleFunc(pat.Get("/v1/competitions"), AdminRequired(getCompetitions))
+	mux.HandleFunc(pat.Get("/v1/competitions/:competition_id"), AdminRequired(getCompetition))
+	mux.HandleFunc(pat.Delete("/v1/competitions/:competition_id"), AdminRequired(deleteCompetition))
+	mux.HandleFunc(pat.Post("/v1/competitions/:competition_id/participants"), AdminRequired(addParticipant))
 }
 
 type PostCompetitionRequestBody struct {

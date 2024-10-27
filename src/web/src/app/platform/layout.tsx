@@ -1,5 +1,6 @@
 import { Footer } from "@/components/footer";
 import { Metadata } from "next";
+import { SessionProvider } from "next-auth/react";
 
 export const metadata: Metadata = {
   title: "NextJudge - Platform",
@@ -12,12 +13,13 @@ interface PlatformLayoutProps {
 }
 
 export default function PlatformLayout({ children }: PlatformLayoutProps) {
+  
   return (
-    <>
+    <SessionProvider>
       <main className="flex flex-col items-center justify-center overflow-x-hidden">
         {children}
       </main>
       <Footer />
-    </>
+    </SessionProvider>
   );
 }

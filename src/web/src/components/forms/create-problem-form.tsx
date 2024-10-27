@@ -1,6 +1,6 @@
 "use client";
 
-import { createProblem, Difficulty } from "@/app/actions";
+import { createProblem } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -37,7 +37,7 @@ import { z } from "zod";
 import Editor from "../editor/rich-text/editor";
 import { ScrollArea } from "../ui/scroll-area";
 import { CreateProblemTestCaseForm } from "./test-case-form";
-import { Category } from "@/lib/types";
+import { Category, Difficulty } from "@/lib/types";
 
 const problemFormSchema = z.object({
   title: z
@@ -112,7 +112,7 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
         output: output,
         is_public: is_public,
       });
-      toast.success(status.message);
+      // toast.success(status.message);
     } catch (error) {
       toast.error("Something went wrong.");
     }

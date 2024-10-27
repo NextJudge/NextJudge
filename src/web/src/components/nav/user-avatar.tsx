@@ -8,18 +8,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 
 export default async function UserAvatar() {
   const session = await auth();
-  if (!session?.user) return null;
-  // TODO: Remove this console.log
-  console.log({
-    ...session,
-    expires: format(session.expires, "yyyy-MM-dd HH:mm:ss"),
-  });
+
   if (!session?.user) return null;
   if (!session.user.image) return null;
 
@@ -33,7 +27,7 @@ export default async function UserAvatar() {
             className="overflow-hidden rounded-full"
           >
             <Image
-              src={session.user.image}
+              src={session.user?.image}
               width={36}
               height={36}
               alt="Avatar"
@@ -42,7 +36,7 @@ export default async function UserAvatar() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{session.user.name}</DropdownMenuLabel>
+          <DropdownMenuLabel>{session.user?.name}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>

@@ -1,5 +1,15 @@
 # Data Layer
 
+
+## Authentication
+
+The data-layer, by itself, does not handle authentication and logins. There must be a seperate authentication handler that identifies and authenticates user with something like OAuth2, which makes a call to `/v1/create_login` to create the user in the data-layer database and return a JWT token which is handed to the user.
+
+Most endpoints require this JWT token (in the `Authorization` header).
+
+Many endpoints have the ability to specify a user `id` for the query - unless you are an admin, this is ignored and the user ID in the JWT token is used instead. For admins, specifying this in the query allows you to take the action against a specific user id,
+
+
 ## API Specification
 
 ### Users
@@ -316,6 +326,8 @@ Request Body:
 ```
 
 #### GET /v1/languages
+
+No authentication required
 
 Response Body:
 

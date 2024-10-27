@@ -14,11 +14,11 @@ import (
 )
 
 func addSubmissionRoutes(mux *goji.Mux) {
-	mux.HandleFunc(pat.Post("/v1/submissions"), postSubmission)
-	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id"), getSubmission)
-	mux.HandleFunc(pat.Get("/v1/user_submissions/:user_id"), getSubmissionsForUser)
-	mux.HandleFunc(pat.Get("/v1/user_problem_submissions/:user_id/:problem_id"), getProblemSubmissionsForUser)
-	mux.HandleFunc(pat.Patch("/v1/submissions/:submission_id"), updateSubmissionStatus)
+	mux.HandleFunc(pat.Post("/v1/submissions"), AuthRequired(postSubmission))
+	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id"), AuthRequired(getSubmission))
+	mux.HandleFunc(pat.Get("/v1/user_submissions/:user_id"), AuthRequired(getSubmissionsForUser))
+	mux.HandleFunc(pat.Get("/v1/user_problem_submissions/:user_id/:problem_id"), AuthRequired(getProblemSubmissionsForUser))
+	mux.HandleFunc(pat.Patch("/v1/submissions/:submission_id"), AtLeastJudgeRequired(updateSubmissionStatus))
 }
 
 type UpdateSubmissionStatusPatchBody struct {
@@ -45,6 +45,31 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
+
+	// User ID boilerplate
+	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if token == nil {
+		logrus.Error("Error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Error in token"}`)
+		return
+	}
+
+	userId := token.Id
+
+	if reqData.UserID != userId && reqData.UserID != uuid.Nil {
+		// Admins can access all users
+		if token.Role == AdminRoleEnum {
+			userId = reqData.UserID
+		} else {
+			logrus.Error("Unauthorized post submission")
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, `{"message":"Unauthorized"}`)
+			return
+		}
+	}
+
+	reqData.UserID = userId
 
 	problem, err := db.GetProblemByID(reqData.ProblemID)
 	if err != nil {
@@ -135,6 +160,22 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 		logrus.Warn("submission not found")
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprint(w, `{"code":"404", "message":"submission not found"}`)
+		return
+	}
+
+	// Validate that the submission belongs to this user
+	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if token == nil {
+		logrus.Error("Unauthorized get submission")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Error in token"}`)
+		return
+	}
+
+	if submission.UserID != token.Id && !(token.Role >= JudgeRoleEnum) {
+		logrus.Error("Unauthorized get submission")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, `{"message":"Unauthorized"}`)
 		return
 	}
 
@@ -275,6 +316,29 @@ func getSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Make sure the user has access to this
+	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if token == nil {
+		logrus.Error("Error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"Error in token"}`)
+		return
+	}
+
+	// THIS IS TEMP
+	// TODO
+	// TODO
+	// TODO
+	userId = token.Id
+
+	// Only admins can users that are not themselves
+	if userId != token.Id && token.Role != AdminRoleEnum {
+		logrus.Error("User trying to get data for a different user")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Authentication error"}`)
+		return
+	}
+
 	user, err := db.GetUserByID(userId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving user")
@@ -325,6 +389,23 @@ func getProblemSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
 		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		return
+	}
+
+	// Make sure the user has access to this
+	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if token == nil {
+		logrus.Error("Error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"Error in token"}`)
+		return
+	}
+
+	// Only admins can users that are not themselves
+	if userId != token.Id && token.Role != AdminRoleEnum {
+		logrus.Error("Authentication error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Authentication error"}`)
 		return
 	}
 

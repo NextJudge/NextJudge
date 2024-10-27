@@ -57,6 +57,7 @@ func main() {
 	mux.Use(JSONMiddleware)
 	mux.Use(c.Handler)
 
+	addAuthRoutes(mux)
 	addUserRoutes(mux)
 	addProblemRoutes(mux)
 	addSubmissionRoutes(mux)

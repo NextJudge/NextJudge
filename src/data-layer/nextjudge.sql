@@ -1,39 +1,3 @@
--- Auth.js required tables
-CREATE TABLE verification_token (
-  identifier TEXT NOT NULL,
-  expires TIMESTAMPTZ NOT NULL,
-  token TEXT NOT NULL,
- 
-  PRIMARY KEY (identifier, token)
-);
- 
-CREATE TABLE accounts (
-  id SERIAL,
-  "userId" INTEGER NOT NULL,
-  type VARCHAR(255) NOT NULL,
-  provider VARCHAR(255) NOT NULL,
-  "providerAccountId" VARCHAR(255) NOT NULL,
-  refresh_token TEXT,
-  access_token TEXT,
-  expires_at BIGINT,
-  id_token TEXT,
-  scope TEXT,
-  session_state TEXT,
-  token_type TEXT,
- 
-  PRIMARY KEY (id)
-);
- 
-CREATE TABLE sessions
-(
-  id SERIAL,
-  "userId" INTEGER NOT NULL,
-  expires TIMESTAMPTZ NOT NULL,
-  "sessionToken" VARCHAR(255) NOT NULL,
- 
-  PRIMARY KEY (id)
-);
-
 -- NextJudge Tables
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -57,9 +21,9 @@ CREATE TYPE difficulty as ENUM(
 
 CREATE TABLE "users" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  "password_hash" varchar,
-  "email" varchar(255) NOT NULL UNIQUE,
-  "name" varchar(255) NOT NULL UNIQUE,
+  "account_identifier" varchar(255) NOT NULL UNIQUE,
+  "email" varchar(255) NOT NULL,
+  "name" varchar(255) NOT NULL,
   "emailVerified" TIMESTAMPTZ,
   "image" TEXT,
   "join_date" timestamp,

@@ -45,10 +45,10 @@ export function SignUpCard({ children }: SignUpCardProps) {
         JSON.stringify(data)
       );
       const res = await signUpUser({ email, password, confirmPassword });
-      if (res.status === "error") {
-        toast.error(res.message);
-        return;
-      }
+      // if (res.status === "error") {
+      //   toast.error(res.message);
+      //   return;
+      // }
       toast("Account created successfully");
       router.push("/auth/login");
     } catch (error) {

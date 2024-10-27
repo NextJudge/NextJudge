@@ -7,6 +7,9 @@ services:
     environment:
       - ELASTIC_ENDPOINT=http://elasticsearch:9200
       - ELASTIC_ENABLED="${ELASTIC_ENABLED:-false}"
+      - JUDGE_PASSWORD=${JUDGE_PASSWORD}
+      - JWT_SIGNING_SECRET=${JWT_SIGNING_SECRET}
+      - AUTH_PROVIDER_PASSWORD=${AUTH_PROVIDER_PASSWORD}
     depends_on:
       db:
         condition: service_healthy
@@ -29,6 +32,7 @@ services:
       - RABBITMQ_PORT=5672
       - NEXTJUDGE_HOST=nextjudge-data-layer-dev
       - NEXTJUDGE_PORT=5000
+      - JUDGE_PASSWORD=${JUDGE_PASSWORD}
     profiles: [judge]
     depends_on:
       rabbitmq:

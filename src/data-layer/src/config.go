@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"log"
 	"net/url"
 	"os"
@@ -8,20 +9,24 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 )
 
 type config struct {
-	CORSOrigin        []string
-	Host              string
-	Port              int64
-	Username          string
-	Password          string
-	DBName            string
-	DBDriver          string
-	ElasticEndpoint   string
-	ProblemsIndex     string
-	CompetitionsIndex string
-	ElasticEnabled    bool
+	CORSOrigin           []string
+	Host                 string
+	Port                 int64
+	Username             string
+	Password             string
+	AuthProviderPassword []byte
+	JudgePassword        []byte
+	JwtSigningSecret     []byte
+	DBName               string
+	DBDriver             string
+	ElasticEndpoint      string
+	ProblemsIndex        string
+	CompetitionsIndex    string
+	ElasticEnabled       bool
 }
 
 var cfg config
@@ -92,6 +97,43 @@ func init() {
 		cfg.DBName = "nextjudge"
 	} else {
 		cfg.DBName = database
+	}
+
+	auth_provider_password := os.Getenv("AUTH_PROVIDER_PASSWORD")
+	if password == "" {
+		random := make([]byte, 64)
+		_, err := rand.Read(random)
+		if err != nil {
+			logrus.Fatal("Failed to create random password")
+		}
+		cfg.AuthProviderPassword = random
+	} else {
+		cfg.AuthProviderPassword = []byte(auth_provider_password)
+	}
+
+	judge_password := os.Getenv("JUDGE_PASSWORD")
+	if password == "" {
+		random := make([]byte, 64)
+		_, err := rand.Read(random)
+		if err != nil {
+			logrus.Fatal("Failed to create random password")
+		}
+		cfg.JudgePassword = random
+	} else {
+		cfg.JudgePassword = []byte(judge_password)
+	}
+
+	jwt_signing_secret := os.Getenv("JWT_SIGNING_SECRET")
+	if password == "" {
+		logrus.Warn("Generating random string for JWT SIGNING SECRET")
+		random := make([]byte, 64)
+		_, err := rand.Read(random)
+		if err != nil {
+			logrus.Fatal("Failed to create random password")
+		}
+		cfg.JwtSigningSecret = random
+	} else {
+		cfg.JwtSigningSecret = []byte(jwt_signing_secret)
 	}
 
 	elasticEndpoint := os.Getenv("ELASTIC_ENDPOINT")

@@ -58,3 +58,17 @@ bun dev
 ```
 
 4. Open [http://localhost:8080](http://localhost:8080) with your browser to see the result.
+
+
+# GitHub OAuth2
+
+Homepage URL
+```
+http://localhost:8080
+```
+
+Authorization callback URL
+```
+http://localhost:8080/api/auth/callback/github
+```
+

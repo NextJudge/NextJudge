@@ -1,7 +1,6 @@
 "use client";
 
 import { changeProfile } from "@/app/actions";
-import { AdminDetails } from "@/app/platform/admin/page";
 import {
   Form,
   FormControl,
@@ -19,6 +18,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Icons } from "../icons";
 import { Button } from "../ui/button";
+import { User } from "@/lib/types";
 
 const profileFormSchema = z.object({
   name: z
@@ -36,10 +36,10 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-export function ProfileForm({ userDetails }: { userDetails: AdminDetails }) {
+export function ProfileForm({ userDetails }: { userDetails: User }) {
   const defaultValues: Partial<ProfileFormValues> = {
     name: userDetails?.name,
-    password: userDetails?.password_hash ?? undefined,
+    password: "",
   };
   const [showPassword, setShowPassword] = useState(false);
 
@@ -49,29 +49,29 @@ export function ProfileForm({ userDetails }: { userDetails: AdminDetails }) {
     mode: "onChange",
   });
 
-  // TODO: Figure out how to update the session after this form is submitted
-  async function onSubmit(data: z.infer<typeof profileFormSchema>) {
-    try {
-      const { name, password } = JSON.parse(JSON.stringify(data));
-      const id = userDetails?.id;
-      if (!id) {
-        throw new Error("User ID not found.");
-      }
-      const newUser = await changeProfile({ id, name, password });
-      if (!newUser) {
-        throw new Error("An error occurred. Please try again later.");
-      }
-      form.reset();
-      form.clearErrors();
-      if (newUser.newProfile) {
-        form.setValue("password", newUser.newProfile.password);
-        form.setValue("name", newUser.newProfile.name);
-      }
-      toast(newUser.message);
-    } catch (error) {
-      toast.error("An error occurred. Please try again later.");
-    }
-  }
+  // // TODO: Figure out how to update the session after this form is submitted
+  // async function onSubmit(data: z.infer<typeof profileFormSchema>) {
+  //   try {
+  //     const { name, password } = JSON.parse(JSON.stringify(data));
+  //     const id = userDetails?.id;
+  //     if (!id) {
+  //       throw new Error("User ID not found.");
+  //     }
+  //     const newUser = await changeProfile({ id, name, password });
+  //     if (!newUser) {
+  //       throw new Error("An error occurred. Please try again later.");
+  //     }
+  //     form.reset();
+  //     form.clearErrors();
+  //     if (newUser.newProfile) {
+  //       form.setValue("password", newUser.newProfile.password);
+  //       form.setValue("name", newUser.newProfile.name);
+  //     }
+  //     toast(newUser.message);
+  //   } catch (error) {
+  //     toast.error("An error occurred. Please try again later.");
+  //   }
+  // }
 
   // toast({
   //   title: "You submitted the following values:",
@@ -83,7 +83,7 @@ export function ProfileForm({ userDetails }: { userDetails: AdminDetails }) {
   // });
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={() => {} /*form.handleSubmit(onSubmit)*/} className="space-y-8">
         <FormField
           control={form.control}
           name="name"

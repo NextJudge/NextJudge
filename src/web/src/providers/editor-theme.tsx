@@ -20,6 +20,9 @@ export interface ThemeContextType {
 const MEDIA = '(prefers-color-scheme: dark)'
 
 export const getSystemTheme = (e?: MediaQueryList | MediaQueryListEvent) => {
+    if (typeof window === 'undefined') {
+        return 'dark'
+    }
     if (!e) e = window.matchMedia(MEDIA)
     const isDark = e.matches
     const systemTheme = isDark ? 'dark' : 'light'
