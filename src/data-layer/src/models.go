@@ -33,10 +33,20 @@ type User struct {
 	AccountIdentifier string    `json:"account_identifier"`
 	Name              string    `json:"name"`
 	Email             string    `json:"email"`
-	EmailVerified     time.Time `json:"emailVerified" gorm:"column:emailVerified"`
+	EmailVerified     time.Time `json:"emailVerified"`
 	Image             string    `json:"image"`
 	JoinDate          time.Time `json:"join_date"`
 	IsAdmin           bool      `json:"is_admin"`
+}
+
+type UserWithPassword struct {
+	User
+	PasswordHash []byte `gorm:"column:password_hash"`
+	Salt         []byte
+}
+
+func (UserWithPassword) TableName() string {
+	return "users"
 }
 
 type Category struct {

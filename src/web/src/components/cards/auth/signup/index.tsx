@@ -44,11 +44,13 @@ export function SignUpCard({ children }: SignUpCardProps) {
       const { email, password, confirmPassword } = JSON.parse(
         JSON.stringify(data)
       );
+
+      // This is Next.js magic that calls out to the server to run this code
       const res = await signUpUser({ email, password, confirmPassword });
-      // if (res.status === "error") {
-      //   toast.error(res.message);
-      //   return;
-      // }
+      if (res.status === "error") {
+        toast.error(res.message);
+        return;
+      }
       toast("Account created successfully");
       router.push("/auth/login");
     } catch (error) {

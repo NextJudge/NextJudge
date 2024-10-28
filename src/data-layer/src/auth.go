@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+
+	"golang.org/x/crypto/argon2"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -20,6 +23,8 @@ var AUTH_ENABLED = true
 func addAuthRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/create_or_login_user"), createOrLoginUser)
 	mux.HandleFunc(pat.Post("/v1/login_judge"), loginJudge)
+	mux.HandleFunc(pat.Post("/v1/basic_register"), basicRegister)
+	mux.HandleFunc(pat.Post("/v1/basic_login"), basicLogin)
 }
 
 type CreateTokenResponse struct {
@@ -264,11 +269,175 @@ func loginJudge(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Fprint(w, string(respJSON))
-
 	} else {
 		logrus.Warn("Auth failure in creating user")
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprint(w, `{"error":"Unauthorized"}`)
+		return
+	}
+}
+
+type BasicUserPost struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func basicRegister(w http.ResponseWriter, r *http.Request) {
+	reqData := new(BasicUserPost)
+	reqBodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		logrus.WithError(err).Error("error reading request body")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
+		return
+	}
+
+	err = json.Unmarshal(reqBodyBytes, reqData)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+
+	accountIdentifier := "basic-" + reqData.Email
+
+	user, err := db.GetUserByAccountIdentifier(accountIdentifier)
+
+	// No such user
+	if user == nil && err == nil {
+
+		salt := make([]byte, 16)
+
+		_, err := rand.Read(salt)
+		if err != nil {
+			logrus.Error("User registration failed - could not create random number")
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, `{"error":"User registration failed"}`)
+			return
+		}
+
+		passwordHash := argon2.IDKey([]byte(reqData.Password), salt, 1, 64*1024, 4, 32)
+
+		newUserData := UserWithPassword{
+			User: User{
+				AccountIdentifier: accountIdentifier,
+				Email:             reqData.Email,
+			},
+			Salt:         salt,
+			PasswordHash: passwordHash,
+		}
+
+		newUser, err := db.CreateUserWithPasswordHash(&newUserData)
+
+		if err != nil {
+			logrus.Error("User registration failed - database failure")
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, `{"error":"User registration failed"}`)
+			return
+		}
+
+		// Now, create a token with this new user and return it
+		newToken, err := createToken(newUser.ID, UserRoleEnum)
+
+		if err != nil {
+			logrus.WithError(err).Error("error creating JWT token")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"message":"error creating JWT token"}`)
+			return
+		}
+
+		respData := CreateTokenResponse{
+			Token: newToken,
+			Id:    newUser.ID,
+		}
+
+		respJSON, err := json.Marshal(respData)
+		if err != nil {
+			logrus.WithError(err).Error("JSON parse error")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"message":"JSON parse error"}`)
+			return
+		}
+		fmt.Println("User creation success")
+		fmt.Fprint(w, string(respJSON))
+	} else {
+		if err != nil {
+			// Database error
+			logrus.WithError(err).Error("Database error")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"message":"Error"}`)
+			return
+		} else {
+			// User already exists
+			logrus.WithError(err).Error("User already exists")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"message":"User with that name already exists"}`)
+			return
+		}
+	}
+}
+
+func basicLogin(w http.ResponseWriter, r *http.Request) {
+	reqData := new(BasicUserPost)
+	reqBodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		logrus.WithError(err).Error("error reading request body")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
+		return
+	}
+
+	err = json.Unmarshal(reqBodyBytes, reqData)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+
+	accountIdentifier := "basic-" + reqData.Email
+	user, err := db.GetUserByAccountIdentifierWithPasswordHash(accountIdentifier)
+
+	if user == nil {
+		// Database error
+		logrus.WithError(err).Error("No such user or database error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Error"}`)
+		return
+	}
+
+	currentPasswordHash := argon2.IDKey([]byte(reqData.Password), user.Salt, 1, 64*1024, 4, 32)
+
+	if subtle.ConstantTimeCompare([]byte(currentPasswordHash), user.PasswordHash) == 1 {
+
+		newToken, err := createToken(user.ID, UserRoleEnum)
+
+		if err != nil {
+			logrus.WithError(err).Error("error creating JWT token")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"message":"error creating JWT token"}`)
+			return
+		}
+
+		respData := CreateTokenResponse{
+			Token: newToken,
+			Id:    user.ID,
+		}
+
+		respJSON, err := json.Marshal(respData)
+		if err != nil {
+			logrus.WithError(err).Error("JSON parse error")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"message":"JSON parse error"}`)
+			return
+		}
+		fmt.Println("Login Success", user.AccountIdentifier)
+		fmt.Fprint(w, string(respJSON))
+	} else {
+		logrus.Warn("Incorrect credential attempt")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, `{"error":"Incorrect credentials"}`)
 		return
 	}
 }

@@ -8,8 +8,7 @@ import { Resend } from "resend";
 import { ZodError } from "zod";
 import { auth, signIn } from "./auth";
 import { newsletterFormSchema } from "./validation";
-
-import { apiGetProblems as apiFetchProblems } from "@/lib/api";
+import { apiBasicSignUpUser } from "@/lib/api";
 
 export interface ReturnType {
   status: "error" | "success";
@@ -56,9 +55,7 @@ export async function sendEmail(formData: FormData): Promise<ReturnType> {
 }
 
 export async function signUpUser(data: SignUpFormValues) {
-  const { email, password } = data;
-
-  // const image = `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`;
+  return apiBasicSignUpUser(data)
 }
 
 

@@ -14,7 +14,7 @@ import { EditorThemeSelector } from "./editor-theme-select";
 import { convertToMonacoLanguageName } from "@/lib/utils";
 
 const templates: Record<string, string> = {
-  "c++": `#include <bits/stdc++.h>
+    "c++": `#include <bits/stdc++.h>
 using namespace std;
 
 int main()
@@ -24,7 +24,7 @@ int main()
 
 }
 `,
-  java: `import java.io.*;
+    java: `import java.io.*;
 import java.util.*;
 
 public class Solution {
@@ -36,7 +36,7 @@ public class Solution {
     }
 }
 `,
-  c: `#include <stdlib.h>
+    c: `#include <stdlib.h>
 #include <stdio.h>
 
 int main(int argc, char** argv) {
@@ -46,14 +46,14 @@ int main(int argc, char** argv) {
     return 0;
 }
 `,
-  kotlin: `import java.io.*
+    kotlin: `import java.io.*
 import java.util.*
 
 fun main(args: Array<String>) {
 
 }
 `,
-  typescript: `"use strict";
+    typescript: `"use strict";
 const printLine = (x: string) => {
   console.log(x);
 };
@@ -87,154 +87,174 @@ const main = () => {
     process.exit();
 };
 `,
-  python: ``,
-  pypy: ``,
+    python: ``,
+    pypy: ``,
 };
 
-export default function CodeEditor({
-  languages,
-  themes,
-  problemId,
-  setSubmissionId,
-  userId,
-  code,
-  setCode,
-  submissionLoading,
-  error,
-  submissionId,
-  handleSubmitCode,
-}: {
-  languages: Language[],
-  themes: any;
-  problemId: number;
-  setSubmissionId: (submissionId: number) => void;
-  userId: number;
-  code: string;
-  setCode: (code: string) => void;
-  submissionLoading: boolean;
-  error: string | null;
-  submissionId: number | null;
-  handleSubmitCode: (languageId: string, problemId: number) => Promise<void>;
-}) {
-  //   const [code, setCode] = useState<string>(templates["TypeScript"]);
-  const { theme, setTheme } = useContext(ThemeContext);
-  const [currentLanguage, setCurrentLanguage] = useState<Language>();
 
-  // Need to wait to do this - it updates parent component otherwise causing a crash
-  // setCode(templates[normalizeLanguageKey(languages[0].name)]);
-
-
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-
-  const getEditorValue = () => {
-    return editorRef.current?.getValue();
-  };
-
-  const handleEditorDidMount = (
-    editor: editor.IStandaloneCodeEditor,
-    monaco: Monaco
-  ) => {
-    editor.focus();
-
-    // add support for process
-    monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
-    monaco.languages.typescript.typescriptDefaults.addExtraLib(
-      `declare var process: NodeJS.Process;`
-    );
-    monaco.languages.typescript.typescriptDefaults.addExtraLib(
-      "node:readline/promises"
-    );
-    monaco.languages.typescript.typescriptDefaults.addExtraLib(
-      "node_modules/@types/node/index.d.ts"
-    );
-  };
-
-
-  const handleLanguageSelect = (language: Language) => {
-    setCurrentLanguage(language);
+function getLanguageTemplateCode(language: Language): string {
     if (templates[language.name]) {
-      setCode(templates[language.name]);
+        return templates[language.name];
     } else if (language.name === "javascript") {
-      setCode(templates["TypeScript"]);
+        return templates["typescript"]
     } else {
-      setCode("");
+        return ""
     }
-  };
+}
 
-  // TODO: Create a store for the editor options
-  const editorOptions = useMemo(
-    () => ({
-      ...defaultEditorOptions,
-    }),
-    []
-  );
+export default function CodeEditor({
+    languages,
+    themes,
+    problemId,
+    setSubmissionId,
+    code,
+    setCode,
+    submissionLoading,
+    error,
+    submissionId,
+    handleSubmitCode,
+}: {
+    languages: Language[],
+    themes: any;
+    problemId: number;
+    setSubmissionId: (submissionId: number) => void;
+    code: string;
+    setCode: (code: string) => void;
+    submissionLoading: boolean;
+    error: string | null;
+    submissionId: number | null;
+    handleSubmitCode: (languageId: string, problemId: number) => Promise<void>;
+}) {
+    //   const [code, setCode] = useState<string>(templates["TypeScript"]);
+    const { theme, setTheme } = useContext(ThemeContext);
+    const [currentLanguage, setCurrentLanguage] = useState<Language>(languages?.[3]);
 
-  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    await handleSubmitCode(currentLanguage?.id as string, problemId);
-  };
+    // Need to wait to do this - it updates parent component otherwise causing a crash
+    // setCode(templates[normalizeLanguageKey(languages[0].name)]);
 
-  return (
-    <div className="h-full overflow-y-scroll min-w-full">
-      <div className="flex justify-between">
-        <div className="justify-start my-2 px-2">
-          <EditorLanguageSelect
-            languages={languages}
-            onLanguageSelect={handleLanguageSelect}
-          />
-        </div>
-        <div className="flex justify-center my-2 px-2 gap-2">
-          <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={submissionLoading}
-            variant={error ? "destructive" : "ghost"}
-          >
-            {submissionLoading ? (
-              <div className="flex items-center justify-center gap-2">
-                <Icons.loader className="w-6 h-6 animate-spin" />
-                <p>Loading...</p>
-              </div>
-            ) : (
-              <>
-                {error ? (
-                  <div className="text-sm text-center">{error}</div>
-                ) : (
-                  <>Submit Code</>
-                )}
-              </>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setCode("");
-              toast.success("Editor cleared successfully!");
-            }}
-          >
-            Clear Editor
-          </Button>
-        </div>
-        <div className="justify-end my-2 px-2">
-          <EditorThemeSelector themes={themes} />
-        </div>
-      </div>
-      <Editor
-        loading={
-          <Icons.loader className="w-6 h-6 animate-spin text-orange-700" />
+
+    const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+
+    const getEditorValue = () => {
+        return editorRef.current?.getValue();
+    };
+
+    const handleEditorDidMount = (
+        editor: editor.IStandaloneCodeEditor,
+        monaco: Monaco
+    ) => {
+        editor.focus();
+
+        // add support for process
+        monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(
+            `declare var process: NodeJS.Process;`
+        );
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(
+            "node:readline/promises"
+        );
+        monaco.languages.typescript.typescriptDefaults.addExtraLib(
+            "node_modules/@types/node/index.d.ts"
+        );
+    };
+
+
+    const handleLanguageSelect = (language: Language) => {
+
+        if (currentLanguage) {
+            // Some logic to see if we should clear the editor - do so if user hasn't typed anything
+            const curr_template_stripped = getLanguageTemplateCode(currentLanguage).replace(/\s/g,'').trim()
+            console.log("here")
+            const curr_code_stripped = code.replace(/\s/g,'').trim()
+
+            if (curr_code_stripped === curr_template_stripped) {
+                console.log("What?")
+                setCode(getLanguageTemplateCode(language))
+            }
         }
-        language={convertToMonacoLanguageName(currentLanguage)}
-        defaultLanguage={currentLanguage?.name}
-        value={code}
-        theme={theme?.name}
-        className="min-h-screen w-[100%] overflow-y-scroll"
-        options={editorOptions}
-        onChange={(value) => {
-          // @ts-ignore
-          setCode(value);
-        }}
-        onMount={handleEditorDidMount}
-      />
-    </div>
-  );
+        else {
+            setCode(getLanguageTemplateCode(language))
+        }
+
+        setCurrentLanguage(language);
+
+    };
+
+    // TODO: Create a store for the editor options
+    const editorOptions = useMemo(
+        () => ({
+            ...defaultEditorOptions,
+        }),
+        []
+    );
+
+    const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        await handleSubmitCode(currentLanguage?.id as string, problemId);
+    };
+
+    return (
+        <div className="h-full overflow-y-scroll min-w-full">
+            <div className="flex justify-between">
+                <div className="justify-start my-2 px-2">
+                    <EditorLanguageSelect
+                        languages={languages}
+                        onLanguageSelect={handleLanguageSelect}
+                        defaultLanguage={currentLanguage}
+                    />
+                </div>
+                <div className="flex justify-center my-2 px-2 gap-2">
+                    <Button
+                        className="w-full"
+                        onClick={handleSubmit}
+                        disabled={submissionLoading}
+                        variant={error ? "destructive" : "ghost"}
+                    >
+                        {submissionLoading ? (
+                            <div className="flex items-center justify-center gap-2">
+                                <Icons.loader className="w-6 h-6 animate-spin" />
+                                <p>Loading...</p>
+                            </div>
+                        ) : (
+                            <>
+                                {error ? (
+                                    <div className="text-sm text-center">{error}</div>
+                                ) : (
+                                    <>Submit Code</>
+                                )}
+                            </>
+                        )}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            setCode("");
+                            toast.success("Editor cleared successfully!");
+                        }}
+                    >
+                        Clear Editor
+                    </Button>
+                </div>
+                <div className="justify-end my-2 px-2">
+                    <EditorThemeSelector themes={themes} />
+                </div>
+            </div>
+            <Editor
+                loading={
+                    <Icons.loader className="w-6 h-6 animate-spin text-orange-700" />
+                }
+                language={convertToMonacoLanguageName(currentLanguage)}
+                defaultLanguage={currentLanguage?.name}
+                value={code}
+                theme={theme?.name}
+                className="min-h-screen w-[100%] overflow-y-scroll"
+                options={editorOptions}
+                onChange={(value) => {
+                    // @ts-ignore
+                    setCode(value);
+                }}
+                onMount={handleEditorDidMount}
+            />
+        </div>
+    );
 }
