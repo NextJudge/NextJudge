@@ -24,7 +24,9 @@ CREATE TABLE "users" (
   "account_identifier" varchar(255) NOT NULL UNIQUE,
   "email" varchar(255) NOT NULL,
   "name" varchar(255) NOT NULL,
-  "emailVerified" TIMESTAMPTZ,
+  "password_hash" bytea,
+  "salt" bytea,
+  "email_verified" TIMESTAMPTZ,
   "image" TEXT,
   "join_date" timestamp,
   "is_admin" boolean

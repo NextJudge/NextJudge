@@ -1,3 +1,4 @@
+import { SignUpFormValues } from "@/types";
 import { Category, Language, Problem, Submission, User } from "./types";
 import { getBridgeUrl } from "./utils";
 
@@ -123,8 +124,54 @@ export async function apiGetRecentSubmissionsForProblem(token: string, problem_i
     }
     )
 
-    console.log(data)
     return data.json()
+}
+
+// Called server side
+export async function apiBasicSignUpUser(data: SignUpFormValues) {
+    try {
+        console.log("Sending request now to create account")
+        // const image = `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`;
+        const { email, password } = data;
+
+        const response = await fetch(
+            `${getBridgeUrl()}/v1/basic_register`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                email: email,
+                password: password,
+            }),
+        });
+
+        const jsonData = await response.json()
+
+        if (response.ok) {
+            return {
+                status: "success",
+                message: "User created!",
+            };
+        }
+
+        if(jsonData?.message.includes("User with that name already exists")) {
+            return {
+                status: "error",
+                message: "User already exists",
+            };
+        }
+
+        return {
+            status: "error",
+            message: "Error creating user",
+        };
+    } catch (e) {
+        return {
+            status: "error",
+            message: "Error creating user - try again later",
+        };
+    }
 }
 
 

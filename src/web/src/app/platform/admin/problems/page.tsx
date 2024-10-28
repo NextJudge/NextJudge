@@ -8,7 +8,7 @@ import Link from "next/link";
 import { columns } from "../../problems/components/columns";
 import { DataTable } from "../../problems/components/data-table";
 import { apiGetCategories, apiGetProblems } from "@/lib/api";
-import { Category, Problem } from "@/lib/types";
+import { Problem } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "NextJudge Admin - Problem Management",

@@ -4,7 +4,7 @@ import NextAuth, { User } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
-
+import { z } from "zod";
 
 // How we extend the User object to include additional fields
 // declare module "next-auth" {
@@ -19,44 +19,57 @@ import GitHub from "next-auth/providers/github";
 //   }
 // }
 
+
+
+
 const AUTH_PROVIDER_PASSWORD: string = process.env.AUTH_PROVIDER_PASSWORD as string
 
 const providers: Provider[] = [
     GitHub,
-    // Credentials({
-    //   credentials: {
-    //     password: { label: "Password", type: "password" },
-    //     email: { label: "Email", type: "email" },
-    //     confirmPassword: { label: "Confirm Password", type: "password" },
-    //   },
-    //   authorize: async (credentials, request): Promise<User | null> => {
-    //     try {
-    //       const { email, password } = AuthorizeSchema.parse(credentials);
-    //       const image = `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`;
-    //       const user = await prisma.users.findUnique({
-    //         where: { email },
-    //       });
+    Credentials({
+      credentials: {
+        password: { label: "Password", type: "password" },
+        email: { label: "Email", type: "email" },
+        confirmPassword: { label: "Confirm Password", type: "password" },
+      },
+      authorize: async (credentials, request): Promise<User | null> => {
+        // This callback is called on login attempt
+        // Registration is handled a separate form - look for signUpUser function in codebase
+        try {
+          const { email, password } = AuthorizeSchema.parse(credentials);
+          const image = `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`;
 
-    //       if (!user) {
-    //         return null;
-    //       }
+          const response = await fetch(
+              `${getBridgeUrl()}/v1/basic_login`, {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                  email: email,
+                  password: password,
+              }),
+          });
 
-    //       // TODO: Secure this
-    //       if (user.password_hash !== password) {
-    //         return null;
-    //       }
+          if (!response.ok) {
+            return null
+          }
 
-    //       return {
-    //         id: user.id.toString(),
-    //         email: user.email,
-    //         name: user.name,
-    //         image: image,
-    //       };
-    //     } catch (error) {
-    //       return null;
-    //     }
-    //   },
-    // }),
+          const jsonData: any = await response.json()
+
+          // TODO - check if we need these values
+          return {
+            // email: user.email,
+            // name: user.name,
+            image: image,
+            nextjudge_token: jsonData["token"],
+            nextjudge_id: jsonData["id"]
+          };
+        } catch (error) {
+          return null;
+        }
+      },
+    }),
 ];
 
 export const providerMap = providers.map((provider) => {
@@ -109,7 +122,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return session;
         },
         async signIn({ user, account, profile }) {
-            console.log("Sign-in".repeat(100))
             if (account?.provider === "github") {
                 console.log("Reaching out")
                 const user_id = `github-${account.providerAccountId}`
@@ -139,25 +151,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 } catch (e){
                     throw e
                 }
-
-                // const existsUser = await prisma.users.findFirst({
-                //   where: {
-                //     email: profile?.email ?? "",
-                //   },
-                // });
-
-                // if (!existsUser) {
-                //   await prisma.users.create({
-                //     data: {
-                //       id: parseInt(profile?.id as string),
-                //       email: user.email as string,
-                //       name: user.name as string,
-                //       image: user.image as string,
-                //       join_date: new Date(),
-                //     },
-                //   });
-                // }
+            } else if (account?.provider === "credentials") {
+              // The user is the object returned from authorize callback
+              // profile object is the raw body of the HTTP POST submission
+              if (user.nextjudge_token) {
+                return true
+              } else {
+                console.log("how did we get here ".repeat(1000))
+              }
             }
+
             return false;
         },
     },

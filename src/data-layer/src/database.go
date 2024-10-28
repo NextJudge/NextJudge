@@ -66,6 +66,30 @@ func NewDatabase() (*Database, error) {
 	return &Database{NextJudgeDB: db}, nil
 }
 
+func (d *Database) GetUserByAccountIdentifier(accountIdentifier string) (*User, error) {
+	user := &User{}
+	err := db.NextJudgeDB.Where("account_identifier = ?", accountIdentifier).First(user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
+func (d *Database) GetUserByAccountIdentifierWithPasswordHash(accountIdentifier string) (*UserWithPassword, error) {
+	user := &UserWithPassword{}
+	err := db.NextJudgeDB.Where("account_identifier = ?", accountIdentifier).First(user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
 func (d *Database) GetOrCreateUserByAccountIdentifier(newUserData *User) (*User, error) {
 	var user User
 	err := d.NextJudgeDB.Where(User{AccountIdentifier: newUserData.AccountIdentifier}).FirstOrCreate(&user, newUserData).Error
@@ -79,6 +103,28 @@ func (d *Database) CreateUser(user *User) (*User, error) {
 		return nil, err
 	}
 	return user, nil
+}
+
+func (d *Database) CreateUserWithPasswordHash(user *UserWithPassword) (*User, error) {
+	user.JoinDate = time.Now()
+
+	err := d.NextJudgeDB.Create(user).Error
+	if err != nil {
+		return nil, err
+	}
+
+	response := &User{
+		ID:                user.ID,
+		AccountIdentifier: user.AccountIdentifier,
+		Email:             user.Email,
+		Name:              user.Name,
+		Image:             user.Image,
+		EmailVerified:     user.EmailVerified,
+		JoinDate:          user.JoinDate,
+		IsAdmin:           user.IsAdmin,
+	}
+
+	return response, nil
 }
 
 func (d *Database) GetUsers() ([]User, error) {
