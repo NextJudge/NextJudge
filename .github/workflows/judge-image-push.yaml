@@ -64,7 +64,7 @@ jobs:
             type=sha
 
       - name: Test version
-        run: echo {{ steps.meta-base.outputs.version }}
+        run: echo ${{ steps.meta-base.outputs.version }}
 
       - name: Normal image
         uses: docker/build-push-action@v6
@@ -72,7 +72,7 @@ jobs:
           file: src/judge/Dockerfile.monolith
           context: src/judge/
           build-args: |
-            BASEJUDGE={{ steps.meta-judge.outputs.version }}
+            BASEJUDGE=${{ steps.meta-judge.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: true
