@@ -69,7 +69,7 @@ jobs:
           file: src/judge/Dockerfile.monolith
           context: src/judge/
           build-args: |
-            BASEJUDGE=ghcr.io/${{ github.repository_owner }}/judge:latest
+            BASEJUDGE=ghcr.io/nextjudge/basejudge:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: true
