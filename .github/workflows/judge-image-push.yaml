@@ -63,16 +63,13 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
 
-      - name: Test version
-        run: echo ${{ steps.meta-base.outputs.version }}
-
       - name: Normal image
         uses: docker/build-push-action@v6
         with:
           file: src/judge/Dockerfile.monolith
           context: src/judge/
           build-args: |
-            BASEJUDGE=${{ steps.meta-judge.outputs.version }}
+            BASEJUDGE=ghcr.io/${{ github.repository_owner }}/judge:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: true
