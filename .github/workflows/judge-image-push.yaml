@@ -38,7 +38,7 @@ jobs:
         id: meta-base
         uses: docker/metadata-action@v5.5.1
         with:
-          images: ghcr.io/${{ github.repository }}/basejudge
+          images: ghcr.io/${{ github.repository_owner }}/basejudge
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
@@ -58,13 +58,13 @@ jobs:
         id: meta-judge
         uses: docker/metadata-action@v5.5.1
         with:
-          images: ghcr.io/${{ github.repository }}/judge
+          images: ghcr.io/${{ github.repository_owner }}/judge
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
 
       - name: Test version
-        run: echo {{ steps.meta-judge.outputs.version }}
+        run: echo {{ steps.meta-base.outputs.version }}
 
       - name: Normal image
         uses: docker/build-push-action@v6
