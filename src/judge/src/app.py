@@ -551,10 +551,6 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             "--bindmount", f"{environment.top_level_dir_build_dir}:{environment.inside_chroot_build_dir}", # Map build dir as read/write
             "--bindmount", f"{environment.top_level_dir_executable_dir}:{environment.inside_chroot_executable_dir}", # Map executable dir as read/write
 
-            "--bindmount", f"/chroot/home/NEXTJUDGE_USER/.cache:/home/NEXTJUDGE_USER/.cache", # Map build dir as read/write
-            # '--mount', 'none:/home/NEXTJUDGE_USER/.cache:tmpfs:size=419430400', # // Mount /tmp as tmpfs, make it larger than default (4194304)
-
-
             # // Readonly mounts
             # // "--bindmount_ro", `/dev/zero:/dev/zero`,
             "--bindmount_ro", f"/dev/null",

@@ -2,7 +2,7 @@
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-# Build the basejudge
+# # Build the basejudge
 cd $SCRIPT_DIR
 docker build -f Dockerfile.newbase --target prod -t basejudge:prod .
 # Build the judge

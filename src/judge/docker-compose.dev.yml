@@ -1,6 +1,6 @@
 services:
   nextjudge-judge-dev:
-    build: 
+    build:
       dockerfile: ./Dockerfile.monolith
       context: .
       args:
