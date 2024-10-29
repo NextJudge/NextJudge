@@ -6,7 +6,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd $SCRIPT_DIR
 docker build -f Dockerfile.newbase --target prod -t basejudge:prod .
 # Build the judge
-docker build -f Dockerfile.monolith --build-arg USAGE=prod -t nextjudge-judge-test .
+docker build -f Dockerfile.monolith --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge-test .
 
 
 if [ -z "$1" ];

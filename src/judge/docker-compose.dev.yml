@@ -4,7 +4,7 @@ services:
       dockerfile: ./Dockerfile.monolith
       context: .
       args:
-        - USAGE=dev
+        - BASEJUDGE=basejudge:dev
     privileged: true
     volumes:
       - ./src/app.py:/app/app.py:ro

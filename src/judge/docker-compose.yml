@@ -4,6 +4,6 @@ services:
       dockerfile: ./Dockerfile.monolith
       context: .
       args:
-        - USAGE=prod
+        - BASEJUDGE=basejudge:prod
     image: nextjudge/judge
     privileged: true
