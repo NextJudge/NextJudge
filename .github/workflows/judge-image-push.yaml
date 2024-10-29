@@ -43,7 +43,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
 
-      - name: Normal image
+      - name: Base image
         uses: docker/build-push-action@v6
         with:
           file: src/judge/Dockerfile.newbase
@@ -63,7 +63,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
 
-      - name: Normal image
+      - name: Full image
         uses: docker/build-push-action@v6
         with:
           file: src/judge/Dockerfile.monolith
@@ -73,4 +73,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: true
-          tags: ${{ steps.meta-base.outputs.tags }}
+          tags: ${{ steps.meta-judge.outputs.tags }}
