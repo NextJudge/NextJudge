@@ -1,0 +1,9 @@
+services:
+  pytest:
+    build:
+      dockerfile: ./Dockerfile.dev.tests
+      context: .
+    image: nextjudge-judge-test-dev
+    privileged: true
+    volumes:
+      - ./src/app.py:/app/src/app.py:ro

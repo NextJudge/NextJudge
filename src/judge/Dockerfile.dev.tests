@@ -1,10 +1,10 @@
-FROM nextjudge-judge-test
+FROM nextjudge-judge-test-dev
 
 WORKDIR /app
 
 RUN mkdir -p /app/src/
-RUN mv /app/languages.toml /app/app.py /app/src/
-RUN touch /app/src/__init__.py
+RUN ln -s /app/languages.toml /app/src/languages.toml
+# RUN touch /app/src/__init__.py
 
 COPY test-requirements.txt ./
 RUN pip install -r test-requirements.txt --break-system-packages

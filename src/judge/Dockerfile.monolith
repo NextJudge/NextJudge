@@ -13,10 +13,12 @@ RUN useradd NEXTJUDGE_USER -u 99999 -g 99999 -s /bin/bash
 USER NEXTJUDGE_USER
 WORKDIR /home/NEXTJUDGE_USER
 
+# Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal -y
+# Install Golang
 RUN wget https://go.dev/dl/go1.22.1.linux-amd64.tar.gz && tar -C /home/NEXTJUDGE_USER -xzf go1.22.1.linux-amd64.tar.gz
-# # Make go compile the stdlib now, and not on the first use of the go build command
-RUN /home/NEXTJUDGE_USER/go/bin/go install std
+# Make go compile the stdlib now, and not on the first use of the go build command
+RUN GOROOT=/home/NEXTJUDGE_USER/go GODEBUG=installgoroot=all /home/NEXTJUDGE_USER/go/bin/go install std
 
 
 
@@ -106,7 +108,8 @@ version = "1.22.1"
 extension = "go"
 script= """
 #!/bin/sh
-HOME=/home/NEXTJUDGE_USER /home/NEXTJUDGE_USER/go/bin/go build -o /executable/main {IN_FILE}
+mkdir -p /tmp/.cache/go-cache
+GOCACHE=/tmp/.cache/go-cache GOROOT=/home/NEXTJUDGE_USER/go GODEBUG=installgoroot=all HOME=/home/NEXTJUDGE_USER /home/NEXTJUDGE_USER/go/bin/go build -o /executable/main {IN_FILE}
 """
 
 
