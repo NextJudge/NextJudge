@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - 'main'
 
 env:
   REGISTRY: ghcr.io
@@ -41,7 +41,6 @@ jobs:
           images: ghcr.io/${{ github.repository }}/basejudge
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=branch,format=branch-${{ github.ref_name }}
             type=sha
 
       - name: Normal image
@@ -62,7 +61,6 @@ jobs:
           images: ghcr.io/${{ github.repository }}/judge
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=branch,format=branch-${{ github.ref_name }}
             type=sha
 
       - name: Test version
