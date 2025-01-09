@@ -23,10 +23,12 @@ type config struct {
 	JwtSigningSecret     []byte
 	DBName               string
 	DBDriver             string
+	RabbitMQHost         string
 	ElasticEndpoint      string
 	ProblemsIndex        string
 	CompetitionsIndex    string
 	ElasticEnabled       bool
+	AuthDisabled         bool
 }
 
 var cfg config
@@ -87,7 +89,7 @@ func init() {
 
 	password := os.Getenv("DB_PASSWORD")
 	if password == "" {
-		cfg.Password = "example"
+		logrus.Fatal("Must specify a DB_PASSWORD")
 	} else {
 		cfg.Password = password
 	}
@@ -101,6 +103,7 @@ func init() {
 
 	auth_provider_password := os.Getenv("AUTH_PROVIDER_PASSWORD")
 	if password == "" {
+		logrus.Warn("Generating random string for AUTH PROVIDER PASSWORD")
 		random := make([]byte, 64)
 		_, err := rand.Read(random)
 		if err != nil {
@@ -113,6 +116,7 @@ func init() {
 
 	judge_password := os.Getenv("JUDGE_PASSWORD")
 	if password == "" {
+		logrus.Warn("Generating random string for JUDGE PASSWORD")
 		random := make([]byte, 64)
 		_, err := rand.Read(random)
 		if err != nil {
@@ -134,6 +138,13 @@ func init() {
 		cfg.JwtSigningSecret = random
 	} else {
 		cfg.JwtSigningSecret = []byte(jwt_signing_secret)
+	}
+
+	rabbitMQHost := os.Getenv("RABBITMQ_HOST")
+	if rabbitMQHost == "" {
+		cfg.RabbitMQHost = "localhost"
+	} else {
+		cfg.RabbitMQHost = rabbitMQHost
 	}
 
 	elasticEndpoint := os.Getenv("ELASTIC_ENDPOINT")
@@ -162,5 +173,13 @@ func init() {
 		cfg.ElasticEnabled = true
 	} else {
 		cfg.ElasticEnabled = false
+	}
+
+	authDisabled := os.Getenv("AUTH_DISABLED")
+	if authDisabled == "true" {
+		logrus.Warn(strings.Repeat("AUTHENTICATION DISABLED\n", 10))
+		cfg.AuthDisabled = true
+	} else {
+		cfg.AuthDisabled = false
 	}
 }

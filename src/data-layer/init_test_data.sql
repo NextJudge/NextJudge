@@ -48,7 +48,7 @@ VALUES
 ('Invert a String',     'Given a string, print the reverse',    10,     (SELECT "id" FROM "users" WHERE name='JohnEldenRing'),  'EASY',         timestamp '2024-03-03 10:00:00'),
 ('Add two numbers',     'Given two numbers, print the sum',     5,      (SELECT "id" FROM "users" WHERE name='JohnDarksouls'),  'VERY HARD',    timestamp '2024-03-04 10:00:00');
 
-INSERT INTO "test_cases" (problem_id, input, expected_output, is_public)
+INSERT INTO "test_cases" (problem_id, input, expected_output, hidden)
 VALUES
 ((SELECT "id" FROM "problems" WHERE title='Invert a String'),     'abc',      'cba',  'TRUE'),
 ((SELECT "id" FROM "problems" WHERE title='Invert a String'),     '123',      '321',  'FALSE'),

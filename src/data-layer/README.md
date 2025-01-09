@@ -133,7 +133,7 @@ Response Body:
         "upload_date": "2024-02-14T06:26:55.12794Z",
         "test_cases": [
             {
-                "is_public": false,
+                "hidden": false,
                 "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                 "input": "abc",
                 "expected_output": "cba"
@@ -161,7 +161,7 @@ Request Body:
     "user_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
     "test_cases": [
         {
-            "is_public": false,
+            "hidden": false,
             "input": "abc",
             "expected_output": "cba"
         },
@@ -183,7 +183,7 @@ Response Body:
     "test_cases": [
         {
             "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
-            "is_public": false,
+            "hidden": false,
             "input": "abc",
             "expected_output": "cba"
         },
@@ -214,7 +214,7 @@ Response Body:
     "test_cases": [
         {
             "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
-            "is_public": false,
+            "hidden": false,
             "input": "abc",
             "expected_output": "cba"
         },
@@ -400,7 +400,7 @@ Response Body:
             "test_cases": [
                 {
                     "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
-                    "is_public": false,
+                    "hidden": false,
                     "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                     "input": "abc",
                     "expected_output": "cba"
@@ -423,7 +423,7 @@ Response Body:
             "test_cases": [
                 {
                     "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
-                    "is_public": false,
+                    "hidden": false,
                     "problem_id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
                     "input": "2 1",
                     "expected_output": "3"

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -77,7 +76,7 @@ func NewElasticSearch() (*ElasticSearch, error) {
 	}, nil
 }
 
-func (es *ElasticSearch) IndexProblem(problem *Problem) error {
+func (es *ElasticSearch) IndexProblem(problem *ProblemDescription) error {
 	esDocument := map[string]string{
 		"Title":  problem.Title,
 		"Prompt": problem.Prompt,
@@ -99,53 +98,54 @@ func (es *ElasticSearch) IndexProblem(problem *Problem) error {
 	return nil
 }
 
-func (es *ElasticSearch) SearchProblems(ctx context.Context, query string) ([]Problem, error) {
-	esQuery := `
-    {
-        "query": {
-            "multi_match": {
-                "query": "%s",
-                "fields": ["Title", "Prompt"]
-            }
-        }
-    }`
-	res, err := es.ElasticSearchClient.Search(
-		es.ElasticSearchClient.Search.WithContext(ctx),
-		es.ElasticSearchClient.Search.WithIndex(cfg.ProblemsIndex),
-		es.ElasticSearchClient.Search.WithBody(strings.NewReader(fmt.Sprintf(esQuery, query))),
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		return nil, err
-	}
+func (es *ElasticSearch) SearchProblems(ctx context.Context, query string) ([]ProblemDescription, error) {
+	// esQuery := `
+	// {
+	//     "query": {
+	//         "multi_match": {
+	//             "query": "%s",
+	//             "fields": ["Title", "Prompt"]
+	//         }
+	//     }
+	// }`
+	// res, err := es.ElasticSearchClient.Search(
+	// 	es.ElasticSearchClient.Search.WithContext(ctx),
+	// 	es.ElasticSearchClient.Search.WithIndex(cfg.ProblemsIndex),
+	// 	es.ElasticSearchClient.Search.WithBody(strings.NewReader(fmt.Sprintf(esQuery, query))),
+	// )
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// defer res.Body.Close()
+	// if res.IsError() {
+	// 	return nil, err
+	// }
 
-	var result map[string]interface{}
-	err = json.NewDecoder(res.Body).Decode(&result)
-	if err != nil {
-		return nil, err
-	}
+	// var result map[string]interface{}
+	// err = json.NewDecoder(res.Body).Decode(&result)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	hits := result["hits"].(map[string]interface{})["hits"].([]interface{})
-	problems := []Problem{}
-	for _, hit := range hits {
-		doc := hit.(map[string]interface{})
-		id := doc["_id"].(string)
-		problemId, err := strconv.Atoi(id)
-		if err != nil {
-			return nil, err
-		}
-		problem, err := db.GetProblemByID(problemId)
-		if err != nil {
-			return nil, err
-		}
-		if problem != nil {
-			problems = append(problems, *problem)
-		}
-	}
-	return problems, nil
+	// hits := result["hits"].(map[string]interface{})["hits"].([]interface{})
+	// problems := []ProblemDescription{}
+	// for _, hit := range hits {
+	// 	doc := hit.(map[string]interface{})
+	// 	id := doc["_id"].(string)
+	// 	problemId, err := strconv.Atoi(id)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	problem, err := db.GetProblemDescriptionByID(problemId)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if problem != nil {
+	// 		problems = append(problems, *problem)
+	// 	}
+	// }
+	// return problems, nil
+	return nil, nil
 }
 
 func (es *ElasticSearch) DeleteProblem(problemId string) error {

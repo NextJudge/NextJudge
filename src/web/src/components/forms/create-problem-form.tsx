@@ -101,6 +101,7 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
       const { title, prompt, timeout, difficulty, input, output, is_public } =
         JSON.parse(JSON.stringify(data));
       const parsed: Difficulty = difficulty as Difficulty;
+
       const status = await createProblem({
         categories: selectedCategories.map((c) => c.id),
         difficulty: parsed,
@@ -112,7 +113,8 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
         output: output,
         is_public: is_public,
       });
-      // toast.success(status.message);
+
+      toast.success(status.message);
     } catch (error) {
       toast.error("Something went wrong.");
     }

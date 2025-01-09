@@ -17,37 +17,37 @@ type Database struct {
 }
 
 type NextJudgeDB interface {
-	GetUsers() ([]User, error)
-	CreateUser(user *User) (*User, error)
-	GetUserByID(userId uuid.UUID) (*User, error)
-	GetUserByUsername(username string) (*User, error)
-	GetUserByEmail(email string) (*User, error)
-	UpdateUser(user *User) error
-	DeleteUser(user *User) error
-	GetCategories() ([]Category, error)
-	CreateProblem(problem *Problem) (*Problem, error)
-	GetProblems() ([]Problem, error)
-	GetProblemByID(problemId int) (*Problem, error)
-	GetPublicProblemByID(problemId int) (*Problem, error)
-	GetProblemByTitle(title string) (*Problem, error)
-	DeleteProblem(problem *Problem) error
-	CreateSubmission(submission *Submission) (*Submission, error)
-	GetSubmission(submissionId uuid.UUID) (*Submission, error)
-	GetSubmissionsByUserID(userID uuid.UUID) ([]Submission, error)
-	GetProblemSubmissionsByUserID(userId uuid.UUID, problemId int) ([]Submission, error)
-	UpdateSubmission(submission *Submission) error
-	CreateLanguage(language *Language) (*Language, error)
-	GetLanguages() ([]Language, error)
-	GetLanguageByNameAndVersion(name string, version string) (*Language, error)
-	GetLanguage(id string) (*Language, error)
-	DeleteLanguage(language *Language) error
-	GetTestCase(testcaseId uuid.UUID) (*TestCase, error)
-	GetCompetitions() ([]Competition, error)
-	GetCompetitionByID(competitionId uuid.UUID) (*Competition, error)
-	GetCompetitionByTitle(title string) (*Competition, error)
-	CreateCompetition(competition *Competition) (*Competition, error)
-	UpdateCompetition(competition *Competition) error
-	DeleteCompetition(competition *Competition) error
+	// GetUsers() ([]User, error)
+	// CreateUser(user *User) (*User, error)
+	// GetUserByID(userId uuid.UUID) (*User, error)
+	// GetUserByUsername(username string) (*User, error)
+	// GetUserByEmail(email string) (*User, error)
+	// UpdateUser(user *User) error
+	// DeleteUser(user *User) error
+	// GetCategories() ([]Category, error)
+	// CreateProblem(problem *ProblemDescription) (*ProblemDescription, error)
+	// GetProblems() ([]ProblemDescription, error)
+	// GetProblemDescriptionByID(problemId int) (*ProblemDescription, error)
+	// GetPublicProblemByID(problemId int) (*ProblemDescription, error)
+	// GetProblemByTitle(title string) (*ProblemDescription, error)
+	// DeleteProblem(problem *ProblemDescription) error
+	// CreateSubmission(submission *Submission) (*Submission, error)
+	// GetSubmission(submissionId uuid.UUID) (*Submission, error)
+	// GetSubmissionsByUserID(userID uuid.UUID) ([]Submission, error)
+	// GetProblemSubmissionsByUserID(userId uuid.UUID, problemId int) ([]Submission, error)
+	// UpdateSubmission(submission *Submission) error
+	// CreateLanguage(language *Language) (*Language, error)
+	// GetLanguages() ([]Language, error)
+	// GetLanguageByNameAndVersion(name string, version string) (*Language, error)
+	// GetLanguage(id string) (*Language, error)
+	// DeleteLanguage(language *Language) error
+	// GetTestCase(testcaseId uuid.UUID) (*TestCase, error)
+	// GetCompetitions() ([]Event, error)
+	// GetCompetitionByID(competitionId uuid.UUID) (*Event, error)
+	// GetCompetitionByTitle(title string) (*Event, error)
+	// CreateCompetition(competition *Event) (*Event, error)
+	// UpdateCompetition(competition *Event) error
+	// DeleteCompetition(competition *Event) error
 }
 
 func NewDatabase() (*Database, error) {
@@ -63,7 +63,34 @@ func NewDatabase() (*Database, error) {
 		return nil, err
 	}
 
-	return &Database{NextJudgeDB: db}, nil
+	nextjudgeDB := &Database{NextJudgeDB: db}
+
+	err = SetupDatabase(nextjudgeDB)
+	if err != nil {
+		return nil, err
+	}
+
+	return nextjudgeDB, nil
+}
+
+// Initial setup of database
+// Adds the "General Event"
+func SetupDatabase(db *Database) error {
+	event, err := db.GetEventByID(getGeneralEventID())
+	if err != nil {
+		return err
+	}
+	// Create Event ID 1 on the initial setup
+	if event == nil {
+		db.CreateEvent(&EventWithProblems{
+			Event: Event{
+				Title:       "Problem List",
+				Description: "Public Problems",
+			},
+		})
+	}
+
+	return nil
 }
 
 func (d *Database) GetUserByAccountIdentifier(accountIdentifier string) (*User, error) {
@@ -199,7 +226,7 @@ func (d *Database) GetCategories() ([]Category, error) {
 
 func (d *Database) GetProblemCategories(problemId int) ([]Category, error) {
 	categories := []Category{}
-	err := db.NextJudgeDB.Model(&Problem{ID: problemId}).Association("Categories").Find(&categories)
+	err := db.NextJudgeDB.Model(&ProblemDescription{ID: problemId}).Association("Categories").Find(&categories)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +245,7 @@ func (d *Database) GetCategoryByID(categoryId uuid.UUID) (*Category, error) {
 	return category, nil
 }
 
-func (d *Database) CreateProblem(problem *Problem) (*Problem, error) {
+func (d *Database) CreateProblemDescription(problem *ProblemDescriptionExt) (*ProblemDescriptionExt, error) {
 	err := d.NextJudgeDB.Create(problem).Error
 	if err != nil {
 		return nil, err
@@ -226,30 +253,18 @@ func (d *Database) CreateProblem(problem *Problem) (*Problem, error) {
 	return problem, nil
 }
 
-func (d *Database) GetProblems() ([]Problem, error) {
-	problems := []Problem{}
-	err := d.NextJudgeDB.Preload("Categories").Find(&problems).Error
-	if err != nil {
-		return nil, err
-	}
-	return problems, nil
-}
+// func (d *Database) GetProblemDescriptions() ([]ProblemDescription, error) {
+// 	problems := []ProblemDescription{}
+// 	err := d.NextJudgeDB.Preload("Categories").Find(&problems).Error
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return problems, nil
+// }
 
-func (d *Database) GetProblemByID(problemId int) (*Problem, error) {
-	problem := &Problem{}
-	err := d.NextJudgeDB.Model(&Problem{}).Preload("Categories").Preload("TestCases").First(problem, problemId).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return problem, nil
-}
-
-func (d *Database) GetPublicProblemByID(problemId int) (*Problem, error) {
-	problem := &Problem{}
-	err := d.NextJudgeDB.Model(&Problem{}).Preload("Categories").Preload("TestCases", "is_public = ?", true).First(problem, problemId).Error
+func (d *Database) GetProblemDescriptionByID(problemId int) (*ProblemDescriptionExt, error) {
+	problem := &ProblemDescriptionExt{}
+	err := d.NextJudgeDB.Model(&ProblemDescriptionExt{}).Preload("Categories").Preload("TestCases").First(problem, problemId).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -259,9 +274,21 @@ func (d *Database) GetPublicProblemByID(problemId int) (*Problem, error) {
 	return problem, nil
 }
 
-func (d *Database) GetProblemByTitle(title string) (*Problem, error) {
-	problem := &Problem{}
-	err := d.NextJudgeDB.Model(&Problem{}).Preload("TestCases").Where("title = ?", title).First(problem).Error
+// func (d *Database) GetPublicProblemDescriptionByID(problemId int) (*ProblemDescriptionExt, error) {
+// 	problem := &ProblemDescriptionExt{}
+// 	err := d.NextJudgeDB.Model(&ProblemDescriptionExt{}).Preload("Categories").Preload("TestCases", "hidden = ?", true).First(problem, problemId).Error
+// 	if err != nil {
+// 		if err == gorm.ErrRecordNotFound {
+// 			return nil, nil
+// 		}
+// 		return nil, err
+// 	}
+// 	return problem, nil
+// }
+
+func (d *Database) GetProblemDescriptionByTitle(title string) (*ProblemDescription, error) {
+	problem := &ProblemDescription{}
+	err := d.NextJudgeDB.Model(&ProblemDescription{}).Where("title = ?", title).First(problem).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -271,7 +298,19 @@ func (d *Database) GetProblemByTitle(title string) (*Problem, error) {
 	return problem, nil
 }
 
-func (d *Database) DeleteProblem(problem *Problem) error {
+func (d *Database) GetProblemDescriptionByIdentifer(title string) (*ProblemDescription, error) {
+	problem := &ProblemDescription{}
+	err := d.NextJudgeDB.Model(&ProblemDescription{}).Where("identifier = ?", title).First(problem).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return problem, nil
+}
+
+func (d *Database) DeleteProblem(problem *ProblemDescriptionExt) error {
 	err := db.NextJudgeDB.Delete(problem).Error
 	if err != nil {
 		return err
@@ -290,9 +329,11 @@ func (d *Database) CreateSubmission(submission *Submission) (*Submission, error)
 
 func (d *Database) GetSubmission(submissionId uuid.UUID) (*Submission, error) {
 	submission := &Submission{}
-	err := db.NextJudgeDB.Preload("Language").Preload("Problem", func(db *gorm.DB) *gorm.DB {
-		return db.Select("ID, Title")
-	}).First(submission, submissionId).Error
+	// Preload("Language").Preload("Problem", func(db *gorm.DB) *gorm.DB {
+	// 	return db.Select("id, problem_id")
+	// })
+	err := db.NextJudgeDB.Preload("Language").Preload("Problem").First(submission, submissionId).Error
+
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -402,8 +443,8 @@ func (d *Database) GetTestCase(testcaseId uuid.UUID) (*TestCase, error) {
 	return testCase, nil
 }
 
-func (d *Database) GetCompetitions() ([]Competition, error) {
-	competitions := []Competition{}
+func (d *Database) GetEvents() ([]Event, error) {
+	competitions := []Event{}
 	err := d.NextJudgeDB.Find(&competitions).Error
 	if err != nil {
 		return nil, err
@@ -411,9 +452,9 @@ func (d *Database) GetCompetitions() ([]Competition, error) {
 	return competitions, nil
 }
 
-func (d *Database) GetCompetitionByID(competitionId uuid.UUID) (*Competition, error) {
-	competition := &Competition{}
-	err := db.NextJudgeDB.Preload("Problems").Preload("Users").First(competition, competitionId).Error
+func (d *Database) GetEventByTitle(title string) (*EventWithProblemsExt, error) {
+	competition := &EventWithProblemsExt{}
+	err := db.NextJudgeDB.Preload("Problems").Preload("Problems.Problem").Where("title = ?", title).First(competition).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -423,19 +464,7 @@ func (d *Database) GetCompetitionByID(competitionId uuid.UUID) (*Competition, er
 	return competition, nil
 }
 
-func (d *Database) GetCompetitionByTitle(title string) (*Competition, error) {
-	competition := &Competition{}
-	err := db.NextJudgeDB.Preload("Problems").Preload("Users").Where("title = ?", title).First(competition).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return competition, nil
-}
-
-func (d *Database) CreateCompetition(competition *Competition) (*Competition, error) {
+func (d *Database) CreateEvent(competition *EventWithProblems) (*EventWithProblems, error) {
 	err := d.NextJudgeDB.Create(competition).Error
 	if err != nil {
 		return nil, err
@@ -443,7 +472,19 @@ func (d *Database) CreateCompetition(competition *Competition) (*Competition, er
 	return competition, nil
 }
 
-func (d *Database) UpdateCompetition(competition *Competition) error {
+func (d *Database) GetEventByID(id int) (*Event, error) {
+	event := &Event{}
+	err := d.NextJudgeDB.First(event, id).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return event, nil
+}
+
+func (d *Database) UpdateEvent(competition *Event) error {
 	err := db.NextJudgeDB.Save(competition).Error
 	if err != nil {
 		return err
@@ -451,10 +492,253 @@ func (d *Database) UpdateCompetition(competition *Competition) error {
 	return nil
 }
 
-func (d *Database) DeleteCompetition(competition *Competition) error {
+func (d *Database) DeleteEvent(competition *Event) error {
 	err := db.NextJudgeDB.Delete(competition).Error
 	if err != nil {
 		return err
 	}
 	return nil
 }
+
+func (d *Database) CreateEventProblem(problem *EventProblem) (*EventProblem, error) {
+	err := d.NextJudgeDB.Create(problem).Error
+	if err != nil {
+		return nil, err
+	}
+	return problem, nil
+}
+
+// Only include data relevant to users
+type GetEventProblemType struct {
+	ID      int `json:"id"`
+	EventID int `json:"event_id"`
+
+	// Data inherited from ProblemDescription
+	// ProblemID                      int        `json:"problem_id"`
+	Title      string     `json:"title"`
+	Prompt     string     `json:"prompt"`
+	Source     string     `json:"source"`
+	Difficulty Difficulty `json:"difficulty"`
+	UserID     uuid.UUID  `json:"user_id"`
+	UploadDate time.Time  `json:"upload_date"`
+	// Problem    ProblemDescription `json:"problem"`
+
+	AcceptTimeout float64 `json:"accept_timeout"`
+	MemoryLimit   int     `json:"memory_limit"`
+
+	// Tests []TestCase `json:"tests,omitempty"`
+	Tests []TestCase `json:"test_cases"`
+}
+
+// Return list of problems in a given event
+func (d *Database) GetPublicEventProblems(eventID int) ([]GetEventProblemType, error) {
+	eventProblems := []EventProblemExt{}
+	err := d.NextJudgeDB.Preload("Problem").Where("event_id = ?", eventID).Find(&eventProblems).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	problems := []GetEventProblemType{}
+
+	for _, eventProblem := range eventProblems {
+
+		if eventProblem.Problem == nil {
+			return nil, fmt.Errorf("problem is nil")
+		}
+		problemDescription := *eventProblem.Problem
+		acceptTimeout := problemDescription.DefaultAcceptTimeout
+		memoryLimit := problemDescription.DefaultMemoryLimit
+
+		if eventProblem.AcceptTimeout != nil {
+			acceptTimeout = *eventProblem.AcceptTimeout
+		}
+
+		if eventProblem.MemoryLimit != nil {
+			memoryLimit = *eventProblem.MemoryLimit
+		}
+
+		problemData := GetEventProblemType{
+			ID:      eventProblem.ID,
+			EventID: eventProblem.EventID,
+
+			Title:      problemDescription.Title,
+			Prompt:     problemDescription.Prompt,
+			Source:     problemDescription.Source,
+			Difficulty: problemDescription.Difficulty,
+			UserID:     problemDescription.UserID,
+			UploadDate: problemDescription.UploadDate,
+
+			AcceptTimeout: acceptTimeout,
+			MemoryLimit:   memoryLimit,
+		}
+		problems = append(problems, problemData)
+	}
+
+	return problems, nil
+}
+
+func ConvertEventProblemExtWithTestsToPublicData(eventProblem *EventProblemExtWithTests) (*GetEventProblemType, error) {
+	if eventProblem.Problem == nil {
+		return nil, fmt.Errorf("problem is nil")
+	}
+	problemDescription := *eventProblem.Problem
+	acceptTimeout := problemDescription.DefaultAcceptTimeout
+	memoryLimit := problemDescription.DefaultMemoryLimit
+
+	if eventProblem.AcceptTimeout != nil {
+		acceptTimeout = *eventProblem.AcceptTimeout
+	}
+
+	if eventProblem.MemoryLimit != nil {
+		memoryLimit = *eventProblem.MemoryLimit
+	}
+
+	problemData := GetEventProblemType{
+		ID:      eventProblem.ID,
+		EventID: eventProblem.EventID,
+
+		Title:      problemDescription.Title,
+		Prompt:     problemDescription.Prompt,
+		Source:     problemDescription.Source,
+		Difficulty: problemDescription.Difficulty,
+		UserID:     problemDescription.UserID,
+		UploadDate: problemDescription.UploadDate,
+
+		AcceptTimeout: acceptTimeout,
+		MemoryLimit:   memoryLimit,
+
+		Tests: problemDescription.TestCases,
+	}
+
+	return &problemData, nil
+}
+
+// Include public test data
+func (d *Database) GetPublicEventProblemWithTestsByID(eventProblemID int) (*GetEventProblemType, error) {
+	eventProblem := &EventProblemExtWithTests{}
+	err := db.NextJudgeDB.Preload("Problem").Preload("Problem.TestCases", "hidden = ?", false).Preload("Problem.Categories").First(eventProblem, eventProblemID).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return ConvertEventProblemExtWithTestsToPublicData(eventProblem)
+}
+
+func (d *Database) GetEventProblemWithTestsByID(eventProblemID int) (*GetEventProblemType, error) {
+	eventProblem := &EventProblemExtWithTests{}
+	err := db.NextJudgeDB.Preload("Problem").Preload("Problem.TestCases").Preload("Problem.Categories").First(eventProblem, eventProblemID).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return ConvertEventProblemExtWithTestsToPublicData(eventProblem)
+}
+
+func (d *Database) GetEventProblemExtByID(eventProblemID int) (*EventProblemExt, error) {
+	eventProblem := &EventProblemExt{}
+	err := db.NextJudgeDB.Preload("Problem").First(eventProblem, eventProblemID).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return eventProblem, nil
+}
+
+func (d *Database) GetEventTeams(eventID int) ([]EventTeam, error) {
+	eventTeams := []EventTeam{}
+	err := d.NextJudgeDB.Where("event_id = ?", eventID).Find(&eventTeams).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return eventTeams, nil
+}
+
+func (d *Database) CreateTeam(eventID int, name string) (*EventTeam, error) {
+	team := EventTeam{
+		EventID: eventID,
+		Name:    name,
+	}
+
+	err := d.NextJudgeDB.Create(&team).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &team, nil
+}
+
+func (d *Database) GetTeamByID(team_id uuid.UUID) (*EventTeam, error) {
+	team := &EventTeam{}
+	err := db.NextJudgeDB.Where("id = ?", team_id).First(team).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return team, nil
+}
+
+func (d *Database) GetTeamByName(name string) (*EventTeam, error) {
+	team := &EventTeam{}
+	err := db.NextJudgeDB.Where("name = ?", name).First(team).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return team, nil
+}
+
+func (d *Database) CreateEventUser(eventUser *EventUser) (*EventUser, error) {
+	err := d.NextJudgeDB.Create(eventUser).Error
+	if err != nil {
+		return nil, err
+	}
+	return eventUser, nil
+}
+
+func (d *Database) GetAllEventSubmissions(eventID int) ([]Submission, error) {
+	submissions := []Submission{}
+	err := d.NextJudgeDB.Where("event_id = ?", eventID).Find(&submissions).Error
+	if err != nil {
+		return nil, err
+	}
+	return submissions, nil
+}
+
+func (d *Database) GetAllEventSubmissionsByTeam(eventID int, teamID uuid.UUID) ([]Submission, error) {
+	submissions := []Submission{}
+	// Inner join with all user_id's that are on teamId
+	err := d.NextJudgeDB.Joins("JOIN event_users eu ON eu.user_id = submissions.user_id AND eu.team_id = ? AND submissions.event_id = ?", teamID, eventID).
+		Find(&submissions).Error
+	if err != nil {
+		return nil, err
+	}
+	return submissions, nil
+}
+
+// func (d *Database) GetEventSubmissionsForUser(eventID int, query string) ([]Submission, error) {
+// 	submissions := []Submission{}
+// 	err := d.NextJudgeDB.Where("event_id = ?", eventID).Where(query).Find(&submissions).Error
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return submissions, nil
+// }

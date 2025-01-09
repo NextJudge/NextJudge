@@ -10,16 +10,24 @@ import time
 from typing import TypedDict
 from dataclasses import dataclass
 import yaml
+import json
 from pathlib import Path
 import tempfile
 import configparser
 import subprocess
+from jsonschema import validate, ValidationError
 
 try:
     import argcomplete
     argcomplete_available = True
 except:
     argcomplete_available = False
+
+
+CONFIG_FILE_NAME = ".nextjudge.config"
+CONFIG_FILE_PATH = Path.home() / CONFIG_FILE_NAME
+
+BASE_DIRECTORY = Path(os.path.dirname(os.path.abspath(__file__))).parent.absolute()
 
 NEXTJUDGE_PORT = 5000
 
@@ -35,7 +43,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="Command line interface for NextJudge"
     )
-    
+
+    # Read config file if it exists
+
+    # config = configparser.ConfigParser()
+    # config.read(CONFIG_FILE_PATH)
+
     add_common_arguments(parser, NEXTJUDGE_PORT)
 
     toplevel_parser = parser.add_subparsers(dest="command", help="Sub-commands")
@@ -45,7 +58,7 @@ def main():
     upload_challenge_parser.add_argument('directory_to_problem')
 
     # Auth
-    get_parser = toplevel_parser.add_parser("auth")
+    auth_parser = toplevel_parser.add_parser("auth")
 
     # Submit
     submit_parser = toplevel_parser.add_parser("submit")
@@ -89,15 +102,37 @@ def main():
     test_parser.add_argument("stdin")
     test_parser.add_argument("--local-image", dest="local_image", action="store_const",const=True,default=False, required=False)
 
+    # event
+    event_parser = toplevel_parser.add_parser("event")
+    event_level_parser = event_parser.add_subparsers(dest="event_subcommand",required=True)
+
+    # event create
+    create_event = event_level_parser.add_parser("create")
+
+    # event join
+    # create_event = event_level_parser.add_parser("join")
+
+    # event get
+    create_event = event_level_parser.add_parser("get")
+    create_event.add_argument("id",nargs="?")
 
     argcomplete.autocomplete(parser)
 
     # Parse arguments
     args = parser.parse_args()
 
+    # Handle sub-commands
     if args.command == "auth":
         pass
-    # Handle sub-commands
+    elif args.command == "event":
+        subcommand = args.event_subcommand
+        print(subcommand)
+
+        if subcommand == "create":
+            event_create(args.host, args.port)
+        elif subcommand == "get":
+            event_get(args.host, args.port, args.id)
+        # event_handle(args.host, args.port)
     elif args.command == "submit":
         send_solution(args.file_path, args.id, args.host, args.port)
     elif args.command == "get":
@@ -209,16 +244,16 @@ class User(TypedDict):
     name: str
     email: str
 
-def get_test_user_id(endpoint: str) -> str | None:
+# def get_test_user_id(endpoint: str) -> str | None:
 
-    try:
-        users = requests.get(f"{endpoint}/v1/users")
-        real_users: list[User] = users.json()
-        return real_users[0]['id']
-    except:
-        print("Getting test user ID")
-        print(f"Failed to connect to {endpoint}")
-        return None
+#     try:
+#         users = requests.get(f"{endpoint}/v1/users")
+#         real_users: list[User] = users.json()
+#         return real_users[0]['id']
+#     except:
+#         print("Getting test user ID")
+#         print(f"Failed to connect to {endpoint}")
+#         return None
     
 
 
@@ -285,8 +320,10 @@ def send_solution(sol_path: str, problem_id: int | None, host: str, port: int) -
         print("Could not map the file to a language (based on extension)")
         return None
 
-    id = get_test_user_id(f"http://{host}:5000")
-
+    test_data_data = get_test_user_auth(host, port)
+    token = test_data_data["token"]
+    id = test_data_data["id"]
+    
     submit = requests.post(
         f"{BRIDGE_ENDPOINT}/v1/submissions",
         json = {
@@ -294,6 +331,9 @@ def send_solution(sol_path: str, problem_id: int | None, host: str, port: int) -
             "problem_id": int(problem_id),
             "language_id": language_id,
             "source_code": source_code,
+        },
+        headers={
+            "Authorization":token
         }
     )
 
@@ -317,7 +357,10 @@ def send_solution(sol_path: str, problem_id: int | None, host: str, port: int) -
         time.sleep(delay)
 
         verdict = requests.get(
-            f"{BRIDGE_ENDPOINT}/v1/submissions/{submission_id}",
+            f"{BRIDGE_ENDPOINT}/v1/submissions/{submission_id}/status",
+            headers={
+                "Authorization":token
+            }
         )
 
         result = verdict.json()
@@ -339,11 +382,36 @@ class SendResult:
     success: bool
     id: int
 
-def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
+
+
+@dataclass
+class ICPCProblemDefinition:
+    title: str
+    prompt: str
+    source: str
+    time_limit: float
+    memory_limit: int
+    tests: list[dict]
+
+    # def to_json(self, id: str) -> dict:
+    #     return{
+    #         "title": self.title,
+    #         "prompt": self.prompt,
+    #         "timeout": 1,
+    #         "difficulty": "MEDIUM",
+    #         "user_id": id,
+    #         "test_cases": self.tests,
+    #         "public":True,
+    #     }
+
+
+
+def parse_icpc_folder(dir: str) -> ICPCProblemDefinition:
     with open(f"{dir}/problem.yaml", 'r') as file:
         problem_description = yaml.safe_load(file)
 
     title = problem_description["name"]
+    source = problem_description["source"]
 
     try:
         statement = open(f"{dir}/problem_statement/problem.en.tex","r").read()
@@ -365,9 +433,9 @@ def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
         test_cases.append({
             "input": test_input,
             "expected_output": test_output,
-            "is_public": False
+            "hidden": True
         })
-    
+
     # Public test cases
     try:
         testcase_files = os.listdir(f"{dir}/data/sample")
@@ -379,31 +447,56 @@ def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
             test_cases.append({
                 "input": test_input,
                 "expected_output": test_output,
-                "is_public": True
+                "hidden": False
             })
     except:
         pass
 
 
+    return ICPCProblemDefinition(
+        title=title,
+        prompt=statement,
+        source=source,
+        time_limit=1,
+        memory_limit=1,
+        tests=test_cases,
+    )
 
-    id = get_test_user_id(f"http://{host}:5000")
-    print(f"Title: {title}")
-    print(f"Number of testcases: {len(test_cases)}")
 
+def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
+    problem_info = parse_icpc_folder(dir)
+    return create_icpc_challenge(host, port, problem_info)
+
+# Return ID of existing problem if a problem by the same name already exists
+def create_icpc_challenge(host: str, port: str, problem_info: ICPCProblemDefinition, identifier: str = "") -> SendResult:
+
+    print(f"Title: {problem_info.title}")
+    print(f"Number of testcases: {len(problem_info.tests)}")
+
+    test_auth_data = get_test_user_auth(host, port)
+    token = test_auth_data["token"]
+    id = test_auth_data["id"]
+    
     try:
+        print(token)
         submit_problem = requests.post(
             f"http://{host}:{port}/v1/problems",
             json = {
-            "title": title,
-            "prompt": statement,
-            "timeout": 1,
-            "difficulty": "MEDIUM",
-            "user_id": id,
-            "test_cases": test_cases
+                "title": problem_info.title,
+                "identifier": identifier,
+                "prompt": problem_info.prompt,
+                "timeout": 1,
+                "difficulty": "MEDIUM",
+                "user_id": id,
+                "test_cases": problem_info.tests,
+                "public":True,
+            },
+            headers={
+                "Authorization":token
             }
         )
     except:
-        print(f"Failed to connect to database")
+        print(f"Failed to connect to NextJudge")
         sys.exit(1)
 
     print(submit_problem.text)
@@ -411,6 +504,10 @@ def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
     if submit_problem.ok:
         response_json = submit_problem.json()
         id = response_json['id']
+        
+        # Return the event_problem id, not the id of the problem description
+        id = response_json['event_problem_id']
+
         print("Successfully upload problem")
         print(f"Problem ID: {id}")
         return SendResult(True, id)
@@ -571,6 +668,237 @@ def upload_and_run_icpc_solutions_suite(top_level_directory: str, host: str, por
 
     print(log_file.name)
 
+@dataclass
+class EventProblemDefinition:
+    value: ICPCProblemDefinition | int | str
+
+@dataclass
+class EventDefinition:
+    title: str
+    description: str
+    start_time: str
+    end_time: str
+    teams: bool
+    problems: list[EventProblemDefinition]
+
+def parse_event_yaml_file(path: str) -> EventDefinition:
+    
+    DEFAULT_PREFIX_PROBLEM_IDENTIFIER = True
+    
+    with open("event.yaml") as f:
+        event = yaml.safe_load(f)
+
+    schema = open(os.path.join(f"{BASE_DIRECTORY}","../../.vscode/test.json")).read()
+    schema_json = json.loads(schema)
+
+    try:
+        validate(instance=event,schema=schema_json)
+        print("Valid")
+    except ValidationError as e:
+        print(e.message)
+        print("ERROR")
+        sys.exit(1)
+
+    problems: list[EventProblemDefinition] = []
+    
+    # Get names of events to upload them
+    for problem in event["problems"]:
+        # print(problem)
+        if "path" in problem:
+            print(problem)
+            # TODO: FIX THIS: the name should override - this is PER EVENT. DO NOT simply refer to an existing challenge with the same name
+            icpc_problem = parse_icpc_folder(problem["path"])
+            problems.append(
+                EventProblemDefinition(
+                    icpc_problem
+                )
+            )
+        else:
+            sys.exit("Other problem types not supported yet")
+    
+    return EventDefinition(
+        title=event["title"],
+        description=event["description"],
+        start_time="2025-04-12T23:20:50.52Z",
+        end_time="2026-04-12T23:20:50.54Z",
+        teams=event["teams"],
+        problems=problems
+    )
+
+
+def event_create(host, port) -> None:
+    # Fails if the event name already exists
+    test_data_data = get_test_user_auth(host, port)
+    token = test_data_data["token"]
+    id = test_data_data["id"]
+
+    event = parse_event_yaml_file("event.yaml")
+    # TODO: Upload the problems then link to them using the resulting event_id's
+
+    problem_ids_ints: list[int] = []
+
+    for problem_selection in event.problems:
+        if type(problem_selection.value) == ICPCProblemDefinition:
+            icpc_problem = problem_selection.value
+            # TODO: FIX THIS: the name should override - this is PER EVENT. DO NOT simply refer to an existing challenge with the same name
+            result = create_icpc_challenge(host,port,icpc_problem,identifier=f"{event.title}_{icpc_problem.title}")
+            
+            problem_ids_ints.append(result.id)
+        else:
+            sys.exit("Other problem types not supported yet")
+
+    problems_as_json = list(map(lambda x: {"problem_id":x},problem_ids_ints))
+    print(problems_as_json)
+
+    create_event_request = requests.post(
+        f"http://{host}:{port}/v1/events",
+        json = {
+            "title":event.title,
+            "description":event.description,
+            "start_time":event.start_time,
+            "end_time":event.end_time,
+            "teams":event.teams,
+            "problems":problems_as_json
+        },
+        headers={
+            "Authorization":token
+        }
+    )
+
+    print(create_event_request.content)
+
+
+# # Update an event
+# def event_push(host, port) -> None:
+#     test_data_data = get_test_user_auth(host, port)
+#     token = test_data_data["token"]
+#     id = test_data_data["id"]
+
+#     event = parse_event_yaml_file("event.yaml")
+
+#     local_problem_identifiers = []
+    
+#     # Get names of events to upload them
+#     for problem_selection in event.problems:
+#         if type(problem_selection.value) == ICPCProblemDefinition:
+#             problem = problem_selection.value
+#             print(problem)
+#             local_problem_identifiers.append(problem.title)
+#         else:
+#             sys.exit("Other problem types not supported yet")
+#     # Check if each problem already exists
+
+#     print("Local problem identifiers")
+#     print(local_problem_identifiers)
+
+#     removeEvent = event_get_by_title(host, port, event.title)
+
+#     if True:
+#         # If the event already exists
+#         print("Event exists")
+
+#         remote_problem_identifiers = list(map(lambda x: x["problem"]["title"],removeEvent["problems"]))
+        
+#         print("Remote problem identifiers")
+#         print(remote_problem_identifiers)
+
+#     # These problems get straight uploaded
+#     new_problems = set(local_problem_identifiers) - set(remote_problem_identifiers)
+#     print("New problems")
+#     print(new_problems)
+
+#     # TODO: upload these events and get their ID's
+    
+#     # Override existing problem by their ID
+#     problem_overlap = set(local_problem_identifiers) & set(remote_problem_identifiers)
+#     print("Existing problems")
+#     print(problem_overlap)
+
+#     sys.exit(1)
+
+#     create_event_request = requests.post(
+#         f"http://{host}:{port}/v1/events",
+#         json = {
+#             "title":event.title,
+#             "description":event["description"],
+#             "start_time":,
+#             "end_time":,
+#             "teams":,
+#             "problems": []
+#         },
+#         headers={
+#             "Authorization":token
+#         }
+#     )
+
+#     print(create_event_request.content)
+
+def event_get(host, port, id: int | None) -> None:
+    if id is not None:
+        event_get_by_id(host, port, id)
+    else:
+        test_data_data = get_test_user_auth(host, port)
+        token = test_data_data["token"]
+        id = test_data_data["id"]
+
+        get_all_event_data = requests.get(
+            f"http://{host}:{port}/v1/events",
+            headers={
+                "Authorization":token
+            }
+        )
+
+        print(get_all_event_data.content)
+        return get_all_event_data.json()
+
+
+def event_get_by_id(host, port, event_id:int) -> dict:
+    test_data_data = get_test_user_auth(host, port)
+    token = test_data_data["token"]
+
+    get_test_event_data = requests.get(
+        f"http://{host}:{port}/v1/events/{event_id}",
+        headers={
+            "Authorization":token
+        }
+    )
+
+    print(get_test_event_data.content)
+
+    return get_test_event_data.json()
+
+def event_get_by_title(host, port, title:str) -> dict:
+    test_data_data = get_test_user_auth(host, port)
+    token = test_data_data["token"]
+    id = test_data_data["id"]
+
+    get_test_event_data = requests.get(
+        f"http://{host}:{port}/v1/event_details?title={title}",
+        headers={
+            "Authorization":token
+        }
+    )
+
+    return get_test_event_data.json()
+
+
+
+def event_handle(host, port) -> None:
+    event_id = 1
+    submit_problem = requests.post(
+        f"http://{host}:{port}/v1/events/{event_id}/problems",
+        json = {
+            "problem_id": 1,
+        },
+    )
+
+    print(submit_problem.content)
+
+def get_test_user_auth(host, port) -> dict:
+    get_data = requests.post(
+        f"http://{host}:{port}/v1/auth_test/user_creds",
+    )
+    return get_data.json()
 
 def run_local_tests(file: str, tests_dir: str | None, local_image: bool) -> None:
     

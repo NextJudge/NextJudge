@@ -1,3 +1,4 @@
+import { auth } from "@/app/auth";
 import { CreateProblemForm } from "@/components/forms/create-problem-form";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,7 +7,14 @@ import { Category } from "@/lib/types";
 import "katex/dist/katex.min.css";
 
 export default async function CreateProblemPage() {
-  const categories: Category[] = await apiGetCategories();
+
+  const session = await auth();
+  
+  if (!session || !session.user) {
+      throw new Error("Unauthorized");
+  }
+
+  const categories: Category[] = await apiGetCategories(session.nextjudge_token);
   return (
     <>
       <div className="space-y-6">

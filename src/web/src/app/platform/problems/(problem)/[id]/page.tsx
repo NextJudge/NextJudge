@@ -27,7 +27,6 @@ export default async function Editor({ params }: { params: { id: string } }) {
     const { id } = params;
     const problem_id = parseInt(id)
     const session = await auth();
-
     
     if (!session || !session.user) {
         throw new Error("Unauthorized");
@@ -45,8 +44,12 @@ export default async function Editor({ params }: { params: { id: string } }) {
     const [detailsResult, tagsResult, recentSubmissionsResult, languagesResult] = results
 
     const details = detailsResult.status === 'fulfilled' ? detailsResult.value : dummyProblem
+    
     const testCases = detailsResult.status === 'fulfilled' ? detailsResult.value.test_cases : []
-    const tags = tagsResult.status === 'fulfilled' ? tagsResult.value : []
+
+    let tags = tagsResult.status === 'fulfilled' ? tagsResult.value : []
+    tags = []
+    
     const recentSubmissions = recentSubmissionsResult.status === 'fulfilled' ? recentSubmissionsResult.value : []
     const languages = languagesResult.status === 'fulfilled' ? languagesResult.value : []
 

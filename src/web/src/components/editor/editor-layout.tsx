@@ -400,7 +400,7 @@ export default function EditorComponent({
                         <div className="space-y-4">
                           <InputCase input={testCase.input} />
                           <Expected expected={testCase.expected_output} />
-                          {/* TODO: Use actual solution output */}
+                          {/* TODO: Use actual solution output if available*/}
                           <Output output={testCase.expected_output} />
                         </div>
                       </TabsContent>

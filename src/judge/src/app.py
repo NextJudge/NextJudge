@@ -128,7 +128,7 @@ def get_submission_data(submission_id: str):
         }
     )
     data = response.json()
-    # print(data)
+    print(data)
     return data
 
 def get_test_data(problem_id: str):
@@ -136,13 +136,14 @@ def get_test_data(problem_id: str):
     Get all tests for a given problem_id
     """
     response = requests.get(
-        f"{NEXTJUDGE_ENDPOINT}/v1/problems/{problem_id}?type=private",
+        f"{NEXTJUDGE_ENDPOINT}/v1/problem_description/{problem_id}/tests",
         headers={
             "Authorization":JUDGE_JWT_TOKEN
         }
     )
+    print(response.content)
     data = response.json()
-    # print(data)
+    print(data)
     return data
 
 def post_judgement(submission_id: str, data):
@@ -402,7 +403,7 @@ async def handle_test_submission(submission_id: str):
     # raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
     # test_data = json.loads(raw_test_data)
 
-    test_data = get_test_data(submission_data["problem_id"])
+    test_data = get_test_data(submission_data["problem"]["id"])
 
     tests: list[Test] = []
 
@@ -837,9 +838,6 @@ if __name__ == '__main__':
 
         parse_languages()
 
-        print(args.file)
-        os.system("ls -pla /")
-        print("Running local tests")
         try:
             source_code = open(args.file,"r",encoding="utf-8").read()
         except OSError as e:

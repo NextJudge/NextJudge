@@ -26,7 +26,10 @@ func main() {
 		logrus.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
 	}
 
-	SetupRabbitMQConnection()
+	err = SetupRabbitMQConnection()
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
 	db, err = NewDatabase()
 	if err != nil {
@@ -63,7 +66,7 @@ func main() {
 	addSubmissionRoutes(mux)
 	addInputSubmissionRoutes(mux)
 	addLanguageRoutes(mux)
-	addCompetitionsRoutes(mux)
+	addEventsRoutes(mux)
 	addHealthyRoute(mux)
 
 	logrus.Info("Starting data layer API")

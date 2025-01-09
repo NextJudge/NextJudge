@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -16,6 +17,8 @@ import (
 func addSubmissionRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/submissions"), AuthRequired(postSubmission))
 	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id"), AuthRequired(getSubmission))
+	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id/status"), AuthRequired(getSubmissionStatus))
+
 	mux.HandleFunc(pat.Get("/v1/user_submissions/:user_id"), AuthRequired(getSubmissionsForUser))
 	mux.HandleFunc(pat.Get("/v1/user_problem_submissions/:user_id/:problem_id"), AuthRequired(getProblemSubmissionsForUser))
 	mux.HandleFunc(pat.Patch("/v1/submissions/:submission_id"), AtLeastJudgeRequired(updateSubmissionStatus))
@@ -28,7 +31,14 @@ type UpdateSubmissionStatusPatchBody struct {
 	Stderr           string     `json:"stderr"`
 }
 
+type PostSubmissionReturnBody struct {
+	Id         uuid.UUID `json:"id"`
+	Status     Status    `json:"status"`
+	SubmitTime time.Time `json:"submit_time"`
+}
+
 func postSubmission(w http.ResponseWriter, r *http.Request) {
+	// TODO: make this a separate type
 	reqData := new(Submission)
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -47,9 +57,15 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// User ID boilerplate
-	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-	if token == nil {
+	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if !ok {
 		logrus.Error("Error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Error in token"}`)
+		return
+	}
+	if token == nil {
+		logrus.Error("Token is nil")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"message":"Error in token"}`)
 		return
@@ -71,7 +87,7 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 
 	reqData.UserID = userId
 
-	problem, err := db.GetProblemByID(reqData.ProblemID)
+	problem, err := db.GetEventProblemExtByID(reqData.ProblemID)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing problem")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -125,7 +141,13 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respJSON, err := json.Marshal(response)
+	returnData := PostSubmissionReturnBody{
+		Id:         response.ID,
+		Status:     response.Status,
+		SubmitTime: response.SubmitTime,
+	}
+
+	respJSON, err := json.Marshal(returnData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -139,6 +161,73 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(respJSON))
 }
 
+type GetSubmissionReturnBody struct {
+	Id     uuid.UUID `json:"id"`
+	Status Status    `json:"status"`
+}
+
+func getSubmissionStatus(w http.ResponseWriter, r *http.Request) {
+	submissionIdParam := pat.Param(r, "submission_id")
+	submissionId, err := uuid.Parse(submissionIdParam)
+	if err != nil {
+		logrus.Warn("bad uuid")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		return
+	}
+
+	submission, err := db.GetSubmission(submissionId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving submission")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving submission"}`)
+		return
+	}
+	if submission == nil {
+		logrus.Warn("submission not found")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"submission not found"}`)
+		return
+	}
+
+	// Validate that the submission belongs to this user
+	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if !ok {
+		logrus.Error("Error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Error in token"}`)
+		return
+	}
+	if token == nil {
+		logrus.Error("Unauthorized get submission")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Error in token"}`)
+		return
+	}
+
+	if submission.UserID != token.Id && !(token.Role >= JudgeRoleEnum) {
+		logrus.Error("Unauthorized get submission")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, `{"message":"Unauthorized"}`)
+		return
+	}
+
+	returnData := GetSubmissionReturnBody{
+		Id:     submission.ID,
+		Status: submission.Status,
+	}
+
+	respJSON, err := json.Marshal(returnData)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
+
+// Judge calls this to get submission info. Users can call it too.
 func getSubmission(w http.ResponseWriter, r *http.Request) {
 	submissionIdParam := pat.Param(r, "submission_id")
 	submissionId, err := uuid.Parse(submissionIdParam)
@@ -164,7 +253,13 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate that the submission belongs to this user
-	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if !ok {
+		logrus.Error("Error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Error in token"}`)
+		return
+	}
 	if token == nil {
 		logrus.Error("Unauthorized get submission")
 		w.WriteHeader(http.StatusInternalServerError)

@@ -164,11 +164,9 @@ export default function CodeEditor({
         if (currentLanguage) {
             // Some logic to see if we should clear the editor - do so if user hasn't typed anything
             const curr_template_stripped = getLanguageTemplateCode(currentLanguage).replace(/\s/g,'').trim()
-            console.log("here")
             const curr_code_stripped = code.replace(/\s/g,'').trim()
 
-            if (curr_code_stripped === curr_template_stripped) {
-                console.log("What?")
+            if (curr_code_stripped === "" || curr_code_stripped === curr_template_stripped) {
                 setCode(getLanguageTemplateCode(language))
             }
         }

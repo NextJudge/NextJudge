@@ -1,0 +1,90 @@
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "prefix_problem_identifiers": {
+      "type": "boolean"
+    },
+    "description": {
+      "type": "string"
+    },
+    "start_time": {
+      "type": "string"
+    },
+    "end_time": {
+      "type": "string"
+    },
+    "duration": {
+      "type": "string"
+    },
+    "teams": {
+      "type": "boolean"
+    },
+    "problems": {
+      "$ref": "#/definitions/problems"
+    },
+    "allowed_languages": {
+      "type": "array",
+      "items": {
+          "type":"string"
+      }
+    }
+  },
+  "required":["title","description", "start_time","teams", "problems"],
+  "oneOf": [
+    {
+      "required": ["end_time"]
+    },
+    {
+      "required": ["duration"]
+    }
+  ],
+  "definitions": {
+      "problems": {
+          "type":"array",
+          "items": {
+              "oneOf":[
+                  {
+                      "type":"object",
+                      "additionalProperties": false,
+                      "properties": {
+                          "path": {
+                              "type":"string"
+                          },
+                          "type": {
+                              "type":"string"
+                          },
+                          "identifier": {
+                              "type":"string"
+                          }
+                      },
+                      "required": ["path","type"]
+                  },
+                  {
+                      "additionalProperties": false,
+                      "properties": {
+                          "name": {
+                              "type":"string"
+                          }
+                      },
+                      "required": ["name"]
+                  },
+                  {
+                      "additionalProperties": false,
+                      "properties": {
+                          "id": {
+                              "type":"string"
+                          }
+                      },
+                      "required": ["id"]
+                  }
+              ]
+          }
+      }
+  }
+}

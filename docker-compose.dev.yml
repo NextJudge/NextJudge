@@ -10,37 +10,43 @@ services:
       - JUDGE_PASSWORD=${JUDGE_PASSWORD}
       - JWT_SIGNING_SECRET=${JWT_SIGNING_SECRET}
       - AUTH_PROVIDER_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - DB_HOST=db-dev
+      - DB_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq-dev
+      - AUTH_DISABLED=true
     depends_on:
-      db:
+      db-dev:
         condition: service_healthy
-      rabbitmq:
+      rabbitmq-dev:
         condition: service_healthy
       # elasticsearch:
     #     # condition: service_healthy
 
-  db:
+  db-dev:
     extends: 
       file: src/data-layer/docker-compose.db.yml
       service: db
+    environment:
+      - POSTGRES_PASSWORD=${AUTH_PROVIDER_PASSWORD}
 
   nextjudge-judge-dev:
     extends: 
       file: src/judge/docker-compose.dev.yml
       service: nextjudge-judge-dev
     environment:
-      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_HOST=rabbitmq-dev
       - RABBITMQ_PORT=5672
       - NEXTJUDGE_HOST=nextjudge-data-layer-dev
       - NEXTJUDGE_PORT=5000
       - JUDGE_PASSWORD=${JUDGE_PASSWORD}
     profiles: [judge]
     depends_on:
-      rabbitmq:
+      rabbitmq-dev:
         condition: service_healthy
       nextjudge-data-layer-dev:
         condition: service_healthy
 
-  rabbitmq:
+  rabbitmq-dev:
     extends: 
       file: src/data-layer/docker-compose.rabbitmq.yml
       service: rabbitmq

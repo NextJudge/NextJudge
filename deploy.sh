@@ -13,4 +13,4 @@ fi
 
 cd $SCRIPT_DIR
 # Start all services
-docker compose up --build
+docker compose -f docker-compose.backend.yml up --build

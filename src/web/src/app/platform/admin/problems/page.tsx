@@ -9,6 +9,7 @@ import { columns } from "../../problems/components/columns";
 import { DataTable } from "../../problems/components/data-table";
 import { apiGetCategories, apiGetProblems } from "@/lib/api";
 import { Problem } from "@/lib/types";
+import { auth } from "@/app/auth";
 
 export const metadata: Metadata = {
   title: "NextJudge Admin - Problem Management",
@@ -16,9 +17,15 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminProblemsPage() {
-  // const problems = await apiGetProblems();
-  const problems: Problem[] = []
-  const categories = await apiGetCategories();
+  const session = await auth();
+  
+  if (!session || !session.user) {
+      throw new Error("Unauthorized");
+  }
+  
+  const problems = await apiGetProblems(session.nextjudge_token);
+  const categories = await apiGetCategories(session.nextjudge_token);
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">

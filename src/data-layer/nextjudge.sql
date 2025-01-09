@@ -19,6 +19,11 @@ CREATE TYPE difficulty as ENUM(
   'VERY HARD'
 );
 
+CREATE TYPE FEEDBACK_POLICY as ENUM(
+  'COMPLETE',
+  'FIRST_ERROR'
+);
+
 CREATE TABLE "users" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "account_identifier" varchar(255) NOT NULL UNIQUE,
@@ -32,19 +37,26 @@ CREATE TABLE "users" (
   "is_admin" boolean
 );
 
-CREATE TABLE "problems" (
+CREATE TABLE "problem_descriptions" (
   "id" SERIAL PRIMARY KEY,
-  "title" varchar NOT NULL UNIQUE,
+  "title" varchar NOT NULL,
+  "identifier" varchar NOT NULL UNIQUE,
   "prompt" varchar NOT NULL,
-  "timeout" integer NOT NULL,
+  -- A name or a link
+  "source" varchar,
   "difficulty" difficulty NOT NULL,
   "user_id" UUID NOT NULL,
-  "upload_date" timestamp NOT NULL
+  "upload_date" timestamp NOT NULL,
+  "default_accept_timeout" float NOT NULL,
+  "default_execution_timeout" float NOT NULL,
+  "default_memory_limit" integer NOT NULL
+  -- "default_judging_policy" 
 );
 
 CREATE TABLE "submissions" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "user_id" UUID NOT NULL,
+  -- reference to event_problem
   "problem_id" integer NOT NULL,
   "time_elapsed" float NOT NULL,
   "language_id" UUID NOT NULL,
@@ -58,31 +70,10 @@ CREATE TABLE "submissions" (
 
 CREATE TABLE "test_cases" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  "is_public" boolean NOT NULL,
+  "hidden" boolean NOT NULL,
   "problem_id" integer NOT NULL,
   "input" varchar NOT NULL,
   "expected_output" varchar NOT NULL
-);
-
-CREATE TABLE "competitions" (
-  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  "user_id" UUID NOT NULL,
-  "start_time" timestamp NOT NULL,
-  "end_time" timestamp NOT NULL,
-  "description" varchar NOT NULL,
-  "title" varchar NOT NULL UNIQUE
-);
-
-CREATE TABLE "competition_problems" (
-  "competition_id" UUID NOT NULL,
-  "problem_id" integer NOT NULL,
-  PRIMARY KEY("competition_id", "problem_id")
-);
-
-CREATE TABLE "competition_users" (
-  "user_id" UUID NOT NULL,
-  "competition_id" UUID NOT NULL,
-  PRIMARY KEY("user_id", "competition_id")
 );
 
 CREATE TABLE "languages" (
@@ -103,28 +94,84 @@ CREATE TABLE "problem_categories" (
   PRIMARY KEY("category_id", "problem_id")
 );
 
-ALTER TABLE "problems" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
+CREATE TABLE "events" (
+  "id" serial PRIMARY KEY,
+  "user_id" UUID NOT NULL,
+  "title" varchar NOT NULL UNIQUE,
+  "description" varchar NOT NULL,
+  "start_time" timestamp NOT NULL,
+  "end_time" timestamp NOT NULL,
+  "teams" boolean NOT NULL
+  -- default_judging_policy
+  -- default_show_all_results
+);
+
+CREATE TABLE "event_problems" (
+  "id" serial PRIMARY KEY,
+  "event_id" integer NOT NULL,
+  "problem_id" integer NOT NULL,
+  "hidden" boolean NOT NULL,
+  "accept_timeout" float,
+  "execution_timeout" float,
+  "memory_limit" integer
+  -- judging_policy: [ICPC/all_results]
+  -- show_all_results: [first failure/all results]
+);
+
+-- Allowed languages for a given problem
+CREATE TABLE "event_problem_languages" (
+  "event_problem_id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "language_id" UUID NOT NULL
+);
+
+CREATE TABLE "event_users" (
+  "user_id" UUID NOT NULL,
+  "event_id" integer NOT NULL,
+  "team_id" UUID,
+  PRIMARY KEY("user_id", "event_id")
+);
+
+CREATE TABLE "event_teams" (
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "event_id" integer NOT NULL,
+  "name" varchar NOT NULL
+);
+
+CREATE TABLE "group" (
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "type" varchar NOT NULL
+);
+
+CREATE TABLE "event_group" (
+  "event_id" integer NOT NULL,
+  "group_id" UUID NOT NULL,
+  PRIMARY KEY("event_id", "group_id")
+);
+
+ALTER TABLE "problem_descriptions" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "test_cases" ADD FOREIGN KEY ("problem_id") REFERENCES "problem_descriptions" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "submissions" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "submissions" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("id") ON DELETE CASCADE;
+ALTER TABLE "submissions" ADD FOREIGN KEY ("problem_id") REFERENCES "event_problems" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "submissions" ADD FOREIGN KEY ("language_id") REFERENCES "languages" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "test_cases" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("id") ON DELETE CASCADE;
-
-ALTER TABLE "competitions" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
-
 ALTER TABLE "submissions" ADD FOREIGN KEY ("failed_test_case_id") REFERENCES "test_cases" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "competition_problems" ADD FOREIGN KEY ("competition_id") REFERENCES "competitions" ("id") ON DELETE CASCADE;
+ALTER TABLE "event_problems" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "competition_problems" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("id") ON DELETE CASCADE;
+ALTER TABLE "event_problems" ADD FOREIGN KEY ("problem_id") REFERENCES "problem_descriptions" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "competition_users" ADD FOREIGN KEY ("competition_id") REFERENCES "competitions" ("id") ON DELETE CASCADE;
+-- ALTER TABLE "events" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "competition_users" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
+ALTER TABLE "event_users" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "event_users" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "event_teams" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "problem_categories" ADD FOREIGN KEY ("category_id") REFERENCES "categories" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "problem_categories" ADD FOREIGN KEY ("problem_id") REFERENCES "problems" ("id") ON DELETE CASCADE;
+ALTER TABLE "problem_categories" ADD FOREIGN KEY ("problem_id") REFERENCES "problem_descriptions" ("id") ON DELETE CASCADE;

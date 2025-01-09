@@ -6,13 +6,19 @@ import { getBridgeUrl } from "./utils";
 
 
 export async function apiGetLanguages(): Promise<Language[]> {
-    const data = await fetch(`${getBridgeUrl()}/v1/languages`);
+    const data = await fetch(
+        `${getBridgeUrl()}/v1/languages`
+    );
     return data.json()
 }
 
-export async function apiGetCategories(): Promise<Category[]> {
+export async function apiGetCategories(token: string): Promise<Category[]> {
     const data = await fetch(
-        `${getBridgeUrl()}/v1/categories`
+        `${getBridgeUrl()}/v1/categories`, {
+        headers: {
+            "Authorization": token
+        }
+    }
     );
     return data.json()
 }

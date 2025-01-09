@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
@@ -30,20 +32,33 @@ type RabbitMQCustomInputSubmission struct {
 	Stdin      string `json:"stdin"`
 }
 
-func SetupRabbitMQConnection() {
-	conn, err := amqp.Dial(
-		"amqp://rabbitmq:5672",
-	)
+func SetupRabbitMQConnection() error {
 
-	if err != nil {
-		logrus.Warn(err)
-		return
+	rabbitMQEndpoint := fmt.Sprintf("amqp://%s:5672", cfg.RabbitMQHost)
+
+	var conn *amqp.Connection
+	var err error
+	const MAX_ATTEMPTS = 10
+	attempts := 0
+
+	for conn == nil {
+		conn, err = amqp.Dial(
+			rabbitMQEndpoint,
+		)
+
+		if err != nil {
+			if attempts < MAX_ATTEMPTS {
+				time.Sleep(2 * time.Second)
+			} else {
+				return err
+			}
+		}
+		attempts += 1
 	}
 
 	channel, err := conn.Channel()
 	if err != nil {
-		logrus.Fatal(err)
-		return
+		return err
 	}
 
 	submission_queue, err := channel.QueueDeclare(
@@ -55,14 +70,15 @@ func SetupRabbitMQConnection() {
 		nil,            // arguments
 	)
 	if err != nil {
-		logrus.Fatal(err)
-		return
+		return err
 	}
 
 	rabbit_connection = &RabbitMQService{
 		channel,
 		&submission_queue,
 	}
+
+	return nil
 }
 
 func RabbitMQPublishSubmission(id string) {
@@ -79,8 +95,8 @@ func RabbitMQPublishSubmission(id string) {
 	err = rabbit_connection.Channel.Publish(
 		"",                           // exchange
 		rabbit_connection.Queue.Name, // routing key
+		false,                        // mandatory
 		false,                        // immediate
-		false,
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body:        []byte(json_data),

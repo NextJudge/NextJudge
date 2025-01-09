@@ -113,33 +113,29 @@ export async function changeProfile(data: ProfileData) {
 }
 
 
-
 export async function createProblem(data: any) {
+  
   const session = await auth();
-  if (!session || !session.user || !session.user.id) {
+  if (!session || !session.user) {
     return {
       status: "error",
       message: "Invalid session",
     };
   }
 
-  //   revalidatePath("/platform/admin/problems");
+  revalidatePath("/platform/admin/problems");
 
-  //   return {
-  //     status: "success",
-  //     message: "Problem created",
-  //   };
-  //   return {
-  //     status: "error",
-  //     message: "Something went wrong",
-  //   };
+  return {
+    status: "success",
+    message: "Problem created",
+  };
 }
 
 interface TestCaseData {
   input: string;
   output: string;
   problem_id: number;
-  is_public?: boolean;
+  hidden?: boolean;
 }
 
 export async function createTestCase(data: TestCaseData) {

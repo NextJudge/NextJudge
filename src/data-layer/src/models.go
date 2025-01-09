@@ -49,57 +49,69 @@ func (UserWithPassword) TableName() string {
 	return "users"
 }
 
+type ProblemDescription struct {
+	ID                      int        `json:"id"`
+	Title                   string     `json:"title"`
+	Identifier              string     `json:"identifier"`
+	Prompt                  string     `json:"prompt"`
+	Source                  string     `json:"source"`
+	Difficulty              Difficulty `json:"difficulty"`
+	UserID                  uuid.UUID  `json:"user_id"`
+	UploadDate              time.Time  `json:"upload_date"`
+	DefaultAcceptTimeout    float64    `json:"default_accept_timeout"`
+	DefaultExecutionTimeout float64    `json:"default_execution_timeout"`
+	DefaultMemoryLimit      int        `json:"default_memory_timeout"`
+}
+
+func (ProblemDescription) TableName() string {
+	return "problem_descriptions"
+}
+
+type ProblemDescriptionExt struct {
+	ProblemDescription
+	TestCases  []TestCase `json:"test_cases,omitempty" gorm:"foreignKey:ProblemID"`
+	Categories []Category `json:"categories" gorm:"many2many:problem_categories;joinForeignKey:problem_id"`
+}
+
+func (ProblemDescriptionExt) TableName() string {
+	return "problem_descriptions"
+}
+
 type Category struct {
 	ID   uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	Name string    `json:"name"`
 }
 
-type Problem struct {
-	ID         int        `json:"id"`
-	Prompt     string     `json:"prompt"`
-	Title      string     `json:"title"`
-	Timeout    int        `json:"timeout"`
-	Difficulty Difficulty `json:"difficulty"`
-	UserID     uuid.UUID  `json:"user_id"`
-	UploadDate time.Time  `json:"upload_date"`
-	TestCases  []TestCase `json:"test_cases,omitempty"`
-	Categories []Category `json:"categories" gorm:"many2many:problem_categories"`
+type ProblemCategory struct {
+	CategoryID uuid.UUID `json:"category_id"`
+	ProblemID  int       `json:"problem_id"`
 }
 
 type TestCase struct {
 	ID             uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	ProblemID      int       `json:"problem_id"`
 	Input          string    `json:"input"`
-	IsPublic       bool      `json:"is_public"`
+	Hidden         bool      `json:"hidden"`
 	ExpectedOutput string    `json:"expected_output"`
 }
 
 type Submission struct {
-	ID          uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
-	UserID      uuid.UUID `json:"user_id"`
-	ProblemID   int       `json:"problem_id"`
-	Problem     *Problem  `json:"problem" gorm:"foreignKey:ProblemID;references:ID"`
-	TimeElapsed float32   `json:"time_elapsed"`
-	LanguageID  uuid.UUID `json:"language_id"`
-	Language    *Language `json:"language" gorm:"foreignKey:LanguageID;references:ID"`
-	Status      Status    `json:"status"`
+	ID     uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	UserID uuid.UUID `json:"user_id"`
+	// GORM magic - it will correlate ProblemID with Problem. Expicitly specifying the foreignKey here broke things.
+	ProblemID   int              `json:"problem_id"`
+	Problem     *EventProblemExt `json:"problem"`
+	TimeElapsed float32          `json:"time_elapsed"`
+	LanguageID  uuid.UUID        `json:"language_id"`
+	// gorm:"foreignKey:LanguageID;references:ID"
+	Language *Language `json:"language"`
+	Status   Status    `json:"status"`
 	// gorm does not support optional relationships, so this must be managed manually
 	FailedTestCaseID *uuid.UUID `json:"failed_test_case_id,omitempty"`
 	SubmitTime       time.Time  `json:"submit_time"`
 	SourceCode       string     `json:"source_code"`
 	Stdout           string     `json:"stdout"`
 	Stderr           string     `json:"stderr"`
-}
-
-type Competition struct {
-	ID          uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
-	StartTime   time.Time `json:"start_time"`
-	EndTime     time.Time `json:"end_time"`
-	Description string    `json:"description"`
-	Title       string    `json:"title"`
-	UserID      uuid.UUID `json:"user_id"`
-	Users       []User    `json:"participants,omitempty" gorm:"many2many:competition_users"`
-	Problems    []Problem `json:"problems,omitempty" gorm:"many2many:competition_problems"`
 }
 
 type Language struct {
@@ -109,7 +121,76 @@ type Language struct {
 	Version   string    `json:"version"`
 }
 
-type ProblemCategory struct {
-	CategoryID uuid.UUID `json:"category_id"`
-	ProblemID  int       `json:"problem_id"`
+type Event struct {
+	ID          int       `json:"id"`
+	UserID      uuid.UUID `json:"user_id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	StartTime   time.Time `json:"start_time"`
+	EndTime     time.Time `json:"end_time"`
+	Teams       bool      `json:"teams"`
+}
+
+type EventWithProblems struct {
+	Event
+	// Teams    []EventTeam
+	// Users    []User         `json:"participants,omitempty" gorm:"many2many:event_users"`
+	Problems []EventProblem `json:"problems,omitempty" gorm:"foreignKey:EventID"`
+}
+
+func (EventWithProblems) TableName() string {
+	return "events"
+}
+
+type EventWithProblemsExt struct {
+	Event
+	// Teams    []EventTeam
+	// Users    []User         `json:"participants,omitempty" gorm:"many2many:event_users"`
+	Problems []EventProblemExt `json:"problems,omitempty" gorm:"foreignKey:EventID"`
+}
+
+func (EventWithProblemsExt) TableName() string {
+	return "events"
+}
+
+type EventProblem struct {
+	ID               int      `json:"id"`
+	EventID          int      `json:"event_id"`
+	ProblemID        int      `json:"problem_id"`
+	Hidden           bool     `json:"hidden"`
+	AcceptTimeout    *float64 `json:"accept_timeout"`
+	ExecutionTimeout *float64 `json:"execution_timeout"`
+	MemoryLimit      *int     `json:"memory_limit"`
+}
+
+type EventProblemExt struct {
+	EventProblem
+	Problem          *ProblemDescription `json:"problem" gorm:"foreignKey:ProblemID;references:ID"`
+	AllowedLanguages []Language          `json:"languages,omitempty" gorm:"many2many:event_problem_languages"`
+}
+
+func (EventProblemExt) TableName() string {
+	return "event_problems"
+}
+
+type EventProblemExtWithTests struct {
+	EventProblem
+	Problem          *ProblemDescriptionExt `json:"problem" gorm:"foreignKey:ProblemID;references:ID"`
+	AllowedLanguages []Language             `json:"languages,omitempty" gorm:"many2many:event_problem_languages"`
+}
+
+func (EventProblemExtWithTests) TableName() string {
+	return "event_problems"
+}
+
+type EventTeam struct {
+	ID      uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	EventID int       `json:"event_id"`
+	Name    string    `json:"name"`
+}
+
+type EventUser struct {
+	UserID  uuid.UUID
+	EventID int
+	TeamID  uuid.UUID
 }

@@ -4,4 +4,4 @@
 
 docker compose -f docker-compose.dev.yml down --volumes --remove-orphans
 
-docker compose down --volumes --remove-orphans
+docker compose -f docker-compose.backend.yml down --volumes --remove-orphans
