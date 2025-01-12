@@ -41,7 +41,7 @@ cd $SCRIPT_DIR
 # Start all services
 if [[ "$*" == *"noelastic"* ]]
 then
-    ELASTIC_ENABLED="false" docker compose $PROFILE_STRING -f docker-compose.dev.yml up --build
+    ELASTIC_ENABLED="false" docker compose $PROFILE_STRING --env-file .env.dev -f docker-compose.dev.yml up --build
 else
-    ELASTIC_ENABLED="false" docker compose $PROFILE_STRING -f docker-compose.dev.yml up --build
+    ELASTIC_ENABLED="false" docker compose $PROFILE_STRING --env-file .env.dev -f docker-compose.dev.yml up --build
 fi

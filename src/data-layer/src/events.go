@@ -35,7 +35,7 @@ func addEventsRoutes(mux *goji.Mux) {
 	// Apply a problem to the event
 	mux.HandleFunc(pat.Post("/v1/events/:event_id/problems"), AuthRequired(addEventProblem))
 
-	// mux.HandleFunc(pat.Get("/v1/events/:event_id/problems/:problem_id"), AuthRequired(getEventProblem))
+	mux.HandleFunc(pat.Get("/v1/events/:event_id/problems/:problem_id"), AuthRequired(getEventProblem))
 
 	mux.HandleFunc(pat.Get("/v1/events/:event_id/teams"), AuthRequired(getTeams))
 	mux.HandleFunc(pat.Post("/v1/events/:event_id/teams"), AuthRequired(createTeam))
@@ -170,9 +170,9 @@ type PostEventRequestBody struct {
 	Description      string             `json:"description"`
 	StartTime        string             `json:"start_time"`
 	EndTime          string             `json:"end_time"`
-	Problems         []PostEventProblem `json:"problem_ids"`
-	AllowedLanguages []int              `json:"languages"`
 	Teams            bool               `json:"teams"`
+	AllowedLanguages []int              `json:"languages"`
+	Problems         []PostEventProblem `json:"problems"`
 }
 
 func postEvent(w http.ResponseWriter, r *http.Request) {
@@ -272,7 +272,7 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbCompetition := &EventWithProblems{
+	dbEvent := &EventWithProblems{
 		Event: Event{
 			Title:       reqData.Title,
 			Description: reqData.Description,
@@ -286,7 +286,6 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 
 	// Create the problems
 	for _, postEventProblem := range reqData.Problems {
-		logrus.Infof("%+v", postEventProblem)
 		problemId := postEventProblem.ProblemID
 		problemDescription, err := db.GetProblemDescriptionByID(problemId)
 
@@ -321,10 +320,12 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 			ExecutionTimeout: &acceptTimeout,
 			MemoryLimit:      &memoryLimit,
 		}
-		dbCompetition.Problems = append(dbCompetition.Problems, eventProblem)
+		dbEvent.Problems = append(dbEvent.Problems, eventProblem)
 	}
 
-	newCompetition, err := db.CreateEvent(dbCompetition)
+	logrus.Warnf("%+v", dbEvent)
+
+	newCompetition, err := db.CreateEvent(dbEvent)
 
 	if err != nil {
 		logrus.WithError(err).Error("error inserting competition into db")
@@ -472,39 +473,48 @@ func addParticipant(w http.ResponseWriter, r *http.Request) {
 }
 
 // Return an EventProblem
-// func getEventProblem(w http.ResponseWriter, r *http.Request) {
-// 	problemIdParam := pat.Param(r, "problem_id")
-// 	problemId, err := strconv.Atoi(problemIdParam)
-// 	if err != nil {
-// 		logrus.Warn("bad uuid")
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
-// 		return
-// 	}
+func getEventProblem(w http.ResponseWriter, r *http.Request) {
+	eventIdParam := pat.Param(r, "event_id")
+	eventId, err := strconv.Atoi(eventIdParam)
+	if err != nil {
+		logrus.Warn("bad uuid")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		return
+	}
 
-// 	problem, err := db.GetPublicEventProblemByID(problemId)
-// 	if err != nil {
-// 		logrus.WithError(err).Error("error retrieving problem")
-// 		w.WriteHeader(http.StatusInternalServerError)
-// 		fmt.Fprint(w, `{"code":"500", "message":"error retrieving competition"}`)
-// 		return
-// 	}
-// 	if problem == nil {
-// 		logrus.WithError(err).Warn("problem not found")
-// 		w.WriteHeader(http.StatusNotFound)
-// 		fmt.Fprint(w, `{"code":"404", "message":"competition not found"}`)
-// 		return
-// 	}
+	problemIdParam := pat.Param(r, "problem_id")
+	problemId, err := strconv.Atoi(problemIdParam)
+	if err != nil {
+		logrus.Warn("bad uuid")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		return
+	}
 
-// 	respJSON, err := json.Marshal(problem)
-// 	if err != nil {
-// 		logrus.WithError(err).Error("JSON parse error")
-// 		w.WriteHeader(http.StatusInternalServerError)
-// 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
-// 		return
-// 	}
-// 	fmt.Fprint(w, string(respJSON))
-// }
+	problem, err := db.GetPublicEventProblemWithTestsByID(eventId, problemId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving problem")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving competition"}`)
+		return
+	}
+	if problem == nil {
+		logrus.WithError(err).Warn("problem not found")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		return
+	}
+
+	respJSON, err := json.Marshal(problem)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
 
 // Can consolidate problems.go/getProblemData into this?
 func getEventProblems(w http.ResponseWriter, r *http.Request) {
@@ -595,7 +605,7 @@ func addEventProblem(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"error getting problem from db"}`)
 		return
 	}
-	if event == nil {
+	if problem == nil {
 		logrus.WithError(err).Error("problem does not exist")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"404", "message":"problem does not exist"}`)

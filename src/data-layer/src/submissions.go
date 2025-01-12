@@ -16,6 +16,7 @@ import (
 
 func addSubmissionRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/submissions"), AuthRequired(postSubmission))
+
 	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id"), AuthRequired(getSubmission))
 	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id/status"), AuthRequired(getSubmissionStatus))
 
@@ -31,6 +32,14 @@ type UpdateSubmissionStatusPatchBody struct {
 	Stderr           string     `json:"stderr"`
 }
 
+type PostSubmissionBodyType struct {
+	UserID     uuid.UUID `json:"user_id"`
+	ProblemID  int       `json:"problem_id"`
+	LanguageID uuid.UUID `json:"language_id"`
+	SourceCode string    `json:"source_code"`
+	EventID    int       `json:"event_id"`
+}
+
 type PostSubmissionReturnBody struct {
 	Id         uuid.UUID `json:"id"`
 	Status     Status    `json:"status"`
@@ -39,7 +48,7 @@ type PostSubmissionReturnBody struct {
 
 func postSubmission(w http.ResponseWriter, r *http.Request) {
 	// TODO: make this a separate type
-	reqData := new(Submission)
+	reqData := new(PostSubmissionBodyType)
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading request body")
@@ -87,7 +96,12 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 
 	reqData.UserID = userId
 
-	problem, err := db.GetEventProblemExtByID(reqData.ProblemID)
+	targetEventID := reqData.EventID
+	if targetEventID == 0 {
+		targetEventID = getGeneralEventID()
+	}
+
+	problem, err := db.GetEventProblemExtByID(targetEventID, reqData.ProblemID)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing problem")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -129,11 +143,46 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqData.Status = Pending
-	reqData.FailedTestCaseID = nil
-	reqData.Stderr = ""
-	reqData.Stdout = ""
-	response, err := db.CreateSubmission(reqData)
+	// TODO: is the event active - can I submit solutions to it?
+	event, err := db.GetEventByID(problem.EventID)
+	if err != nil {
+		logrus.WithError(err).Error("error checking for existing event")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing competition"}`)
+		return
+	}
+	if event == nil {
+		logrus.WithError(err).Error("event does not exist")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing competition"}`)
+		return
+	}
+
+	timeNow := time.Now()
+
+	canSubmit, err := userCanSubmitToEventId(user, event, timeNow)
+	if err != nil {
+		logrus.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error submitting"}`)
+		return
+	}
+	if !canSubmit {
+		logrus.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error submitting"}`)
+		return
+	}
+
+	newSubmission := &Submission{
+		UserID:     reqData.UserID,
+		ProblemID:  reqData.ProblemID,
+		LanguageID: reqData.LanguageID,
+		SourceCode: reqData.SourceCode,
+		Status:     Pending,
+	}
+
+	response, err := db.CreateSubmission(newSubmission)
 	if err != nil {
 		logrus.WithError(err).Error("error inserting submission into db")
 		w.WriteHeader(http.StatusInternalServerError)

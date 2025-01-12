@@ -109,6 +109,9 @@ CREATE TABLE "events" (
 CREATE TABLE "event_problems" (
   "id" serial PRIMARY KEY,
   "event_id" integer NOT NULL,
+  -- An ID that gives the order of the problem for this event
+  -- User's reference this problem using this ID in combination with the event id
+  "event_problem_id" INTEGER NOT NULL,
   "problem_id" integer NOT NULL,
   "hidden" boolean NOT NULL,
   "accept_timeout" float,
@@ -175,3 +178,36 @@ ALTER TABLE "event_teams" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id"
 ALTER TABLE "problem_categories" ADD FOREIGN KEY ("category_id") REFERENCES "categories" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "problem_categories" ADD FOREIGN KEY ("problem_id") REFERENCES "problem_descriptions" ("id") ON DELETE CASCADE;
+
+CREATE TABLE event_problem_id_max_problem_ids (
+    event_id integer PRIMARY KEY,
+    max_problem_id integer DEFAULT 0
+);
+
+
+-- Temporary way to make ID's
+-- In future, this will be handled in the Go side, because we don't necessarily want
+-- the values to be integers, but they could be strings
+CREATE OR REPLACE FUNCTION update_row_order() 
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE event_problem_id_max_problem_ids
+    SET max_problem_id = max_problem_id + 1
+    WHERE event_id = NEW.event_id
+    RETURNING max_problem_id INTO NEW.event_problem_id;
+
+    IF NOT FOUND THEN
+        INSERT INTO event_problem_id_max_problem_ids (event_id, max_problem_id)
+        VALUES (NEW.event_id, 1)
+        ON CONFLICT (event_id) DO NOTHING;
+
+        NEW.event_problem_id := 1;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_row_order
+BEFORE INSERT ON event_problems
+FOR EACH ROW EXECUTE FUNCTION update_row_order();

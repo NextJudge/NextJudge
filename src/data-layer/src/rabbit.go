@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -34,7 +35,7 @@ type RabbitMQCustomInputSubmission struct {
 
 func SetupRabbitMQConnection() error {
 
-	rabbitMQEndpoint := fmt.Sprintf("amqp://%s:5672", cfg.RabbitMQHost)
+	rabbitMQEndpoint := fmt.Sprintf("amqp://%s:%s@%s:5672", url.QueryEscape(cfg.RabbitUser), url.QueryEscape(cfg.RabbitPassword), cfg.RabbitMQHost)
 
 	var conn *amqp.Connection
 	var err error

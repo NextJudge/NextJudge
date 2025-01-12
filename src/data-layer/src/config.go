@@ -24,6 +24,8 @@ type config struct {
 	DBName               string
 	DBDriver             string
 	RabbitMQHost         string
+	RabbitUser           string
+	RabbitPassword       string
 	ElasticEndpoint      string
 	ProblemsIndex        string
 	CompetitionsIndex    string
@@ -145,6 +147,16 @@ func init() {
 		cfg.RabbitMQHost = "localhost"
 	} else {
 		cfg.RabbitMQHost = rabbitMQHost
+	}
+
+	cfg.RabbitUser = os.Getenv("RABBITMQ_USER")
+	if cfg.RabbitUser == "" {
+		logrus.Fatal("Must specify a RABBITMQ_USER")
+	}
+
+	cfg.RabbitPassword = os.Getenv("RABBITMQ_PASSWORD")
+	if cfg.RabbitUser == "" {
+		logrus.Fatal("Must specify a RABBITMQ_PASSWORD")
 	}
 
 	elasticEndpoint := os.Getenv("ELASTIC_ENDPOINT")

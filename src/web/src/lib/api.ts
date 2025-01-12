@@ -1,5 +1,5 @@
 import { SignUpFormValues } from "@/types";
-import { Category, Language, Problem, Submission, User } from "./types";
+import { Category, Language, NextJudgeEvent, Problem, Submission, User } from "./types";
 import { getBridgeUrl } from "./utils";
 
 
@@ -60,6 +60,23 @@ export async function apiGetProblems(token: string): Promise<Problem[]> {
         throw new Error("Failed to fetch problems")
     }
 }
+
+export async function apiGetEvents(token: string): Promise<NextJudgeEvent[]> {
+    try {
+
+        const data = await fetch(
+            `${getBridgeUrl()}/v1/events`, {
+                headers: {
+                    "Authorization": token
+                }
+            }
+        );
+        return data.json()
+    } catch (e) {
+        throw new Error("Failed to fetch problems")
+    }
+}
+
 
 
 export async function fetchProblemID(token: string, id: number): Promise<Problem> {

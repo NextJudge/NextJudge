@@ -11,8 +11,6 @@ export interface User {
     is_admin: boolean;
 }
 
-
-
 export interface Language {
     id: string;
     name: string;
@@ -30,6 +28,16 @@ export interface Problem {
     upload_date: string;
     test_cases: TestCase[];
     categories: Category[];
+}
+
+export interface NextJudgeEvent {
+    id: number;
+    user_id: string;
+    title: string;
+    description: string;
+    start_time: string;
+    end_time: string;
+    teams: boolean;
 }
 
 export interface TestCase {

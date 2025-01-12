@@ -122,7 +122,7 @@ type Language struct {
 }
 
 type Event struct {
-	ID          int       `json:"id"`
+	ID          int       `json:"id" gorm:"primaryKey"`
 	UserID      uuid.UUID `json:"user_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
@@ -154,7 +154,7 @@ func (EventWithProblemsExt) TableName() string {
 }
 
 type EventProblem struct {
-	ID               int      `json:"id"`
+	ID               int      `json:"id" gorm:"primaryKey"`
 	EventID          int      `json:"event_id"`
 	ProblemID        int      `json:"problem_id"`
 	Hidden           bool     `json:"hidden"`

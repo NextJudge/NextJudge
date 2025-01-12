@@ -3,103 +3,20 @@ import UserAvatar from "@/components/nav/user-avatar";
 import SubmissionGraph from "@/components/submission-graph";
 import { Metadata } from "next";
 import { ContestCard } from "../admin/contests/contest-card";
+import { auth } from "@/app/auth";
+import { apiGetEvents } from "@/lib/api";
 
-export const metadata: Metadata = {
-  title: "NextJudge - Problems",
-  description: "Our curated list of problems for you to solve.",
-};
-
-const mockProblems = [
-  { title: "Problem 1" },
-  { title: "Problem 2" },
-  { title: "Problem 3" },
-];
-
-const mockComps = [
-  {
-    startTime: new Date(),
-    endTime: new Date(),
-    description:
-      "The annual programming contest held by the Student ACM Chapter at Oregon State University. Location: Kelley Engineering Center Room 1003.",
-    title: "6th Annual ACM@OSU Programming Contest",
-    problems: mockProblems,
-    participants: [],
-  },
-  {
-    startTime: new Date(),
-    endTime: new Date(),
-    description:
-      "The annual programming contest held by the Student ACM Chapter at Oregon State University. Location: Kelley Engineering Center Room 1003.",
-    title: "6th Annual ACM@OSU Programming Contest",
-    problems: mockProblems,
-    participants: [],
-  },
-  {
-    startTime: new Date(),
-    endTime: new Date(),
-    description:
-      "The annual programming contest held by the Student ACM Chapter at Oregon State University. Location: Kelley Engineering Center Room 1003.",
-    title: "6th Annual ACM@OSU Programming Contest",
-    problems: mockProblems,
-    participants: [],
-  },
-  {
-    startTime: new Date(),
-    endTime: new Date(),
-    description:
-      "The annual programming contest held by the Student ACM Chapter at Oregon State University. Location: Kelley Engineering Center Room 1003.",
-    title: "6th Annual ACM@OSU Programming Contest",
-    problems: mockProblems,
-    participants: [],
-  },
-  {
-    startTime: new Date(),
-    endTime: new Date(),
-    description:
-      "The annual programming contest held by the Student ACM Chapter at Oregon State University. Location: Kelley Engineering Center Room 1003.",
-    title: "6th Annual ACM@OSU Programming Contest",
-    problems: mockProblems,
-    participants: [],
-  },
-  {
-    startTime: new Date(),
-    endTime: new Date(),
-    description:
-      "The annual programming contest held by the Student ACM Chapter at Oregon State University. Location: Kelley Engineering Center Room 1003.",
-    title: "6th Annual ACM@OSU Programming Contest",
-    problems: mockProblems,
-    participants: [],
-  },
-  {
-    startTime: new Date(),
-    endTime: new Date(),
-    description:
-      "The annual programming contest held by the Student ACM Chapter at Oregon State University. Location: Kelley Engineering Center Room 1003.",
-    title: "6th Annual ACM@OSU Programming Contest",
-    problems: mockProblems,
-    participants: [],
-  },
-  {
-    startTime: new Date(),
-    endTime: new Date(),
-    description:
-      "The annual programming contest held by the Student ACM Chapter at Oregon State University. Location: Kelley Engineering Center Room 1003.",
-    title: "6th Annual ACM@OSU Programming Contest",
-    problems: mockProblems,
-    participants: [],
-  },
-];
-
-async function getThreeMostRecentContests(): Promise<any> {
-  const promise = new Promise((resolve, reject) => {
-    const contests = mockComps.slice(0, 3);
-    resolve(contests);
-  });
-  return promise;
-}
 
 export default async function ProblemsPage() {
-  const upcomingContests = await getThreeMostRecentContests();
+
+  const session = await auth()
+
+  if(!session) {
+    throw "You must be signed-in to view this page"
+  }
+
+  const upcomingContests = await apiGetEvents(session.nextjudge_token);
+  
   return (
     <>
       <PlatformNavbar>

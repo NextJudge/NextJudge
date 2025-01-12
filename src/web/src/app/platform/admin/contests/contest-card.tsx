@@ -27,10 +27,11 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Clock, EditIcon } from "lucide-react";
+import { NextJudgeEvent } from "@/lib/types";
 
 type ContestCardProps = {
   className?: string;
-  contest: any;
+  contest: NextJudgeEvent;
   deleteContest?: (id: number) => void;
   mock?: boolean;
 };
@@ -43,8 +44,8 @@ export function ContestCard({
 }: ContestCardProps) {
   const contestName = contest?.title;
   const contestDescription = contest?.description;
-  const startTime = contest?.startTime;
-  const endTime = contest?.endTime;
+  const startTime = contest?.start_time;
+  const endTime = contest?.end_time;
   return (
     <Card className="max-w-[105%]">
       <CardHeader className="grid grid-cols-[1fr_auto] items-start gap-4 space-y-0">
@@ -97,11 +98,13 @@ export function ContestCard({
           <div className="flex flex-col md:items-center gap-6 md:flex-row ">
             <div className="flex items-center flex-row">
               <CircleIcon className="mr-1 h-3 w-3 fill-osu text-osu" />
-              <p>{contest.problems?.length} Problems</p>
+              {/* TODO: <p>{contest.problems?.length} Problems</p> */}
+              <p>0 Problems</p>
             </div>
             <div className="flex items-center">
               <PersonIcon className="mr-1 h-3 w-3" />
-              <p>{contest.participants?.length} Participants</p>
+              {/* TODO <p>{contest.participants?.length} Participants</p> */}
+              <p>0 Participants</p>
             </div>
             <div className="flex items-center">
               <Clock className="mr-1 size-4 md:mr-2 md:size-4" />

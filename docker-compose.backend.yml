@@ -1,12 +1,20 @@
 services:
 
   nextjudge-data-layer:
-    extends: 
+    extends:
       file: src/data-layer/docker-compose.go.yml
       service: nextjudge-data-layer
     environment:
       - ELASTIC_ENDPOINT=http://elasticsearch:9200
       - ELASTIC_ENABLED="${ELASTIC_ENABLED:-false}"
+      - JUDGE_PASSWORD=${JUDGE_PASSWORD}
+      - JWT_SIGNING_SECRET=${JWT_SIGNING_SECRET}
+      - AUTH_PROVIDER_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - DB_HOST=db
+      - DB_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     depends_on:
       db:
         condition: service_healthy
@@ -15,12 +23,14 @@ services:
       # elasticsearch:
       #   condition: service_healthy
   db:
-    extends: 
+    extends:
       file: src/data-layer/docker-compose.db.yml
       service: db
+    environment:
+      - POSTGRES_PASSWORD=${AUTH_PROVIDER_PASSWORD}
 
   nextjudge-judge:
-    extends: 
+    extends:
       file: src/judge/docker-compose.yml
       service: nextjudge-judge
     environment:
@@ -28,6 +38,9 @@ services:
       - RABBITMQ_PORT=5672
       - NEXTJUDGE_HOST=nextjudge-data-layer
       - NEXTJUDGE_PORT=5000
+      - JUDGE_PASSWORD=${JUDGE_PASSWORD}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -36,12 +49,13 @@ services:
       #   condition: service_healthy
   
   rabbitmq:
-    extends: 
+    extends:
       file: src/data-layer/docker-compose.rabbitmq.yml
       service: rabbitmq
     environment:
       - RABBITMQ_LOGS="error"
-
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
   # elasticsearch:
   #   extends:
   #     file: src/data-layer/docker-compose.elasticsearch.yml

@@ -346,7 +346,7 @@ func (d *Database) GetSubmission(submissionId uuid.UUID) (*Submission, error) {
 func (d *Database) GetSubmissionsByUserID(userId uuid.UUID) ([]Submission, error) {
 	submissions := []Submission{}
 	err := db.NextJudgeDB.Order("submit_time desc").Limit(25).Preload("Language").Preload("Problem", func(db *gorm.DB) *gorm.DB {
-		return db.Select("ID, Title")
+		return db.Select("ID")
 	}).Where("user_id = ?", userId).Find(&submissions).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -360,7 +360,7 @@ func (d *Database) GetSubmissionsByUserID(userId uuid.UUID) ([]Submission, error
 func (d *Database) GetProblemSubmissionsByUserID(userId uuid.UUID, problemId int) ([]Submission, error) {
 	submissions := []Submission{}
 	err := db.NextJudgeDB.Order("submit_time desc").Limit(25).Preload("Language").Preload("Problem", func(db *gorm.DB) *gorm.DB {
-		return db.Select("ID, Title")
+		return db.Select("ID")
 	}).Where("user_id = ?", userId).Where("problem_id = ?", problemId).Find(&submissions).Error
 
 	// err := db.NextJudgeDB.Preload("Language").Preload("Problem").Where("user_id = ?", userId).Where("problem_id = ?", problemId).Find(&submissions).Error
@@ -464,12 +464,12 @@ func (d *Database) GetEventByTitle(title string) (*EventWithProblemsExt, error) 
 	return competition, nil
 }
 
-func (d *Database) CreateEvent(competition *EventWithProblems) (*EventWithProblems, error) {
-	err := d.NextJudgeDB.Create(competition).Error
+func (d *Database) CreateEvent(event *EventWithProblems) (*EventWithProblems, error) {
+	err := d.NextJudgeDB.Create(event).Error
 	if err != nil {
 		return nil, err
 	}
-	return competition, nil
+	return event, nil
 }
 
 func (d *Database) GetEventByID(id int) (*Event, error) {
@@ -484,8 +484,8 @@ func (d *Database) GetEventByID(id int) (*Event, error) {
 	return event, nil
 }
 
-func (d *Database) UpdateEvent(competition *Event) error {
-	err := db.NextJudgeDB.Save(competition).Error
+func (d *Database) UpdateEvent(event *Event) error {
+	err := db.NextJudgeDB.Save(event).Error
 	if err != nil {
 		return err
 	}
@@ -617,9 +617,12 @@ func ConvertEventProblemExtWithTestsToPublicData(eventProblem *EventProblemExtWi
 }
 
 // Include public test data
-func (d *Database) GetPublicEventProblemWithTestsByID(eventProblemID int) (*GetEventProblemType, error) {
+func (d *Database) GetPublicEventProblemWithTestsByID(eventID int, eventProblemID int) (*GetEventProblemType, error) {
 	eventProblem := &EventProblemExtWithTests{}
-	err := db.NextJudgeDB.Preload("Problem").Preload("Problem.TestCases", "hidden = ?", false).Preload("Problem.Categories").First(eventProblem, eventProblemID).Error
+	err := db.NextJudgeDB.Preload("Problem").Preload("Problem.TestCases", "hidden = ?", false).Preload("Problem.Categories").
+		Where("event_id = ? AND event_problem_id = ?", eventID, eventProblemID).
+		First(eventProblem).Error
+
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -630,9 +633,11 @@ func (d *Database) GetPublicEventProblemWithTestsByID(eventProblemID int) (*GetE
 	return ConvertEventProblemExtWithTestsToPublicData(eventProblem)
 }
 
-func (d *Database) GetEventProblemWithTestsByID(eventProblemID int) (*GetEventProblemType, error) {
+func (d *Database) GetEventProblemWithTestsByID(eventID int, eventProblemID int) (*GetEventProblemType, error) {
 	eventProblem := &EventProblemExtWithTests{}
-	err := db.NextJudgeDB.Preload("Problem").Preload("Problem.TestCases").Preload("Problem.Categories").First(eventProblem, eventProblemID).Error
+	err := db.NextJudgeDB.Preload("Problem").Preload("Problem.TestCases").Preload("Problem.Categories").
+		Where("event_id = ? AND event_problem_id = ?", eventID, eventProblemID).
+		First(eventProblem).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -643,9 +648,9 @@ func (d *Database) GetEventProblemWithTestsByID(eventProblemID int) (*GetEventPr
 	return ConvertEventProblemExtWithTestsToPublicData(eventProblem)
 }
 
-func (d *Database) GetEventProblemExtByID(eventProblemID int) (*EventProblemExt, error) {
+func (d *Database) GetEventProblemExtByID(eventID int, eventProblemID int) (*EventProblemExt, error) {
 	eventProblem := &EventProblemExt{}
-	err := db.NextJudgeDB.Preload("Problem").First(eventProblem, eventProblemID).Error
+	err := db.NextJudgeDB.Preload("Problem").Where("event_id = ? AND event_problem_id = ?", eventID, eventProblemID).First(eventProblem).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -709,6 +714,19 @@ func (d *Database) GetTeamByName(name string) (*EventTeam, error) {
 func (d *Database) CreateEventUser(eventUser *EventUser) (*EventUser, error) {
 	err := d.NextJudgeDB.Create(eventUser).Error
 	if err != nil {
+		return nil, err
+	}
+	return eventUser, nil
+}
+
+// TODO: if it's a team event add checks for that
+func (d *Database) GetEventUser(userID uuid.UUID, eventID int) (*EventUser, error) {
+	eventUser := &EventUser{}
+	err := d.NextJudgeDB.Where("user_id = ? AND event_id = ?", userID, eventID).First(eventUser).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return eventUser, nil

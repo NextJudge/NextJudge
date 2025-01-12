@@ -4,5 +4,6 @@ src/data-layer/tmp
 src/data-layer/query.sql
 src/data-layer/Pipfile.lock
 .env
+.env.dev
 .DS_Store
 .vscode

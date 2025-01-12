@@ -53,9 +53,9 @@ export function LoginCard({ children }: LoginCardProps) {
       }
       if (res.status === "success") {
         toast.success("Logged in successfully");
-        setTimeout(() => {
-          router.push("/platform");
-        }, 1000);
+        // setTimeout(() => {
+          // router.push("/platform");
+        // }, 1000);
         return;
       }
 

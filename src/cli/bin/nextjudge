@@ -116,6 +116,10 @@ def main():
     create_event = event_level_parser.add_parser("get")
     create_event.add_argument("id",nargs="?")
 
+    # event pull
+    pull_event = event_level_parser.add_parser("pull")
+    pull_event.add_argument("id",nargs="?")
+
     argcomplete.autocomplete(parser)
 
     # Parse arguments
@@ -132,6 +136,8 @@ def main():
             event_create(args.host, args.port)
         elif subcommand == "get":
             event_get(args.host, args.port, args.id)
+        elif subcommand == "pull":
+            event_pull(args.host, args.port, args.id)
         # event_handle(args.host, args.port)
     elif args.command == "submit":
         send_solution(args.file_path, args.id, args.host, args.port)
@@ -140,7 +146,7 @@ def main():
         get_problem_data(args.id, args.host, args.port)
     elif args.command == "upload-challenge":
         args.port = "5000"
-        parse_and_send_folder(args.directory_to_problem, args.host, args.port)
+        parse_and_send_general_folder(args.directory_to_problem, args.host, args.port)
     elif args.command == "upload-challenge-suite":
         args.port = "5000"
 
@@ -148,11 +154,11 @@ def main():
 
         success = 0
         for directory in directories:
-            s = parse_and_send_folder(f"{args.directory}/{directory}",args.host,args.port)
+            s = parse_and_send_general_folder(f"{args.directory}/{directory}",args.host,args.port)
             if s:
                 success += 1
         
-        print(f"Successfully Uploaded {success} out of {len(directories)} problems")
+        print(f"Successfully uploaded {success} out of {len(directories)} problems")
 
     elif args.command == "custom-run":
         BRIDGE_HOST=args.host
@@ -467,8 +473,13 @@ def parse_and_send_folder(dir: str, host: str, port: str) -> SendResult:
     problem_info = parse_icpc_folder(dir)
     return create_icpc_challenge(host, port, problem_info)
 
-# Return ID of existing problem if a problem by the same name already exists
-def create_icpc_challenge(host: str, port: str, problem_info: ICPCProblemDefinition, identifier: str = "") -> SendResult:
+def parse_and_send_general_folder(dir: str, host: str, port: str) -> SendResult:
+    # Creates the challenge as a generally available challenge - return the event_problem_id
+    problem_info = parse_icpc_folder(dir)
+    return create_icpc_challenge(host, port, problem_info, public=True)
+
+# Return Problem Description ID of existing problem if a problem by the same name already exists
+def create_icpc_challenge(host: str, port: str, problem_info: ICPCProblemDefinition, identifier: str = "", public=False) -> SendResult:
 
     print(f"Title: {problem_info.title}")
     print(f"Number of testcases: {len(problem_info.tests)}")
@@ -489,7 +500,7 @@ def create_icpc_challenge(host: str, port: str, problem_info: ICPCProblemDefinit
                 "difficulty": "MEDIUM",
                 "user_id": id,
                 "test_cases": problem_info.tests,
-                "public":True,
+                "public":public,
             },
             headers={
                 "Authorization":token
@@ -505,8 +516,9 @@ def create_icpc_challenge(host: str, port: str, problem_info: ICPCProblemDefinit
         response_json = submit_problem.json()
         id = response_json['id']
         
-        # Return the event_problem id, not the id of the problem description
-        id = response_json['event_problem_id']
+        if public:
+            # Return the event_problem id, not the id of the problem description
+            id = response_json['event_problem_id']
 
         print("Successfully upload problem")
         print(f"Problem ID: {id}")
@@ -592,14 +604,11 @@ Title: {data['title']}"""
 
     
         print(f"{len(data['test_cases'])} tests written into 'testcases' directory")
-    
-
-
 
 
 def upload_and_run_icpc_solutions(directory: str, host: str, port: str, choose=None):
 
-    s = parse_and_send_folder(f"{directory}",host,port)
+    s = parse_and_send_general_folder(f"{directory}",host,port)
     
     files = [f for f in Path(f"{directory}/submissions/accepted").iterdir() if f.is_file()]
 
@@ -644,7 +653,7 @@ def upload_and_run_icpc_solutions_suite(top_level_directory: str, host: str, por
         if b:
             continue
 
-        s = parse_and_send_folder(f"{top_level_directory}/{directory}",host,port)
+        s = parse_and_send_general_folder(f"{top_level_directory}/{directory}",host,port)
         
         if s.id == -1:
             print("Failure uploading challenge and it doesn't already exist")
@@ -741,7 +750,12 @@ def event_create(host, port) -> None:
         if type(problem_selection.value) == ICPCProblemDefinition:
             icpc_problem = problem_selection.value
             # TODO: FIX THIS: the name should override - this is PER EVENT. DO NOT simply refer to an existing challenge with the same name
-            result = create_icpc_challenge(host,port,icpc_problem,identifier=f"{event.title}_{icpc_problem.title}")
+            result = create_icpc_challenge(
+                host,
+                port,
+                icpc_problem,identifier=f"{event.title}_{icpc_problem.title}",
+                public=False
+            )
             
             problem_ids_ints.append(result.id)
         else:
@@ -851,6 +865,26 @@ def event_get(host, port, id: int | None) -> None:
         print(get_all_event_data.content)
         return get_all_event_data.json()
 
+# Pull all challenges from an event into the local directory
+def event_pull(host, port, id: int | None) -> None:
+    if id is not None:
+        event_get_by_id(host, port, id)
+    else:
+        test_data_data = get_test_user_auth(host, port)
+        token = test_data_data["token"]
+        id = test_data_data["id"]
+
+        get_all_event_data = requests.get(
+            f"http://{host}:{port}/v1/events",
+            headers={
+                "Authorization":token
+            }
+        )
+
+        print(get_all_event_data.content)
+        return get_all_event_data.json()
+
+
 
 def event_get_by_id(host, port, event_id:int) -> dict:
     test_data_data = get_test_user_auth(host, port)
@@ -880,7 +914,6 @@ def event_get_by_title(host, port, title:str) -> dict:
     )
 
     return get_test_event_data.json()
-
 
 
 def event_handle(host, port) -> None:

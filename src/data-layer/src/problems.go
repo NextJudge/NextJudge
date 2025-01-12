@@ -238,7 +238,7 @@ func getPublicProblemData(w http.ResponseWriter, r *http.Request) {
 	// 	}
 	// }
 
-	problem, err := db.GetPublicEventProblemWithTestsByID(problemId)
+	problem, err := db.GetPublicEventProblemWithTestsByID(getGeneralEventID(), problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving problem")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -274,7 +274,7 @@ func getProblemTestData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	problem, err := db.GetEventProblemWithTestsByID(problemId)
+	problem, err := db.GetEventProblemWithTestsByID(getGeneralEventID(), problemId)
 	// problem, err := db.GetEventProblemWithTestsByID(problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving problem")
