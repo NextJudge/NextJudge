@@ -161,6 +161,7 @@ func AtLeastJudgeRequired(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func adminRequiredRequiredChecker(token *NextJudgeClaims) bool {
+	// TODO - check this out
 	return token.Role == JudgeRoleEnum
 }
 

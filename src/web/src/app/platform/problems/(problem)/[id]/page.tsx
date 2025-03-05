@@ -6,6 +6,7 @@ import UserAvatar from "@/components/nav/user-avatar";
 import { apiGetLanguages, apiGetProblemCategories, apiGetRecentSubmissionsForProblem, fetchProblemID } from "@/lib/api";
 import { Problem } from "@/lib/types";
 import { EditorThemeProvider } from "@/providers/editor-theme";
+import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -29,7 +30,9 @@ export default async function Editor({ params }: { params: { id: string } }) {
     const session = await auth();
     
     if (!session || !session.user) {
-        throw new Error("Unauthorized");
+        redirect(
+            "/platform/"
+        );
     }
 
     const results = await Promise.allSettled(
