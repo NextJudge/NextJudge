@@ -3,7 +3,8 @@ ARG BASEJUDGE
 
 FROM ubuntu:24.04 AS build
 
-RUN apt-get update -y && apt-get install -y curl tar wget g++ gcc python3 ruby build-essential openjdk-21-jdk strace ghc pypy3
+# Install all required packages including 64-bit GCC toolchain
+RUN apt-get update -y && apt-get install -y curl tar wget g++ gcc python3 ruby build-essential openjdk-21-jdk strace ghc pypy3 gcc-x86-64-linux-gnu && rm -rf /var/lib/apt/lists/*
 
 # User level stuff below
 # Make dummy user so files have the correct UID/GID
@@ -15,10 +16,13 @@ WORKDIR /home/NEXTJUDGE_USER
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal -y
+
 # Install Golang
-RUN wget https://go.dev/dl/go1.22.1.linux-amd64.tar.gz && tar -C /home/NEXTJUDGE_USER -xzf go1.22.1.linux-amd64.tar.gz
-# Make go compile the stdlib now, and not on the first use of the go build command
-RUN GOROOT=/home/NEXTJUDGE_USER/go GODEBUG=installgoroot=all /home/NEXTJUDGE_USER/go/bin/go install std
+RUN wget https://go.dev/dl/go1.24.1.linux-amd64.tar.gz && tar -C /home/NEXTJUDGE_USER -xzf go1.24.1.linux-amd64.tar.gz
+
+# Tell Go to use the 64-bit compiler explicitly and install stdlib
+ENV CC=x86_64-linux-gnu-gcc
+RUN GOROOT=/home/NEXTJUDGE_USER/go /home/NEXTJUDGE_USER/go/bin/go install std
 
 
 
@@ -57,7 +61,7 @@ version = "13.2.0"
 extension = "cpp"
 script= """
 #!/bin/sh
-g++ {IN_FILE} -O2 -o /executable/main 
+g++ {IN_FILE} -O2 -o /executable/main
 """
 
 [[language]]
@@ -66,7 +70,7 @@ version = "13.2.0"
 extension = "c"
 script= """
 #!/bin/sh
-gcc {IN_FILE} -O2 -o /executable/main 
+gcc {IN_FILE} -O2 -o /executable/main
 """
 
 [[language]]
@@ -104,7 +108,7 @@ HOME=/home/NEXTJUDGE_USER /home/NEXTJUDGE_USER/.cargo/bin/rustc {IN_FILE} -o /ex
 
 [[language]]
 name = "go"
-version = "1.22.1"
+version = "1.24.1"
 extension = "go"
 script= """
 #!/bin/sh
@@ -236,5 +240,3 @@ script= """
 
 
 EOF
-
-
