@@ -15,10 +15,10 @@ watch_dir = "src"
 [build]
 cmd = "go build -o ./tmp/main ./src"
 bin = "tmp/main"
+args = ["-d"]
 EOF
 
 
 EXPOSE 5000
 
 ENTRYPOINT ["air", "-c", "/config/.air.toml"]
-
