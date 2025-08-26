@@ -51,10 +51,11 @@ func main() {
 
 	mux := goji.NewMux()
 	c := cors.New(cors.Options{
-		AllowedOrigins: cfg.CORSOrigin,
-		AllowedHeaders: []string{"Content-Type", "Authorization"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
-		MaxAge:         3600,
+		AllowedOrigins:   cfg.CORSOrigin,
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowCredentials: true,
+		MaxAge:           3600,
 	})
 
 	mux.Use(JSONMiddleware)
