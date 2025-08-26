@@ -61,6 +61,7 @@ type ProblemDescription struct {
 	DefaultAcceptTimeout    float64    `json:"default_accept_timeout"`
 	DefaultExecutionTimeout float64    `json:"default_execution_timeout"`
 	DefaultMemoryLimit      int        `json:"default_memory_timeout"`
+	Public                  bool       `json:"public"`
 }
 
 func (ProblemDescription) TableName() string {
@@ -70,7 +71,7 @@ func (ProblemDescription) TableName() string {
 type ProblemDescriptionExt struct {
 	ProblemDescription
 	TestCases  []TestCase `json:"test_cases,omitempty" gorm:"foreignKey:ProblemID"`
-	Categories []Category `json:"categories" gorm:"many2many:problem_categories;joinForeignKey:problem_id"`
+	Categories []Category `json:"categories" gorm:"many2many:problem_categories;joinForeignKey:problem_id;joinReferences:category_id"`
 }
 
 func (ProblemDescriptionExt) TableName() string {
@@ -82,9 +83,17 @@ type Category struct {
 	Name string    `json:"name"`
 }
 
+func (Category) TableName() string {
+	return "categories"
+}
+
 type ProblemCategory struct {
 	CategoryID uuid.UUID `json:"category_id"`
 	ProblemID  int       `json:"problem_id"`
+}
+
+func (ProblemCategory) TableName() string {
+	return "problem_categories"
 }
 
 type TestCase struct {
@@ -95,14 +104,24 @@ type TestCase struct {
 	ExpectedOutput string    `json:"expected_output"`
 }
 
+func (TestCase) TableName() string {
+	return "test_cases"
+}
+
 type Submission struct {
 	ID     uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	UserID uuid.UUID `json:"user_id"`
 	// GORM magic - it will correlate ProblemID with Problem. Expicitly specifying the foreignKey here broke things.
-	ProblemID   int              `json:"problem_id"`
-	Problem     *EventProblemExt `json:"problem"`
-	TimeElapsed float32          `json:"time_elapsed"`
-	LanguageID  uuid.UUID        `json:"language_id"`
+	ProblemID int                    `json:"problem_id"`
+	Problem   *ProblemDescriptionExt `json:"problem"`
+	// Optional: reference to event if this submission is part of a contest
+	EventID *int   `json:"event_id,omitempty"`
+	Event   *Event `json:"event,omitempty"`
+	// Optional: reference to event_problem for contest-specific settings
+	EventProblemID *int             `json:"event_problem_id,omitempty"`
+	EventProblem   *EventProblemExt `json:"event_problem,omitempty"`
+	TimeElapsed    float32          `json:"time_elapsed"`
+	LanguageID     uuid.UUID        `json:"language_id"`
 	// gorm:"foreignKey:LanguageID;references:ID"
 	Language *Language `json:"language"`
 	Status   Status    `json:"status"`

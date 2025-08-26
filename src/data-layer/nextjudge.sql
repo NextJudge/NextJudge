@@ -49,15 +49,20 @@ CREATE TABLE "problem_descriptions" (
   "upload_date" timestamp NOT NULL,
   "default_accept_timeout" float NOT NULL,
   "default_execution_timeout" float NOT NULL,
-  "default_memory_limit" integer NOT NULL
-  -- "default_judging_policy" 
+  "default_memory_limit" integer NOT NULL,
+  "public" boolean NOT NULL DEFAULT false
+  -- "default_judging_policy"
 );
 
 CREATE TABLE "submissions" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "user_id" UUID NOT NULL,
-  -- reference to event_problem
+  -- Direct reference to problem_descriptions
   "problem_id" integer NOT NULL,
+  -- Optional: reference to event if this submission is part of a contest
+  "event_id" integer,
+  -- Optional: reference to event_problem for contest-specific settings
+  "event_problem_id" integer,
   "time_elapsed" float NOT NULL,
   "language_id" UUID NOT NULL,
   "status" status NOT NULL,
@@ -78,14 +83,14 @@ CREATE TABLE "test_cases" (
 
 CREATE TABLE "languages" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  "name" varchar NOT NULL,
+  "name" varchar NOT NULL UNIQUE,
   "extension" varchar NOT NULL,
   "version" varchar NOT NULL
 );
 
 CREATE TABLE "categories" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  "name" varchar NOT NULL
+  "name" varchar NOT NULL UNIQUE
 );
 
 CREATE TABLE "problem_categories" (
@@ -157,7 +162,11 @@ ALTER TABLE "test_cases" ADD FOREIGN KEY ("problem_id") REFERENCES "problem_desc
 
 ALTER TABLE "submissions" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
 
-ALTER TABLE "submissions" ADD FOREIGN KEY ("problem_id") REFERENCES "event_problems" ("id") ON DELETE CASCADE;
+ALTER TABLE "submissions" ADD FOREIGN KEY ("problem_id") REFERENCES "problem_descriptions" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "submissions" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "submissions" ADD FOREIGN KEY ("event_problem_id") REFERENCES "event_problems" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "submissions" ADD FOREIGN KEY ("language_id") REFERENCES "languages" ("id") ON DELETE CASCADE;
 
@@ -179,7 +188,7 @@ ALTER TABLE "problem_categories" ADD FOREIGN KEY ("category_id") REFERENCES "cat
 
 ALTER TABLE "problem_categories" ADD FOREIGN KEY ("problem_id") REFERENCES "problem_descriptions" ("id") ON DELETE CASCADE;
 
-CREATE TABLE event_problem_id_max_problem_ids (
+CREATE TABLE IF NOT EXISTS event_problem_id_max_problem_ids (
     event_id integer PRIMARY KEY,
     max_problem_id integer DEFAULT 0
 );
@@ -188,9 +197,14 @@ CREATE TABLE event_problem_id_max_problem_ids (
 -- Temporary way to make ID's
 -- In future, this will be handled in the Go side, because we don't necessarily want
 -- the values to be integers, but they could be strings
-CREATE OR REPLACE FUNCTION update_row_order() 
+CREATE OR REPLACE FUNCTION update_row_order()
 RETURNS TRIGGER AS $$
 BEGIN
+    -- Ensure event_id is not null
+    IF NEW.event_id IS NULL THEN
+        RAISE EXCEPTION 'event_id cannot be null';
+    END IF;
+
     UPDATE event_problem_id_max_problem_ids
     SET max_problem_id = max_problem_id + 1
     WHERE event_id = NEW.event_id
@@ -208,6 +222,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_update_row_order ON event_problems;
 CREATE TRIGGER trigger_update_row_order
 BEFORE INSERT ON event_problems
 FOR EACH ROW EXECUTE FUNCTION update_row_order();
