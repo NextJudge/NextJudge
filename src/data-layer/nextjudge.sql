@@ -47,6 +47,7 @@ CREATE TABLE "problem_descriptions" (
   "difficulty" difficulty NOT NULL,
   "user_id" UUID NOT NULL,
   "upload_date" timestamp NOT NULL,
+  "updated_at" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "default_accept_timeout" float NOT NULL,
   "default_execution_timeout" float NOT NULL,
   "default_memory_limit" integer NOT NULL,
@@ -226,3 +227,18 @@ DROP TRIGGER IF EXISTS trigger_update_row_order ON event_problems;
 CREATE TRIGGER trigger_update_row_order
 BEFORE INSERT ON event_problems
 FOR EACH ROW EXECUTE FUNCTION update_row_order();
+
+-- Function to automatically update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to update updated_at on any change to problem_descriptions
+DROP TRIGGER IF EXISTS trigger_update_problem_updated_at ON problem_descriptions;
+CREATE TRIGGER trigger_update_problem_updated_at
+BEFORE UPDATE ON problem_descriptions
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
