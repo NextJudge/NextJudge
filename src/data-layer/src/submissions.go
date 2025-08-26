@@ -37,7 +37,8 @@ type PostSubmissionBodyType struct {
 	ProblemID  int       `json:"problem_id"`
 	LanguageID uuid.UUID `json:"language_id"`
 	SourceCode string    `json:"source_code"`
-	EventID    int       `json:"event_id"`
+	// only required if submitting to a contest
+	EventID *int `json:"event_id,omitempty"`
 }
 
 type PostSubmissionReturnBody struct {
@@ -96,23 +97,53 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 
 	reqData.UserID = userId
 
-	targetEventID := reqData.EventID
-	if targetEventID == 0 {
-		targetEventID = getGeneralEventID()
-	}
-
-	problem, err := db.GetEventProblemExtByID(targetEventID, reqData.ProblemID)
+	problemDesc, err := db.GetProblemDescriptionByID(reqData.ProblemID)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing problem")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing problem"}`)
 		return
 	}
-	if problem == nil {
-		logrus.Warn("problem does not exist")
+
+	if problemDesc == nil {
+		logrus.Warn("problem not found")
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"problem does not exist"}`)
+		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
 		return
+	}
+
+	var eventProblem *EventProblemExt
+	var event *Event
+
+	// if contest submission, validate event and get event details
+	if reqData.EventID != nil && *reqData.EventID != 0 {
+		event, err = db.GetEventByID(*reqData.EventID)
+		if err != nil {
+			logrus.WithError(err).Error("error checking for existing event")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error checking for existing event"}`)
+			return
+		}
+		if event == nil {
+			logrus.Warn("event not found")
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, `{"code":"404", "message":"event not found"}`)
+			return
+		}
+
+		eventProblem, err = db.GetEventProblemExtByID(*reqData.EventID, reqData.ProblemID)
+		if err != nil {
+			logrus.WithError(err).Error("error checking for event problem")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error checking for event problem"}`)
+			return
+		}
+		if eventProblem == nil {
+			logrus.Warn("problem is not part of this event")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"problem is not part of this event"}`)
+			return
+		}
 	}
 
 	language, err := db.GetLanguage(reqData.LanguageID)
@@ -143,35 +174,23 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: is the event active - can I submit solutions to it?
-	event, err := db.GetEventByID(problem.EventID)
-	if err != nil {
-		logrus.WithError(err).Error("error checking for existing event")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing competition"}`)
-		return
-	}
-	if event == nil {
-		logrus.WithError(err).Error("event does not exist")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing competition"}`)
-		return
-	}
-
 	timeNow := time.Now()
 
-	canSubmit, err := userCanSubmitToEventId(user, event, timeNow)
-	if err != nil {
-		logrus.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error submitting"}`)
-		return
-	}
-	if !canSubmit {
-		logrus.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error submitting"}`)
-		return
+	// if contest submission, check event permissions
+	if event != nil {
+		canSubmit, err := userCanSubmitToEventId(user, event, timeNow)
+		if err != nil {
+			logrus.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error submitting"}`)
+			return
+		}
+		if !canSubmit {
+			logrus.Error("user cannot submit to this event")
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(w, `{"code":"403", "message":"cannot submit to this event"}`)
+			return
+		}
 	}
 
 	newSubmission := &Submission{
@@ -180,6 +199,14 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		LanguageID: reqData.LanguageID,
 		SourceCode: reqData.SourceCode,
 		Status:     Pending,
+	}
+
+	// if contest submission, add event information
+	if reqData.EventID != nil && *reqData.EventID != 0 {
+		newSubmission.EventID = reqData.EventID
+		if eventProblem != nil {
+			newSubmission.EventProblemID = &eventProblem.ID
+		}
 	}
 
 	response, err := db.CreateSubmission(newSubmission)
@@ -204,6 +231,7 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// send submission to judge
 	RabbitMQPublishSubmission(response.ID.String())
 
 	w.WriteHeader(http.StatusCreated)
@@ -452,7 +480,7 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 
 func getSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
 	userIdParam := pat.Param(r, "user_id")
-	userId, err := uuid.Parse(userIdParam)
+	_, err := uuid.Parse(userIdParam)
 	if err != nil {
 		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
@@ -460,7 +488,7 @@ func getSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Make sure the user has access to this
+	// make sure the user has access to this
 	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
 	if token == nil {
 		logrus.Error("Error in token")
@@ -469,13 +497,9 @@ func getSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// THIS IS TEMP
-	// TODO
-	// TODO
-	// TODO
-	userId = token.Id
+	userId := token.Id
 
-	// Only admins can users that are not themselves
+	// only admins can get submissions for other users
 	if userId != token.Id && token.Role != AdminRoleEnum {
 		logrus.Error("User trying to get data for a different user")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -520,7 +544,6 @@ func getProblemSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
 	problemIdParam := pat.Param(r, "problem_id")
 
 	userId, err := uuid.Parse(userIdParam)
-
 	if err != nil {
 		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
