@@ -15,7 +15,7 @@ services:
       - RABBITMQ_HOST=rabbitmq-dev
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-      - AUTH_DISABLED=true
+      - AUTH_DISABLED=false
     depends_on:
       db-dev:
         condition: service_healthy
@@ -65,7 +65,5 @@ services:
   #     service: elasticsearch
   #   profiles: [elastic]
 
-volumes: 
+volumes:
   postgres_data:
-  
-  
