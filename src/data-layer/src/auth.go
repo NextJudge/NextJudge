@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 
 	"golang.org/x/crypto/argon2"
 
@@ -36,6 +37,14 @@ func addAuthRoutes(mux *goji.Mux) {
 type CreateTokenResponse struct {
 	Token string    `json:"token"`
 	Id    uuid.UUID `json:"id"`
+	Name  string    `json:"name"`
+	Email string    `json:"email"`
+	Image string    `json:"image,omitempty"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+	Code  string `json:"code"`
 }
 
 type RoleEnum int
@@ -57,7 +66,6 @@ type ContextKeyType string
 const ContextTokenKey ContextKeyType = "token"
 
 func createToken(userId uuid.UUID, role RoleEnum) (string, error) {
-
 	claim := NextJudgeClaims{
 		Id:   userId,
 		Role: role,
@@ -124,7 +132,6 @@ func AuthValidate(next http.HandlerFunc, validateFunc AllowTokenFunc) http.Handl
 		token, err := jwt.ParseWithClaims(auth_header[0], &NextJudgeClaims{}, func(token *jwt.Token) (interface{}, error) {
 			return cfg.JwtSigningSecret, nil
 		}, jwt.WithValidMethods([]string{"HS256"}))
-
 		if err != nil {
 			logrus.Warn(err)
 			w.WriteHeader(http.StatusUnauthorized)
@@ -162,7 +169,7 @@ func AtLeastJudgeRequired(next http.HandlerFunc) http.HandlerFunc {
 
 func adminRequiredRequiredChecker(token *NextJudgeClaims) bool {
 	// TODO - check this out
-	return token.Role == JudgeRoleEnum
+	return token.Role == AdminRoleEnum
 }
 
 func AdminRequired(next http.HandlerFunc) http.HandlerFunc {
@@ -217,11 +224,10 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 			AccountIdentifier: reqData.Id,
 			Email:             reqData.Email,
 			Name:              reqData.Name,
-			IsAdmin:           false,
+			IsAdmin:           isAdminEmail(reqData.Email),
 		}
 
 		user, err := db.GetOrCreateUserByAccountIdentifier(&newUserData)
-
 		if err != nil {
 			logrus.WithError(err).Error("error creating or fetching user")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -229,8 +235,11 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		newToken, err := createToken(user.ID, UserRoleEnum)
-
+		role := UserRoleEnum
+		if user.IsAdmin {
+			role = AdminRoleEnum
+		}
+		newToken, err := createToken(user.ID, role)
 		if err != nil {
 			logrus.WithError(err).Error("error creating JWT token")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -241,16 +250,21 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 		respData := CreateTokenResponse{
 			Token: newToken,
 			Id:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
+			Image: user.Image,
 		}
 		// Write the JSON token back!
 
 		respJSON, err := json.Marshal(respData)
 		if err != nil {
 			logrus.WithError(err).Error("JSON parse error")
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, `{"message":"JSON parse error"}`)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, string(respJSON))
 
 	} else {
@@ -281,7 +295,6 @@ func loginJudge(w http.ResponseWriter, r *http.Request) {
 	if subtle.ConstantTimeCompare([]byte(auth_header[0]), cfg.JudgePassword) == 1 {
 
 		newToken, err := createToken(uuid.Nil, JudgeRoleEnum)
-
 		if err != nil {
 			logrus.WithError(err).Error("error creating JWT token")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -296,10 +309,12 @@ func loginJudge(w http.ResponseWriter, r *http.Request) {
 		respJSON, err := json.Marshal(respData)
 		if err != nil {
 			logrus.WithError(err).Error("JSON parse error")
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, `{"message":"JSON parse error"}`)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, string(respJSON))
 	} else {
 		logrus.Warn("Auth failure in creating user")
@@ -310,8 +325,26 @@ func loginJudge(w http.ResponseWriter, r *http.Request) {
 }
 
 type BasicUserPost struct {
+	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	Image    string `json:"image"`
+}
+
+func isAdminEmail(email string) bool {
+	if slices.Contains(cfg.AdminEmails, email) {
+		logrus.Info("Email ", email, " is an admin email")
+		return true
+	}
+	logrus.Info("Email ", email, " is NOT an admin email")
+	return false
+}
+
+func writeErrorResponse(w http.ResponseWriter, statusCode int, errorMsg string, errorCode string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	errorResp := ErrorResponse{Error: errorMsg, Code: errorCode}
+	json.NewEncoder(w).Encode(errorResp)
 }
 
 func basicRegister(w http.ResponseWriter, r *http.Request) {
@@ -319,46 +352,37 @@ func basicRegister(w http.ResponseWriter, r *http.Request) {
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading request body")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
 		return
 	}
 
 	err = json.Unmarshal(reqBodyBytes, reqData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
 		return
 	}
 
 	accountIdentifier := "basic-" + reqData.Email
 
 	user, err := db.GetUserByAccountIdentifier(accountIdentifier)
-
 	if err != nil {
-		// Database error
 		logrus.WithError(err).Error("Database error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Error"}`)
-	}
-
-	if user != nil {
-		// User already exists
-		logrus.WithError(err).Error("User already exists")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"User with that name already exists"}`)
+		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
 		return
 	}
 
-	// No such user
+	if user != nil {
+		logrus.Error("User already exists")
+		writeErrorResponse(w, http.StatusConflict, "User already exists", "USER_EXISTS")
+		return
+	}
 
 	salt := make([]byte, 16)
 	_, err = rand.Read(salt)
 	if err != nil {
 		logrus.Error("User registration failed - could not create random number")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"error":"User registration failed"}`)
+		writeErrorResponse(w, http.StatusInternalServerError, "Registration failed", "SALT_GENERATION_ERROR")
 		return
 	}
 
@@ -367,45 +391,43 @@ func basicRegister(w http.ResponseWriter, r *http.Request) {
 	newUserData := UserWithPassword{
 		User: User{
 			AccountIdentifier: accountIdentifier,
+			Name:              reqData.Name,
 			Email:             reqData.Email,
+			Image:             reqData.Image,
+			IsAdmin:           isAdminEmail(reqData.Email),
 		},
 		Salt:         salt,
 		PasswordHash: passwordHash,
 	}
 
 	newUser, err := db.CreateUserWithPasswordHash(&newUserData)
-
 	if err != nil {
 		logrus.Error("User registration failed - database failure")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"error":"User registration failed"}`)
+		writeErrorResponse(w, http.StatusInternalServerError, "Registration failed", "DATABASE_ERROR")
 		return
 	}
 
-	// Now, create a token with this new user and return it
-	newToken, err := createToken(newUser.ID, UserRoleEnum)
-
+	role := UserRoleEnum
+	if newUser.IsAdmin {
+		role = AdminRoleEnum
+	}
+	newToken, err := createToken(newUser.ID, role)
 	if err != nil {
 		logrus.WithError(err).Error("error creating JWT token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"error creating JWT token"}`)
+		writeErrorResponse(w, http.StatusInternalServerError, "Token creation failed", "TOKEN_ERROR")
 		return
 	}
 
 	respData := CreateTokenResponse{
 		Token: newToken,
 		Id:    newUser.ID,
+		Name:  newUser.Name,
+		Email: newUser.Email,
+		Image: newUser.Image,
 	}
 
-	respJSON, err := json.Marshal(respData)
-	if err != nil {
-		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"JSON parse error"}`)
-		return
-	}
-	fmt.Println("User creation success")
-	fmt.Fprint(w, string(respJSON))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(respData)
 }
 
 func basicLogin(w http.ResponseWriter, r *http.Request) {
@@ -413,16 +435,14 @@ func basicLogin(w http.ResponseWriter, r *http.Request) {
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading request body")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
 		return
 	}
 
 	err = json.Unmarshal(reqBodyBytes, reqData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
 		return
 	}
 
@@ -430,46 +450,41 @@ func basicLogin(w http.ResponseWriter, r *http.Request) {
 	user, err := db.GetUserByAccountIdentifierWithPasswordHash(accountIdentifier)
 
 	if user == nil {
-		// Database error
 		logrus.WithError(err).Error("No such user or database error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Error"}`)
+		writeErrorResponse(w, http.StatusUnauthorized, "Invalid credentials", "INVALID_CREDENTIALS")
 		return
 	}
 
 	currentPasswordHash := argon2.IDKey([]byte(reqData.Password), user.Salt, 1, 64*1024, 4, 32)
 
-	if subtle.ConstantTimeCompare([]byte(currentPasswordHash), user.PasswordHash) == 1 {
-
-		newToken, err := createToken(user.ID, UserRoleEnum)
-
-		if err != nil {
-			logrus.WithError(err).Error("error creating JWT token")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"message":"error creating JWT token"}`)
-			return
-		}
-
-		respData := CreateTokenResponse{
-			Token: newToken,
-			Id:    user.ID,
-		}
-
-		respJSON, err := json.Marshal(respData)
-		if err != nil {
-			logrus.WithError(err).Error("JSON parse error")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"message":"JSON parse error"}`)
-			return
-		}
-		fmt.Println("Login Success", user.AccountIdentifier)
-		fmt.Fprint(w, string(respJSON))
-	} else {
+	if subtle.ConstantTimeCompare([]byte(currentPasswordHash), user.PasswordHash) != 1 {
 		logrus.Warn("Incorrect credential attempt")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"error":"Incorrect credentials"}`)
+		writeErrorResponse(w, http.StatusUnauthorized, "Invalid credentials", "INVALID_CREDENTIALS")
 		return
 	}
+
+	role := UserRoleEnum
+	if user.IsAdmin {
+		role = AdminRoleEnum
+	}
+
+	newToken, err := createToken(user.ID, role)
+	if err != nil {
+		logrus.WithError(err).Error("error creating JWT token")
+		writeErrorResponse(w, http.StatusInternalServerError, "Token creation failed", "TOKEN_ERROR")
+		return
+	}
+
+	respData := CreateTokenResponse{
+		Token: newToken,
+		Id:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+		Image: user.Image,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(respData)
 }
 
 const AUTH_TEST_USER = "__nextjudge_auth_test_user"
@@ -498,7 +513,6 @@ func getUserCreds(w http.ResponseWriter, r *http.Request) {
 
 	// Now, create a token with this new user and return it
 	newToken, err := createToken(user.ID, UserRoleEnum)
-
 	if err != nil {
 		logrus.WithError(err).Error("error creating JWT token")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -509,14 +523,19 @@ func getUserCreds(w http.ResponseWriter, r *http.Request) {
 	respData := CreateTokenResponse{
 		Token: newToken,
 		Id:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+		Image: user.Image,
 	}
 
 	respJSON, err := json.Marshal(respData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"message":"JSON parse error"}`)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, string(respJSON))
 }

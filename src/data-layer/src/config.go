@@ -31,6 +31,7 @@ type config struct {
 	CompetitionsIndex    string
 	ElasticEnabled       bool
 	AuthDisabled         bool
+	AdminEmails          []string
 }
 
 var cfg config
@@ -193,5 +194,18 @@ func init() {
 		cfg.AuthDisabled = true
 	} else {
 		cfg.AuthDisabled = false
+	}
+
+	adminEmails := os.Getenv("ADMIN_EMAILS")
+	logrus.Info("Loading admin emails from environment: '", adminEmails, "'")
+	if adminEmails == "" {
+		cfg.AdminEmails = []string{}
+		logrus.Info("No admin emails configured")
+	} else {
+		cfg.AdminEmails = strings.Split(adminEmails, ",")
+		for i, email := range cfg.AdminEmails {
+			cfg.AdminEmails[i] = strings.TrimSpace(email)
+		}
+		logrus.Info("Configured admin emails: ", cfg.AdminEmails)
 	}
 }
