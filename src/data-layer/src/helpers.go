@@ -5,13 +5,7 @@ import (
 	"time"
 )
 
-// Check that the user is part of it and it's open
 func userCanSubmitToEventId(user *User, event *Event, timeNow time.Time) (bool, error) {
-
-	if event.ID == getGeneralEventID() {
-		return true, nil
-	}
-	// If the event hasn't started yet, or it has ended already
 	if event.StartTime.After(timeNow) || event.EndTime.Before(timeNow) {
 		return false, fmt.Errorf("event is not currently active")
 	}
