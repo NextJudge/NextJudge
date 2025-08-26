@@ -21,6 +21,7 @@ func addEventsRoutes(mux *goji.Mux) {
 
 	mux.HandleFunc(pat.Get("/v1/events/:event_id"), AdminRequired(getEvent))
 	mux.HandleFunc(pat.Post("/v1/events"), AdminRequired(postEvent))
+	mux.HandleFunc(pat.Put("/v1/events/:event_id"), AdminRequired(putEvent))
 
 	// Get the state of a event (has it started?)
 	// mux.HandleFunc(pat.Get("/v1/events/:event_id/state"), AuthRequired(deleteEvent))
@@ -44,12 +45,12 @@ func addEventsRoutes(mux *goji.Mux) {
 
 	// Submissions, query determined by query parameters
 	mux.HandleFunc(pat.Get("/v1/events/:event_id/submissions"), AuthRequired(getEventSubmissions))
-
 }
 
-func getGeneralEventID() int {
-	return 1
-}
+// DEPRECATED: No longer using a hardcoded "general event" - problems are standalone
+// func getGeneralEventID() int {
+// 	return 1
+// }
 
 type GetCompetitionData struct {
 	ID          uuid.UUID
@@ -259,12 +260,14 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if startTime.Before(time.Now()) {
+	// assuming they took a few minutes to fill out the form
+	if startTime.Before(time.Now().Add(-5 * time.Minute)) {
 		logrus.WithField("start_time", startTime).Warn("cannot make start time before present")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, `{"code":"400", "message":"cannot make start time before present"}`)
 		return
 	}
+	
 	if startTime.After(endTime) {
 		logrus.Warn("cannot make start time after end time")
 		w.WriteHeader(http.StatusBadRequest)
@@ -345,9 +348,125 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(respJSON))
 }
 
-// TODO: for all the non-null fields, update the corresponding competition object
-func putCompetition(w http.ResponseWriter, r *http.Request) {
+func putEvent(w http.ResponseWriter, r *http.Request) {
+	eventIdParam := pat.Param(r, "event_id")
+	eventId, err := strconv.Atoi(eventIdParam)
+	if err != nil {
+		logrus.Warn("bad event_id")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad event_id"}`)
+		return
+	}
 
+	existingEvent, err := db.GetEventByID(eventId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving event")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving event"}`)
+		return
+	}
+	if existingEvent == nil {
+		logrus.Warn("event not found")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"event not found"}`)
+		return
+	}
+
+	reqData := new(PostEventRequestBody)
+	reqBodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		logrus.WithError(err).Error("error reading request body")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
+		return
+	}
+
+	err = json.Unmarshal(reqBodyBytes, reqData)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+
+	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if !ok || token == nil {
+		logrus.Error("Error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"Error in token"}`)
+		return
+	}
+
+	if reqData.Title == "" {
+		logrus.Warn("title is required")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"title is required"}`)
+		return
+	}
+
+	// allow current event to keep its title
+	if reqData.Title != existingEvent.Title {
+		existingByTitle, err := db.GetEventByTitle(reqData.Title)
+		if err != nil {
+			logrus.WithError(err).Error("error checking for existing event")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error checking for existing event"}`)
+			return
+		}
+		if existingByTitle != nil {
+			logrus.WithField("title", reqData.Title).Warn("event with that title already exists")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"event with that title already exists"}`)
+			return
+		}
+	}
+
+	startTime, err := time.Parse(time.RFC3339, reqData.StartTime)
+	if err != nil {
+		logrus.WithField("start_time", reqData.StartTime).Warn("error parsing start time")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"error parsing start time"}`)
+		return
+	}
+
+	endTime, err := time.Parse(time.RFC3339, reqData.EndTime)
+	if err != nil {
+		logrus.WithField("end_time", reqData.EndTime).Warn("error parsing end time")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"error parsing end time"}`)
+		return
+	}
+
+	if startTime.After(endTime) {
+		logrus.Warn("cannot make start time after end time")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"cannot make start time after end time"}`)
+		return
+	}
+
+	existingEvent.Title = reqData.Title
+	existingEvent.Description = reqData.Description
+	existingEvent.StartTime = startTime
+	existingEvent.EndTime = endTime
+	existingEvent.Teams = reqData.Teams
+
+	err = db.UpdateEvent(existingEvent)
+	if err != nil {
+		logrus.WithError(err).Error("error updating event in database")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error updating event in database"}`)
+		return
+	}
+
+	respJSON, err := json.Marshal(existingEvent)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+
+	fmt.Fprint(w, string(respJSON))
 }
 
 func deleteEvent(w http.ResponseWriter, r *http.Request) {
