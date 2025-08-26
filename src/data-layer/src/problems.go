@@ -33,14 +33,18 @@ func addProblemRoutes(mux *goji.Mux) {
 }
 
 type PostProblemRequestBody struct {
-	Title       string      `json:"title"`
-	Identifier  string      `json:"identifier"`
-	Prompt      string      `json:"prompt"`
-	Difficulty  Difficulty  `json:"difficulty"`
-	Timeout     float64     `json:"timeout"`
-	UserID      uuid.UUID   `json:"user_id"`
-	TestCases   []TestCase  `json:"test_cases"`
-	CategoryIds []uuid.UUID `json:"category_ids"`
+	Title            string      `json:"title"`
+	Identifier       string      `json:"identifier"`
+	Prompt           string      `json:"prompt"`
+	Source           string      `json:"source"`
+	Difficulty       Difficulty  `json:"difficulty"`
+	Timeout          float64     `json:"timeout"` // default timeout, used if specific ones not provided
+	AcceptTimeout    *float64    `json:"accept_timeout"`
+	ExecutionTimeout *float64    `json:"execution_timeout"`
+	MemoryLimit      *int        `json:"memory_limit"`
+	UserID           uuid.UUID   `json:"user_id"`
+	TestCases        []TestCase  `json:"test_cases"`
+	CategoryIds      []uuid.UUID `json:"category_ids"`
 	// Do we create a global EventProblem for this upload?
 	Public bool `json:"public"`
 }
@@ -97,7 +101,10 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	if reqData.Identifier == "" {
-		reqData.Identifier = reqData.Title
+		logrus.Warn("identifier is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"identifier is empty"}`)
+		return
 	}
 
 	problem, err := db.GetProblemDescriptionByIdentifer(reqData.Identifier)
@@ -114,18 +121,35 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// set default values and use provided values if available
+	acceptTimeout := reqData.Timeout
+	if reqData.AcceptTimeout != nil {
+		acceptTimeout = *reqData.AcceptTimeout
+	}
+
+	executionTimeout := reqData.Timeout
+	if reqData.ExecutionTimeout != nil {
+		executionTimeout = *reqData.ExecutionTimeout
+	}
+
+	memoryLimit := 256 // Default 256MB
+	if reqData.MemoryLimit != nil {
+		memoryLimit = *reqData.MemoryLimit
+	}
+
 	newProblem := &ProblemDescriptionExt{
 		ProblemDescription: ProblemDescription{
 			Title:                   reqData.Title,
 			Identifier:              reqData.Identifier,
 			Prompt:                  reqData.Prompt,
-			Source:                  "",
+			Source:                  reqData.Source,
 			Difficulty:              reqData.Difficulty,
 			UserID:                  reqData.UserID,
 			UploadDate:              time.Now(),
-			DefaultAcceptTimeout:    reqData.Timeout,
-			DefaultExecutionTimeout: reqData.Timeout,
-			DefaultMemoryLimit:      0,
+			DefaultAcceptTimeout:    acceptTimeout,
+			DefaultExecutionTimeout: executionTimeout,
+			DefaultMemoryLimit:      memoryLimit,
+			Public:                  reqData.Public,
 		},
 		TestCases:  reqData.TestCases,
 		Categories: []Category{},
@@ -158,27 +182,8 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Remove automatic event creation - problems are now independent entities
 	eventProblemID := 0
-
-	if reqData.Public {
-		generalEventID := getGeneralEventID()
-
-		newEventProblem, err := db.CreateEventProblem(
-			&EventProblem{
-				EventID:   generalEventID,
-				ProblemID: dbProblem.ID,
-				Hidden:    false,
-			},
-		)
-		if err != nil {
-			logrus.WithError(err).Error("error inserting problem into db")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error inserting problem into db"}`)
-			return
-		}
-
-		eventProblemID = newEventProblem.ID
-	}
 
 	// if cfg.ElasticEnabled {
 	// 	err = es.IndexProblem(dbProblem)
@@ -218,38 +223,41 @@ func getPublicProblemData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// problem := &ProblemDescriptionExt{}
-	// query := r.URL.Query().Get("type")
-	// if query == "private" {
-	// 	problem, err = db.GetProblemDescriptionByID(problemId)
-	// 	if err != nil {
-	// 		logrus.WithError(err).Error("error retrieving problem")
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
-	// 		return
-	// 	}
-	// } else {
-	// 	problem, err = db.GetPublicProblemDescriptionByID(problemId)
-	// 	if err != nil {
-	// 		logrus.WithError(err).Error("error retrieving problem")
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
-	// 		return
-	// 	}
-	// }
-
-	problem, err := db.GetPublicEventProblemWithTestsByID(getGeneralEventID(), problemId)
+	problemExt, err := db.GetProblemDescriptionByID(problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving problem")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
 		return
 	}
-	if problem == nil {
+	if problemExt == nil {
 		logrus.Warn("problem not found")
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
 		return
+	}
+
+	// Filter test cases to only include public ones
+	var publicTests []TestCase
+	for _, testCase := range problemExt.TestCases {
+		if !testCase.Hidden {
+			publicTests = append(publicTests, testCase)
+		}
+	}
+
+	// Convert ProblemDescriptionExt to the format expected by frontend
+	problem := GetEventProblemType{
+		ID:            problemExt.ID,
+		EventID:       0, // Not tied to a specific event
+		Title:         problemExt.Title,
+		Prompt:        problemExt.Prompt,
+		Source:        problemExt.Source,
+		Difficulty:    problemExt.Difficulty,
+		UserID:        problemExt.UserID,
+		UploadDate:    problemExt.UploadDate,
+		AcceptTimeout: problemExt.DefaultAcceptTimeout,
+		MemoryLimit:   problemExt.DefaultMemoryLimit,
+		Tests:         publicTests,
 	}
 
 	respJSON, err := json.Marshal(problem)
@@ -274,8 +282,7 @@ func getProblemTestData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	problem, err := db.GetEventProblemWithTestsByID(getGeneralEventID(), problemId)
-	// problem, err := db.GetEventProblemWithTestsByID(problemId)
+	problem, err := db.GetProblemDescriptionByID(problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving problem")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -305,9 +312,7 @@ func getGeneralProblems(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if query == "" || !cfg.ElasticEnabled {
-		// problems, err = db.GetProblemDescriptions()
-		problems, err = db.GetPublicEventProblems(getGeneralEventID())
-
+		problems, err = db.GetPublicProblems()
 		if err != nil {
 			logrus.WithError(err).Error("error retrieving problems")
 			w.WriteHeader(http.StatusInternalServerError)
