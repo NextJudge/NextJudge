@@ -3,6 +3,7 @@
 import { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu";
 import * as React from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Checked = DropdownMenuCheckboxItemProps["checked"];
 
@@ -37,52 +39,83 @@ export function DropdownMenuCheckboxes({
   type,
   children,
 }: DropdownMenuCheckboxesProps) {
-  const [checkedItems, setCheckedItems] = React.useState<Item[]>([]);
-
   const handleCheckedChange = (item: Item, checked: boolean) => {
     if (checked) {
-      setCheckedItems([...checkedItems, item]);
+      setSelectedItems([...selectedItems, item]);
     } else {
-      setCheckedItems(checkedItems.filter((i) => i.id !== item.id));
+      setSelectedItems(selectedItems.filter((i) => i.id !== item.id));
     }
   };
+  const getButtonText = () => {
+    const count = selectedItems.length;
+    if (count === 0) {
+      return type === "problems" ? "Select problems" : "Select participants";
+    }
+    return type === "problems"
+      ? `${count} problem${count !== 1 ? 's' : ''} selected`
+      : `${count} participant${count !== 1 ? 's' : ''} selected`;
+  };
 
-  React.useEffect(() => {
-    setSelectedItems(checkedItems);
-  }, [checkedItems, setSelectedItems]);
   return (
-    <>
+    <div className="space-y-3">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline">
-            {type === "problems" ? "Add problems" : "Add participants"}
+          <Button variant="outline" className="w-full justify-between">
+            {getButtonText()}
+            <Badge variant="secondary" className="ml-2">
+              {selectedItems.length}
+            </Badge>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56">
+        <DropdownMenuContent className="w-64">
           <DropdownMenuLabel>
-            {type === "problems" ? "Problems" : "Participants"}
+            {type === "problems" ? "Available Problems" : "Available Participants"}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {items?.map((item: any) => (
-            <DropdownMenuCheckboxItem
-              key={item.id}
-              checked={selectedItems.some((i) => i.id === item.id)}
-              onCheckedChange={(checked) => handleCheckedChange(item, checked)}
-            >
-              {type === "problems" ? (
-                <div className="flex items-center space-x-2">
-                  <span>{item.title}</span>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <span>{item.username}</span>
-                </div>
-              )}
-            </DropdownMenuCheckboxItem>
-          ))}
+          <ScrollArea className="h-48">
+            {items?.map((item: any) => (
+              <DropdownMenuCheckboxItem
+                key={item.id}
+                checked={selectedItems.some((i) => i.id === item.id)}
+                onCheckedChange={(checked) => handleCheckedChange(item, checked)}
+              >
+                {type === "problems" ? (
+                  <div className="flex items-center space-x-2">
+                    <span>{item.title}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <span>{item.username}</span>
+                  </div>
+                )}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </ScrollArea>
         </DropdownMenuContent>
       </DropdownMenu>
-      {/* {children} */} {/* maybe we support this in the future? */}
-    </>
+
+      {/* Selected items display */}
+      {selectedItems.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            Selected {type === "problems" ? "problems" : "participants"}:
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {selectedItems.map((item) => (
+              <Badge key={item.id} variant="default" className="text-xs">
+                {type === "problems" ? item.title : item.username}
+                <button
+                  onClick={() => handleCheckedChange(item, false)}
+                  className="ml-1 hover:bg-destructive/20 rounded-sm"
+                  type="button"
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

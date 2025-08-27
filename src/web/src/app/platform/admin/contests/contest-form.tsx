@@ -4,8 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { DateTimePicker } from "@/components/date-time-picker";
 import { DropdownMenuCheckboxes } from "@/components/multi-selector";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -17,97 +18,292 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { LoadingButton } from "@/components/ui/loading-button";
-import { toast } from "@/components/ui/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { apiCreateEvent, apiGetProblems } from "@/lib/api";
+import { CreateEventRequest, NextJudgeEvent, Problem } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { CalendarIcon } from "@radix-ui/react-icons";
+import { format } from "date-fns";
+import { useSession } from "next-auth/react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
-const accountFormSchema = z.object({
-  startTime: z.date().optional(),
-  endTime: z.date().optional(),
+const contestFormSchema = z.object({
+  startTime: z.date({ required_error: "Start time is required" }),
+  endTime: z.date({ required_error: "End time is required" }),
   description: z.string({ required_error: "Description is required" }),
   title: z.string({ required_error: "Title is required" }),
-  problems: z
-    .array(
-      z.object({
-        id: z.number(),
-        title: z.string(),
-      })
-    )
-    .optional(),
-  participants: z
-    .array(
-      z.object({
-        id: z.number(),
-        username: z.string(),
-      })
-    )
-    .optional(),
+  teams: z.boolean().default(false),
 });
 
-type AccountFormValues = z.infer<typeof accountFormSchema>;
+type ContestFormValues = z.infer<typeof contestFormSchema>;
 
-// TODO: Fetch problems and participants from the bridge
-const defaultValues: Partial<AccountFormValues> = {
-  title: "Contest Title",
-  description: "Contest Description",
+const defaultValues: Partial<ContestFormValues> = {
+  title: "",
+  description: "",
   startTime: new Date(),
-  endTime: new Date(),
-  problems: [
-    { id: 1, title: "Problem 1" },
-    { id: 2, title: "Problem 2" },
-    { id: 3, title: "Problem 3" },
-  ],
-  participants: [
-    { id: 1, username: "nyumat" },
-    { id: 2, username: "nyumat" },
-    { id: 3, username: "nyumat" },
-  ],
+  endTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+  teams: false,
 };
 
-export function ContestForm({ onAdd }: any) {
+interface ContestFormProps {
+  onAdd: (contest: NextJudgeEvent) => void;
+}
+
+interface DateTimePickerProps {
+  date: Date | undefined;
+  setDate: (date: Date | undefined) => void;
+}
+
+function DateTimePicker({ date, setDate }: DateTimePickerProps) {
+  function handleDateSelect(selectedDate: Date | undefined) {
+    if (selectedDate) {
+      // If we have an existing date, preserve the time
+      if (date) {
+        const newDate = new Date(selectedDate);
+        newDate.setHours(date.getHours());
+        newDate.setMinutes(date.getMinutes());
+        newDate.setSeconds(date.getSeconds());
+        setDate(newDate);
+      } else {
+        setDate(selectedDate);
+      }
+    }
+  }
+
+  function handleTimeChange(type: "hour" | "minute" | "ampm", value: string) {
+    const currentDate = date || new Date();
+    let newDate = new Date(currentDate);
+
+    if (type === "hour") {
+      const hour = parseInt(value, 10);
+      const currentHours = newDate.getHours();
+      const isPM = currentHours >= 12;
+
+      if (isPM && hour !== 12) {
+        newDate.setHours(hour + 12);
+      } else if (!isPM && hour === 12) {
+        newDate.setHours(0);
+      } else if (!isPM && hour !== 12) {
+        newDate.setHours(hour);
+      } else {
+        newDate.setHours(hour);
+      }
+    } else if (type === "minute") {
+      newDate.setMinutes(parseInt(value, 10));
+    } else if (type === "ampm") {
+      const hours = newDate.getHours();
+      if (value === "AM" && hours >= 12) {
+        newDate.setHours(hours - 12);
+      } else if (value === "PM" && hours < 12) {
+        newDate.setHours(hours + 12);
+      }
+    }
+
+    setDate(newDate);
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant={"outline"}
+          className={cn(
+            "w-full pl-3 text-left font-normal",
+            !date && "text-muted-foreground"
+          )}
+        >
+          {date ? (
+            format(date, "MM/dd/yyyy hh:mm aa")
+          ) : (
+            <span>MM/DD/YYYY hh:mm aa</span>
+          )}
+          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0">
+        <div className="sm:flex">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={handleDateSelect}
+            initialFocus
+          />
+          <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
+            <ScrollArea className="w-64 sm:w-auto">
+              <div className="flex sm:flex-col p-2">
+                {Array.from({ length: 12 }, (_, i) => i + 1)
+                  .reverse()
+                  .map((hour) => (
+                    <Button
+                      key={hour}
+                      size="icon"
+                      variant={
+                        date &&
+                          date.getHours() % 12 === hour % 12
+                          ? "default"
+                          : "ghost"
+                      }
+                      className="sm:w-full shrink-0 aspect-square"
+                      onClick={() =>
+                        handleTimeChange("hour", hour.toString())
+                      }
+                    >
+                      {hour}
+                    </Button>
+                  ))}
+              </div>
+              <ScrollBar
+                orientation="horizontal"
+                className="sm:hidden"
+              />
+            </ScrollArea>
+            <ScrollArea className="w-64 sm:w-auto">
+              <div className="flex sm:flex-col p-2">
+                {Array.from({ length: 12 }, (_, i) => i * 5).map(
+                  (minute) => (
+                    <Button
+                      key={minute}
+                      size="icon"
+                      variant={
+                        date &&
+                          date.getMinutes() === minute
+                          ? "default"
+                          : "ghost"
+                      }
+                      className="sm:w-full shrink-0 aspect-square"
+                      onClick={() =>
+                        handleTimeChange("minute", minute.toString())
+                      }
+                    >
+                      {minute.toString().padStart(2, "0")}
+                    </Button>
+                  )
+                )}
+              </div>
+              <ScrollBar
+                orientation="horizontal"
+                className="sm:hidden"
+              />
+            </ScrollArea>
+            <ScrollArea className="">
+              <div className="flex sm:flex-col p-2">
+                {["AM", "PM"].map((ampm) => (
+                  <Button
+                    key={ampm}
+                    size="icon"
+                    variant={
+                      date &&
+                        ((ampm === "AM" &&
+                          date.getHours() < 12) ||
+                          (ampm === "PM" &&
+                            date.getHours() >= 12))
+                        ? "default"
+                        : "ghost"
+                    }
+                    className="sm:w-full shrink-0 aspect-square"
+                    onClick={() => handleTimeChange("ampm", ampm)}
+                  >
+                    {ampm}
+                  </Button>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function ContestForm({ onAdd }: ContestFormProps) {
+  const { data: session } = useSession();
   const [startTime, setStartTime] = useState<Date | undefined>(new Date());
-  const [endTime, setEndTime] = useState(new Date());
-  const [participants, setParticipants] = useState(defaultValues.participants);
-  const [problems, setProblems] = useState(defaultValues.problems);
-  const [selectedProblems, setSelectedProblems] = useState<any[]>([]);
-  const [selectedParticipants, setSelectedParticipants] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
+  const [endTime, setEndTime] = useState<Date | undefined>(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const [availableProblems, setAvailableProblems] = useState<Problem[]>([]);
+  const [selectedProblems, setSelectedProblems] = useState<{ id: number; title: string }[]>([]);
+
+  const handleSelectedProblemsChange = useCallback(
+    (items: { id: number; title?: string; username?: string }[]) => {
+      setSelectedProblems(
+        items
+          .filter((item) => item.title)
+          .map((item) => ({ id: item.id, title: item.title! }))
+      );
+    },
+    [setSelectedProblems]
+  );
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<AccountFormValues>({
-    resolver: zodResolver(accountFormSchema),
+  const form = useForm<ContestFormValues>({
+    resolver: zodResolver(contestFormSchema),
     defaultValues,
     mode: "onChange",
   });
 
-  function onSubmit(data: AccountFormValues) {
+  const fetchProblems = useCallback(async () => {
+    if (!session?.nextjudge_token) return;
+
+    try {
+      const problems = await apiGetProblems(session.nextjudge_token);
+      setAvailableProblems(problems);
+    } catch (error) {
+      console.error('Failed to fetch problems:', error);
+    }
+  }, [session?.nextjudge_token]);
+
+  useEffect(() => {
+    fetchProblems();
+  }, [fetchProblems]);
+
+  async function onSubmit(data: ContestFormValues) {
+    if (!session?.nextjudge_token) {
+      toast.error("You must be signed in to create a contest.");
+      return;
+    }
+
+    if (!startTime || !endTime) {
+      toast.error("Please select a start and end time for the contest.");
+      return;
+    }
+
+    if (startTime && endTime && startTime >= endTime) {
+      toast.error("End time must be after start time.");
+      return;
+    }
+
     setLoading(true);
-    if (startTime && endTime) {
-      data = { ...data, startTime, endTime };
-      // Debug
-      //   toast({
-      //     title: "You submitted the following values:",
-      //     description: (
-      //       <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-      //         <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-      //       </pre>
-      //     ),
-      //   });
-      onAdd(data);
-      setTimeout(() => {
-        toast({
-          title: `${data.title} event created successfully`,
-          description:
-            "The contest has been created successfully and is now live, participants can now join the event.",
-        });
-        setLoading(false);
-        setOpen(false);
-      }, 2000);
-    } else {
-      toast({
-        title: "Please select a start and end time.",
-        description: "You must select a start and end time for the contest.",
-      });
+
+    try {
+      const eventData: CreateEventRequest = {
+        title: data.title,
+        description: data.description,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        teams: data.teams,
+        problems: selectedProblems.map(problem => ({
+          problem_id: problem.id,
+        })),
+      };
+
+      const newContest = await apiCreateEvent(session.nextjudge_token, eventData);
+      onAdd(newContest);
+
+      toast.success(`${data.title} contest created successfully!`);
+
+      // Reset form
+      form.reset(defaultValues);
+      setStartTime(new Date());
+      setEndTime(new Date(Date.now() + 24 * 60 * 60 * 1000));
+      setSelectedProblems([]);
+
+    } catch (error) {
+      console.error('Failed to create contest:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to create contest. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -152,24 +348,38 @@ export function ContestForm({ onAdd }: any) {
         <FormField
           control={form.control}
           name="startTime"
-          render={() => {
-            return (
-              <FormItem className="flex flex-col">
-                <FormLabel>Start Time</FormLabel>
-                <DateTimePicker date={startTime} setDate={setStartTime} />
-                <FormDescription>When the contest will start.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            );
-          }}
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Start Time</FormLabel>
+              <FormControl>
+                <DateTimePicker
+                  date={startTime}
+                  setDate={(date) => {
+                    setStartTime(date);
+                    field.onChange(date);
+                  }}
+                />
+              </FormControl>
+              <FormDescription>When the contest will start.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
         />
         <FormField
           control={form.control}
           name="endTime"
-          render={() => (
+          render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>End Time</FormLabel>
-              <DateTimePicker date={endTime} setDate={setEndTime} />
+              <FormControl>
+                <DateTimePicker
+                  date={endTime}
+                  setDate={(date) => {
+                    setEndTime(date);
+                    field.onChange(date);
+                  }}
+                />
+              </FormControl>
               <FormDescription>When the contest will conclude.</FormDescription>
               <FormMessage />
             </FormItem>
@@ -177,54 +387,38 @@ export function ContestForm({ onAdd }: any) {
         />
         <FormField
           control={form.control}
-          name="problems"
-          render={() => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Problems</FormLabel>
+          name="teams"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">
+                  Teams
+                </FormLabel>
+                <FormDescription>
+                  Allow team participation in this contest
+                </FormDescription>
+              </div>
               <FormControl>
-                <DropdownMenuCheckboxes
-                  items={problems}
-                  selectedItems={selectedProblems}
-                  setSelectedItems={setSelectedProblems}
-                  type="problems"
-                >
-                  {selectedProblems.map((problem) => (
-                    <div key={problem.id}>{problem.title}</div>
-                  ))}
-                </DropdownMenuCheckboxes>
+                <Switch
+                  checked={field.value || false}
+                  onCheckedChange={field.onChange}
+                />
               </FormControl>
-              <FormDescription>
-                Select some problems to include in the contest.
-              </FormDescription>
-              <FormMessage />
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="participants"
-          render={() => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Participants</FormLabel>
-              <FormControl>
-                <DropdownMenuCheckboxes
-                  items={participants}
-                  selectedItems={selectedParticipants}
-                  setSelectedItems={setSelectedParticipants}
-                  type="participants"
-                >
-                  {selectedParticipants.map((participant) => (
-                    <div key={participant.id}>{participant.username}</div>
-                  ))}
-                </DropdownMenuCheckboxes>
-              </FormControl>
-              <FormDescription>
-                Select some participants to include in the contest.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="flex flex-col space-y-2 col-span-2">
+          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Problems</label>
+          <DropdownMenuCheckboxes
+            items={availableProblems?.map(p => ({ id: p.id, title: p.title }))}
+            selectedItems={selectedProblems}
+            setSelectedItems={handleSelectedProblemsChange}
+            type="problems"
+          />
+          <p className="text-sm text-muted-foreground">
+            select problems to include in the contest (optional).
+          </p>
+        </div>
         <LoadingButton className="col-span-2" type="submit" loading={loading}>
           Create contest
         </LoadingButton>
