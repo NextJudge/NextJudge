@@ -7,28 +7,39 @@ import { apiGetLanguages, apiGetProblemCategories, apiGetRecentSubmissionsForPro
 import { Problem } from "@/lib/types";
 import { EditorThemeProvider } from "@/providers/editor-theme";
 import { redirect } from "next/navigation";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 // Used in the case of network failure
 const dummyProblem: Problem = {
-    id:-1,
+    id: -1,
     prompt: "",
     title: "",
     timeout: 0,
     difficulty: "MEDIUM",
     user_id: "-1",
     upload_date: "",
+    updated_at: "",
+    identifier: "",
+    source: "",
+    accept_timeout: 0,
+    execution_timeout: 0,
+    memory_limit: 0,
     test_cases: [],
     categories: [],
 }
 
 
-export default async function Editor({ params }: { params: { id: string } }) {
+export default async function Editor({
+    params,
+    searchParams
+}: {
+    params: { id: string };
+    searchParams: { contest?: string }
+}) {
     const { id } = params;
     const problem_id = parseInt(id)
+    const contestId = searchParams.contest ? parseInt(searchParams.contest) : undefined;
     const session = await auth();
-    
+
     if (!session || !session.user) {
         redirect(
             "/platform/"
@@ -47,26 +58,20 @@ export default async function Editor({ params }: { params: { id: string } }) {
     const [detailsResult, tagsResult, recentSubmissionsResult, languagesResult] = results
 
     const details = detailsResult.status === 'fulfilled' ? detailsResult.value : dummyProblem
-    
-    const testCases = detailsResult.status === 'fulfilled' ? detailsResult.value.test_cases : []
+
+    const testCases = detailsResult.status === 'fulfilled' ? (detailsResult.value.test_cases || []) : []
 
     let tags = tagsResult.status === 'fulfilled' ? tagsResult.value : []
     tags = []
-    
-    const recentSubmissions = recentSubmissionsResult.status === 'fulfilled' ? recentSubmissionsResult.value : []
-    const languages = languagesResult.status === 'fulfilled' ? languagesResult.value : []
 
-    // const details = await fetchProblemID(session.nextjudge_token, parseInt(id));
-    // const tags = await apiGetProblemCategories(session.nextjudge_token, parseInt(id));
-    // const testCases = details.test_cases
-    // const recentSubmissions = await apiGetRecentSubmissionsForProblem(session.nextjudge_token, parseInt(id), session.nextjudge_id);
-    // const languages = await apiGetLanguages();
+    const recentSubmissions = recentSubmissionsResult.status === 'fulfilled' ? (recentSubmissionsResult.value || []) : []
+    const languages = languagesResult.status === 'fulfilled' ? languagesResult.value : []
 
     return (
         <>
             <EditorThemeProvider>
                 <EditorNavbar>
-                    <UserAvatar />
+                    <UserAvatar session={session} />
                 </EditorNavbar>
                 <EditorComponent
                     details={details}
@@ -74,6 +79,7 @@ export default async function Editor({ params }: { params: { id: string } }) {
                     recentSubmissions={recentSubmissions}
                     languages={languages}
                     tags={tags}
+                    contestId={contestId}
                     slot={<MarkdownRenderer prompt={details.prompt} />}
                 />
             </EditorThemeProvider>
