@@ -1,6 +1,7 @@
 import { Footer } from "@/components/footer";
 import { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
+import { headers } from "next/headers";
 
 export const metadata: Metadata = {
   title: "NextJudge - Platform",
@@ -13,13 +14,18 @@ interface PlatformLayoutProps {
 }
 
 export default function PlatformLayout({ children }: PlatformLayoutProps) {
-  
+  const headersList = headers();
+  const pathname = headersList.get("x-pathname") || "";
+
+  // Hide footer on code editor pages (problem detail pages)
+  const isEditorPage = pathname.includes("/platform/problems/") && pathname.match(/\/platform\/problems\/\d+$/);
+
   return (
     <SessionProvider>
       <main className="flex flex-col items-center justify-center overflow-x-hidden">
         {children}
       </main>
-      <Footer />
+      {!isEditorPage && <Footer />}
     </SessionProvider>
   );
 }
