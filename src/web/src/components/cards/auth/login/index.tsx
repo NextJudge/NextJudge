@@ -1,5 +1,5 @@
 "use client";
-import { logUserIn, ReturnType } from "@/app/actions";
+import { logUserIn } from "@/app/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -41,27 +41,13 @@ export function LoginCard({ children }: LoginCardProps) {
     form.clearErrors();
     try {
       const { email, password } = data;
-      const res: ReturnType = await logUserIn({ email, password });
-
-      if (!res) {
-        toast.error("Invalid credentials");
-        return;
-      }
-      if (res.status === "error") {
-        toast.error("An error occurred");
-        return;
-      }
-      if (res.status === "success") {
-        toast.success("Logged in successfully");
-        // setTimeout(() => {
-          // router.push("/platform");
-        // }, 1000);
-        return;
-      }
-
-      toast.error("An error occurred");
+      const res = await logUserIn({ email, password });
+      toast.success(res.message);
+      router.push("/platform");
     } catch (error) {
-      toast(error as string);
+      console.error("Login error:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      toast.error(errorMessage);
     }
   }
 

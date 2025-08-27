@@ -31,6 +31,7 @@ export function SignUpCard({ children }: SignUpCardProps) {
   const form = useForm<z.infer<typeof AuthorizeSchema>>({
     resolver: zodResolver(AuthorizeSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -41,20 +42,14 @@ export function SignUpCard({ children }: SignUpCardProps) {
 
   async function onSubmit(data: z.infer<typeof AuthorizeSchema>) {
     try {
-      const { email, password, confirmPassword } = JSON.parse(
-        JSON.stringify(data)
-      );
-
-      // This is Next.js magic that calls out to the server to run this code
-      const res = await signUpUser({ email, password, confirmPassword });
-      if (res.status === "error") {
-        toast.error(res.message);
-        return;
-      }
-      toast("Account created successfully");
+      const { name, email, password, confirmPassword } = data;
+      const res = await signUpUser({ name, email, password, confirmPassword });
+      toast.success(res.message);
       router.push("/auth/login");
     } catch (error) {
-      toast(error as string);
+      console.error("Signup error:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      toast.error(errorMessage);
     }
   }
 
@@ -83,6 +78,19 @@ export function SignUpCard({ children }: SignUpCardProps) {
             onSubmit={form.handleSubmit(onSubmit)}
             className="flex gap-2 flex-col"
           >
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="email"
