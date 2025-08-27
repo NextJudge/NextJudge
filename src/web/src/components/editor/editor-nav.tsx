@@ -16,6 +16,7 @@ import { ModeToggle } from "@/components/theme";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { routeList } from "@/lib/constants";
 import { Menu } from "lucide-react";
+import { NotificationBell } from "../ui/notification-bell";
 
 // TODO: Feed these props from Zustand (global state solution)
 export default function EditorNavbar({
@@ -72,6 +73,7 @@ export default function EditorNavbar({
 
         <div className="hidden md:flex flex-row gap-4 justify-center items-center mx-12 ">
           <MainNavigationMenu />
+          <NotificationBell />
           {children}
           <ModeToggle />
         </div>
