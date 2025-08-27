@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Submission } from "@/lib/types";
+import { Submission, statusMap } from "@/lib/types";
 import { cn, convertToMonacoLanguageName } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -58,7 +58,7 @@ export function DialogSubmission({
                   "text-yellow-500": submission.status === "PENDING",
                 })}
               >
-                {submission.status.toUpperCase()}
+                {statusMap[submission.status] || submission.status}
               </h1>
             </div>
             <DummyCodeEditor sourceCode={submission.source_code as any} language={convertToMonacoLanguageName(submission.language)} />
