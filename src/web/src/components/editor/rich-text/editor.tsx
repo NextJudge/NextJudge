@@ -6,6 +6,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import "katex/dist/katex.min.css";
 import { useCallback } from "react";
+import { Markdown } from "tiptap-markdown";
 import "./styles.scss";
 import EditorToolbar from "./toolbar/editor-toolbar";
 
@@ -24,10 +25,11 @@ Mathematics.configure({
 
 const Editor = ({ content, placeholder, onChange }: EditorProps) => {
   const editor = useEditor({
-    extensions: [StarterKit, Mathematics],
+    extensions: [StarterKit, Mathematics, Markdown],
     content: content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const markdown = editor.storage.markdown.getMarkdown();
+      onChange(markdown);
     },
   });
 
