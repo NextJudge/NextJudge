@@ -146,6 +146,31 @@ CREATE TABLE "event_teams" (
   "name" varchar NOT NULL
 );
 
+CREATE TABLE "event_questions" (
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "event_id" integer NOT NULL,
+  "user_id" UUID NOT NULL,
+  "problem_id" integer,
+  "question" varchar NOT NULL,
+  "is_answered" boolean NOT NULL DEFAULT false,
+  "created_at" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "answer" varchar,
+  "answered_at" timestamp,
+  "answered_by" UUID
+);
+
+CREATE TABLE "notifications" (
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "user_id" UUID NOT NULL,
+  "event_id" integer NOT NULL,
+  "question_id" UUID NOT NULL,
+  "notification_type" varchar NOT NULL CHECK (notification_type IN ('question', 'answer')),
+  "is_read" boolean NOT NULL DEFAULT false,
+  "created_at" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE "group" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "type" varchar NOT NULL
@@ -188,6 +213,20 @@ ALTER TABLE "event_teams" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id"
 ALTER TABLE "problem_categories" ADD FOREIGN KEY ("category_id") REFERENCES "categories" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "problem_categories" ADD FOREIGN KEY ("problem_id") REFERENCES "problem_descriptions" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "event_questions" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "event_questions" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "event_questions" ADD FOREIGN KEY ("problem_id") REFERENCES "problem_descriptions" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "event_questions" ADD FOREIGN KEY ("answered_by") REFERENCES "users" ("id") ON DELETE SET NULL;
+
+ALTER TABLE "notifications" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "notifications" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "notifications" ADD FOREIGN KEY ("question_id") REFERENCES "event_questions" ("id") ON DELETE CASCADE;
 
 CREATE TABLE IF NOT EXISTS event_problem_id_max_problem_ids (
     event_id integer PRIMARY KEY,
@@ -241,4 +280,10 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trigger_update_problem_updated_at ON problem_descriptions;
 CREATE TRIGGER trigger_update_problem_updated_at
 BEFORE UPDATE ON problem_descriptions
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger to update updated_at on any change to event_questions
+DROP TRIGGER IF EXISTS trigger_update_event_questions_updated_at ON event_questions;
+CREATE TRIGGER trigger_update_event_questions_updated_at
+BEFORE UPDATE ON event_questions
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
