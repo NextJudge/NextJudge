@@ -1,19 +1,20 @@
 "use client";
 import { ContestCard } from "@/app/platform/admin/contests/contest-card";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
+import { Submission } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Editor } from "@monaco-editor/react";
 import {
   IconBoxAlignTopLeft,
   IconClipboardCopy,
   IconSignature,
   IconTableColumn,
 } from "@tabler/icons-react";
+
+import { Editor } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 import { BentoGrid, BentoGridItem } from "../ui/bento-grid";
 import { Card } from "../ui/card";
-import { Submission } from "@/lib/types";
 
 export function WhyNextJudge() {
   return (
@@ -36,7 +37,7 @@ export function WhyNextJudge() {
               description={item.description}
               header={item.header}
               icon={item.icon}
-              className={i === 0 || i === 3 ? "md:col-span-2" : "cols-span-3"}
+              className={i === 0 || i === 3 ? "md:col-span-2" : "col-span-1"}
             />
           ))}
         </BentoGrid>
@@ -48,35 +49,43 @@ const Skeleton = () => (
   <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100"></div>
 );
 
-const mergeSort = `function merge(left: number[], right: number[]): number[] {
-    const result = [];
-    let leftIndex = 0;
-    let rightIndex = 0;
+const mergeSort = `const fs = require('fs');
+
+function merge(left, right) {
+    const result = [], leftIndex = 0, rightIndex = 0;
     while (leftIndex < left.length && rightIndex < right.length) {
         if (left[leftIndex] < right[rightIndex]) {
-        result.push(left[leftIndex]);
-        leftIndex++;
+            result.push(left[leftIndex]);
+            leftIndex++;
         } else {
-        result.push(right[rightIndex]);
-        rightIndex++;
+            result.push(right[rightIndex]);
+            rightIndex++;
         }
     }
-    return result.concat(left.slice(leftIndex)).concat(right.slice(rightIndex));
+    while (leftIndex < left.length) {
+        result.push(left[leftIndex]);
+        leftIndex++;
+    }
+    while (rightIndex < right.length) {
+        result.push(right[rightIndex]);
+        rightIndex++;
+    }
+    return result;
 }
 
-function mergeSort(arr: number[]): number[] {
-  if (arr.length <= 1) return arr;
-  const mid = Math.floor(arr.length / 2);
-  const left = mergeSort(arr.slice(0, mid));
-  const right = mergeSort(arr.slice(mid));
-  return merge(left, right);
-}
+const mergeSort = (arr) => arr.length <= 1 ? arr :
+      merge(mergeSort(arr.slice(0, arr.length / 2)), mergeSort(arr.slice(arr.length / 2)));
 
 function main() {
-  const input = [3, 5, 1, 4, 2];
-  const sorted = mergeSort(input);
-  console.log(sorted);
-}`;
+    const input = fs.readFileSync(0, 'utf8').trim()
+            .split('\\n').map(line => line.split(' ').map(Number));
+    input.forEach(arr => {
+        const sorted = mergeSort(arr);
+        console.log(sorted.join(' '));
+    });
+}
+
+main();`;
 
 const selectionSort = `function selectionSort(arr: number[]): number[] {
     for (let i = 0; i < arr.length; i++) {
@@ -111,26 +120,27 @@ export const DummyCodeEditor = ({
   language,
 }: DummyCodeEditorProps) => {
   const { resolvedTheme } = useTheme();
-  // TODO: Handle edge case when this is rendered on mobile
   return (
-    <Card className={cn("flex flex-col items-center p-2")}>
+    <div className="w-full h-full min-h-[450px] flex flex-col">
       <Editor
-        height={mock ? "485px" : "370px"}
-        width={"100%"}
+        language={language || "javascript"}
         className={cn(
-          { "rounded pointer-events-none select-none shadow-none": mock },
-          "w-full h-full"
+          { "pointer-events-none select-none": mock },
+          "w-full h-full border-0"
         )}
+        height={"100%"}
         defaultLanguage={language}
-        defaultValue={mock ? mergeSort : sourceCode}
+        defaultValue={mock ? mergeSort : sourceCode || mergeSort}
         options={{
+          theme: resolvedTheme === "dark" ? "vs-dark" : "vs-light",
           lineNumbers: "off",
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
+          automaticLayout: true,
         }}
         theme={resolvedTheme === "dark" ? "vs-dark" : "vs-light"}
       />
-    </Card>
+    </div>
   );
 };
 
@@ -199,28 +209,170 @@ const ThemeSelector = () => {
   );
 };
 
-const mockProblems = [
-  { title: "Problem 1" },
-  { title: "Problem 2" },
-  { title: "Problem 3" },
-];
-
-const mockComps = [
+const mockUsers = [
   {
-    startTime: "2022-10-01T00:00:00Z",
-    endTime: "2022-10-01T23:59:59Z",
-    description:
-      "The annual programming contest held by the Student ACM Chapter at Oregon State University. Location: Kelley Engineering Center Room 1003.",
-    title: "6th Annual ACM@OSU Programming Contest",
-    problems: mockProblems,
-    participants: [],
+    id: "user1",
+    account_identifier: "alice_codes",
+    name: "Alice Johnson",
+    email: "alice@university.edu",
+    emailVerified: "2024-01-01T00:00:00Z",
+    image: "/avatars/alice.jpg",
+    join_date: "2024-01-01T00:00:00Z",
+    is_admin: false,
   },
-];
+  {
+    id: "user2",
+    account_identifier: "bob_dev",
+    name: "Bob Chen",
+    email: "bob@university.edu",
+    emailVerified: "2024-01-02T00:00:00Z",
+    image: "/avatars/bob.jpg",
+    join_date: "2024-01-02T00:00:00Z",
+    is_admin: false,
+  },
+  {
+    id: "user3",
+    account_identifier: "charlie_algo",
+    name: "Charlie Williams",
+    email: "charlie@university.edu",
+    emailVerified: "2024-01-03T00:00:00Z",
+    image: "/avatars/charlie.jpg",
+    join_date: "2024-01-03T00:00:00Z",
+    is_admin: false,
+  },
+  {
+    id: "user4",
+    account_identifier: "diana_prog",
+    name: "Diana Rodriguez",
+    email: "diana@university.edu",
+    emailVerified: "2024-01-04T00:00:00Z",
+    image: "/avatars/diana.jpg",
+    join_date: "2024-01-04T00:00:00Z",
+    is_admin: false,
+  },
+  {
+    id: "user5",
+    account_identifier: "evan_cp",
+    name: "Evan Thompson",
+    email: "evan@university.edu",
+    emailVerified: "2024-01-05T00:00:00Z",
+    image: "/avatars/evan.jpg",
+    join_date: "2024-01-05T00:00:00Z",
+    is_admin: false,
+  },
+].flatMap((user) => Array(11).fill(user));
+
+const mockProblems = [
+  {
+    id: 1,
+    title: "Two Sum",
+    prompt: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
+    timeout: 1000,
+    difficulty: "EASY" as const,
+    user_id: "admin",
+    upload_date: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z",
+    test_cases: [],
+    categories: [],
+    public: true,
+    identifier: "two-sum",
+    source: "LeetCode",
+    accept_timeout: 1.0,
+    execution_timeout: 2.0,
+    memory_limit: 256,
+  },
+  {
+    id: 2,
+    title: "Binary Search",
+    prompt: "Given an array of integers nums which is sorted in ascending order, and an integer target, write a function to search target in nums.",
+    timeout: 1000,
+    difficulty: "EASY" as const,
+    user_id: "admin",
+    upload_date: "2024-01-02T00:00:00Z",
+    updated_at: "2024-01-02T00:00:00Z",
+    test_cases: [],
+    categories: [],
+    public: true,
+    identifier: "binary-search",
+    source: "LeetCode",
+    accept_timeout: 1.0,
+    execution_timeout: 2.0,
+    memory_limit: 256,
+  },
+  {
+    id: 3,
+    title: "Merge Sort",
+    prompt: "Implement the merge sort algorithm to sort an array of integers in ascending order.",
+    timeout: 2000,
+    difficulty: "MEDIUM" as const,
+    user_id: "admin",
+    upload_date: "2024-01-03T00:00:00Z",
+    updated_at: "2024-01-03T00:00:00Z",
+    test_cases: [],
+    categories: [],
+    public: true,
+    identifier: "merge-sort",
+    source: "Classic Algorithm",
+    accept_timeout: 2.0,
+    execution_timeout: 3.0,
+    memory_limit: 512,
+  },
+  {
+    id: 4,
+    title: "Longest Palindromic Substring",
+    prompt: "Given a string s, return the longest palindromic substring in s.",
+    timeout: 3000,
+    difficulty: "MEDIUM" as const,
+    user_id: "admin",
+    upload_date: "2024-01-04T00:00:00Z",
+    updated_at: "2024-01-04T00:00:00Z",
+    test_cases: [],
+    categories: [],
+    public: true,
+    identifier: "longest-palindrome",
+    source: "LeetCode",
+    accept_timeout: 2.0,
+    execution_timeout: 4.0,
+    memory_limit: 512,
+  },
+  {
+    id: 5,
+    title: "N-Queens",
+    prompt: "The n-queens puzzle is the problem of placing n queens on an n×n chessboard such that no two queens attack each other.",
+    timeout: 5000,
+    difficulty: "HARD" as const,
+    user_id: "admin",
+    upload_date: "2024-01-05T00:00:00Z",
+    updated_at: "2024-01-05T00:00:00Z",
+    test_cases: [],
+    categories: [],
+    public: true,
+    identifier: "n-queens",
+    source: "Classic Problem",
+    accept_timeout: 3.0,
+    execution_timeout: 5.0,
+    memory_limit: 1024,
+  },
+].flatMap((problem) => Array(2).fill(problem));
+
+const mockContest = {
+  id: 1,
+  user_id: "admin",
+  title: "6th Annual ACM@OSU Programming Contest",
+  description: "The annual programming contest held by the Student ACM Chapter at Oregon State University. Join us for an exciting day of algorithmic problem solving! Location: Kelley Engineering Center Room 1003.",
+  start_time: "2024-10-15T09:00:00Z",
+  end_time: "2024-10-15T17:00:00Z",
+  teams: false,
+  problems: mockProblems,
+  participants: mockUsers,
+  participant_count: mockUsers.length,
+  problem_count: mockProblems.length,
+};
 
 const ContestCardPreview = () => {
   return (
     <Card className={cn("flex flex-col items-center border-none")}>
-      <ContestCard contest={mockComps[0]} mock />
+      <ContestCard contest={mockContest} mock />
     </Card>
   );
 };
@@ -228,7 +380,7 @@ const ContestCardPreview = () => {
 export const mockSubmissions: any[] = [
   {
     id: "1",
-    problem: { title: "First Bad Version"},
+    problem: { title: "First Bad Version" },
     language: { name: "TypeScript" },
     submit_time: new Date().toLocaleString(),
     status: "ACCEPTED",
@@ -254,7 +406,7 @@ export const mockSubmissions: any[] = [
     },
     language: { name: "Go" },
     submit_time: new Date().toLocaleString(),
-    status: "ACCEPTED",
+    status: "RUNTIME_ERROR",
   },
   {
     id: "5",
@@ -282,7 +434,7 @@ export const items = [
     title: "Code Editor",
     description:
       "Built on top of Monaco Editor, NextJudge provides a powerful code editor with syntax highlighting, code completion, for all of our supported programming languages on the platform.",
-    header: <DummyCodeEditor mock />,
+    header: <DummyCodeEditor mock language="javascript" />,
     icon: <IconClipboardCopy className="h-4 w-4 text-neutral-500" />,
   },
   {
