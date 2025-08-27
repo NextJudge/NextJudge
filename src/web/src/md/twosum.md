@@ -18,16 +18,16 @@ The answer is `[0, 1]`, because `animals[0] + animals[1] == 9`.
 
 ## Constraints:
 
-- $2 \leq \text{animals.length} \leq 10^4$
-- $-10^9 \leq \text{animals[i]} \leq 10^9$
-- $-10^9 \leq \text{target} \leq 10^9$
-- Only one valid answer exists.
+-   $2 \leq \text{animals.length} \leq 10^4$
+-   $-10^9 \leq \text{animals[i]} \leq 10^9$
+-   $-10^9 \leq \text{target} \leq 10^9$
+-   Only one valid answer exists.
 
 ## Open Questions:
 
-- What is the time complexity of the brute force solution?
-- Can you think of a more efficient solution?
-- Given the constraints, what is the maximum number of elements in the list?
+-   What is the time complexity of the brute force solution?
+-   Can you think of a more efficient solution?
+-   Given the constraints, what is the maximum number of elements in the list?
 
 <!--
 # Two Sum Problem
