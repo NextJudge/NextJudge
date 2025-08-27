@@ -24,7 +24,6 @@ npm run build
 npm start
 ```
 
-
 ## Development
 
 1. Copy `.env.example` to `.env.local` and fill in the necessary environment variables.
@@ -59,22 +58,28 @@ bun dev
 
 4. Open [http://localhost:8080](http://localhost:8080) with your browser to see the result.
 
-
 # GitHub OAuth2
 
 Homepage URL
+
 ```
 http://localhost:8080
 ```
 
 Authorization callback URL
+
 ```
 http://localhost:8080/api/auth/callback/github
 ```
 
 ### TODO
 
-- [ ] Support team infrastructure and registration
-- [ ] Refactor notification system
-- [ ] Extract a lot of state to `useReducer` and zustand stores
-- [ ] Re-do landing page and marketing materials
+-   [ ] Support team infrastructure and registration
+-   [ ] Refactor notification system
+-   [ ] Extract a lot of state to `useReducer` and zustand stores
+-   [ ] Re-do landing page and marketing materials
+-   [ ] Allow contest organizers to prematurely end contests
+
+## Things to note
+
+-   Admin emails are configured in the `../data-layer/docker-compose.dev.yml`. `ADMIN_EMAILS`. It's a comma separated list of emails.
