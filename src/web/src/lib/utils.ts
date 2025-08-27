@@ -7,11 +7,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getBridgeUrl() {
-    return "http://localhost:5000"
-    console.log(process.env.NODE_ENV);
     return process.env.NODE_ENV === "production"
         ? "https://nextjudge.org"
         : "http://localhost:5000";
+}
+
+export function getAppUrl() {
+    return process.env.NODE_ENV === "production"
+        ? "https://nextjudge.org"
+        : "http://localhost:8080";
 }
 
 
