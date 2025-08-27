@@ -1,3 +1,4 @@
+import { auth } from "@/app/auth";
 import PlatformNavbar from "@/components/nav/platform-nav";
 import UserAvatar from "@/components/nav/user-avatar";
 import { Metadata } from "next";
@@ -25,10 +26,16 @@ async function getRecentSubmissions(): Promise<RecentSubmission[]> {
 }
 */
 export default async function ProblemsPage() {
+  const session = await auth();
+
+  if (!session) {
+    throw "You must be signed-in to view this page";
+  }
+
   return (
     <>
       <PlatformNavbar>
-        <UserAvatar />
+        <UserAvatar session={session} />
       </PlatformNavbar>
       <div className="max-w-7xl w-full flex-1 flex-col space-y-4 p-8 mx-8 md:flex">
         <div className="flex items-center justify-between space-y-4">
