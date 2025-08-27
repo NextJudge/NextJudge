@@ -1,54 +1,47 @@
+import { auth } from "@/app/auth";
 import PlatformNavbar from "@/components/nav/platform-nav";
 import UserAvatar from "@/components/nav/user-avatar";
-import SubmissionGraph from "@/components/submission-graph";
-import { Metadata } from "next";
-import { ContestCard } from "../admin/contests/contest-card";
-import { auth } from "@/app/auth";
-import { apiGetEvents } from "@/lib/api";
+import { apiGetPublicEvents } from "@/lib/api";
+import { NextJudgeEvent } from "@/lib/types";
+import { ContestLandingPage } from "./contest-landing-page";
 
-
-export default async function ProblemsPage() {
-
+export default async function ContestsPage() {
   const session = await auth()
 
-  if(!session) {
+  if (!session) {
     throw "You must be signed-in to view this page"
   }
 
-  const upcomingContests = await apiGetEvents(session.nextjudge_token);
-  
+  let upcomingContests: NextJudgeEvent[] = [];
+  let ongoingContests: NextJudgeEvent[] = [];
+  let pastContests: NextJudgeEvent[] = [];
+
+  try {
+    const allEvents = await apiGetPublicEvents(session.nextjudge_token);
+    const now = new Date();
+
+    upcomingContests = allEvents.filter(event => new Date(event.start_time) > now);
+    ongoingContests = allEvents.filter(event =>
+      new Date(event.start_time) <= now && new Date(event.end_time) >= now
+    );
+    pastContests = allEvents.filter(event => new Date(event.end_time) < now);
+  } catch (error) {
+    console.error('Could not fetch events:', error);
+    upcomingContests = [];
+    ongoingContests = [];
+    pastContests = [];
+  }
+
   return (
     <>
       <PlatformNavbar>
-        <UserAvatar />
+        <UserAvatar session={session} />
       </PlatformNavbar>
-      <div className="max-w-7xl w-full flex-1 flex-col space-y-4 p-8 mx-8 md:flex">
-        <div className="flex items-center justify-between space-y-4">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">Contests</h2>
-            <p className="text-muted-foreground">
-              Check out the upcoming contests.
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          {upcomingContests?.map((contest: any, index: number) => (
-            <ContestCard key={index} contest={contest} />
-          ))}
-        </div>
-
-        <div className="flex items-center justify-center py-4" id="submissions">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-center tracking-tight">
-              Contest statistics
-            </h2>
-            <p className="text-muted-foreground">
-              Your contest data, all in one place.
-            </p>
-          </div>
-        </div>
-        <SubmissionGraph />
-      </div>
+      <ContestLandingPage
+        upcomingContests={upcomingContests}
+        ongoingContests={ongoingContests}
+        pastContests={pastContests}
+      />
     </>
   );
 }
