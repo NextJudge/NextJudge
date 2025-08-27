@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -58,7 +59,6 @@ func NewDatabase() (*Database, error) {
 			Logger: logger.Default.LogMode(logger.Error),
 		},
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -226,6 +226,14 @@ func (d *Database) CreateProblemDescription(problem *ProblemDescriptionExt) (*Pr
 		return nil, err
 	}
 	return problem, nil
+}
+
+func (d *Database) UpdateProblemDescription(problem *ProblemDescriptionExt) error {
+	err := d.NextJudgeDB.Save(problem).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // func (d *Database) GetProblemDescriptions() ([]ProblemDescription, error) {
@@ -493,10 +501,13 @@ type GetEventProblemType struct {
 	Difficulty Difficulty `json:"difficulty"`
 	UserID     uuid.UUID  `json:"user_id"`
 	UploadDate time.Time  `json:"upload_date"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	Public     bool       `json:"public"`
 	// Problem    ProblemDescription `json:"problem"`
 
-	AcceptTimeout float64 `json:"accept_timeout"`
-	MemoryLimit   int     `json:"memory_limit"`
+	AcceptTimeout    float64 `json:"accept_timeout"`
+	ExecutionTimeout float64 `json:"execution_timeout"`
+	MemoryLimit      int     `json:"memory_limit"`
 
 	// Tests []TestCase `json:"tests,omitempty"`
 	Tests []TestCase `json:"test_cases"`
@@ -516,7 +527,7 @@ func (d *Database) GetPublicProblems() ([]GetEventProblemType, error) {
 
 	for _, problemDescription := range problemDescriptions {
 		problemData := GetEventProblemType{
-			ID:      problemDescription.ID,
+			ID: problemDescription.ID,
 			// not associated with any specific event
 			Title:      problemDescription.Title,
 			Prompt:     problemDescription.Prompt,
@@ -524,9 +535,47 @@ func (d *Database) GetPublicProblems() ([]GetEventProblemType, error) {
 			Difficulty: problemDescription.Difficulty,
 			UserID:     problemDescription.UserID,
 			UploadDate: problemDescription.UploadDate,
+			UpdatedAt:  problemDescription.UpdatedAt,
+			Public:     problemDescription.Public,
 
-			AcceptTimeout: problemDescription.DefaultAcceptTimeout,
-			MemoryLimit:   problemDescription.DefaultMemoryLimit,
+			AcceptTimeout:    problemDescription.DefaultAcceptTimeout,
+			ExecutionTimeout: problemDescription.DefaultExecutionTimeout,
+			MemoryLimit:      problemDescription.DefaultMemoryLimit,
+		}
+		problems = append(problems, problemData)
+	}
+
+	return problems, nil
+}
+
+func (d *Database) GetAllProblems() ([]GetEventProblemType, error) {
+	problemDescriptions := []ProblemDescription{}
+	err := d.NextJudgeDB.Find(&problemDescriptions).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	problems := []GetEventProblemType{}
+
+	for _, problemDescription := range problemDescriptions {
+		problemData := GetEventProblemType{
+			ID: problemDescription.ID,
+			// not associated with any specific event
+			Title:      problemDescription.Title,
+			Prompt:     problemDescription.Prompt,
+			Source:     problemDescription.Source,
+			Difficulty: problemDescription.Difficulty,
+			UserID:     problemDescription.UserID,
+			UploadDate: problemDescription.UploadDate,
+			UpdatedAt:  problemDescription.UpdatedAt,
+			Public:     problemDescription.Public,
+
+			AcceptTimeout:    problemDescription.DefaultAcceptTimeout,
+			ExecutionTimeout: problemDescription.DefaultExecutionTimeout,
+			MemoryLimit:      problemDescription.DefaultMemoryLimit,
 		}
 		problems = append(problems, problemData)
 	}
@@ -553,10 +602,15 @@ func (d *Database) GetPublicEventProblems(eventID int) ([]GetEventProblemType, e
 		}
 		problemDescription := *eventProblem.Problem
 		acceptTimeout := problemDescription.DefaultAcceptTimeout
+		executionTimeout := problemDescription.DefaultExecutionTimeout
 		memoryLimit := problemDescription.DefaultMemoryLimit
 
 		if eventProblem.AcceptTimeout != nil {
 			acceptTimeout = *eventProblem.AcceptTimeout
+		}
+
+		if eventProblem.ExecutionTimeout != nil {
+			executionTimeout = *eventProblem.ExecutionTimeout
 		}
 
 		if eventProblem.MemoryLimit != nil {
@@ -573,9 +627,12 @@ func (d *Database) GetPublicEventProblems(eventID int) ([]GetEventProblemType, e
 			Difficulty: problemDescription.Difficulty,
 			UserID:     problemDescription.UserID,
 			UploadDate: problemDescription.UploadDate,
+			UpdatedAt:  problemDescription.UpdatedAt,
+			Public:     problemDescription.Public,
 
-			AcceptTimeout: acceptTimeout,
-			MemoryLimit:   memoryLimit,
+			AcceptTimeout:    acceptTimeout,
+			ExecutionTimeout: executionTimeout,
+			MemoryLimit:      memoryLimit,
 		}
 		problems = append(problems, problemData)
 	}
@@ -589,10 +646,15 @@ func ConvertEventProblemExtWithTestsToPublicData(eventProblem *EventProblemExtWi
 	}
 	problemDescription := *eventProblem.Problem
 	acceptTimeout := problemDescription.DefaultAcceptTimeout
+	executionTimeout := problemDescription.DefaultExecutionTimeout
 	memoryLimit := problemDescription.DefaultMemoryLimit
 
 	if eventProblem.AcceptTimeout != nil {
 		acceptTimeout = *eventProblem.AcceptTimeout
+	}
+
+	if eventProblem.ExecutionTimeout != nil {
+		executionTimeout = *eventProblem.ExecutionTimeout
 	}
 
 	if eventProblem.MemoryLimit != nil {
@@ -609,9 +671,12 @@ func ConvertEventProblemExtWithTestsToPublicData(eventProblem *EventProblemExtWi
 		Difficulty: problemDescription.Difficulty,
 		UserID:     problemDescription.UserID,
 		UploadDate: problemDescription.UploadDate,
+		UpdatedAt:  problemDescription.UpdatedAt,
+		Public:     problemDescription.Public,
 
-		AcceptTimeout: acceptTimeout,
-		MemoryLimit:   memoryLimit,
+		AcceptTimeout:    acceptTimeout,
+		ExecutionTimeout: executionTimeout,
+		MemoryLimit:      memoryLimit,
 
 		Tests: problemDescription.TestCases,
 	}
@@ -625,7 +690,6 @@ func (d *Database) GetPublicEventProblemWithTestsByID(eventID int, eventProblemI
 	err := db.NextJudgeDB.Preload("Problem").Preload("Problem.TestCases", "hidden = ?", false).Preload("Problem.Categories").
 		Where("event_id = ? AND event_problem_id = ?", eventID, eventProblemID).
 		First(eventProblem).Error
-
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -735,6 +799,54 @@ func (d *Database) GetEventUser(userID uuid.UUID, eventID int) (*EventUser, erro
 	return eventUser, nil
 }
 
+func (d *Database) GetEventParticipants(eventID int) ([]User, error) {
+	var users []User
+	err := d.NextJudgeDB.Table("users").
+		Joins("JOIN event_users ON users.id = event_users.user_id").
+		Where("event_users.event_id = ?", eventID).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (d *Database) GetEventsWithParticipants() ([]EventWithParticipants, error) {
+	var events []Event
+	err := d.NextJudgeDB.Find(&events).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var eventsWithParticipants []EventWithParticipants
+	for _, event := range events {
+		// get participants for this event
+		participants, err := d.GetEventParticipants(event.ID)
+		if err != nil {
+			// log the error but continue with empty participants
+			logrus.WithError(err).Warnf("Failed to get participants for event %d", event.ID)
+			participants = []User{}
+		}
+
+		// get problem count for this event
+		var problemCount int64
+		err = d.NextJudgeDB.Model(&EventProblem{}).Where("event_id = ?", event.ID).Count(&problemCount).Error
+		if err != nil {
+			logrus.WithError(err).Warnf("Failed to get problem count for event %d", event.ID)
+			problemCount = 0
+		}
+
+		eventWithParticipants := EventWithParticipants{
+			Event:        event,
+			Participants: participants,
+			ProblemCount: int(problemCount),
+		}
+		eventsWithParticipants = append(eventsWithParticipants, eventWithParticipants)
+	}
+
+	return eventsWithParticipants, nil
+}
+
 func (d *Database) GetAllEventSubmissions(eventID int) ([]Submission, error) {
 	submissions := []Submission{}
 	err := d.NextJudgeDB.Where("event_id = ?", eventID).Find(&submissions).Error
@@ -763,3 +875,324 @@ func (d *Database) GetAllEventSubmissionsByTeam(eventID int, teamID uuid.UUID) (
 // 	}
 // 	return submissions, nil
 // }
+
+// Aggregated attempts per (user, problem) with first accepted time
+type EventProblemAttempt struct {
+	UserID            uuid.UUID  `json:"user_id"`
+	ProblemID         int        `json:"problem_id"`
+	Attempts          int        `json:"attempts"`
+	TotalAttempts     int        `json:"total_attempts"`
+	FirstAcceptedTime *time.Time `json:"first_accepted_time"`
+}
+
+func (d *Database) GetEventProblemAttempts(eventID int) ([]EventProblemAttempt, error) {
+	var results []EventProblemAttempt
+
+	err := d.NextJudgeDB.Raw(`
+        WITH fa AS (
+            SELECT user_id, problem_id, MIN(submit_time) AS first_accepted_time
+            FROM submissions
+            WHERE event_id = ? AND status = 'ACCEPTED'
+            GROUP BY user_id, problem_id
+        ),
+        contest_completion AS (
+            SELECT
+                s.user_id,
+                MAX(s.submit_time) AS completion_time
+            FROM submissions s
+            INNER JOIN event_problems ep ON ep.problem_id = s.problem_id AND ep.event_id = s.event_id
+            WHERE s.event_id = ? AND s.status = 'ACCEPTED'
+            GROUP BY s.user_id
+            HAVING COUNT(DISTINCT s.problem_id) = (
+                SELECT COUNT(*) FROM event_problems WHERE event_id = ?
+            )
+        )
+        SELECT
+            s.user_id,
+            s.problem_id,
+            SUM(
+                CASE
+                    WHEN fa.first_accepted_time IS NULL AND s.status <> 'ACCEPTED' AND
+                         (cc.completion_time IS NULL OR s.submit_time <= cc.completion_time) THEN 1
+                    WHEN fa.first_accepted_time IS NOT NULL AND s.submit_time <= fa.first_accepted_time THEN 1
+                    ELSE 0
+                END
+            ) AS attempts,
+            COUNT(
+                CASE
+                    WHEN cc.completion_time IS NULL OR s.submit_time <= cc.completion_time THEN 1
+                    ELSE NULL
+                END
+            ) AS total_attempts,
+            fa.first_accepted_time
+        FROM submissions s
+        LEFT JOIN fa ON fa.user_id = s.user_id AND fa.problem_id = s.problem_id
+        LEFT JOIN contest_completion cc ON cc.user_id = s.user_id
+        WHERE s.event_id = ?
+        GROUP BY s.user_id, s.problem_id, fa.first_accepted_time, cc.completion_time
+    `, eventID, eventID, eventID, eventID).Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// Get contest problem completion status for a specific user
+func (d *Database) GetUserEventProblemStatus(userID uuid.UUID, eventID int, problemID int) (*Submission, error) {
+	var submission Submission
+	// Get the best (accepted) submission for this user/event/problem combination
+	err := d.NextJudgeDB.Where("user_id = ? AND event_id = ? AND problem_id = ? AND status = ?",
+		userID, eventID, problemID, "ACCEPTED").
+		Order("submit_time ASC").
+		First(&submission).Error
+	if err != nil {
+		if err.Error() == "record not found" {
+			return nil, nil // no accepted submission found
+		}
+		return nil, err
+	}
+	return &submission, nil
+}
+
+// Get submission statistics for a problem in a contest (how many users solved it)
+func (d *Database) GetEventProblemStats(eventID int, problemID int) (int, error) {
+	var count int64
+	// Count unique users who have accepted submissions for this problem in this contest
+	err := d.NextJudgeDB.Model(&Submission{}).
+		Where("event_id = ? AND problem_id = ? AND status = ?", eventID, problemID, "ACCEPTED").
+		Distinct("user_id").
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
+// Get all user problem statuses for a contest
+// Get all event problems for a contest
+func (d *Database) GetEventProblems(eventID int) ([]EventProblem, error) {
+	var eventProblems []EventProblem
+	err := d.NextJudgeDB.Where("event_id = ?", eventID).Find(&eventProblems).Error
+	if err != nil {
+		return nil, err
+	}
+	return eventProblems, nil
+}
+
+func (d *Database) GetUserEventProblemsStatus(userID uuid.UUID, eventID int) ([]Submission, error) {
+	var submissions []Submission
+	// Get the best status for each problem for this user in this contest
+	// Priority: ACCEPTED > latest non-accepted submission
+	err := d.NextJudgeDB.Raw(`
+		WITH accepted_submissions AS (
+			SELECT DISTINCT ON (problem_id) id, user_id, problem_id, event_id, event_problem_id, status, submit_time, language_id, time_elapsed, source_code, stdout, stderr, failed_test_case_id
+			FROM submissions
+			WHERE user_id = ? AND event_id = ? AND status = 'ACCEPTED'
+			ORDER BY problem_id, submit_time ASC
+		),
+		latest_submissions AS (
+			SELECT DISTINCT ON (problem_id) id, user_id, problem_id, event_id, event_problem_id, status, submit_time, language_id, time_elapsed, source_code, stdout, stderr, failed_test_case_id
+			FROM submissions
+			WHERE user_id = ? AND event_id = ?
+			ORDER BY problem_id, submit_time DESC
+		)
+		SELECT * FROM accepted_submissions
+		UNION ALL
+		SELECT * FROM latest_submissions
+		WHERE problem_id NOT IN (SELECT problem_id FROM accepted_submissions)
+		ORDER BY problem_id
+	`, userID, eventID, userID, eventID).
+		Preload("Problem").
+		Find(&submissions).Error
+	if err != nil {
+		return nil, err
+	}
+	return submissions, nil
+}
+
+// check if user has completed all problems in a contest
+func (d *Database) HasUserCompletedAllEventProblems(userID uuid.UUID, eventID int) (bool, error) {
+	// get total number of problems in the contest
+	var totalProblems int64
+	err := d.NextJudgeDB.Model(&EventProblem{}).
+		Where("event_id = ?", eventID).
+		Count(&totalProblems).Error
+	if err != nil {
+		return false, err
+	}
+
+	// get number of problems user has accepted submissions for
+	var acceptedProblems int64
+	err = d.NextJudgeDB.Model(&Submission{}).
+		Joins("INNER JOIN event_problems ON submissions.problem_id = event_problems.problem_id").
+		Where("submissions.user_id = ? AND submissions.event_id = ? AND submissions.status = ? AND event_problems.event_id = ?",
+			userID, eventID, "ACCEPTED", eventID).
+		Distinct("submissions.problem_id").
+		Count(&acceptedProblems).Error
+	if err != nil {
+		return false, err
+	}
+
+	return acceptedProblems >= totalProblems, nil
+}
+
+func (d *Database) CreateEventQuestion(question *EventQuestion) (*EventQuestion, error) {
+	question.CreatedAt = time.Now()
+	question.UpdatedAt = time.Now()
+	err := d.NextJudgeDB.Create(question).Error
+	if err != nil {
+		return nil, err
+	}
+	return question, nil
+}
+
+func (d *Database) GetEventQuestions(eventID int) ([]EventQuestionExt, error) {
+	var questions []EventQuestionExt
+	err := d.NextJudgeDB.Preload("User").Preload("Problem").Preload("Answerer").
+		Where("event_id = ?", eventID).
+		Order("created_at DESC").
+		Find(&questions).Error
+	if err != nil {
+		return nil, err
+	}
+	return questions, nil
+}
+
+func (d *Database) GetEventQuestionByID(questionID uuid.UUID) (*EventQuestionExt, error) {
+	var question EventQuestionExt
+	err := d.NextJudgeDB.Preload("User").Preload("Problem").Preload("Answerer").
+		Where("id = ?", questionID).
+		First(&question).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &question, nil
+}
+
+func (d *Database) UpdateEventQuestion(question *EventQuestion) error {
+	question.UpdatedAt = time.Now()
+	err := d.NextJudgeDB.Save(question).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Database) AnswerEventQuestion(questionID uuid.UUID, answer string, answeredBy uuid.UUID) error {
+	now := time.Now()
+	err := d.NextJudgeDB.Model(&EventQuestion{}).
+		Where("id = ?", questionID).
+		Updates(map[string]interface{}{
+			"answer":      answer,
+			"is_answered": true,
+			"answered_at": &now,
+			"answered_by": answeredBy,
+			"updated_at":  now,
+		}).Error
+	return err
+}
+
+// Legacy functions - commented out but kept for reference
+// func (d *Database) GetUnansweredQuestionsCount(userID uuid.UUID) (int64, error) {
+// 	var count int64
+// 	err := d.NextJudgeDB.Model(&EventQuestion{}).
+// 		Where("user_id = ? AND is_answered = ?", userID, false).
+// 		Count(&count).Error
+// 	return count, err
+// }
+
+// func (d *Database) GetUserQuestionNotifications(userID uuid.UUID) ([]EventQuestionExt, error) {
+// 	var questions []EventQuestionExt
+// 	err := d.NextJudgeDB.Preload("User").Preload("Problem").Preload("Answerer").
+// 		Where("user_id = ? AND is_answered = ?", userID, true).
+// 		Where("answered_at > ?", time.Now().Add(-24*time.Hour)).
+// 		Order("answered_at DESC").
+// 		Limit(10).
+// 		Find(&questions).Error
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return questions, nil
+// }
+
+// notification functions
+func (d *Database) CreateQuestionNotifications(eventID int, questionID uuid.UUID, questionAuthorID uuid.UUID) error {
+	// get all users in the event except the question author
+	var users []EventUser
+	err := d.NextJudgeDB.Where("event_id = ? AND user_id != ?", eventID, questionAuthorID).Find(&users).Error
+	if err != nil {
+		return err
+	}
+
+	// create notifications for all other users
+	for _, user := range users {
+		notification := &Notification{
+			UserID:           user.UserID,
+			EventID:          eventID,
+			QuestionID:       questionID,
+			NotificationType: "question",
+			IsRead:           false,
+			CreatedAt:        time.Now(),
+			UpdatedAt:        time.Now(),
+		}
+		err = d.NextJudgeDB.Create(notification).Error
+		if err != nil {
+			// ignore unique constraint violations
+			continue
+		}
+	}
+	return nil
+}
+
+func (d *Database) CreateAnswerNotification(eventID int, questionID uuid.UUID, questionAuthorID uuid.UUID) error {
+	// create notification for the question author
+	notification := &Notification{
+		UserID:           questionAuthorID,
+		EventID:          eventID,
+		QuestionID:       questionID,
+		NotificationType: "answer",
+		IsRead:           false,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+	return d.NextJudgeDB.Create(notification).Error
+}
+
+func (d *Database) GetUnreadNotificationsCount(userID uuid.UUID) (int64, error) {
+	var count int64
+	err := d.NextJudgeDB.Model(&Notification{}).
+		Where("user_id = ? AND is_read = ?", userID, false).
+		Count(&count).Error
+	return count, err
+}
+
+func (d *Database) GetUserNotifications(userID uuid.UUID) ([]NotificationExt, error) {
+	var notifications []NotificationExt
+	err := d.NextJudgeDB.Table("notifications").
+		Preload("Question").Preload("Question.User").Preload("Question.Problem").Preload("Question.Answerer").
+		Where("user_id = ?", userID).
+		Where("is_read = ? OR (is_read = ? AND created_at > ?)", false, true, time.Now().Add(-24*time.Hour)).
+		Order("created_at DESC").
+		Limit(20).
+		Find(&notifications).Error
+	if err != nil {
+		return nil, err
+	}
+	return notifications, nil
+}
+
+func (d *Database) MarkNotificationAsRead(notificationID uuid.UUID) error {
+	return d.NextJudgeDB.Model(&Notification{}).
+		Where("id = ?", notificationID).
+		Update("is_read", true).Error
+}
+
+func (d *Database) MarkAllNotificationsAsRead(userID uuid.UUID) error {
+	return d.NextJudgeDB.Model(&Notification{}).
+		Where("user_id = ?", userID).
+		Update("is_read", true).Error
+}

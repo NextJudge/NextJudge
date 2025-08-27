@@ -180,6 +180,7 @@ type LoginUserSubmission struct {
 	Id    string `json:"id"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
+	Image string `json:"image"`
 }
 
 func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
@@ -224,6 +225,7 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 			AccountIdentifier: reqData.Id,
 			Email:             reqData.Email,
 			Name:              reqData.Name,
+			Image:             reqData.Image,
 			IsAdmin:           isAdminEmail(reqData.Email),
 		}
 

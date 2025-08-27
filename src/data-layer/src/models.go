@@ -58,6 +58,7 @@ type ProblemDescription struct {
 	Difficulty              Difficulty `json:"difficulty"`
 	UserID                  uuid.UUID  `json:"user_id"`
 	UploadDate              time.Time  `json:"upload_date"`
+	UpdatedAt               time.Time  `json:"updated_at"`
 	DefaultAcceptTimeout    float64    `json:"default_accept_timeout"`
 	DefaultExecutionTimeout float64    `json:"default_execution_timeout"`
 	DefaultMemoryLimit      int        `json:"default_memory_timeout"`
@@ -157,7 +158,17 @@ type EventWithProblems struct {
 	Problems []EventProblem `json:"problems,omitempty" gorm:"foreignKey:EventID"`
 }
 
+type EventWithParticipants struct {
+	Event
+	Participants []User `json:"participants,omitempty"`
+	ProblemCount int    `json:"problem_count,omitempty"`
+}
+
 func (EventWithProblems) TableName() string {
+	return "events"
+}
+
+func (EventWithParticipants) TableName() string {
 	return "events"
 }
 
@@ -212,4 +223,49 @@ type EventUser struct {
 	UserID  uuid.UUID
 	EventID int
 	TeamID  uuid.UUID
+}
+
+type EventQuestion struct {
+	ID         uuid.UUID  `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	EventID    int        `json:"event_id"`
+	UserID     uuid.UUID  `json:"user_id"`
+	ProblemID  *int       `json:"problem_id,omitempty"`
+	Question   string     `json:"question"`
+	IsAnswered bool       `json:"is_answered"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	Answer     *string    `json:"answer,omitempty"`
+	AnsweredAt *time.Time `json:"answered_at,omitempty"`
+	AnsweredBy *uuid.UUID `json:"answered_by,omitempty"`
+}
+
+type EventQuestionExt struct {
+	EventQuestion
+	User     *User               `json:"user" gorm:"foreignKey:UserID;references:ID"`
+	Problem  *ProblemDescription `json:"problem,omitempty" gorm:"foreignKey:ProblemID;references:ID"`
+	Answerer *User               `json:"answerer,omitempty" gorm:"foreignKey:AnsweredBy;references:ID"`
+}
+
+func (EventQuestionExt) TableName() string {
+	return "event_questions"
+}
+
+type Notification struct {
+	ID               uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	UserID           uuid.UUID `json:"user_id"`
+	EventID          int       `json:"event_id"`
+	QuestionID       uuid.UUID `json:"question_id"`
+	NotificationType string    `json:"notification_type"`
+	IsRead           bool      `json:"is_read"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+type NotificationExt struct {
+	Notification
+	Question *EventQuestionExt `json:"question" gorm:"foreignKey:QuestionID;references:ID"`
+}
+
+func (NotificationExt) TableName() string {
+	return "notifications"
 }

@@ -2,13 +2,15 @@
 
 import { EmailTemplate } from "@/components/email/template";
 
+import { apiCreateProblem, apiDeleteProblem, apiUpdateProblem } from "@/lib/api";
+import { ProblemRequest } from "@/lib/types";
+import { getAppUrl } from "@/lib/utils";
 import { LoginFormValues, SignUpFormValues } from "@/types";
 import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { ZodError } from "zod";
 import { auth, signIn } from "./auth";
 import { newsletterFormSchema } from "./validation";
-import { apiBasicSignUpUser } from "@/lib/api";
 
 export interface ReturnType {
   status: "error" | "success";
@@ -54,29 +56,48 @@ export async function sendEmail(formData: FormData): Promise<ReturnType> {
   };
 }
 
-export async function signUpUser(data: SignUpFormValues) {
-  return apiBasicSignUpUser(data)
+export async function signUpUser(data: SignUpFormValues): Promise<ReturnType> {
+  try {
+    const response = await fetch(`${getAppUrl()}/api/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      const errorMessage = result.error || 'Registration failed'
+      throw new Error(errorMessage)
+    }
+
+    return {
+      status: 'success',
+      message: result.message,
+    }
+  } catch (error) {
+    console.error('Signup error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Network error - try again later'
+    throw new Error(errorMessage)
+  }
 }
 
 
 export async function logUserIn(data: LoginFormValues): Promise<ReturnType> {
-  const { email, password } = data;
   try {
-    await signIn("credentials", {
-      email,
-      password,
-      confirmPassword: password,
+    await signIn('credentials', {
+      email: data.email,
+      password: data.password,
       redirect: false,
-    });
+    })
     return {
-      status: "success",
-      message: "User logged in",
-    };
+      status: 'success',
+      message: 'Login successful',
+    }
   } catch (error) {
-    return {
-      status: "error",
-      message: "Invalid credentials",
-    };
+    throw new Error('Login failed - please try again')
   }
 }
 interface ProfileData {
@@ -113,8 +134,24 @@ export async function changeProfile(data: ProfileData) {
 }
 
 
-export async function createProblem(data: any) {
-  
+interface FormProblemData {
+  title: string;
+  identifier: string;
+  prompt: string;
+  source?: string;
+  difficulty: "VERY EASY" | "EASY" | "MEDIUM" | "HARD" | "VERY HARD";
+  accept_timeout: number;
+  execution_timeout: number;
+  memory_limit: number;
+  test_cases: Array<{
+    input: string;
+    expected_output: string;
+    hidden?: boolean;
+  }>;
+  public: boolean;
+}
+
+export async function createProblem(data: FormProblemData, categoryIds: string[] = []) {
   const session = await auth();
   if (!session || !session.user) {
     return {
@@ -123,12 +160,91 @@ export async function createProblem(data: any) {
     };
   }
 
-  revalidatePath("/platform/admin/problems");
+  try {
+    const problemData: ProblemRequest = {
+      title: data.title,
+      identifier: data.identifier || data.title.split(" ").join("-").toLowerCase(),
+      prompt: data.prompt,
+      source: data.source || "",
+      difficulty: data.difficulty,
+      timeout: data.accept_timeout || 10.0, // Default timeout
+      accept_timeout: data.accept_timeout,
+      execution_timeout: data.execution_timeout,
+      memory_limit: data.memory_limit,
+      user_id: session.nextjudge_id,
+      test_cases: data.test_cases.map((tc) => ({
+        input: tc.input,
+        expected_output: tc.expected_output,
+        hidden: tc.hidden || false
+      })),
+      category_ids: categoryIds,
+      public: data.public
+    };
 
-  return {
-    status: "success",
-    message: "Problem created",
-  };
+    const result = await apiCreateProblem(session.nextjudge_token, problemData);
+
+    revalidatePath("/platform/admin/problems");
+
+    return {
+      status: "success",
+      message: "Problem created successfully",
+      data: result
+    };
+  } catch (error) {
+    console.error("Error creating problem:", error);
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Failed to create problem",
+    };
+  }
+}
+
+export async function updateProblem(problemId: number, data: FormProblemData, categoryIds: string[] = []) {
+  const session = await auth();
+  if (!session || !session.user) {
+    return {
+      status: "error",
+      message: "Invalid session",
+    };
+  }
+
+  try {
+    const problemData: ProblemRequest = {
+      title: data.title,
+      identifier: data.identifier || data.title.split(" ").join("-").toLowerCase(),
+      prompt: data.prompt,
+      source: data.source || "",
+      difficulty: data.difficulty,
+      timeout: data.accept_timeout || 10.0, // Default timeout
+      accept_timeout: data.accept_timeout,
+      execution_timeout: data.execution_timeout,
+      memory_limit: data.memory_limit,
+      user_id: session.nextjudge_id,
+      test_cases: data.test_cases.map((tc) => ({
+        input: tc.input,
+        expected_output: tc.expected_output,
+        hidden: tc.hidden || false
+      })),
+      category_ids: categoryIds,
+      public: data.public
+    };
+
+    const result = await apiUpdateProblem(session.nextjudge_token, problemId, problemData);
+
+    revalidatePath("/platform/admin/problems");
+
+    return {
+      status: "success",
+      message: "Problem updated successfully",
+      data: result
+    };
+  } catch (error) {
+    console.error("Error updating problem:", error);
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Failed to update problem",
+    };
+  }
 }
 
 interface TestCaseData {
@@ -160,6 +276,29 @@ export async function createTestCase(data: TestCaseData) {
   };
 }
 
-export async function deleteProblem(id: number) {
-  return
+export async function deleteProblem(id: number): Promise<ReturnType> {
+  const session = await auth();
+  if (!session || !session.user) {
+    return {
+      status: "error",
+      message: "Invalid session",
+    };
+  }
+
+  try {
+    await apiDeleteProblem(session.nextjudge_token, id);
+
+    revalidatePath("/platform/admin/problems");
+
+    return {
+      status: "success",
+      message: "Problem deleted successfully",
+    };
+  } catch (error) {
+    console.error("Error deleting problem:", error);
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Failed to delete problem",
+    };
+  }
 }
