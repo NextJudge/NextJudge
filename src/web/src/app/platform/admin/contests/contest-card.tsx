@@ -47,8 +47,25 @@ export function ContestCard({
   const contestDescription = contest?.description;
   const startTime = contest?.start_time;
   const endTime = contest?.end_time;
+
+  const getDuration = () => {
+    if (!startTime || !endTime) return "Unknown";
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const duration = end.getTime() - start.getTime();
+
+    const hours = Math.floor(duration / (1000 * 60 * 60));
+    const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  };
   return (
-    <Card className="max-w-[105%]">
+    <Card className={cn("max-w-[105%]", className)}>
       <CardHeader className="grid grid-cols-[1fr_auto] items-start gap-4 space-y-0">
         <div className="space-y-4">
           <CardTitle>{contestName}</CardTitle>
@@ -101,17 +118,15 @@ export function ContestCard({
           <div className="flex flex-col md:items-center gap-6 md:flex-row ">
             <div className="flex items-center flex-row">
               <CircleIcon className="mr-1 h-3 w-3 fill-osu text-osu" />
-              {/* TODO: <p>{contest.problems?.length} Problems</p> */}
-              <p>0 Problems</p>
+              <p>{contest.problem_count ?? contest.problems?.length ?? 0} Problems</p>
             </div>
             <div className="flex items-center">
               <PersonIcon className="mr-1 h-3 w-3" />
-              {/* TODO <p>{contest.participants?.length} Participants</p> */}
-              <p>0 Participants</p>
+              <p>{contest.participant_count ?? contest.participants?.length ?? 0} Participants</p>
             </div>
             <div className="flex items-center">
               <Clock className="mr-1 size-4 md:mr-2 md:size-4" />
-              <p className="w-[200%] md:w-full">0</p>
+              <p className="w-[200%] md:w-full">{getDuration()}</p>
             </div>
           </div>
         </div>
