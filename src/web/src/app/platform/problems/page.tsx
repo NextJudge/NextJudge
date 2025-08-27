@@ -1,11 +1,12 @@
 import PlatformNavbar from "@/components/nav/platform-nav";
 import UserAvatar from "@/components/nav/user-avatar";
+import { apiGetProblems, apiGetRecentSubmissions } from "@/lib/api";
 import { columns } from "./components/columns";
 import { DataTable } from "./components/data-table";
 import { RecentSubmissionCard } from "./components/recent-submissions";
-import { apiGetProblems, apiGetRecentSubmissions } from "@/lib/api";
- 
+
 import { auth } from "@/app/auth";
+import { Submission } from "@/lib/types";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -17,29 +18,25 @@ export default async function ProblemsPage() {
 
   const session = await auth()
 
-  if(!session) {
+  if (!session) {
     throw "You must be signed-in to view this page"
   }
 
   const results = await Promise.allSettled(
     [
-        apiGetProblems(session.nextjudge_token),
-        apiGetRecentSubmissions(session.nextjudge_token,session.nextjudge_id)
+      apiGetProblems(session.nextjudge_token),
+      apiGetRecentSubmissions(session.nextjudge_token, session.nextjudge_id)
     ]
-)
+  )
 
-  const [problemsResult, recentSubmissionsResult ] = results
-  
+  const [problemsResult, recentSubmissionsResult] = results
+
   const problems = problemsResult.status === 'fulfilled' ? problemsResult.value : []
   const recentSubmissions = recentSubmissionsResult.status === 'fulfilled' ? recentSubmissionsResult.value : []
-
-  // const problems = await apiGetProblems(session.nextjudge_token)
-  // const recentSubmissions = await apiGetRecentSubmissions(session.nextjudge_token,session.nextjudge_id)
-
   return (
     <>
       <PlatformNavbar>
-        <UserAvatar />
+        <UserAvatar session={session} />
       </PlatformNavbar>
       <div className="max-w-7xl w-full flex-1 flex-col space-y-4 p-8 mx-8 md:flex">
         <div className="flex items-center justify-between space-y-4">
@@ -63,7 +60,7 @@ export default async function ProblemsPage() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {recentSubmissions.map((submission) => (
+          {Array.isArray(recentSubmissions) && recentSubmissions.map((submission: Submission) => (
             <RecentSubmissionCard key={submission.id} submission={submission} />
           ))}
         </div>
