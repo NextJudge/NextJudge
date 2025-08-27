@@ -1,5 +1,4 @@
 import { editor } from "monaco-editor";
-import { Language } from "@/lib/types";
 export const sidebarNavItems = [
   {
     title: "Profile",
@@ -12,6 +11,13 @@ export const sidebarNavItems = [
   {
     title: "Contests",
     href: "/platform/admin/contests",
+  },
+];
+
+export const settingsNavItems = [
+  {
+    title: "General",
+    href: "/platform/settings",
   },
 ];
 
@@ -32,6 +38,20 @@ export const links = [
       {
         label: "Contests",
         href: "/platform/admin/contests",
+      },
+    ],
+  },
+];
+
+export const settingsLinks = [
+  {
+    label: "Settings",
+    href: "/platform/settings",
+    dropdown: true,
+    dropdownLinks: [
+      {
+        label: "General",
+        href: "/platform/settings",
       },
     ],
   },
@@ -110,16 +130,16 @@ export const platformRoutes: RouteProps[] = [
 ];
 
 export const defaultEditorOptions: editor.IStandaloneEditorConstructionOptions =
-  {
-    formatOnPaste: true,
-    formatOnType: true,
-    showUnused: true,
-    fontSize: 14,
-    cursorStyle: "line",
-    cursorSmoothCaretAnimation: "on",
-    cursorBlinking: "smooth",
-    cursorWidth: 1,
-    cursorSurroundingLines: 1,
-    multiCursorModifier: "ctrlCmd",
-    scrollBeyondLastLine: true,
-  };
+{
+  formatOnPaste: true,
+  formatOnType: true,
+  showUnused: true,
+  fontSize: 14,
+  cursorStyle: "line",
+  cursorSmoothCaretAnimation: "on",
+  cursorBlinking: "smooth",
+  cursorWidth: 1,
+  cursorSurroundingLines: 1,
+  multiCursorModifier: "ctrlCmd",
+  scrollBeyondLastLine: true,
+};

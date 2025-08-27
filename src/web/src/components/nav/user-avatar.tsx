@@ -1,4 +1,3 @@
-import { auth } from "@/app/auth";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,14 +7,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Session } from "next-auth";
 import Image from "next/image";
 import Link from "next/link";
 
-export default async function UserAvatar() {
-  const session = await auth();
-
-  if (!session?.user) return null;
-  if (!session.user.image) return null;
+export default function UserAvatar({ session }: { session: Session | undefined }) {
+  if (!session?.user) {
+    return null;
+  }
 
   return (
     <>
@@ -27,18 +26,21 @@ export default async function UserAvatar() {
             className="overflow-hidden rounded-full"
           >
             <Image
-              src={session.user?.image}
+              src={session.user.image && session.user.image.trim() !== '' ? session.user.image : `https://api.dicebear.com/8.x/pixel-art/svg?seed=${session.user.email ?? "default"}`}
               width={36}
               height={36}
               alt="Avatar"
               className="overflow-hidden rounded-full"
+              priority
             />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{session.user?.name}</DropdownMenuLabel>
+          <DropdownMenuLabel>{session.user.name}</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
+          <Link href="/platform/settings">
+            <DropdownMenuItem>Settings</DropdownMenuItem>
+          </Link>
           <DropdownMenuItem>Support</DropdownMenuItem>
           <DropdownMenuSeparator />
           <Link href="/auth/logout">
