@@ -1,4 +1,5 @@
 "use client";
+import { BorderBeam } from "@/components/ui/border-beam";
 import {
   Card,
   CardDescription,
@@ -16,7 +17,6 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useState } from "react";
 import animationData from "../../../public//lottie/lottie.json";
-import { BorderBeam } from "./beam";
 import { items } from "./bento";
 // import Lottie from "lottie-react";
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
