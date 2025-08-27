@@ -15,6 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -24,8 +25,9 @@ import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Menu, Pyramid } from "lucide-react";
 import Link from "next/link";
 import { Icons } from "../icons";
-import { ModeToggle } from "../theme";
 import { buttonVariants } from "../ui/button";
+import { NotificationBell } from "../ui/notification-bell";
+import { ModeToggle } from "../theme";
 
 // TODO: Refactor this into separate files, it's currently messy.
 export function Navbar() {
@@ -137,7 +139,17 @@ export function Navbar() {
 }
 
 export function MainNavigationMenu() {
+  const { data: session } = useSession();
   const infos = directoryRoutes.infosNav[0];
+
+  // filter out admin routes for non-admin users
+  const filteredPlatformRoutes = platformRoutes.filter((route) => {
+    if (route.href.includes('/admin')) {
+      return session?.user?.is_admin === true;
+    }
+    return true;
+  });
+
   return (
     <NavigationMenu>
       <NavigationMenuList>
@@ -168,7 +180,7 @@ export function MainNavigationMenu() {
           </NavigationMenuContent>
         </NavigationMenuItem>
         {/* holy hack */}
-        {platformRoutes.map((link) => (
+        {filteredPlatformRoutes.map((link) => (
           <NavigationMenuItem key={link.label}>
             <a href={link.href} className={navigationMenuTriggerStyle()}>
               {link.label}
@@ -224,7 +236,6 @@ export function PlatformNavbar() {
           </a>
         </div>
         <div className="flex md:hidden">
-          <ModeToggle />
           {/* mobile */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger className="px-2">
@@ -258,7 +269,7 @@ export function PlatformNavbar() {
 
         <div className="hidden md:flex gap-4 justify-center items-center">
           <MainNavigationMenu />
-          <ModeToggle />
+          <NotificationBell />
         </div>
       </div>
     </header>
