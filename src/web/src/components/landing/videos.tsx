@@ -1,7 +1,7 @@
 "use client";
+import { BorderBeam } from "@/components/ui/border-beam";
 import { cn } from "@/lib/utils";
 import { Card } from "../ui/card";
-import { BorderBeam } from "./beam";
 
 export function PreviewVideo() {
   return (
@@ -31,7 +31,17 @@ export function PreviewVideo() {
         </video>
         {/* Gradient Mask */}
         {/* <div className="hidden md:block absolute bottom-0 left-0 w-full h-5/6 bg-gradient-to-t from-neutral-950 to-neutral-950/5 via-neutral-950/95" /> */}
-        <BorderBeam />
+        <BorderBeam
+          duration={20}
+          delay={10}
+          size={400}
+          borderWidth={1}
+        />
+        <BorderBeam
+          duration={20}
+          size={400}
+          borderWidth={1}
+        />
       </Card>
       <Card
         className={cn(
@@ -57,7 +67,17 @@ export function PreviewVideo() {
         </video>
         {/* Gradient Mask */}
         {/* <div className="hidden md:block absolute bottom-0 left-0 w-full h-5/6 bg-gradient-to-t from-neutral-100 to-neutral-100/5 via-neutral-100/95"></div> */}
-        <BorderBeam />
+        <BorderBeam
+          duration={6}
+          delay={3}
+          size={400}
+          borderWidth={2}
+        />
+        <BorderBeam
+          duration={6}
+          size={400}
+          borderWidth={2}
+        />
       </Card>
     </>
   );

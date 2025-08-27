@@ -1,12 +1,10 @@
 import { cn } from "@/lib/utils";
-import { Card } from "../ui/card";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-import { BorderBeam } from "./beam";
 import HeroButtons from "./hero-buttons";
 import { PreviewVideo } from "./videos";
 
