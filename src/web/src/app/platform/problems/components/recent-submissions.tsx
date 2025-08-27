@@ -1,11 +1,11 @@
 "use client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Submission, SubmissionStatus, statusMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CircleDot } from "lucide-react";
 import moment from "moment";
 import { DialogSubmission } from "./dialog-submission";
-import { Submission, SubmissionStatus } from "@/lib/types";
 
 const languageColors: { [key: string]: string } = {
   python: "text-python fill-python",
@@ -54,9 +54,9 @@ function SubmissionStatusBadge({ status }: { status: SubmissionStatus }) {
   return (
     <Badge
       variant={`outline`}
-      className={`text-xs ${variantStyles[status].border} dark:text-muted-foreground font-medium text-secondary-foreground`}
+      className={`text-xs whitespace-nowrap ${variantStyles[status].border} dark:text-muted-foreground font-medium text-secondary-foreground`}
     >
-      {status.split("")[0].toUpperCase() + status.slice(1)}
+      {statusMap[status] || status}
     </Badge>
   );
 }
@@ -87,7 +87,7 @@ export function RecentSubmissionCard({
                     className={cn(
                       "mr-2 size-2",
                       submission.language.name &&
-                        getColorClass(submission.language.name)
+                      getColorClass(submission.language.name)
                     )}
                   />
                   {submission.language.name}
@@ -118,7 +118,7 @@ export function RecentSubmissionCard({
                 className={cn(
                   "mr-2 size-2",
                   submission.language.name &&
-                    getColorClass(submission.language.name)
+                  getColorClass(submission.language.name)
                 )}
               />
               {submission.language.name}

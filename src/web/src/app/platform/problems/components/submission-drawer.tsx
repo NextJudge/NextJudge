@@ -10,11 +10,17 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Submission } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { recentSubmissions } from "../data/data";
 import { RecentSubmissionCard } from "./recent-submissions";
 
-export default function SubmissionDrawer() {
+interface SubmissionDrawerProps {
+  submissions?: Submission[];
+}
+
+export default function SubmissionDrawer({ submissions  }: SubmissionDrawerProps) {
+  const safeSubmissions = Array.isArray(submissions) ? submissions : [];
+
   return (
     <div>
       <Drawer>
@@ -38,24 +44,42 @@ export default function SubmissionDrawer() {
                 <TabsTrigger value="category">Category</TabsTrigger>
               </TabsList>
               <TabsContent value="problem">
-                <ul className="grid grid-flow-row grid-cols-3 gap-4">
-                  {recentSubmissions.map((submission) => (
-                    <RecentSubmissionCard
-                      submission={submission}
-                      key={submission.id}
-                    />
-                  ))}
-                </ul>
+                {safeSubmissions.length > 0 ? (
+                  <ul className="grid grid-flow-row grid-cols-3 gap-4">
+                    {safeSubmissions.map((submission) => (
+                      <RecentSubmissionCard
+                        submission={submission}
+                        key={submission.id}
+                      />
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="text-muted-foreground mb-2">No submissions yet</div>
+                    <div className="text-sm text-muted-foreground">
+                      Start solving problems to see your submissions here
+                    </div>
+                  </div>
+                )}
               </TabsContent>
               <TabsContent value="category">
-                <ul className="grid grid-flow-row grid-cols-3 gap-4">
-                  {recentSubmissions.map((submission) => (
-                    <RecentSubmissionCard
-                      submission={submission}
-                      key={submission.id}
-                    />
-                  ))}
-                </ul>
+                {safeSubmissions.length > 0 ? (
+                  <ul className="grid grid-flow-row grid-cols-3 gap-4">
+                    {safeSubmissions.map((submission) => (
+                      <RecentSubmissionCard
+                        submission={submission}
+                        key={submission.id}
+                      />
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="text-muted-foreground mb-2">No submissions yet</div>
+                    <div className="text-sm text-muted-foreground">
+                      Start solving problems to see your submissions here
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>

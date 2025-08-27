@@ -70,12 +70,11 @@ export function CustomInput({ input }: { input: string }) {
   );
 }
 
-// TODO: Make this a generic component of "Output"
 export function CustomInputResult({ result }: { result: string }) {
   return (
     <div className="space-y-2 p-2">
       <p className="text-sm font-medium text-label-3 dark:text-dark-label-3">
-        Result
+        Output
       </p>
       <Textarea value={result} />
     </div>
