@@ -23,35 +23,35 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <>
+      <div className="fixed inset-0 pointer-events-none">
+        <Image
+          src="/blobs/blob1.svg"
+          alt="background"
+          priority={true}
+          width={100}
+          height={50}
+          className="dark:hidden absolute top-0 left-0 w-1/3 mx-auto opacity-70 h-auto bg-transparent blur-[200px] backdrop-filter"
+        />
+        <Image
+          src="/blobs/blob1.svg"
+          alt="background"
+          priority={true}
+          width={100}
+          height={50}
+          className="dark:hidden absolute top-0 right-0 w-3/6 opacity-50 h-auto bg-transparent blur-[200px] backdrop-filter"
+        />
+        <Image
+          src="/blobs/blob1.svg"
+          alt="background"
+          priority={true}
+          width={100}
+          height={50}
+          className="hidden dark:block dark:2xl:hidden absolute bottom-20 left-0 translate-y-2/4 w-full mx-auto opacity-70 h-full scale-100 bg-transparent blur-[250px] backdrop-filter"
+        />
+      </div>
       <Navbar />
-      <main className="flex max-w-full gap-10 flex-col items-center justify-between overflow-x-hidden">
-        <Image
-          src="/blobs/blob1.svg"
-          alt="background"
-          priority={true}
-          width={100}
-          height={50}
-          className="dark:hidden absolute top-0 left-0 -z-50 w-1/3 mx-auto opacity-70 h-auto bg-transparent blur-[200px] backdrop-filter"
-        />
-        <Image
-          src="/blobs/blob1.svg"
-          alt="background"
-          priority={true}
-          width={100}
-          height={50}
-          className="dark:hidden absolute top-0 right-0 -z-50 w-3/6 opacity-50 h-auto bg-transparent blur-[200px] backdrop-filter"
-        />
+      <main className="flex max-w-full gap-10 flex-col items-center justify-between overflow-x-hidden relative z-10">
         <AltHero />
-
-        {/* TODO: Figure out how to optimize this across all devices */}
-        <Image
-          src="/blobs/blob1.svg"
-          alt="background"
-          priority={true}
-          width={100}
-          height={50}
-          className="hidden dark:block dark:2xl:hidden absolute bottom-20 left-0 translate-y-2/4 -z-50 w-full mx-auto opacity-70 h-full scale-100 bg-transparent blur-[250px] backdrop-filter"
-        />
         <WhyNextJudge />
         <Services />
         <LanguagesBanner />
