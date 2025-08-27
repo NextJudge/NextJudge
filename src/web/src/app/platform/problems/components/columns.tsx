@@ -2,43 +2,35 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 
-import { Checkbox } from "@/components/ui/checkbox";
+
 
 import { Badge } from "@/components/ui/badge";
+import { Problem } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { LockOpen1Icon } from "@radix-ui/react-icons";
 import { formatDistanceToNow } from "date-fns";
+import { Lock } from "lucide-react";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 
-let isAdmin = false;
-if (typeof window !== "undefined") {
-  const location = window.location.href;
-  if (location.includes("admin")) isAdmin = true;
-}
-
-// TODO: Type this correctly.
-export const columns: ColumnDef<any>[] = [
+export const createColumns = (onUpdate?: () => void, isAdmin: boolean = false): ColumnDef<Problem>[] => [
   {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="translate-y-[2px]"
-      />
+    id: "index",
+    header: () => (
+      <div className="w-8 text-center font-medium px-2">
+        #
+      </div>
     ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="translate-y-[2px]"
-      />
-    ),
+    cell: ({ row, table }) => {
+      const pageIndex = table.getState().pagination.pageIndex;
+      const pageSize = table.getState().pagination.pageSize;
+      const rowIndex = row.index + 1 + (pageIndex * pageSize);
+      return (
+        <div className="w-8 text-center text-sm text-muted-foreground px-2">
+          {rowIndex}
+        </div>
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },
@@ -55,11 +47,11 @@ export const columns: ColumnDef<any>[] = [
   {
     accessorKey: "title",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Title" />
+      <DataTableColumnHeader column={column} title="Title" className="px-2 w-full" />
     ),
     cell: ({ row }) => {
       return (
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 px-2 w-full">
           <span className="max-w-[400px] truncate font-medium">
             {row.getValue("title")}
           </span>
@@ -71,25 +63,46 @@ export const columns: ColumnDef<any>[] = [
   {
     accessorKey: "difficulty",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Difficulty" />
+      <DataTableColumnHeader column={column} title="Difficulty" className="px-2" />
     ),
     cell: ({ row }) => {
       const difficulty = row.getValue("difficulty");
       return (
-        <div className="flex items-center">
+        <div className="flex items-center px-2">
           <span className="sr-only">{row.getValue("difficulty")}</span>
           <Badge
             variant={"outline"}
             className={cn({
               "border-[0.5px] border-red-500":
-                difficulty === "VERY_HARD" || difficulty === "HARD",
+                difficulty === "VERY HARD" || difficulty === "HARD",
               "border-[0.5px] border-yellow-500": difficulty === "MEDIUM",
-              "border-[0.5px] border-green-500":
-                difficulty === "EASY" || difficulty === "VERY_EASY",
+              "border-[0.5px] border-green-500": difficulty === "EASY",
+              "border-[0.5px] border-blue-500": difficulty === "VERY EASY",
             })}
           >
             {row.getValue("difficulty")}
           </Badge>
+        </div>
+      );
+    },
+  },
+
+  {
+    accessorKey: "public",
+    header: ({ column }) => (
+      <div className={`${isAdmin ? "flex" : "hidden"} items-center justify-center w-16 px-2`}>
+        Visibility
+      </div>
+    ),
+    cell: ({ row }) => {
+      const isPublic = row.getValue("public");
+      return (
+        <div className={`${isAdmin ? "flex" : "hidden"} items-center justify-center w-16 px-2`}>
+          {!isPublic ? (
+            <Lock className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <LockOpen1Icon className="w-4 h-4 text-muted-foreground" />
+          )}
         </div>
       );
     },
@@ -134,19 +147,49 @@ export const columns: ColumnDef<any>[] = [
   // },
 
   {
-    accessorKey: "upload_date",
+    accessorKey: isAdmin ? "updated_at" : "upload_date",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Upload Date" />
+      <DataTableColumnHeader
+        column={column}
+        title={isAdmin ? "Last Updated" : "Upload Date"}
+        className="px-2"
+      />
     ),
     cell: ({ row }) => {
-      const value = row.getValue("upload_date");
-      return (
-        <div className="w-[100px]">
-          {formatDistanceToNow(new Date(value as any), {
-            addSuffix: true,
-          })}
-        </div>
-      );
+      const value = row.getValue(isAdmin ? "updated_at" : "upload_date");
+
+      if (!value) {
+        return (
+          <div className="w-[120px] whitespace-nowrap text-muted-foreground px-2">
+            No date
+          </div>
+        );
+      }
+
+      try {
+        const date = new Date(value as string);
+        if (isNaN(date.getTime())) {
+          return (
+            <div className="w-[120px] whitespace-nowrap text-muted-foreground px-2">
+              Invalid date
+            </div>
+          );
+        }
+
+        return (
+          <div className="w-[120px] whitespace-nowrap px-2">
+            {formatDistanceToNow(date, {
+              addSuffix: true,
+            })}
+          </div>
+        );
+      } catch (error) {
+        return (
+          <div className="w-[120px] whitespace-nowrap text-muted-foreground px-2">
+            Invalid date
+          </div>
+        );
+      }
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
@@ -159,9 +202,12 @@ export const columns: ColumnDef<any>[] = [
         <div
           className={`${isAdmin ? "flex" : "hidden"} items-center space-x-2`}
         >
-          <DataTableRowActions row={row} />
+          <DataTableRowActions row={row} onUpdate={onUpdate} />
         </div>
       );
     },
   },
 ];
+
+// Export backward compatible columns for non-admin usage
+export const columns: ColumnDef<Problem>[] = createColumns(undefined, false);
