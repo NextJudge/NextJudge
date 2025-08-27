@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 
+import { auth } from "@/app/auth";
 import { BreadcrumbWithDropdown } from "@/components/nav/crumb";
 import PlatformNavbar from "@/components/nav/platform-nav";
 import { SidebarNav } from "@/components/nav/sidebar-nav";
@@ -16,11 +18,22 @@ interface SettingsLayoutProps {
   children: React.ReactNode;
 }
 
-export default function AdminLayout({ children }: SettingsLayoutProps) {
+export default async function AdminLayout({ children }: SettingsLayoutProps) {
+  const session = await auth();
+
+  if (!session) {
+    throw "You must be signed-in to view this page";
+  }
+
+  // redirect non-admin users to platform home
+  if (!session.user?.is_admin) {
+    redirect("/platform");
+  }
+
   return (
     <>
       <PlatformNavbar>
-        <UserAvatar />
+        <UserAvatar session={session} />
       </PlatformNavbar>
       <div className="hidden space-y-6 px-10 max-w-7xl md:block w-full py-10">
         <BreadcrumbWithDropdown crumbs={links} />
