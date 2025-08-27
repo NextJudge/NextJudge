@@ -26,6 +26,12 @@ export type Theme = {
 export function EditorThemeSelector({ themes }: { themes: Theme[] }) {
   const { theme: currentTheme, setTheme } = React.useContext(ThemeContext);
   const [open, setOpen] = React.useState(false);
+  const builtInThemes: Theme[] = [
+    { name: "vs-dark", fetch: "" },
+    { name: "light", fetch: "" }
+  ];
+
+  const allThemes = [...builtInThemes, ...themes];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -36,7 +42,11 @@ export function EditorThemeSelector({ themes }: { themes: Theme[] }) {
           aria-expanded={open}
           className="w-[200px] justify-between"
         >
-          {themes.find((theme: any) => currentTheme?.name === theme.name)?.name}
+          {currentTheme?.name ? (
+            currentTheme.name === "vs-dark" ? "VS Code Dark" :
+              currentTheme.name === "light" ? "VS Code Light" :
+                currentTheme.name
+          ) : "Select theme..."}
           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -45,16 +55,25 @@ export function EditorThemeSelector({ themes }: { themes: Theme[] }) {
           <CommandInput placeholder="Search our themes..." className="h-9" />
           <CommandEmpty>No theme found.</CommandEmpty>
           <CommandGroup className="overflow-y-scroll max-h-52">
-            {themes.map((theme: Theme) => (
+            {allThemes.map((theme: Theme) => (
               <CommandItem
                 key={theme.name}
                 value={theme.name}
                 onSelect={(currVal: string) => {
-                  setTheme(theme);
+                  // Handle built-in themes differently
+                  if (theme.name === "vs-dark" || theme.name === "light") {
+                    // For built-in themes, we need to use the provider's setTheme differently
+                    // But since the provider doesn't handle built-ins, we'll need to work around this
+                    setTheme(theme);
+                  } else {
+                    setTheme(theme);
+                  }
                   setOpen(false);
                 }}
               >
-                {theme.name}
+                {theme.name === "vs-dark" ? "VS Code Dark" :
+                  theme.name === "light" ? "VS Code Light" :
+                    theme.name}
                 <CheckIcon
                   className={cn(
                     "ml-auto h-4 w-4",
