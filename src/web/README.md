@@ -72,3 +72,9 @@ Authorization callback URL
 http://localhost:8080/api/auth/callback/github
 ```
 
+### TODO
+
+- [ ] Support team infrastructure and registration
+- [ ] Refactor notification system
+- [ ] Extract a lot of state to `useReducer` and zustand stores
+- [ ] Re-do landing page and marketing materials
