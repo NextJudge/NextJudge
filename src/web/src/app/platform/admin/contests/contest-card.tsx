@@ -24,15 +24,15 @@ import {
   PlusIcon,
 } from "@radix-ui/react-icons";
 
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { Clock, EditIcon } from "lucide-react";
 import { NextJudgeEvent } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { Clock, EditIcon } from "lucide-react";
 
 type ContestCardProps = {
   className?: string;
   contest: NextJudgeEvent;
   deleteContest?: (id: number) => void;
+  editContest?: (contest: NextJudgeEvent) => void;
   mock?: boolean;
 };
 
@@ -40,6 +40,7 @@ export function ContestCard({
   className,
   contest,
   deleteContest,
+  editContest,
   mock,
 }: ContestCardProps) {
   const contestName = contest?.title;
@@ -82,7 +83,9 @@ export function ContestCard({
                 Delete
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => editContest && editContest(contest)}
+              >
                 <EditIcon className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -117,7 +120,7 @@ export function ContestCard({
   );
 }
 
-export function ContestGrid({ contests, onDelete }: any) {
+export function ContestGrid({ contests, onDelete, onEdit }: any) {
   return (
     <div className="grid grid-cols-2 w-full gap-4">
       {contests?.map((contest: any) => (
@@ -125,6 +128,7 @@ export function ContestGrid({ contests, onDelete }: any) {
           key={contest.id}
           contest={contest}
           deleteContest={onDelete}
+          editContest={onEdit}
         />
       ))}
     </div>
