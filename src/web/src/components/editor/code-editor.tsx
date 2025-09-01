@@ -181,7 +181,12 @@ export default function CodeEditor({
             editor.layout();
         }, 0);
 
-        // add support for process
+        monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+            module: monaco.languages.typescript.ModuleKind.CommonJS,
+            allowJs: true,
+            checkJs: true,
+        });
+
         monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
         monaco.languages.typescript.typescriptDefaults.addExtraLib(
             `declare var process: NodeJS.Process;`
