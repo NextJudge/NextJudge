@@ -3,9 +3,9 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/app/auth";
 import { BreadcrumbWithDropdown } from "@/components/nav/crumb";
-import PlatformNavbar from "@/components/nav/platform-nav";
+import PlatformNavbar from "@/components/nav/platform-navbar";
 import { SidebarNav } from "@/components/nav/sidebar-nav";
-import UserAvatar from "@/components/nav/user-avatar";
+import { UserAvatar } from "@/components/nav/user-avatar";
 import { Separator } from "@/components/ui/separator";
 import { links, sidebarNavItems } from "@/lib/constants";
 
@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: SettingsLayoutProps) {
 
   return (
     <>
-      <PlatformNavbar>
+      <PlatformNavbar session={session}>
         <UserAvatar session={session} />
       </PlatformNavbar>
       <div className="hidden space-y-6 px-10 max-w-7xl md:block w-full py-10">

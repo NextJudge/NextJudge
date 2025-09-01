@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,7 +13,7 @@ import { Session } from "next-auth";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function UserAvatar({ session }: { session: Session | undefined }) {
+export function UserAvatar({ session }: { session: Session | undefined }) {
   if (!session?.user) {
     return null;
   }

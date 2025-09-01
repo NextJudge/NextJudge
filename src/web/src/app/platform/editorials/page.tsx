@@ -1,6 +1,6 @@
 import { auth } from "@/app/auth";
-import PlatformNavbar from "@/components/nav/platform-nav";
-import UserAvatar from "@/components/nav/user-avatar";
+import PlatformNavbar from "@/components/nav/platform-navbar";
+import { UserAvatar } from "@/components/nav/user-avatar";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -34,7 +34,7 @@ export default async function ProblemsPage() {
 
   return (
     <>
-      <PlatformNavbar>
+      <PlatformNavbar session={session}>
         <UserAvatar session={session} />
       </PlatformNavbar>
       <div className="max-w-7xl w-full flex-1 flex-col space-y-4 p-8 mx-8 md:flex">

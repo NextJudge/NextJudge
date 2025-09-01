@@ -1,6 +1,6 @@
 import { auth } from "@/app/auth";
-import PlatformNavbar from "@/components/nav/platform-nav";
-import UserAvatar from "@/components/nav/user-avatar";
+import PlatformNavbar from "@/components/nav/platform-navbar";
+import { UserAvatar } from "@/components/nav/user-avatar";
 import { apiGetPublicEvents } from "@/lib/api";
 import { NextJudgeEvent } from "@/lib/types";
 import { ContestLandingPage } from "./contest-landing-page";
@@ -34,7 +34,7 @@ export default async function ContestsPage() {
 
   return (
     <>
-      <PlatformNavbar>
+      <PlatformNavbar session={session}>
         <UserAvatar session={session} />
       </PlatformNavbar>
       <ContestLandingPage

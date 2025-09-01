@@ -1,6 +1,6 @@
 
-import PlatformNavbar from "@/components/nav/platform-nav";
-import UserAvatar from "@/components/nav/user-avatar";
+import PlatformNavbar from "@/components/nav/platform-navbar";
+import { UserAvatar } from "@/components/nav/user-avatar";
 import { apiGetPublicEvents, apiGetRecentSubmissions } from "@/lib/api";
 import { NextJudgeEvent, Submission } from "@/lib/types";
 import { auth } from "../auth";
@@ -36,7 +36,7 @@ export default async function PlatformHome() {
 
   return (
     <>
-      <PlatformNavbar>
+      <PlatformNavbar session={session}>
         <UserAvatar session={session} />
       </PlatformNavbar>
       <div className="max-w-7xl w-full flex-1 flex-col space-y-8 p-8 mx-8 md:flex">

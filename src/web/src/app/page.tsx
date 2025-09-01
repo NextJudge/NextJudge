@@ -5,9 +5,9 @@ import { EarlyAccess } from "@/components/landing/early-access";
 import { FAQ } from "@/components/landing/faq";
 import { ScrollToTop } from "@/components/landing/scroll-up";
 import { Services } from "@/components/landing/services";
-import { Navbar } from "@/components/nav/navbar";
+import { LandingNavbar } from "@/components/nav/landing-navbar";
 import { Metadata } from "next";
-import { SessionProvider } from "next-auth/react";
+import { auth } from "@/app/auth";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 const WhyNextJudge = dynamic(
@@ -21,11 +21,12 @@ export const metadata: Metadata = {
     "An all-new competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible.",
 };
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  
   return (
     <>
-      <SessionProvider>
-        <div className="fixed inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none">
           <Image
             src="/blobs/blob1.svg"
             alt="background"
@@ -51,7 +52,7 @@ export default function Home() {
             className="absolute bottom-20 left-0 translate-y-2/4 w-full mx-auto opacity-70 dark:opacity-30 h-full scale-100 bg-transparent blur-[250px] backdrop-filter"
           />
         </div>
-        <Navbar />
+        <LandingNavbar session={session} />
         <main className="flex max-w-full gap-10 flex-col items-center justify-between overflow-x-hidden relative z-10">
           <AltHero />
           <WhyNextJudge />
@@ -62,7 +63,6 @@ export default function Home() {
           <Footer />
           <ScrollToTop />
         </main>
-      </SessionProvider>
     </>
   );
 }

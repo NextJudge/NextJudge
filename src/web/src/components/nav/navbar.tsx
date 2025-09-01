@@ -25,9 +25,9 @@ import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Menu, Pyramid } from "lucide-react";
 import Link from "next/link";
 import { Icons } from "../icons";
-import { buttonVariants } from "../ui/button";
-import { NotificationBell } from "../ui/notification-bell";
 import { ModeToggle } from "../theme";
+import { buttonVariants } from "../ui/button";
+import { NotificationBellServer } from "../ui/notification-bell-server";
 
 // TODO: Refactor this into separate files, it's currently messy.
 export function Navbar() {
@@ -225,6 +225,7 @@ const ListItem: React.FC<any> = ({
 ListItem.displayName = "ListItem";
 
 export function PlatformNavbar() {
+  const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   return (
     <header className="sticky border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-neutral-500/40 dark:bg-background">
@@ -269,7 +270,7 @@ export function PlatformNavbar() {
 
         <div className="hidden md:flex gap-4 justify-center items-center">
           <MainNavigationMenu />
-          <NotificationBell />
+          <NotificationBellServer session={session || undefined} />
         </div>
       </div>
     </header>

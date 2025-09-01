@@ -9,8 +9,8 @@ import { toast } from "sonner";
 
 import { ContestCelebration } from "@/components/contest-celebration";
 import { Icons } from "@/components/icons";
-import PlatformNavbar from "@/components/nav/platform-nav";
-import UserAvatar from "@/components/nav/user-avatar";
+import PlatformNavbar from "@/components/nav/platform-navbar";
+import { UserAvatar } from "@/components/nav/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -178,7 +178,7 @@ export default function ContestDetailPage() {
     if (loading) {
         return (
             <>
-                <PlatformNavbar>
+                <PlatformNavbar session={session || undefined}>
                     <UserAvatar session={session || undefined} />
                 </PlatformNavbar>
                 <div className="flex items-center justify-center min-h-screen">
@@ -191,7 +191,7 @@ export default function ContestDetailPage() {
     if (!contest) {
         return (
             <>
-                <PlatformNavbar>
+                <PlatformNavbar session={session || undefined}>
                     <UserAvatar session={session || undefined} />
                 </PlatformNavbar>
                 <div className="flex flex-col items-center justify-center min-h-screen">
@@ -228,7 +228,7 @@ export default function ContestDetailPage() {
                 isFirstToComplete={isFirstToComplete()}
                 contestStatus={contestStatus}
             />
-            <PlatformNavbar>
+            <PlatformNavbar session={session || undefined}>
                 <UserAvatar session={session || undefined} />
             </PlatformNavbar>
             <div className="container mx-auto px-4 py-6 max-w-8xl">

@@ -6,61 +6,41 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
-import { apiGetNotificationsCount, apiGetUserNotifications, apiMarkNotificationsAsRead } from "@/lib/api"
+import { apiMarkNotificationsAsRead } from "@/lib/api"
 import { Notification } from "@/lib/types"
 import { format } from "date-fns"
 import { Bell } from "lucide-react"
-import { useSession } from "next-auth/react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
-export function NotificationBell() {
-    const { data: session } = useSession()
-    const [notificationCount, setNotificationCount] = useState<number>(0)
-    const [notifications, setNotifications] = useState<Notification[]>([])
+export function NotificationBell({
+    session,
+    notificationCount,
+    notifications
+}: {
+    session: any;
+    notificationCount: number;
+    notifications: Notification[]
+}) {
     const [isOpen, setIsOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-
-    useEffect(() => {
-        if (session?.nextjudge_token) {
-            fetchNotificationCount()
-            // poll for updates every 30 seconds
-            const interval = setInterval(() => {
-                fetchNotificationCount()
-            }, 30000)
-
-            return () => clearInterval(interval)
-        }
-    }, [session?.nextjudge_token])
-
-    const fetchNotificationCount = async () => {
-        if (!session?.nextjudge_token) return
-
-        try {
-            const countData = await apiGetNotificationsCount(session.nextjudge_token)
-            setNotificationCount(countData.count)
-        } catch (error) {
-            console.error("Error fetching notification count:", error)
-        }
-    }
+    const [localNotifications, setLocalNotifications] = useState<Notification[]>(notifications)
+    const [localNotificationCount, setLocalNotificationCount] = useState<number>(notificationCount)
 
     const fetchNotifications = async () => {
         if (!session?.nextjudge_token) return
 
         setIsLoading(true)
         try {
-            const notificationsData = await apiGetUserNotifications(session.nextjudge_token)
-            console.log("Fetched notifications:", notificationsData)
-            setNotifications(notificationsData)
+            // For now, we'll just use the passed notifications
+            // In the future, we could add a refresh endpoint
+            setIsLoading(false)
         } catch (error) {
             console.error("Error fetching notifications:", error)
-        } finally {
             setIsLoading(false)
         }
     }
 
-    // separate notifications by read status
-    const unreadNotifications = notifications.filter(n => !n.is_read)
-    const readNotifications = notifications.filter(n => n.is_read)
+
 
     const renderNotification = (notification: Notification) => (
         <div key={notification.id} className="p-3 border rounded-md">
@@ -133,7 +113,7 @@ export function NotificationBell() {
 
         try {
             await apiMarkNotificationsAsRead(session.nextjudge_token)
-            setNotificationCount(0)
+            setLocalNotificationCount(0)
             // optionally refresh notifications to show they're marked as read
             await fetchNotifications()
         } catch (error) {
@@ -145,17 +125,21 @@ export function NotificationBell() {
         return null
     }
 
+    // separate notifications by read status
+    const unreadNotifications = localNotifications.filter(n => !n.is_read)
+    const readNotifications = localNotifications.filter(n => n.is_read)
+
     return (
         <Popover open={isOpen} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
                 <Button variant="outline" size="icon" className="relative">
                     <Bell className="h-4 w-4" />
-                    {notificationCount > 0 && (
+                    {localNotificationCount > 0 && (
                         <Badge
                             variant="destructive"
                             className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
                         >
-                            {notificationCount > 99 ? "99+" : notificationCount}
+                            {localNotificationCount > 99 ? "99+" : localNotificationCount}
                         </Badge>
                     )}
                 </Button>
@@ -165,7 +149,7 @@ export function NotificationBell() {
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-base">Recent Notifications</CardTitle>
-                            {notificationCount > 0 && (
+                            {localNotificationCount > 0 && (
                                 <Button
                                     size="sm"
                                     variant="ghost"
@@ -182,7 +166,7 @@ export function NotificationBell() {
                             <div className="text-center py-8 text-muted-foreground">
                                 Loading...
                             </div>
-                        ) : notifications.length === 0 ? (
+                        ) : localNotifications.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">
                                 No recent notifications
                             </div>

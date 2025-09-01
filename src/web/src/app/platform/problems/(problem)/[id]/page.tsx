@@ -2,7 +2,7 @@ import { auth } from "@/app/auth";
 import EditorComponent from "@/components/editor/editor-layout";
 import EditorNavbar from "@/components/editor/editor-nav";
 import MarkdownRenderer from "@/components/markdown-renderer";
-import UserAvatar from "@/components/nav/user-avatar";
+import { UserAvatar } from "@/components/nav/user-avatar";
 import { apiGetLanguages, apiGetProblemCategories, apiGetRecentSubmissionsForProblem, fetchProblemID } from "@/lib/api";
 import { Problem } from "@/lib/types";
 import { EditorThemeProvider } from "@/providers/editor-theme";
