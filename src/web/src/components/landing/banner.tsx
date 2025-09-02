@@ -101,7 +101,7 @@ const secondRow = items.slice(items.length / 2, items.length);
 export function LanguagesBanner() {
   return (
     <>
-      <div className="relative flex h-full max-w-7xl flex-col items-center justify-center overflow-hidden space-y-20 py-32">
+      <div className="relative flex h-full max-w-full flex-col items-center justify-center overflow-hidden space-y-20 py-32">
         <h1 className="xs:text-xl text-2xl mx-8 md:text-4xl font-medium font-sans text-center whitespace-normal w-96 md:w-7/12 md:max-w-3xl">
           Solve problems in all of the programming languages that{" "}
           <span
@@ -123,8 +123,6 @@ export function LanguagesBanner() {
             <LanguageCard key={lang.label} {...lang} />
           ))}
         </Marquee>
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white dark:from-background"></div>
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-white dark:from-background"></div>
       </div>
     </>
   );
