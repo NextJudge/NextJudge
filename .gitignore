@@ -7,3 +7,4 @@ src/data-layer/Pipfile.lock
 .env.dev
 .DS_Store
 .vscode
+.vercel
