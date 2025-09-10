@@ -70,7 +70,7 @@ export default async function Editor({
     return (
         <>
             <EditorThemeProvider>
-                <EditorNavbar>
+                <EditorNavbar session={session}>
                     <UserAvatar session={session} />
                 </EditorNavbar>
                 <EditorComponent

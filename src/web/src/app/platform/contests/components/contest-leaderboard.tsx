@@ -15,6 +15,7 @@ import { apiGetEventAttempts } from "@/lib/api";
 import { Problem, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 interface ContestLeaderboardProps {
@@ -230,10 +231,12 @@ export function ContestLeaderboard({
                                         <TableCell className="font-medium">
                                             <div className="flex items-center gap-2">
                                                 {participant.user.image && (
-                                                    <img
+                                                    <Image
                                                         src={participant.user.image}
                                                         alt={participant.user.name}
                                                         className="w-6 h-6 rounded-full"
+                                                        width={24}
+                                                        height={24}
                                                     />
                                                 )}
                                                 <span>{participant.user.name}</span>

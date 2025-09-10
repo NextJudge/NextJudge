@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import cSvg from "../../../public/icons/c.svg";
 import cplusplusSvg from "../../../public/icons/cplusplus.svg";
 import csharpSvg from "../../../public/icons/csharp.svg";
@@ -27,11 +28,11 @@ type Component = (props: SvgProps) => JSX.Element;
 
 const SvgAsJsx: Component = ({ icon, size }) => {
   return (
-    <img
+    <Image
       src={icon.src}
       alt={icon.alt}
-      width={size}
-      height={size}
+      width={parseInt(size)}
+      height={parseInt(size)}
       className={cn("select-none pointer-events-none rounded-md", {
         "w-10 h-10": size === "10",
         "w-9 h-9": size === "9",

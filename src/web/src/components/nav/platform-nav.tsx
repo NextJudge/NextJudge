@@ -12,18 +12,20 @@ import {
 import { Icons } from "@/components/icons";
 import { platformRoutes } from "@/lib/constants";
 import { Menu } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { Session } from "next-auth";
 import { ModeToggle } from "../theme";
 import { Button, buttonVariants } from "../ui/button";
 import { NotificationBell } from "../ui/notification-bell";
+import { NotificationBellServer } from "../ui/notification-bell-server";
 import { MainNavigationMenu } from "./navbar";
 
 export default function PlatformNavbar({
   children,
+  session,
 }: {
   children: React.ReactNode;
+  session: Session;
 }) {
-  const { data: session } = useSession();
 
   const filteredPlatformRoutes = platformRoutes.filter((route) => {
     if (route.href.includes('/admin')) {
@@ -47,7 +49,7 @@ export default function PlatformNavbar({
 
         {/* mobile */}
         <div className="flex md:hidden items-center justify-center gap-8 mx-4">
-          <NotificationBell />
+          <NotificationBellServer session={session} />
           <Sheet>
             <SheetTrigger className="px-2" asChild>
               <Button variant="ghost">
@@ -79,7 +81,7 @@ export default function PlatformNavbar({
         <div className="hidden md:flex flex-row gap-4 justify-center items-center mx-12">
           <MainNavigationMenu />
           {children}
-          <NotificationBell />
+          <NotificationBellServer session={session} />
         </div>
       </div>
     </header>

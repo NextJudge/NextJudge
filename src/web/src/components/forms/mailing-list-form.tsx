@@ -1,6 +1,5 @@
 "use client";
 
-import { sendEmail, signUpUser } from "@/app/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -38,7 +37,9 @@ export function EmailForm() {
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     try {
       const { name, email } = JSON.parse(JSON.stringify(data));
-      await sendEmail({ name, email });
+      // await sendEmail({ name, email });
+      toast.error("Our waitlist is currently closed. Check back later!");
+      return;
       form.reset();
       toast("Thank you for joining the waitlist!");
     } catch (error) {
@@ -58,18 +59,18 @@ export function EmailForm() {
               Be part of the{" "}
               <span
                 className=" font-serif italic font-semibold mx-1 underline text-[#FF6600]"
-                // Should we remove this gradient?
-                // style={{
-                //   background: "linear-gradient(transparent 50%, #FF6600 50%)",
-                // }}
+              // Should we remove this gradient?
+              // style={{
+              //   background: "linear-gradient(transparent 50%, #FF6600 50%)",
+              // }}
               >
                 future
               </span>{" "}
               of competitive programming
             </h2>
             <p className="text-center text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-              Join the waitlist to get early access to NextJudge. We'll notify
-              you when we're ready to onboard new users.
+              Join the waitlist to get early access to NextJudge. We&apos;ll notify
+              you when we&apos;re ready to onboard new users.
             </p>
           </div>
 
@@ -110,7 +111,7 @@ export function EmailForm() {
                 </FormControl>
                 <FormMessage className="text-red-500" />
                 <FormDescription>
-                  We'll send you a welcome email.
+                  We&apos;ll send you a welcome email.
                 </FormDescription>
               </FormItem>
             )}
@@ -139,10 +140,12 @@ export function UserAuthForm({ children }: { children?: React.ReactNode }) {
 
   async function onSubmit(data: z.infer<typeof AuthorizeSchema>) {
     try {
+      toast.error("Our waitlist is currently closed. Check back later!");
+      return;
       const { email, password, confirmPassword } = JSON.parse(
         JSON.stringify(data)
       );
-      await signUpUser({ email, password, confirmPassword });
+      // await signUpUser({ email, password, confirmPassword, name: "" });
       toast("Account created successfully");
     } catch (error) {
       toast(error as string);

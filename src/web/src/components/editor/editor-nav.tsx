@@ -16,13 +16,16 @@ import { ModeToggle } from "@/components/theme";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { routeList } from "@/lib/constants";
 import { Menu } from "lucide-react";
-import { NotificationBell } from "../ui/notification-bell";
+import { Session } from "next-auth";
+import { NotificationBellServer } from "../ui/notification-bell-server";
 
 // TODO: Feed these props from Zustand (global state solution)
 export default function EditorNavbar({
   children,
+  session,
 }: {
   children: React.ReactNode;
+  session: Session;
 }) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   return (
@@ -73,7 +76,7 @@ export default function EditorNavbar({
 
         <div className="hidden md:flex flex-row gap-4 justify-center items-center mx-12 ">
           <MainNavigationMenu />
-          <NotificationBell />
+          <NotificationBellServer session={session} />
           {children}
           <ModeToggle />
         </div>
