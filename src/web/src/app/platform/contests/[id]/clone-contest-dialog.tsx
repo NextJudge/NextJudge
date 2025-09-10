@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon } from "@radix-ui/react-icons";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -54,7 +55,6 @@ interface CloneContestDialogProps {
     contest: NextJudgeEvent;
     problems: Problem[];
     children: React.ReactNode;
-    onCloneSuccess?: () => void;
 }
 
 interface DateTimePickerProps {
@@ -222,8 +222,9 @@ function DateTimePicker({ date, setDate }: DateTimePickerProps) {
     );
 }
 
-export function CloneContestDialog({ contest, problems, children, onCloneSuccess }: CloneContestDialogProps) {
+export function CloneContestDialog({ contest, problems, children }: CloneContestDialogProps) {
     const { data: session } = useSession();
+    const router = useRouter();
     const [open, setOpen] = useState(false);
     const [startTime, setStartTime] = useState<Date | undefined>(new Date());
     const [endTime, setEndTime] = useState<Date | undefined>(new Date(Date.now() + 24 * 60 * 60 * 1000));
@@ -305,10 +306,10 @@ export function CloneContestDialog({ contest, problems, children, onCloneSuccess
                 })),
             };
 
-            await apiCreateEvent(session.nextjudge_token, eventData);
+            const newContest = await apiCreateEvent(session.nextjudge_token, eventData);
             toast.success(`${data.title} contest cloned successfully!`);
             setOpen(false);
-            onCloneSuccess?.();
+            router.push(`/platform/contests/${newContest.id}`);
 
         } catch (error) {
             console.error('failed to clone contest:', error);
