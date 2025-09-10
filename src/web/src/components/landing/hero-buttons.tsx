@@ -1,15 +1,16 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { ArrowRightIcon } from "@radix-ui/react-icons";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Icons } from "../icons";
 import { EnhancedButton } from "../ui/enhanced-button";
 
 export default function HeroButtons() {
+  const router = useRouter();
+  router.prefetch("/auth/signup");
+
   const handleClick = () => {
-    toast(
-      "NextJudge is currently in private beta. Sign up to get early access!"
-    );
+    router.push("/auth/signup");
   };
 
   const handleDocumentationClick = () => {
@@ -34,10 +35,10 @@ export default function HeroButtons() {
           variant="linkHover2"
           size={"lg"}
           onClick={handleDocumentationClick}
-          className="w-3/6"
+          className="w-3/6 mt-2"
         >
-          NextJudge on GitHub
-          <Icons.github className="w-6 h-6 ml-2 mb-1" />
+          Host NextJudge Yourself!
+          <Icons.github className="w-6 h-6 ml-2 mb-1 opacity-70" />
         </EnhancedButton>
       </div>
     </>

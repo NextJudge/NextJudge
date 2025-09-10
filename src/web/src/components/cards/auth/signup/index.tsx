@@ -1,6 +1,5 @@
 "use client";
 
-import { signUpUser } from "@/app/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -41,20 +40,22 @@ export function SignUpCard({ children }: SignUpCardProps) {
   const router = useRouter();
 
   async function onSubmit(data: z.infer<typeof AuthorizeSchema>) {
-    try {
-      const { name, email, password, confirmPassword } = data;
-      const res = await signUpUser({ name, email, password, confirmPassword });
-      toast.success(res.message);
-      router.push("/auth/login");
-    } catch (error) {
-      console.error("Signup error:", error);
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-      toast.error(errorMessage);
-    }
+    toast.error("NextJudge is currently in private beta. Check back later!");
+    return;
+    // try {
+    //   const { name, email, password, confirmPassword } = data;
+    //   const res = await signUpUser({ name, email, password, confirmPassword });
+    //   toast.success(res.message);
+    //   router.push("/auth/login");
+    // } catch (error) {
+    //   console.error("Signup error:", error);
+    //   const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+    //   toast.error(errorMessage);
+    // }
   }
 
   return (
-    <Card>
+    <Card className="mt-20">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">Create an account</CardTitle>
         <CardDescription>Sign up to get started with NextJudge</CardDescription>
@@ -62,7 +63,7 @@ export function SignUpCard({ children }: SignUpCardProps) {
 
       <CardContent className="grid gap-4">
         {/* OAuth Providers */}
-        <div className="grid grid-cols-2 gap-6">{children}</div>
+        <div className="grid grid-cols-2 gap-6 hidden">{children}</div>
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />

@@ -1,11 +1,13 @@
-import { signIn } from "@/app/auth";
+"use client";
+
 import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export function OAuthGitHub() {
   return (
     <>
-      <form
+      {/* <form
         action={async () => {
           "use server";
           await signIn("github", {
@@ -13,12 +15,15 @@ export function OAuthGitHub() {
             redirect: true,
           });
         }}
-      >
-        <Button variant="outline" type="submit">
-          <Icons.altgithub className="mr-2 h-4 w-4" />
-          GitHub
-        </Button>
-      </form>
+      > */}
+      <Button variant="ghost" onClick={() => {
+        toast.error("NextJudge is currently in private beta. Check back later!");
+        return;
+      }}>
+        <Icons.altgithub className="mr-2 h-4 w-4" />
+        GitHub
+      </Button>
+      {/* </form> */}
     </>
   );
 }

@@ -39,27 +39,29 @@ export function LoginCard({ children }: LoginCardProps) {
 
   async function onSubmit(data: z.infer<typeof LoginFormSchema>) {
     form.clearErrors();
-    try {
-      const { email, password } = data;
-      const res = await logUserIn({ email, password });
-      toast.success(res.message);
-      router.push("/platform");
-    } catch (error) {
-      console.error("Login error:", error);
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      toast.error(errorMessage);
-    }
+    toast.error("NextJudge is currently in private beta. Check back later!");
+    return;
+    // try {
+    //   const { email, password } = data;
+    //   const res = await logUserIn({ email, password });
+    //   toast.success(res.message);
+    //   router.push("/platform");
+    // } catch (error) {
+    //   console.error("Login error:", error);
+    //   const errorMessage = error instanceof Error ? error.message : 'Login failed';
+    //   toast.error(errorMessage);
+    // }
   }
 
   return (
-    <Card>
+    <Card className="mt-10">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">Sign in to NextJudge</CardTitle>
         <CardDescription>Enter your credentials to continue</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         {/* OAuth Providers */}
-        <div className="grid grid-cols-2 gap-6">{children}</div>
+        <div className="grid grid-cols-2 gap-6 hidden">{children}</div>
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />

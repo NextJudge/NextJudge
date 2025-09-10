@@ -21,6 +21,8 @@ import { items } from "./bento";
 // import Lottie from "lottie-react";
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
+const Code = dynamic(() => import("@/components/code"), { ssr: false });
+
 interface ServiceProps {
   title: string;
   description: string;
@@ -139,9 +141,9 @@ export const Services = () => {
           ) : selectedCard === 1 ? (
             <FrameworkExample />
           ) : (
-            <>
-              <LottieAnimation />
-            </>
+            <div className="flex items-center justify-center mt-28">
+                  <Code />
+            </div>
           )}
         </div>
       </div>
@@ -152,7 +154,7 @@ export const Services = () => {
 const PlatformItems = () => {
   return (
     <div className="grid grid-cols-1 gap-4 max-h-[600px] m-4 p-2 overflow-scroll">
-      {items.slice(1, 4).map((item) => (
+      {items(3).map((item) => (
         <div key={item.title} className="flex flex-col gap-4">
           <div>{item.header}</div>
         </div>
@@ -174,17 +176,17 @@ const LottieAnimation = () => {
 
 const FrameworkExample = () => {
   return (
-    <div className="relative rounded-lg">
+    <div className="relative flex items-center justify-center rounded-lg mt-32">
       <Image
         src="/demo/framework.svg"
-        width={600}
+        width={1000}
         height={500}
         alt="NextJudge Framework"
         className={cn(
           "hidden dark:flex",
-          "rounded-lg shadow-lg",
-          "object-cover",
-          "w-full sm:h-[300px] md:h-[400px] lg:h-[700px]"
+          "rounded-lg",
+          "object-fill",
+          "w-full"
         )}
       />
       <Image
@@ -194,9 +196,9 @@ const FrameworkExample = () => {
         alt="NextJudge Framework"
         className={cn(
           "dark:hidden flex",
-          "rounded-lg shadow-lg",
-          "object-cover",
-          "w-full sm:h-[300px] md:h-[400px] lg:h-[700px]"
+          "rounded-lg",
+          "object-fill",
+          "w-full"
         )}
       />
       <BorderBeam />

@@ -17,7 +17,16 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <>
-      <div className="absolute top-4 left-4 z-50">
+      <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
+        <Link
+          href="/"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          ← Back to Home
+        </Link>
         <ModeToggle />
       </div>
       <div className="container relative hidden h-[800px] flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">

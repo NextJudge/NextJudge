@@ -30,7 +30,7 @@ export function WhyNextJudge() {
 
       <div className=" my-12 flex flex-col items-center justify-center w-full h-full p-3">
         <BentoGrid className="max-w-6xl mx-auto">
-          {items.map((item, i) => (
+          {items(5).map((item, i) => (
             <BentoGridItem
               key={i}
               title={item.title}
@@ -419,17 +419,17 @@ export const mockSubmissions: any[] = [
   },
 ];
 
-const ThreeSubmissionsCard = () => {
+const ThreeSubmissionsCard = ({ count = 3 }: { count?: number }) => {
   return (
     <div className="grid grid-cols-1 gap-2">
-      {mockSubmissions.map((submission: Submission) => (
+      {mockSubmissions.slice(0, count).map((submission: Submission) => (
         <RecentSubmissionCard key={submission.id} submission={submission} />
       ))}
     </div>
   );
 };
 
-export const items = [
+export const items = (count?: number): { title: string; description: string; header: React.ReactNode; icon: React.ReactNode }[] => [
   {
     title: "Code Editor",
     description:
@@ -441,7 +441,7 @@ export const items = [
     title: "Track Your Submissions",
     description:
       "View your recent submissions and track your progress with our submission history.",
-    header: <ThreeSubmissionsCard />,
+    header: <ThreeSubmissionsCard count={count} />,
     icon: <IconBoxAlignTopLeft className="h-4 w-4 text-neutral-500" />,
   },
   //   {

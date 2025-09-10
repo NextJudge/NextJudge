@@ -26,6 +26,7 @@ import { buttonVariants } from "../ui/button";
 import { UserAvatar } from "./user-avatar";
 
 export function LandingNavbar({ session }: { session: Session | undefined }) {
+
   return (
     <header className="sticky md:relative top-0 z-40 max-w-7xl mx-auto w-screen bg-transparent backdrop-blur-lg flex justify-between items-center p-8">
       <NavigationMenu
@@ -51,20 +52,19 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
                 <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col justify-center items-center gap-2 mt-4">
-                <ModeToggle />
                 {session?.user ? (
                   <UserAvatar session={session} />
                 ) : (
                   <>
                     <Link
                       href="/auth/login"
-                      className={buttonVariants({ variant: "ghost" })}
+                      className={buttonVariants({ variant: "link" })}
                     >
                       Login
                     </Link>
                     <Link
                       href="/auth/signup"
-                      className={buttonVariants({ variant: "outline" })}
+                      className={buttonVariants({ variant: "link" })}
                     >
                       Sign Up
                     </Link>
@@ -89,6 +89,7 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
                   <GitHubLogoIcon className="mr-2 w-5 h-5" />
                   Github
                 </a>
+                <ModeToggle />
               </nav>
             </SheetContent>
           </Sheet>
@@ -109,7 +110,6 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
         </NavigationMenuList>
         <div className="hidden md:flex justify-end w-full">
           <NavigationMenuItem className="flex items-center justify-end gap-4">
-            <ModeToggle />
             {session?.user ? (
               <UserAvatar session={session} />
             ) : (
@@ -117,9 +117,7 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
                 <Link
                   href="/auth/login"
                   className={cn(
-                    `text-base text-black dark:text-white ${buttonVariants({
-                      variant: "link",
-                    })}`
+                    buttonVariants({ variant: "link", className: "text-black dark:text-white" })
                   )}
                 >
                   Login
@@ -127,15 +125,14 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
                 <Link
                   href="/auth/signup"
                   className={cn(
-                    `text-base text-black dark:text-white ${buttonVariants({
-                      variant: "outline",
-                    })}`
+                    buttonVariants({ variant: "link", className: "text-black dark:text-white" })
                   )}
                 >
                   Sign Up
                 </Link>
               </div>
             )}
+            <ModeToggle />
           </NavigationMenuItem>
         </div>
       </NavigationMenu>

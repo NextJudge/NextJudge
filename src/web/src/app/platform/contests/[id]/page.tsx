@@ -1,11 +1,7 @@
-"use client";
-
+import { auth } from "@/app/auth";
 import { format, formatDistance, formatDistanceToNow } from "date-fns";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
+import { notFound } from "next/navigation";
 
 import { ContestCelebration } from "@/components/contest-celebration";
 import { Icons } from "@/components/icons";
@@ -14,125 +10,192 @@ import { UserAvatar } from "@/components/nav/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import {
-    apiGetEventAttempts,
-    apiGetEventParticipants,
-    apiGetEventProblems,
-    apiGetEventWithDetails,
-    apiGetUserEventProblemsStatus
-} from "@/lib/api";
 import { NextJudgeEvent, Problem, User } from "@/lib/types";
+import { getBridgeUrl } from "@/lib/utils";
 import { ContestLeaderboard } from "../components/contest-leaderboard";
 import { ContestProblemsTable } from "../components/contest-problems-table";
 import { ContestTimer } from "../components/contest-timer";
 import { CloneContestDialog } from "./clone-contest-dialog";
 import { QuestionsSection } from "./questions-section";
 
-export default function ContestDetailPage() {
-    const params = useParams();
-    const { data: session } = useSession();
-    const [contest, setContest] = useState<NextJudgeEvent | null>(null);
-    const [problems, setProblems] = useState<Problem[]>([]);
-    const [participants, setParticipants] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [currentTime, setCurrentTime] = useState(new Date());
-    const [userProblemStatus, setUserProblemStatus] = useState<any[]>([]);
-    const [contestAttempts, setContestAttempts] = useState<any[]>([]);
+interface UserEventProblemStatus {
+    problem_id: number;
+    status: string;
+    submit_time: string;
+}
 
-    const contestId = parseInt(params.id as string);
+interface EventProblemAttemptDTO {
+    user_id: string;
+    problem_id: number;
+    attempts: number;
+    total_attempts: number;
+    first_accepted_time?: string;
+    minutes_to_solve?: number;
+}
 
-    const fetchContestData = useCallback(async () => {
-        if (!session?.nextjudge_token || !contestId) return;
+interface ContestDetailPageProps {
+    params: Promise<{ id: string }>;
+}
 
-        try {
-            setLoading(true);
-            const [contestData, problemsData, participantsData, userStatus, attemptsData] = await Promise.all([
-                apiGetEventWithDetails(session.nextjudge_token, contestId),
-                apiGetEventProblems(session.nextjudge_token, contestId),
-                apiGetEventParticipants(session.nextjudge_token, contestId),
-                apiGetUserEventProblemsStatus(session.nextjudge_token, contestId).catch(() => []),
-                apiGetEventAttempts(session.nextjudge_token, contestId).catch(() => [])
-            ]);
+/**
+ * Fetches all contest data concurrently using Promise.all for better performance
+ */
+async function fetchContestData(token: string, contestId: number) {
+    try {
+        const [contestData, problemsData, participantsData, userStatus, attemptsData] = await Promise.all([
+            fetch(`${getBridgeUrl()}/v1/public/events/${contestId}`, {
+                headers: { 'Authorization': token }
+            }),
+            fetch(`${getBridgeUrl()}/v1/events/${contestId}/problems`, {
+                headers: { 'Authorization': token }
+            }),
+            fetch(`${getBridgeUrl()}/v1/public/events/${contestId}/participants`, {
+                headers: { 'Authorization': token }
+            }),
+            fetch(`${getBridgeUrl()}/v1/events/${contestId}/user_problem_status`, {
+                headers: { 'Authorization': token }
+            }),
+            fetch(`${getBridgeUrl()}/v1/events/${contestId}/attempts`, {
+                headers: { 'Authorization': token }
+            })
+        ]);
 
-            setContest(contestData);
-            setProblems(problemsData);
-            setParticipants(participantsData);
-            setUserProblemStatus(userStatus || []);
-            setContestAttempts(attemptsData || []);
-        } catch (error) {
-            console.error('Failed to fetch contest data:', error);
-            toast.error("Failed to load contest. Please try again.");
-        } finally {
-            setLoading(false);
+        const [contestJson, problemsJson, participantsJson, userStatusJson, attemptsJson] = await Promise.all([
+            contestData.ok ? contestData.json() : null,
+            problemsData.ok ? problemsData.json() : [],
+            participantsData.ok ? participantsData.json() : [],
+            userStatus.ok ? userStatus.json() : [],
+            attemptsData.ok ? attemptsData.json() : []
+        ]);
+
+        return {
+            contest: contestJson as NextJudgeEvent | null,
+            problems: problemsJson as Problem[] || [],
+            participants: participantsJson as User[] || [],
+            userProblemStatus: userStatusJson as UserEventProblemStatus[] || [],
+            contestAttempts: attemptsJson as EventProblemAttemptDTO[] || []
+        };
+    } catch (error) {
+        console.error('Failed to fetch contest data:', error);
+        throw new Error('Failed to load contest data');
+    }
+}
+
+export default async function ContestDetailPage({ params }: ContestDetailPageProps) {
+    const { id } = await params;
+    const session = await auth();
+    const contestId = parseInt(id);
+
+    if (!session?.nextjudge_token || !contestId) {
+        notFound();
+    }
+
+    const { contest, problems, participants, userProblemStatus, contestAttempts } = await fetchContestData(session.nextjudge_token, contestId);
+
+    if (!contest) {
+        notFound();
+    }
+
+    const now = new Date();
+    const startTime = new Date(contest.start_time);
+    const endTime = new Date(contest.end_time);
+
+    const contestStatus = now < startTime ? 'upcoming' :
+        now >= startTime && now <= endTime ? 'ongoing' :
+            'ended';
+
+    /**
+     * Returns a human-readable string showing how long the contest has been running
+     */
+    const getRunningTime = () => {
+        if (contestStatus === 'ongoing') {
+            return `Began ${formatDistanceToNow(startTime, { addSuffix: true })}`;
         }
-    }, [session?.nextjudge_token, contestId]);
+        return null;
+    };
 
+    /**
+     * Checks if the current user has completed all problems in the contest
+     */
     const isContestCompleted = (): boolean => {
-        if (contestStatus === 'upcoming' || problems.length === 0) return false;
+        if (contestStatus === 'upcoming' || problems.length === 0 || !userProblemStatus) return false;
 
-        const acceptedCount = problems.filter(problem =>
-            userProblemStatus?.find(s => s.problem_id === problem.id)?.status === 'ACCEPTED'
+        const acceptedCount = problems.filter((problem: Problem) =>
+            userProblemStatus.find((status: UserEventProblemStatus) => status.problem_id === problem.id)?.status === 'ACCEPTED'
         ).length;
 
         return acceptedCount === problems.length;
     };
 
+    /**
+     * Determines if the current user was the first to complete all problems
+     */
     const isFirstToComplete = (): boolean => {
-        if (!session?.nextjudge_id || !isContestCompleted() || problems.length === 0) return false;
+        if (!session?.nextjudge_id || !isContestCompleted() || problems.length === 0 || !contestAttempts) return false;
 
-        // get all participants who completed all problems
-        const participantCompletionTimes = participants.map(participant => {
-            const participantAttempts = contestAttempts.filter(a => a.user_id === participant.id);
+        const participantCompletionTimes = participants
+            .map((participant: User) => {
+                const participantAttempts = contestAttempts?.filter(
+                    (attempt: EventProblemAttemptDTO) => attempt.user_id === participant.id
+                ) || [];
 
-            // only those who solved all problems
-            const solvedProblems = problems.filter(problem => {
-                const attempt = participantAttempts.find(a => a.problem_id === problem.id);
-                return attempt?.first_accepted_time;
-            });
-
-            if (solvedProblems.length === problems.length) {
-                // find the latest first_accepted_time (when they completed the last problem)
-                const completionTimes = solvedProblems.map(problem => {
-                    const attempt = participantAttempts.find(a => a.problem_id === problem.id);
-                    return new Date(attempt.first_accepted_time).getTime();
+                const solvedProblems = problems.filter((problem: Problem) => {
+                    const attempt = participantAttempts.find(
+                        (attempt: EventProblemAttemptDTO) => attempt.problem_id === problem.id
+                    );
+                    return attempt?.first_accepted_time;
                 });
 
-                return {
-                    userId: participant.id,
-                    completionTime: Math.max(...completionTimes)
-                };
-            }
-            return null;
-        }).filter((item): item is { userId: string; completionTime: number } => item !== null);
+                if (solvedProblems.length === problems.length) {
+                    const completionTimes = solvedProblems.map((problem: Problem) => {
+                        const attempt = participantAttempts.find(
+                            (attempt: EventProblemAttemptDTO) => attempt.problem_id === problem.id
+                        );
+                        if (!attempt?.first_accepted_time) return 0;
+                        return new Date(attempt.first_accepted_time).getTime();
+                    });
+
+                    return {
+                        userId: participant.id,
+                        completionTime: Math.max(...completionTimes)
+                    };
+                }
+                return null;
+            })
+            .filter((item): item is { userId: string; completionTime: number } => item !== null);
 
         if (participantCompletionTimes.length === 0) return false;
 
-        // find the earliest completion time
         const earliestCompletion = participantCompletionTimes.reduce((earliest, current) =>
-            current?.completionTime < earliest?.completionTime ? current : earliest
+            current.completionTime < earliest.completionTime ? current : earliest
         );
 
         return earliestCompletion.userId === session.nextjudge_id;
     };
 
+    /**
+     * Determines if the current user won the contest based on ICPC scoring rules
+     */
     const isWinner = (): boolean => {
-        if (!session?.nextjudge_id || contestStatus !== 'ended' || problems.length === 0) return false;
+        if (!session?.nextjudge_id || contestStatus !== 'ended' || problems.length === 0 || !contestAttempts) return false;
 
-        // calculate leaderboard standings using ICPC scoring
-        const participantStandings = participants.map(participant => {
-            const participantAttempts = contestAttempts.filter(a => a.user_id === participant.id);
+        const participantStandings = participants.map((participant: User) => {
+            const participantAttempts = contestAttempts?.filter(
+                (attempt: EventProblemAttemptDTO) => attempt.user_id === participant.id
+            ) || [];
 
             let totalAccepted = 0;
             let penaltyTimeMinutes = 0;
             let totalSubmissions = 0;
 
-            problems.forEach(problem => {
-                const attempt = participantAttempts.find(a => a.problem_id === problem.id);
+            problems.forEach((problem: Problem) => {
+                const attempt = participantAttempts.find(
+                    (attempt: EventProblemAttemptDTO) => attempt.problem_id === problem.id
+                );
                 if (attempt) {
                     totalSubmissions += attempt.total_attempts;
                     if (attempt.first_accepted_time) {
                         totalAccepted += 1;
-                        // ICPC penalty time: minutes to solve + 20 per wrong attempt before AC
                         const wrongBeforeAC = (attempt.attempts || 1) - 1;
                         const minutesToSolve = attempt.minutes_to_solve ?? 0;
                         penaltyTimeMinutes += minutesToSolve + 20 * Math.max(0, wrongBeforeAC);
@@ -148,75 +211,13 @@ export default function ContestDetailPage() {
             };
         });
 
-        // sort by ICPC rules: most problems solved, then lowest penalty time, then fewest submissions
         const sortedStandings = participantStandings.sort((a, b) => {
             if (a.totalAccepted !== b.totalAccepted) return b.totalAccepted - a.totalAccepted;
             if (a.penaltyTimeMinutes !== b.penaltyTimeMinutes) return a.penaltyTimeMinutes - b.penaltyTimeMinutes;
             return a.totalSubmissions - b.totalSubmissions;
         });
 
-        // check if user is in first place
         return sortedStandings.length > 0 && sortedStandings[0].userId === session.nextjudge_id;
-    };
-
-    useEffect(() => {
-        fetchContestData();
-    }, [fetchContestData]);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, []);
-
-    const handleCloneSuccess = () => {
-        fetchContestData();
-    };
-
-    if (loading) {
-        return (
-            <>
-                <PlatformNavbar session={session || undefined}>
-                    <UserAvatar session={session || undefined} />
-                </PlatformNavbar>
-                <div className="flex items-center justify-center min-h-screen">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-            </>
-        );
-    }
-
-    if (!contest) {
-        return (
-            <>
-                <PlatformNavbar session={session || undefined}>
-                    <UserAvatar session={session || undefined} />
-                </PlatformNavbar>
-                <div className="flex flex-col items-center justify-center min-h-screen">
-                    <h1 className="text-2xl font-bold mb-4">Contest not found</h1>
-                    <Link href="/platform/contests">
-                        <Button variant="outline">Back to Contests</Button>
-                    </Link>
-                </div>
-            </>
-        );
-    }
-
-    const now = currentTime;
-    const startTime = new Date(contest.start_time);
-    const endTime = new Date(contest.end_time);
-
-    const contestStatus = now < startTime ? 'upcoming' :
-        now >= startTime && now <= endTime ? 'ongoing' :
-            'ended';
-
-    const getRunningTime = () => {
-        if (contestStatus === 'ongoing') {
-            return `Began ${formatDistanceToNow(startTime, { addSuffix: true })}`;
-        }
-        return null;
     };
 
     return (
@@ -277,7 +278,6 @@ export default function ContestDetailPage() {
                                 <CloneContestDialog
                                     contest={contest}
                                     problems={problems}
-                                    onCloneSuccess={handleCloneSuccess}
                                 >
                                     <Button className="gap-2">
                                         <Icons.copy className="w-4 h-4" />
