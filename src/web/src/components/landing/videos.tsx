@@ -18,15 +18,15 @@ export function PreviewVideo() {
           className="rounded-lg border border-muted bg-neutral-950 p-2 object-cover w-full h-full max-w-7xl sm:h-[300px] md:h-[400px] lg:h-full shadow-osu"
           preload="auto"
           muted
-          src="/demo/new-dark.webm"
+          src="/demo/demo.mp4"
           title="NextJudge Demo"
           playsInline
-          typeof="video/webm"
+          typeof="video/mp4"
           autoPlay
           width="100%"
           height="100%"
         >
-          <source src={"/demo/new-dark.webm"} type="video/webm" />
+          <source src={"/demo/demo.mp4"} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
         {/* Gradient Mask */}
@@ -53,16 +53,16 @@ export function PreviewVideo() {
           controls={false}
           preload="auto"
           muted
-          src="/demo/new-light.webm"
+          src="/demo/demo.mp4"
           playsInline
           title="NextJudge Demo"
           autoPlay
-          typeof="video/webm"
+          typeof="video/mp4"
           width="100%"
           height="100%"
           className="rounded-lg border border-muted bg-white p-2 object-cover w-full h-full max-w-7xl sm:h-[300px] md:h-[400px] lg:h-full shadow-xl"
         >
-          <source src={"/demo/new-light.webm"} type="video/webm" />
+          <source src={"/demo/demo.mp4"} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
         {/* Gradient Mask */}
