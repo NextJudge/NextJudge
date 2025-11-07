@@ -1,5 +1,6 @@
 "use client";
 
+import { signUpUser } from "@/app/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -40,18 +41,16 @@ export function SignUpCard({ children }: SignUpCardProps) {
   const router = useRouter();
 
   async function onSubmit(data: z.infer<typeof AuthorizeSchema>) {
-    toast.error("NextJudge is currently in private beta. Check back later!");
-    return;
-    // try {
-    //   const { name, email, password, confirmPassword } = data;
-    //   const res = await signUpUser({ name, email, password, confirmPassword });
-    //   toast.success(res.message);
-    //   router.push("/auth/login");
-    // } catch (error) {
-    //   console.error("Signup error:", error);
-    //   const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-    //   toast.error(errorMessage);
-    // }
+    try {
+      const { name, email, password, confirmPassword } = data;
+      const res = await signUpUser({ name, email, password, confirmPassword });
+      toast.success(res.message);
+      router.push("/auth/login");
+    } catch (error) {
+      console.error("Signup error:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      toast.error(errorMessage);
+    }
   }
 
   return (

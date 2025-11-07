@@ -7,14 +7,15 @@ import { EnhancedButton } from "../ui/enhanced-button";
 
 export default function HeroButtons() {
   const router = useRouter();
-  router.prefetch("/auth/signup");
 
   const handleClick = () => {
     router.push("/auth/signup");
   };
 
   const handleDocumentationClick = () => {
-    window.open("https://github.com/nextjudge/nextjudge", "_blank");
+    if (window) {
+      window.open("https://github.com/nextjudge/nextjudge", "_blank");
+    }
   };
 
   return (

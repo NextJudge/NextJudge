@@ -174,6 +174,32 @@ func (d *Database) GetUserByEmail(email string) (*User, error) {
 	return user, nil
 }
 
+// update the user's password_hash and salt by email.
+func (d *Database) UpdateUserPasswordByEmail(email string, salt []byte, passwordHash []byte) (*User, error) {
+    // Ensure user exists first
+    user := &User{}
+    err := d.NextJudgeDB.Where("email = ?", email).First(user).Error
+    if err != nil {
+        if err == gorm.ErrRecordNotFound {
+            return nil, nil
+        }
+        return nil, err
+    }
+
+    // Perform partial update on sensitive fields
+    err = d.NextJudgeDB.Model(&UserWithPassword{}).
+        Where("email = ?", email).
+        Updates(map[string]interface{}{
+            "salt":          salt,
+            "password_hash": passwordHash,
+        }).Error
+    if err != nil {
+        return nil, err
+    }
+
+    return user, nil
+}
+
 func (d *Database) UpdateUser(user *User) error {
 	err := db.NextJudgeDB.Save(user).Error
 	if err != nil {

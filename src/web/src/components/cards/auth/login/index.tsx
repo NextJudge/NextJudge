@@ -23,6 +23,8 @@ import { LoginCardProps } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -39,18 +41,16 @@ export function LoginCard({ children }: LoginCardProps) {
 
   async function onSubmit(data: z.infer<typeof LoginFormSchema>) {
     form.clearErrors();
-    toast.error("NextJudge is currently in private beta. Check back later!");
-    return;
-    // try {
-    //   const { email, password } = data;
-    //   const res = await logUserIn({ email, password });
-    //   toast.success(res.message);
-    //   router.push("/platform");
-    // } catch (error) {
-    //   console.error("Login error:", error);
-    //   const errorMessage = error instanceof Error ? error.message : 'Login failed';
-    //   toast.error(errorMessage);
-    // }
+    try {
+      const { email, password } = data;
+      const res = await logUserIn({ email, password });
+      toast.success(res.message);
+      router.push("/platform");
+    } catch (error) {
+      console.error("Login error:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      toast.error(errorMessage);
+    }
   }
 
   return (
@@ -99,6 +99,11 @@ export function LoginCard({ children }: LoginCardProps) {
                   <FormControl>
                     <Input type="password" {...field} />
                   </FormControl>
+                  <div className="flex">
+                    <div className="ml-auto">
+                      <PasswordResetLink />
+                    </div>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -119,3 +124,82 @@ export function LoginCard({ children }: LoginCardProps) {
     </Card>
   );
 }
+
+const PasswordResetLink = () => {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleReset = async () => {
+    if (!email || !newPassword) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, new_password: newPassword }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Password reset failed");
+      } else {
+        toast.success("password reset. you can log in now");
+        setOpen(false);
+      }
+    } catch (e) {
+      toast.error("network error - try again later");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="ml-auto text-xs text-muted-foreground hover:text-foreground underline"
+          aria-label="forgot password"
+        >
+          Forgot password?
+        </button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>reset password</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid gap-1">
+            <label htmlFor="rp-email" className="text-sm">email</label>
+            <Input
+              id="rp-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </div>
+          <div className="grid gap-1">
+            <label htmlFor="rp-pass" className="text-sm">new password</label>
+            <Input
+              id="rp-pass"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="enter new password"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+            cancel
+          </Button>
+          <Button type="button" onClick={handleReset} disabled={loading}>
+            {loading ? "saving..." : "reset"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};

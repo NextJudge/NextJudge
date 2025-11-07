@@ -1,12 +1,10 @@
-
 import PlatformNavbar from "@/components/nav/platform-navbar";
 import { UserAvatar } from "@/components/nav/user-avatar";
 import { apiGetPublicEvents, apiGetRecentSubmissions } from "@/lib/api";
 import { NextJudgeEvent, Submission } from "@/lib/types";
 import { auth } from "../auth";
-import { EnhancedContestGrid } from "./admin/contests/enhanced-contest-card";
-import { SubmissionCards } from "./components/submission-cards";
-import SubmissionDrawer from "./problems/components/submission-drawer";
+import { RecentSubmissions } from "./components/recent-submissions";
+import { RecentContests } from "./components/recent-contests";
 
 export default async function PlatformHome() {
   const session = await auth()
@@ -20,7 +18,7 @@ export default async function PlatformHome() {
 
   try {
     const contestsData = await apiGetPublicEvents(session.nextjudge_token);
-    recentContests = (contestsData || []).slice(0, 5); // Show only first 5
+    recentContests = (contestsData || []).slice(0, 5);
   } catch (error) {
     console.error('Failed to fetch contests:', error);
     recentContests = [];
@@ -39,26 +37,10 @@ export default async function PlatformHome() {
       <PlatformNavbar session={session}>
         <UserAvatar session={session} />
       </PlatformNavbar>
-      <div className="max-w-7xl w-full flex-1 flex-col space-y-8 p-8 mx-8 md:flex">
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-center justify-between gap-8">
-            <h1 className="text-2xl font-bold">Recent Contests</h1>
-            <a href="/platform/contests" className="text-sm font-light">
-              View All
-            </a>
-          </div>
-          <EnhancedContestGrid contests={recentContests} showActions={false} />
-        </div>
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-center justify-between gap-8">
-            <h1 className="text-2xl font-bold">Recent Submissions</h1>
-            <div className="ml-auto flex min-w-0 items-center space-x-4">
-              <SubmissionDrawer submissions={recentSubmissions} />
-            </div>
-          </div>
-          <SubmissionCards submissions={recentSubmissions} />
-        </div>
-      </div>
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
+        <RecentContests contests={recentContests} />
+        <RecentSubmissions submissions={recentSubmissions} />
+      </main>
     </>
   );
 }

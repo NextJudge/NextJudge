@@ -26,6 +26,8 @@ func addAuthRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/login_judge"), loginJudge)
 	mux.HandleFunc(pat.Post("/v1/basic_register"), basicRegister)
 	mux.HandleFunc(pat.Post("/v1/basic_login"), basicLogin)
+    mux.HandleFunc(pat.Post("/v1/basic_request_password_reset"), basicRequestPasswordReset)
+    mux.HandleFunc(pat.Post("/v1/basic_reset_password"), basicResetPassword)
 
 	if cfg.AuthDisabled {
 		// Get (and create) dummy users for testing
@@ -487,6 +489,87 @@ func basicLogin(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(respData)
+}
+
+type PasswordResetRequest struct {
+    Email string `json:"email"`
+}
+
+type PasswordResetDirect struct {
+    Email       string `json:"email"`
+    NewPassword string `json:"new_password"`
+}
+
+// validates the email exists.
+func basicRequestPasswordReset(w http.ResponseWriter, r *http.Request) {
+    req := new(PasswordResetRequest)
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
+        return
+    }
+    if err := json.Unmarshal(body, req); err != nil {
+        writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
+        return
+    }
+
+    if req.Email == "" {
+        writeErrorResponse(w, http.StatusBadRequest, "Email required", "EMAIL_REQUIRED")
+        return
+    }
+
+    user, err := db.GetUserByEmail(req.Email)
+    if err != nil {
+        writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+        return
+    }
+    // respond success even if user is not found to avoid email enumeration
+    _ = user
+
+    w.Header().Set("Content-Type", "application/json")
+    fmt.Fprint(w, `{"status":"ok"}`)
+}
+
+// resets password for a given email (no token for now).
+func basicResetPassword(w http.ResponseWriter, r *http.Request) {
+    req := new(PasswordResetDirect)
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
+        return
+    }
+    if err := json.Unmarshal(body, req); err != nil {
+        writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
+        return
+    }
+
+    if req.Email == "" || req.NewPassword == "" {
+        writeErrorResponse(w, http.StatusBadRequest, "Email and new_password required", "INPUT_REQUIRED")
+        return
+    }
+
+    // create new salt and hash
+    salt := make([]byte, 16)
+    if _, err := rand.Read(salt); err != nil {
+        writeErrorResponse(w, http.StatusInternalServerError, "Salt generation failed", "SALT_GENERATION_ERROR")
+        return
+    }
+    passwordHash := argon2.IDKey([]byte(req.NewPassword), salt, 1, 64*1024, 4, 32)
+
+    updatedUser, err := db.UpdateUserPasswordByEmail(req.Email, salt, passwordHash)
+    if err != nil {
+        writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+        return
+    }
+    if updatedUser == nil {
+        // do not reveal whether email exists
+        w.Header().Set("Content-Type", "application/json")
+        fmt.Fprint(w, `{"status":"ok"}`)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    fmt.Fprint(w, `{"status":"ok"}`)
 }
 
 const AUTH_TEST_USER = "__nextjudge_auth_test_user"

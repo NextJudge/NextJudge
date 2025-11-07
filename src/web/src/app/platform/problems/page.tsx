@@ -3,11 +3,10 @@ import { UserAvatar } from "@/components/nav/user-avatar";
 import { apiGetProblems, apiGetRecentSubmissions } from "@/lib/api";
 import { columns } from "./components/columns";
 import { DataTable } from "./components/data-table";
-import { RecentSubmissionCard } from "./components/recent-submissions";
 
 import { auth } from "@/app/auth";
-import { Submission } from "@/lib/types";
 import { Metadata } from "next";
+import { RecentSubmissions } from "../components/recent-submissions";
 
 export const metadata: Metadata = {
   title: "NextJudge - Problems",
@@ -48,22 +47,7 @@ export default async function ProblemsPage() {
           </div>
         </div>
         <DataTable data={problems} columns={columns} />
-        <div className="flex items-center pt-4" id="submissions">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">
-              Recent Submissions
-            </h2>
-            <p className="text-muted-foreground">
-              Tried submitting a solution to one of our problems? Here&apos;s
-              your latest submissions.
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          {Array.isArray(recentSubmissions) && recentSubmissions.map((submission: Submission) => (
-            <RecentSubmissionCard key={submission.id} submission={submission} />
-          ))}
-        </div>
+        <RecentSubmissions submissions={recentSubmissions} />
       </div>
     </>
   );

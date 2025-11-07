@@ -1,7 +1,7 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Submission, SubmissionStatus, statusMap } from "@/lib/types";
+import { SubmissionStatusBadge } from "@/components/submissions/submission-status-config";
+import { Submission, SubmissionStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CircleDot } from "lucide-react";
 import moment from "moment";
@@ -25,41 +25,6 @@ const languageColors: { [key: string]: string } = {
 const getColorClass = (language: string) => {
   return languageColors[language.toLowerCase()];
 };
-
-function SubmissionStatusBadge({ status }: { status: SubmissionStatus }) {
-  const variantStyles = {
-    ACCEPTED: {
-      border: "border-green-500",
-    },
-    WRONG_ANSWER: {
-      border: "border-red-500",
-    },
-    TIME_LIMIT_EXCEEDED: {
-      border: "border-red-500",
-    },
-    MEMORY_LIMIT_EXCEEDED: {
-      border: "border-red-500",
-    },
-    RUNTIME_ERROR: {
-      border: "border-red-500",
-    },
-    COMPILE_TIME_ERROR: {
-      border: "border-red-500",
-    },
-    PENDING: {
-      border: "border-yellow-500",
-    },
-  };
-
-  return (
-    <Badge
-      variant={`outline`}
-      className={`text-xs whitespace-nowrap ${variantStyles[status].border} dark:text-muted-foreground font-medium text-secondary-foreground`}
-    >
-      {statusMap[status] || status}
-    </Badge>
-  );
-}
 
 export function RecentSubmissionCard({
   submission,

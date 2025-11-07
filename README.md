@@ -10,7 +10,7 @@ The competitive programming [platform][site-url] and [command-line interface][cl
 ![:)][with-love-image]
 ![Licese][license-image]
 
-[site-url]: https://nextjudge.org
+[site-url]: https://nextjudge.net
 [judge-url]: https://github.com/NextJudge/NextJudge/tree/main/src/judge
 [cli-url]: https://github.com/NextJudge/NextJudge/tree/main/src/cli
 [license-image]: https://img.shields.io/github/license/nextjudge/nextjudge?style=flat-square&color=dc4405
@@ -21,23 +21,11 @@ The competitive programming [platform][site-url] and [command-line interface][cl
 
 ##
 
-NextJudge is a suite of services, tools, and applications for creating programming platforms (framework), facilitating programming contests (cli tool), and showcasing programming prowess (platform). Our primary product is the [nextjudge.org][site-url] platform, built with competitive programming in mind.
+NextJudge is a suite of services and applications for competitive programming contests. Our primary product is the [nextjudge.net][site-url] platform, meant to conduct programming contests and provide a platform for participants to practice and compete.
 
-The NextJudge toolchain comprises a secure code-execution engine, an API gateway, a web application, a CLI tool, and a data layer, all of which are 100% self-hostable.
+### Structure
 
-## Why? 🤔
-
-As avid programmers, we were tired of competitive programming platforms, interview-prep sites, and educational learning tools providing seemingly everything, except the core experience of what we want to do. Programming, that is.
-
-If you want to prepare for your Jane Street interview, you have to head over to leetcode.com, if you want to practice typescript exercises, you have to head to typehero.dev, and finally, if you want to participate in competitive programming competitions, you have to head to codeforces.com.
-
-We're building NextJudge to be a platform, tool, and experience for everyone. Want to host a mock compeition for ICPC practice? It's no problem with NextJudge. Don't like our UI? You can host your own instance for your own use cases. And finally, want to add new features? We're 100% open source, of course. No matter what your use case is, NextJudge has something for everyone.
-
-## Getting Started 🚀
-
-### Repository structure 📁
-
-NextJudge is a monorepo with the following structure:
+NextJudge is a monorepo, which allows our services to share dependencies and code; for example,the `web` application uses the `judge` service to run and judge code submissions, and the `cli` application uses the `data-layer` service to retrieve problem information.
 
 ```
 .
@@ -74,7 +62,7 @@ The top-level `./deploy.sh` will instantiate all modules using Docker compose in
 
 To run the services locally while developing, you can use `Docker` with hot reload.
 
-The source code is mounted, and a process is set up to detect changes and restart the service when you save files. 
+The source code is mounted, and a process is set up to detect changes and restart the service when you save files.
 
 You can run the following script to start the services:
 
@@ -88,21 +76,6 @@ To flush the database and remove all volumes (completely refreshing the Docker e
 ./fully-reset.sh
 ```
 
-## Configuration ⚙️
-
-### Installation 🔧
-
-Clone the repo:
-
-```sh
-git clone https://github.com/NextJudge/NextJudge.git
-```
-
-
 ## Contributing 🤝
 
-Currently, while we are in primary stages of development, we are not accepting contributions.
-
-However, we will be opening up the project for contributions in the near future. Community contributions are what made us decide to open-source the project in the first place. We're excited to make this project a community-driven project.
-
-Until then, please read [CONTRIBUTING.md](/CONTRIBUTING.md) for our code of conduct and the process for submitting both pull requests and issues to the project.
+Thank you for your interest in contributing to NextJudge! Please read our [contributing guidelines](/CONTRIBUTING.md) and our [code of conduct](/CODE_OF_CONDUCT.md) for the process for submitting both pull requests and issues to the project.
