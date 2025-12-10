@@ -11,11 +11,6 @@ import (
 	"goji.io/pat"
 )
 
-var (
-	db *Database
-	es *ElasticSearch
-)
-
 func main() {
 	var debug = flag.Bool("d", false, "enable debug logging")
 	var port = flag.String("p", "5000", "port")
@@ -35,6 +30,12 @@ func main() {
 	if err != nil {
 		logrus.WithError(err).Error("error creating database")
 		os.Exit(1)
+	}
+
+	if cfg.SeedData {
+		if err := SeedDevData(db); err != nil {
+			logrus.WithError(err).Warn("seed failed, continuing...")
+		}
 	}
 
 	if cfg.ElasticEnabled {

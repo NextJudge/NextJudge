@@ -32,6 +32,7 @@ type config struct {
 	ElasticEnabled       bool
 	AuthDisabled         bool
 	AdminEmails          []string
+	SeedData             bool
 }
 
 var cfg config
@@ -207,5 +208,13 @@ func init() {
 			cfg.AdminEmails[i] = strings.TrimSpace(email)
 		}
 		logrus.Info("Configured admin emails: ", cfg.AdminEmails)
+	}
+
+	seedData := os.Getenv("SEED_DATA")
+	if seedData == "true" {
+		logrus.Info("Seed data enabled")
+		cfg.SeedData = true
+	} else {
+		cfg.SeedData = false
 	}
 }
