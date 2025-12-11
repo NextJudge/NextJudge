@@ -11,6 +11,9 @@ import (
 	"goji.io/pat"
 )
 
+var db *Database
+var es *ElasticSearch
+
 func main() {
 	var debug = flag.Bool("d", false, "enable debug logging")
 	var port = flag.String("p", "5000", "port")
