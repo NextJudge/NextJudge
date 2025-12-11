@@ -9,7 +9,6 @@ import { Services } from "@/components/landing/services";
 import { LandingNavbar } from "@/components/nav/landing-navbar";
 import { Metadata } from "next";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 const WhyNextJudge = dynamic(
   () => import("@/components/landing/bento").then((mod) => mod.WhyNextJudge),
   { ssr: false }
@@ -30,32 +29,6 @@ export default async function Home() {
 
   return (
     <>
-      <div className="fixed inset-0 pointer-events-none">
-        <Image
-          src="/blobs/blob1.svg"
-          alt="background"
-          priority={true}
-          width={100}
-          height={50}
-          className="absolute top-0 left-0 w-1/3 mx-auto opacity-70 dark:opacity-30 h-auto bg-transparent blur-[200px] backdrop-filter"
-        />
-        <Image
-          src="/blobs/blob1.svg"
-          alt="background"
-          priority={true}
-          width={100}
-          height={50}
-          className="absolute top-0 right-0 w-3/6 opacity-50 dark:opacity-20 h-auto bg-transparent blur-[200px] backdrop-filter"
-        />
-        <Image
-          src="/blobs/blob1.svg"
-          alt="background"
-          priority={true}
-          width={100}
-          height={50}
-          className="absolute bottom-20 left-0 translate-y-2/4 w-full mx-auto opacity-70 dark:opacity-30 h-full scale-100 bg-transparent blur-[250px] backdrop-filter"
-        />
-      </div>
       <LandingNavbar session={session || undefined} />
       <main className="flex max-w-full gap-10 flex-col items-center justify-between overflow-x-hidden relative z-10">
         <AltHero />
