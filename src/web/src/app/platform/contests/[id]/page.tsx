@@ -10,7 +10,7 @@ import { UserAvatar } from "@/components/nav/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { NextJudgeEvent, Problem, User } from "@/lib/types";
+import type { NextJudgeEvent, Problem, User } from "@/lib/types";
 import { getBridgeUrl } from "@/lib/utils";
 import { ContestLeaderboard } from "../components/contest-leaderboard";
 import { ContestProblemsTable } from "../components/contest-problems-table";
@@ -289,44 +289,41 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
                     </div>
                 </div>
                 <Separator className="mb-6" />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="space-y-6 lg:max-w-[50vw]">
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold">Problems</h2>
-                                <Badge variant="secondary">
-                                    {problems.length} problem{problems.length !== 1 ? 's' : ''}
-                                </Badge>
-                            </div>
-
-                            <ContestProblemsTable
-                                problems={problems}
-                                contestId={contestId}
-                                contestStatus={contestStatus}
-                                isAdmin={session?.user?.is_admin || false}
-                            />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-semibold">Problems</h2>
+                            <Badge variant="secondary">
+                                {problems.length} problem{problems.length !== 1 ? 's' : ''}
+                            </Badge>
                         </div>
-                        <Separator />
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold">Leaderboard</h2>
-                                <Badge variant="secondary">
-                                    {participants.length} participant{participants.length !== 1 ? 's' : ''}
-                                </Badge>
-                            </div>
 
-                            <ContestLeaderboard
-                                problems={problems}
-                                participants={participants}
-                                contestId={contestId}
-                                contestStatus={contestStatus}
-                                isAdmin={session?.user?.is_admin || false}
-                            />
-                        </div>
+                        <ContestProblemsTable
+                            problems={problems}
+                            contestId={contestId}
+                            contestStatus={contestStatus}
+                            isAdmin={session?.user?.is_admin || false}
+                        />
                     </div>
                     <QuestionsSection
                         eventId={contestId}
                         problems={problems}
+                        isAdmin={session?.user?.is_admin || false}
+                    />
+                </div>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-semibold">Leaderboard</h2>
+                        <Badge variant="secondary">
+                            {participants.length} participant{participants.length !== 1 ? 's' : ''}
+                        </Badge>
+                    </div>
+
+                    <ContestLeaderboard
+                        problems={problems}
+                        participants={participants}
+                        contestId={contestId}
+                        contestStatus={contestStatus}
                         isAdmin={session?.user?.is_admin || false}
                     />
                 </div>

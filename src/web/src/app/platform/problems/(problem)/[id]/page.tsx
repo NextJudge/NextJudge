@@ -3,6 +3,7 @@ import EditorComponent from "@/components/editor/editor-layout";
 import EditorNavbar from "@/components/editor/editor-nav";
 import MarkdownRenderer from "@/components/markdown-renderer";
 import { UserAvatar } from "@/components/nav/user-avatar";
+import { NotificationBellServer } from "@/components/ui/notification-bell-server";
 import { apiGetLanguages, apiGetProblemCategories, apiGetRecentSubmissionsForProblem, fetchProblemID } from "@/lib/api";
 import { Problem } from "@/lib/types";
 import { EditorThemeProvider } from "@/providers/editor-theme";
@@ -70,7 +71,7 @@ export default async function Editor({
     return (
         <>
             <EditorThemeProvider>
-                <EditorNavbar session={session}>
+                <EditorNavbar notificationSlot={<NotificationBellServer session={session} />}>
                     <UserAvatar session={session} />
                 </EditorNavbar>
                 <EditorComponent
