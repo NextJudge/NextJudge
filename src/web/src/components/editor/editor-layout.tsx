@@ -89,14 +89,12 @@ export default function EditorComponent({
   // const { onSelect } = useEditorTheme(resolvedTheme, defaultColorScheme);
   const [input, setInput] = useState("");
   const router = useRouter();
-  //   const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [recentSubs, setRecentSubs] = useState(recentSubmissions);
   const [code, setCode] = useState<string>("");
 
   // Submission button stuff
   const [submissionLoading, setSubmissionLoading] = useState(false);
   const [submissionError, setSubmissionError] = useState<string>("");
-  const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [currentSubmissionDetails, setCurrentSubmissionDetails] = useState<Submission | null>(null);
 
   // Custom input run state
@@ -131,7 +129,6 @@ export default function EditorComponent({
         throw "Need to be logged in"
       }
       const data = await postSolution(session.nextjudge_token, code, languageId, problemId, session.nextjudge_id, contestId);
-      setSubmissionId(data.id);
       await fetchSubmissionDetails(data.id)
     }
     catch (error: unknown) {
@@ -299,11 +296,9 @@ export default function EditorComponent({
                   problemId={details.id}
                   code={code}
                   setCode={setCode}
-                  setSubmissionId={setSubmissionId as any}
                   error={submissionError}
                   submissionLoading={submissionLoading}
                   handleSubmitCode={handleSubmitCode}
-                  submissionId={submissionId}
                   customInputLoading={customInputLoading}
                   handleRunCustomInput={handleRunCustomInput}
                 />
@@ -422,11 +417,9 @@ export default function EditorComponent({
                         problemId={details.id}
                         code={code}
                         setCode={setCode}
-                        setSubmissionId={setSubmissionId as any}
                         error={submissionError}
                         submissionLoading={submissionLoading}
                         handleSubmitCode={handleSubmitCode}
-                        submissionId={submissionId}
                           customInputLoading={customInputLoading}
                           handleRunCustomInput={handleRunCustomInput}
                       />
