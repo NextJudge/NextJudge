@@ -34,7 +34,6 @@ export default async function Home() {
       <main className="flex max-w-full gap-10 flex-col items-center justify-between overflow-x-hidden relative z-10">
         <AltHero />
         <LandingEditor />
-        <WhyNextJudge />
         <Features />
         <EarlyAccess />
         <FAQ />

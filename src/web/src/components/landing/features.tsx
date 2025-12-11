@@ -1,7 +1,11 @@
+'use client'
+import { AnimatedList } from '@/components/ui/animated-list'
 import { Card, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { CheckCircle, HelpCircle, LucideIcon, MessageCircle, Trophy } from 'lucide-react'
-import { ReactNode } from 'react'
+import { Editor } from '@monaco-editor/react'
+import { Activity, CheckCircle, CircleDot, Code2, HelpCircle, LucideIcon, MessageCircle, Trophy, XCircle, Zap } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { ReactNode, useCallback, useEffect, useState } from 'react'
 
 type ProblemStatus =
     | { solved: true; attempts: number; time: number }
@@ -17,6 +21,50 @@ interface LeaderboardEntry {
     problemB: ProblemStatus
     problemC: ProblemStatus
     totalAttempts: number
+}
+
+const sampleCode = `import { createInterface } from 'readline';
+
+const rl = createInterface({ input: process.stdin });
+const lines: string[] = [];
+
+rl.on('line', (line) => lines.push(line));
+rl.on('close', () => {
+    const t = parseInt(lines[0]);
+    for (let i = 1; i <= t; i++) {
+        const s = lines[i];
+        console.log(s.split('').reverse().join(''));
+    }
+});`
+
+const ClippedCodeEditor = () => {
+    const { resolvedTheme } = useTheme()
+
+    return (
+        <div className="h-[255px] w-full overflow-hidden rounded-t-xl border-x border-t border-border/50">
+            <Editor
+                language="typescript"
+                className="pointer-events-none select-none"
+                height="400px"
+                defaultLanguage="typescript"
+                defaultValue={sampleCode}
+                options={{
+                    lineNumbers: 'off',
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    readOnly: true,
+                    folding: false,
+                    lineDecorationsWidth: 16,
+                    lineNumbersMinChars: 0,
+                    renderLineHighlight: 'none',
+                    scrollbar: { vertical: 'hidden', horizontal: 'hidden' },
+                    padding: { top: 16 },
+                }}
+                theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs-light'}
+            />
+        </div>
+    )
 }
 
 const mockLeaderboardData: LeaderboardEntry[] = [
@@ -165,8 +213,26 @@ const MockQA = ({ className }: { className?: string }) => (
 
 export default function Features() {
     return (
-        <section className="bg-zinc-50 py-16 md:py-32 dark:bg-transparent">
-            <div className="mx-auto max-w-2xl px-6 lg:max-w-5xl">
+        <section className="py-16 md:py-32 px-4">
+            <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl">
+                <div
+                    aria-hidden
+                    className="absolute inset-0 bg-zinc-100 dark:bg-zinc-900/80"
+                />
+                <div
+                    aria-hidden
+                    className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.5)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black_40%,transparent_100%)]"
+                />
+
+                <div className="relative mx-auto max-w-2xl px-6 py-16 md:py-24 lg:max-w-5xl">
+                    <h2 className="text-2xl md:text-4xl font-medium font-sans text-center w-full mx-auto max-w-3xl px-6 mb-12">
+                        NextJudge offers all the tools you need to{' '}
+                        <span className="bg-gradient-to-r from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
+                            host, participate in, and organize{' '}
+                        </span>
+                        programming contests.
+                    </h2>
+
                 <div className="mx-auto grid gap-4 lg:grid-cols-2">
                     <FeatureCard>
                         <CardHeader className="pb-3">
@@ -214,32 +280,101 @@ export default function Features() {
                         </div>
                     </FeatureCard>
 
-                    <FeatureCard className="p-6 lg:col-span-2">
-                        <p className="mx-auto my-6 max-w-md text-balance text-center text-2xl font-semibold">Smart scheduling with automated reminders for maintenance.</p>
+                        <FeatureCard className="lg:col-span-2 p-12">
+                            <p className="text-center text-4xl font-semibold lg:text-7xl">
+                                100%{' '}
+                                <span className="relative inline-block">
+                                    Open Source
+                                    <svg
+                                        className="absolute -bottom-5 left-0 w-full z-5"
+                                        viewBox="0 0 200 12"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        preserveAspectRatio="none"
+                                    >
+                                        <path
+                                            d="M1 5.5C32 2 62 9 95 5.5C128 2 158 8 199 5.5"
+                                            stroke="hsl(var(--primary))"
+                                            strokeWidth="3"
+                                            strokeLinecap="round"
+                                        />
+                                    </svg>
+                                    <svg
+                                        className="absolute -bottom-3 left-0 w-full z-5"
+                                        viewBox="0 0 200 12"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        preserveAspectRatio="none"
+                                    >
+                                        <path
+                                            d="M1 5.5C32 2 62 9 95 5.5C128 2 158 8 199 5.5"
+                                            stroke="hsl(var(--primary))"
+                                            strokeWidth="3"
+                                            strokeLinecap="round"
+                                        />
+                                    </svg>
+                                </span>
+                            </p>
+                            <p className="text-center text-muted-foreground mt-4">Self-host your own judge, contribute to the codebase, or fork it entirely</p>
+                        </FeatureCard>
 
-                        <div className="flex justify-center gap-6 overflow-hidden">
-                            <CircularUI
-                                label="Inclusion"
-                                circles={[{ pattern: 'border' }, { pattern: 'border' }]}
+                        <FeatureCard className="overflow-hidden">
+                            <CardHeader className="pb-3">
+                                <CardHeading
+                                    icon={Zap}
+                                    title="Real-time Feedback"
+                                    description="Get instant feedback on your submissions as they run."
                             />
+                            </CardHeader>
 
-                            <CircularUI
-                                label="Inclusion"
-                                circles={[{ pattern: 'none' }, { pattern: 'primary' }]}
-                            />
+                            <div className="border-t border-dashed">
+                                <div className="p-3 px-4 min-h-[180px]">
+                                    <AnimatedExecutionFeed />
+                                </div>
+                            </div>
+                        </FeatureCard>
 
-                            <CircularUI
-                                label="Join"
-                                circles={[{ pattern: 'blue' }, { pattern: 'none' }]}
+                        <FeatureCard className="flex flex-col overflow-hidden">
+                            <CardHeader className="pb-3">
+                                <CardHeading
+                                    icon={Activity}
+                                    title="Live Submissions"
+                                    description="Watch submissions roll in from competitors worldwide."
                             />
+                            </CardHeader>
 
-                            <CircularUI
-                                label="Exclusion"
-                                circles={[{ pattern: 'primary' }, { pattern: 'none' }]}
-                                className="hidden sm:block"
-                            />
+                            <div className="relative flex-1 border-t border-dashed max-sm:mb-6">
+                                <div className="flex h-full flex-col p-3 px-4">
+                                    <div className="relative h-[240px] overflow-hidden">
+                                        <AnimatedSubmissionsList />
+                                    </div>
+                                </div>
                         </div>
                     </FeatureCard>
+
+                        <FeatureCard className="lg:col-span-2 overflow-hidden px-6 pt-6">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                                <Code2 className="size-4" />
+                                <span className="text-sm">Code Editor</span>
+                            </div>
+                            <p className="text-xl font-semibold mb-4 mt-2">Powered by Monaco's Editor, NextJudge provides syntax highlighting and many themes.</p>
+                            <ClippedCodeEditor />
+                        </FeatureCard>
+
+                        <FeatureCard className="relative col-span-full overflow-hidden">
+                            <div className="absolute z-10 max-w-lg px-6 pr-12 pt-6 md:px-12 md:pt-12">
+                                <span className="text-muted-foreground flex items-center gap-2">
+                                    <Activity className="size-4" />
+                                    Activity Overview
+                                </span>
+
+                                <p className="my-8 text-2xl font-semibold">
+                                    Track submission patterns and performance. <span className="text-muted-foreground">See your progress over time.</span>
+                                </p>
+                            </div>
+                            <MockActivityChart />
+                        </FeatureCard>
+                    </div>
                 </div>
             </div>
         </section>
@@ -283,32 +418,312 @@ const CardHeading = ({ icon: Icon, title, description }: CardHeadingProps) => (
     </div>
 )
 
-interface CircleConfig {
-    pattern: 'none' | 'border' | 'primary' | 'blue'
+type SubmissionStatus = 'ACCEPTED' | 'WRONG_ANSWER' | 'RUNTIME_ERROR' | 'PENDING' | 'TIME_LIMIT_EXCEEDED'
+
+interface MockSubmission {
+    id: string
+    problem: string
+    language: string
+    status: SubmissionStatus
+    time: string
+    user: string
 }
 
-interface CircularUIProps {
-    label: string
-    circles: CircleConfig[]
-    className?: string
+const languageColors: Record<string, string> = {
+    python: 'text-yellow-500 fill-yellow-500',
+    javascript: 'text-yellow-400 fill-yellow-400',
+    typescript: 'text-blue-500 fill-blue-500',
+    java: 'text-red-500 fill-red-500',
+    go: 'text-cyan-500 fill-cyan-500',
+    rust: 'text-orange-500 fill-orange-500',
+    swift: 'text-orange-400 fill-orange-400',
+    'c++': 'text-blue-600 fill-blue-600',
 }
 
-const CircularUI = ({ label, circles, className }: CircularUIProps) => (
-    <div className={className}>
-        <div className="bg-linear-to-b from-border size-fit rounded-2xl to-transparent p-px">
-            <div className="bg-linear-to-b from-background to-muted/25 relative flex aspect-square w-fit items-center -space-x-4 rounded-[15px] p-4">
-                {circles.map((circle, i) => (
-                    <div
-                        key={i}
-                        className={cn('size-7 rounded-full border sm:size-8', {
-                            'border-primary': circle.pattern === 'none',
-                            'border-primary bg-[repeating-linear-gradient(-45deg,var(--color-border),var(--color-border)_1px,transparent_1px,transparent_4px)]': circle.pattern === 'border',
-                            'border-primary bg-background bg-[repeating-linear-gradient(-45deg,var(--color-primary),var(--color-primary)_1px,transparent_1px,transparent_4px)]': circle.pattern === 'primary',
-                            'bg-background z-1 border-blue-500 bg-[repeating-linear-gradient(-45deg,var(--color-blue-500),var(--color-blue-500)_1px,transparent_1px,transparent_4px)]': circle.pattern === 'blue',
-                        })}></div>
-                ))}
+const statusConfig: Record<SubmissionStatus, { label: string; className: string }> = {
+    ACCEPTED: { label: 'Accepted', className: 'bg-emerald-600 text-white' },
+    WRONG_ANSWER: { label: 'Wrong Answer', className: 'bg-red-600 text-white' },
+    RUNTIME_ERROR: { label: 'Runtime Error', className: 'bg-orange-600 text-white' },
+    PENDING: { label: 'Pending', className: 'bg-muted text-muted-foreground' },
+    TIME_LIMIT_EXCEEDED: { label: 'TLE', className: 'bg-amber-600 text-white' },
+}
+
+const mockSubmissionsData: MockSubmission[] = [
+    { id: '1', problem: 'Two Sum', language: 'TypeScript', status: 'ACCEPTED', time: '2s ago', user: 'alice_codes' },
+    { id: '2', problem: 'Binary Search', language: 'Rust', status: 'WRONG_ANSWER', time: '5s ago', user: 'bob_dev' },
+    { id: '3', problem: 'Merge Sort', language: 'Python', status: 'ACCEPTED', time: '8s ago', user: 'charlie_py' },
+    { id: '4', problem: 'N-Queens', language: 'Go', status: 'TIME_LIMIT_EXCEEDED', time: '12s ago', user: 'diana_go' },
+    { id: '5', problem: 'Graph Traversal', language: 'Java', status: 'RUNTIME_ERROR', time: '15s ago', user: 'evan_java' },
+    { id: '6', problem: 'Dynamic Programming', language: 'C++', status: 'ACCEPTED', time: '18s ago', user: 'fiona_cpp' },
+    { id: '7', problem: 'Linked List Cycle', language: 'Swift', status: 'ACCEPTED', time: '22s ago', user: 'george_sw' },
+    { id: '8', problem: 'Valid Parentheses', language: 'JavaScript', status: 'WRONG_ANSWER', time: '25s ago', user: 'hannah_js' },
+    { id: '9', problem: 'Heap Sort', language: 'Rust', status: 'ACCEPTED', time: '30s ago', user: 'ivan_rust' },
+    { id: '10', problem: 'Trie Implementation', language: 'Python', status: 'PENDING', time: '35s ago', user: 'julia_py' },
+]
+
+const SubmissionItem = ({ problem, language, status, time, user }: MockSubmission) => {
+    const statusInfo = statusConfig[status]
+    const langColor = languageColors[language.toLowerCase()] || 'text-muted-foreground'
+
+    return (
+        <figure
+            className={cn(
+                'relative mx-auto min-h-fit w-full cursor-pointer overflow-hidden rounded-xl p-3',
+                'transition-all duration-200 ease-in-out hover:scale-[102%]',
+                'bg-white [box-shadow:0_0_0_1px_rgba(0,0,0,.03),0_2px_4px_rgba(0,0,0,.05),0_12px_24px_rgba(0,0,0,.05)]',
+                'transform-gpu dark:bg-zinc-900/80 dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset] dark:backdrop-blur-md dark:[border:1px_solid_rgba(255,255,255,.1)]'
+            )}
+        >
+            <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm text-card-foreground truncate">{problem}</span>
+                        <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-medium', statusInfo.className)}>
+                            {statusInfo.label}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                            <CircleDot className={cn('size-2.5', langColor)} />
+                            {language}
+                        </span>
+                        <span>·</span>
+                        <span>{time}</span>
+                    </div>
+                </div>
             </div>
-        </div>
-        <span className="text-muted-foreground mt-1.5 block text-center text-sm">{label}</span>
+        </figure>
+    )
+}
+
+const AnimatedSubmissionsList = () => (
+    <div className="relative flex h-full w-full flex-col overflow-hidden px-4 py-2">
+        <AnimatedList delay={2000}>
+            {mockSubmissionsData.map((submission) => (
+                <SubmissionItem key={submission.id} {...submission} />
+            ))}
+        </AnimatedList>
     </div>
 )
+
+type ExecutionStepStatus = 'completed' | 'running' | 'pending' | 'error'
+
+interface ExecutionStep {
+    label: string
+    status: ExecutionStepStatus
+    time?: string
+}
+
+type FinalResult = 'success' | 'wrong_answer' | 'runtime_error' | 'time_limit'
+
+const getRandomTime = () => `${Math.floor(Math.random() * 50) + 5}ms`
+
+const AnimatedExecutionFeed = () => {
+    const [steps, setSteps] = useState<ExecutionStep[]>([])
+    const [result, setResult] = useState<FinalResult | null>(null)
+    const [isRunning, setIsRunning] = useState(false)
+
+    const totalTests = 5
+
+    const runSimulation = useCallback(() => {
+        setSteps([])
+        setResult(null)
+        setIsRunning(true)
+
+        const failAtTest = Math.random() < 0.3 ? Math.floor(Math.random() * totalTests) + 1 : null
+        const failType: FinalResult = ['wrong_answer', 'runtime_error', 'time_limit'][Math.floor(Math.random() * 3)] as FinalResult
+
+        setSteps([{ label: 'Compiling...', status: 'running' }])
+
+        setTimeout(() => {
+            setSteps([{ label: 'Compiling...', status: 'completed', time: getRandomTime() }])
+
+            let currentTest = 1
+            const runNextTest = () => {
+                if (currentTest > totalTests) {
+                    setResult('success')
+                    setIsRunning(false)
+                    return
+                }
+
+                setSteps(prev => [
+                    ...prev,
+                    { label: `Running test case ${currentTest}/${totalTests}`, status: 'running' }
+                ])
+
+                setTimeout(() => {
+                    if (failAtTest === currentTest) {
+                        setSteps(prev => {
+                            const updated = [...prev]
+                            updated[updated.length - 1] = {
+                                ...updated[updated.length - 1],
+                                status: 'error',
+                                time: failType === 'time_limit' ? '>1000ms' : getRandomTime()
+                            }
+                            return updated
+                        })
+                        setResult(failType)
+                        setIsRunning(false)
+                        return
+                    }
+
+                    setSteps(prev => {
+                        const updated = [...prev]
+                        updated[updated.length - 1] = {
+                            ...updated[updated.length - 1],
+                            status: 'completed',
+                            time: getRandomTime()
+                        }
+                        return updated
+                    })
+
+                    currentTest++
+                    setTimeout(runNextTest, 400 + Math.random() * 300)
+                }, 500 + Math.random() * 400)
+            }
+
+            setTimeout(runNextTest, 300)
+        }, 600)
+    }, [])
+
+    useEffect(() => {
+        runSimulation()
+    }, [runSimulation])
+
+    const resultConfig: Record<FinalResult, { label: string; className: string }> = {
+        success: { label: 'All tests passed!', className: 'bg-emerald-600 text-white' },
+        wrong_answer: { label: 'Wrong Answer on test case', className: 'bg-red-600 text-white' },
+        runtime_error: { label: 'Runtime Error', className: 'bg-orange-600 text-white' },
+        time_limit: { label: 'Time Limit Exceeded', className: 'bg-amber-600 text-white' },
+    }
+
+    return (
+        <div className="space-y-2 rounded-lg border bg-card p-3 text-xs">
+            {steps.map((step, i) => (
+                <div key={i} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        {step.status === 'completed' && (
+                            <CheckCircle className="size-3.5 text-emerald-500" />
+                        )}
+                        {step.status === 'running' && (
+                            <div className="size-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                        )}
+                        {step.status === 'pending' && (
+                            <div className="size-3.5 rounded-full border border-muted-foreground/30" />
+                        )}
+                        {step.status === 'error' && (
+                            <XCircle className="size-3.5 text-red-500" />
+                        )}
+                        <span className={cn(
+                            step.status === 'pending' && 'text-muted-foreground',
+                            step.status === 'error' && 'text-red-500'
+                        )}>
+                            {step.label}
+                        </span>
+                    </div>
+                    {step.time && (
+                        <span className={cn(
+                            'text-muted-foreground',
+                            step.status === 'error' && 'text-red-500'
+                        )}>{step.time}</span>
+                    )}
+                </div>
+            ))}
+
+            {result && !isRunning && (
+                <div className={cn(
+                    'mt-3 rounded-md px-3 py-2 text-center font-medium',
+                    resultConfig[result].className
+                )}>
+                    {resultConfig[result].label}
+                </div>
+            )}
+        </div>
+    )
+}
+
+const chartData = [
+    { value: 30 }, { value: 45 }, { value: 35 }, { value: 60 },
+    { value: 40 }, { value: 75 }, { value: 55 }, { value: 80 },
+    { value: 65 }, { value: 90 }, { value: 70 }, { value: 85 },
+    { value: 95 }, { value: 78 }, { value: 88 }, { value: 72 },
+]
+
+const MockActivityChart = () => {
+    const maxValue = Math.max(...chartData.map(d => d.value))
+
+    return (
+        <div className="h-64 md:h-80 w-full pt-32 md:pt-24">
+            <svg
+                className="h-full w-full"
+                viewBox="0 0 800 200"
+                preserveAspectRatio="none"
+            >
+                <defs>
+                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="chartGradient2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--chart-2, 220 70% 50%))" stopOpacity={0.2} />
+                        <stop offset="100%" stopColor="hsl(var(--chart-2, 220 70% 50%))" stopOpacity={0} />
+                    </linearGradient>
+                </defs>
+
+                {[0, 1, 2, 3].map((i) => (
+                    <line
+                        key={i}
+                        x1="0"
+                        y1={50 + i * 50}
+                        x2="800"
+                        y2={50 + i * 50}
+                        stroke="hsl(var(--border))"
+                        strokeWidth="1"
+                        strokeDasharray="4 4"
+                    />
+                ))}
+
+                <path
+                    d={`M 0 200 ${chartData.map((d, i) => {
+                        const x = (i / (chartData.length - 1)) * 800
+                        const y = 200 - (d.value / maxValue) * 150
+                        return `L ${x} ${y}`
+                    }).join(' ')} L 800 200 Z`}
+                    fill="url(#chartGradient)"
+                />
+
+                <path
+                    d={`M 0 ${200 - (chartData[0].value / maxValue) * 150} ${chartData.map((d, i) => {
+                        const x = (i / (chartData.length - 1)) * 800
+                        const y = 200 - (d.value / maxValue) * 150
+                        return `L ${x} ${y}`
+                    }).join(' ')}`}
+                    fill="none"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth="2"
+                />
+
+                <path
+                    d={`M 0 200 ${chartData.map((d, i) => {
+                        const x = (i / (chartData.length - 1)) * 800
+                        const y = 200 - ((d.value * 0.6) / maxValue) * 150
+                        return `L ${x} ${y}`
+                    }).join(' ')} L 800 200 Z`}
+                    fill="url(#chartGradient2)"
+                />
+
+                <path
+                    d={`M 0 ${200 - ((chartData[0].value * 0.6) / maxValue) * 150} ${chartData.map((d, i) => {
+                        const x = (i / (chartData.length - 1)) * 800
+                        const y = 200 - ((d.value * 0.6) / maxValue) * 150
+                        return `L ${x} ${y}`
+                    }).join(' ')}`}
+                    fill="none"
+                    stroke="hsl(var(--chart-2, 220 70% 50%))"
+                    strokeWidth="2"
+                    strokeOpacity={0.6}
+                />
+            </svg>
+        </div>
+    )
+}
