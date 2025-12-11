@@ -20,9 +20,9 @@ const LandingEditor = dynamic(
 );
 
 export const metadata: Metadata = {
-  title: "NextJudge - Elevate your coding skills to the next level.",
+  title: "NextJudge - Run competitive programming contests with ease.",
   description:
-    "An all-new competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible.",
+    "NextJudge is a competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible.",
 };
 
 export default async function Home() {

@@ -8,15 +8,15 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NextJudge - Elevate your coding skills to the next level.",
+  title: "NextJudge - Run competitive programming contests with ease.",
   description:
-    "An all-new competitive programming platform built for organizers, developers, and participants.",
+    "NextJudge is a competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible.",
   openGraph: {
     type: "website",
     url: "https://nextjudge.vercel.app/",
-    title: "NextJudge - Elevate your coding skills to the next level.",
+    title: "NextJudge - Run competitive programming contests with ease.",
     description:
-      "An all-new competitive programming platform built for organizers, developers, and participants.",
+      "NextJudge is a competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible.",
     siteName: "NextJudge",
     images: [
       {
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
         secureUrl: "https://nextjudge.vercel.app/og.png",
         width: 2880,
         height: 1612,
-        alt: "NextJudge - Elevate your coding skills to the next level.",
+        alt: "NextJudge - Run competitive programming contests with ease.",
       },
     ],
   },
