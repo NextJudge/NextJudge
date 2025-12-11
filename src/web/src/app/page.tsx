@@ -1,11 +1,12 @@
 import { auth } from "@/app/auth";
 import { Footer } from "@/components/footer";
 import { AltHero } from "@/components/landing/alt-hero";
-import { LanguagesBanner } from "@/components/landing/banner";
 import { EarlyAccess } from "@/components/landing/early-access";
 import { FAQ } from "@/components/landing/faq";
+import Features from "@/components/landing/features";
 import { ScrollToTop } from "@/components/landing/scroll-up";
 import { Services } from "@/components/landing/services";
+import StatsSection from "@/components/landing/stats-section";
 import { LandingNavbar } from "@/components/nav/landing-navbar";
 import { Metadata } from "next";
 import dynamic from "next/dynamic";
@@ -32,10 +33,9 @@ export default async function Home() {
       <LandingNavbar session={session || undefined} />
       <main className="flex max-w-full gap-10 flex-col items-center justify-between overflow-x-hidden relative z-10">
         <AltHero />
-        <WhyNextJudge />
-        <Services />
         <LandingEditor />
-        <LanguagesBanner />
+        <WhyNextJudge />
+        <Features />
         <EarlyAccess />
         <FAQ />
         <Footer />

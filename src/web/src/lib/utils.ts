@@ -8,13 +8,13 @@ export function cn(...inputs: ClassValue[]) {
 
 export function getBridgeUrl() {
     return process.env.NODE_ENV === "production"
-        ? "https://nextjudge.org"
+        ? "https://bridge.nextjudge.net"
         : "http://localhost:5000";
 }
 
 export function getAppUrl() {
     return process.env.NODE_ENV === "production"
-        ? "https://nextjudge.org"
+        ? "https://nextjudge.net"
         : "http://localhost:8080";
 }
 

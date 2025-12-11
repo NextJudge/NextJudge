@@ -27,8 +27,8 @@ import { LandingProblemStatement } from "./landing-problem-statement";
 
 const DEMO_PROBLEM = {
   title: "Reverse a String",
-  difficulty: "EASY" as const,
-  prompt: `Given a string, print it reversed.
+  difficulty: "VERY EASY" as const,
+  prompt: `Given a string, print it in reverse order.
 
 ## Input
 A single line containing a string \`s\` (1 ≤ |s| ≤ 1000).
@@ -41,12 +41,10 @@ Print the reversed string.
 };
 
 const STARTER_CODE: Record<string, string> = {
-  python: `# read input and print reversed
-s = input()
+  python: `s = input()
 print(s[::-1])
 `,
-  pypy: `# read input and print reversed
-s = input()
+  pypy: `s = input()
 print(s[::-1])
 `,
   javascript: `const readline = require('readline');
@@ -108,7 +106,7 @@ public class Solution {
 };
 
 const getStarterCode = (language: Language): string => {
-  return STARTER_CODE[language.name.toLowerCase()] || `// write your solution for ${language.name}`;
+  return STARTER_CODE[language.name.toLowerCase()] || `// ${language.name}`;
 };
 
 export const LandingEditor = () => {
@@ -253,13 +251,13 @@ export const LandingEditor = () => {
     <section className="container py-12 max-w-7xl" id="try-it">
       <div className="text-center mb-8">
         <h2 className="text-3xl md:text-4xl font-medium font-sans">
-          Try it{" "}
+          Try a practice problem{" "}
           <span className="bg-gradient-to-br from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
-            Now
+            right now!
           </span>
         </h2>
         <p className="text-muted-foreground text-lg mt-2">
-          Write and run code directly in your browser. No sign-up required.
+          We've prepared a simple problem for you to try out. No sign-up needed.
         </p>
       </div>
 

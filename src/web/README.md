@@ -10,7 +10,7 @@ The frontend web application for the [NextJudge][site-url] platform.
 ![:)][with-love-image]
 ![Licese][license-image]
 
-[site-url]: https://nextjudge.org
+[site-url]: https://nextjudge.net
 [license-image]: https://img.shields.io/github/license/nextjudge/nextjudge?style=flat-square&color=dc4405
 [last-commit-image]: https://img.shields.io/github/last-commit/nextjudge/nextjudge?display_timestamp=committer&style=flat-square&logo=github&color=dc4405
 [with-love-image]: https://img.shields.io/badge/made_with_love_in_oregon-%E2%9D%A4-dc4405?style=flat-square&color=dc4405

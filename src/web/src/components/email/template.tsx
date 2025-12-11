@@ -68,10 +68,10 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
 
       <div className="mt-6 border-t pt-4 text-center text-gray-600 text-sm">
         <p>
-          <a href="https://nextjudge.org" className="underline text-orange-600">
+          <a href="https://nextjudge.net" className="underline text-orange-600">
             NextJudge
           </a>{" "}
-          | The Programing Platform of the Future
+          | Competitive Programming Platform
         </p>
         <p>
           For any queries, contact us at{" "}
