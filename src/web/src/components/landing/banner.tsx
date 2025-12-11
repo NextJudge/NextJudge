@@ -22,15 +22,16 @@ import Marquee from "../ui/marquee";
 interface SvgProps {
   icon: any;
   size: string;
+  alt: string;
 }
 
 type Component = (props: SvgProps) => JSX.Element;
 
-const SvgAsJsx: Component = ({ icon, size }) => {
+const SvgAsJsx: Component = ({ icon, size, alt }) => {
   return (
     <Image
       src={icon.src}
-      alt={icon.alt}
+      alt={alt}
       width={parseInt(size)}
       height={parseInt(size)}
       className={cn("select-none pointer-events-none rounded-md", {
@@ -79,21 +80,21 @@ const LanguageCard = ({
 };
 
 const items = [
-  { label: "Python", icon: SvgAsJsx({ icon: pythonSvg, size: "44" }) },
-  { label: "JavaScript", icon: SvgAsJsx({ icon: javascriptSvg, size: "24" }) },
-  { label: "C++", icon: SvgAsJsx({ icon: cplusplusSvg, size: "44" }) },
-  { label: "Go", icon: SvgAsJsx({ icon: golangSvg, size: "44" }) },
-  { label: "Haskell", icon: SvgAsJsx({ icon: haskellSvg, size: "24" }) },
-  { label: "Kotlin", icon: SvgAsJsx({ icon: kotlinSvg, size: "24" }) },
-  { label: "C#", icon: SvgAsJsx({ icon: csharpSvg, size: "24" }) },
-  { label: "Java", icon: SvgAsJsx({ icon: javaSvg, size: "24" }) },
-  { label: "TypeScript", icon: SvgAsJsx({ icon: typeScriptSvg, size: "24" }) },
-  { label: "PHP", icon: SvgAsJsx({ icon: phpSvg, size: "24" }) },
-  { label: "Swift", icon: SvgAsJsx({ icon: swiftSvg, size: "24" }) },
-  { label: "Rust", icon: SvgAsJsx({ icon: rustSvg, size: "24" }) },
-  { label: "C", icon: SvgAsJsx({ icon: cSvg, size: "24" }) },
-  { label: "Lua", icon: SvgAsJsx({ icon: luaSvg, size: "24" }) },
-  { label: "Ruby", icon: SvgAsJsx({ icon: rubySvg, size: "24" }) },
+  { label: "Python", icon: SvgAsJsx({ icon: pythonSvg, size: "44", alt: "Python programming language logo" }) },
+  { label: "JavaScript", icon: SvgAsJsx({ icon: javascriptSvg, size: "24", alt: "JavaScript programming language logo" }) },
+  { label: "C++", icon: SvgAsJsx({ icon: cplusplusSvg, size: "44", alt: "C++ programming language logo" }) },
+  { label: "Go", icon: SvgAsJsx({ icon: golangSvg, size: "44", alt: "Go programming language logo" }) },
+  { label: "Haskell", icon: SvgAsJsx({ icon: haskellSvg, size: "24", alt: "Haskell programming language logo" }) },
+  { label: "Kotlin", icon: SvgAsJsx({ icon: kotlinSvg, size: "24", alt: "Kotlin programming language logo" }) },
+  { label: "C#", icon: SvgAsJsx({ icon: csharpSvg, size: "24", alt: "C# programming language logo" }) },
+  { label: "Java", icon: SvgAsJsx({ icon: javaSvg, size: "24", alt: "Java programming language logo" }) },
+  { label: "TypeScript", icon: SvgAsJsx({ icon: typeScriptSvg, size: "24", alt: "TypeScript programming language logo" }) },
+  { label: "PHP", icon: SvgAsJsx({ icon: phpSvg, size: "24", alt: "PHP programming language logo" }) },
+  { label: "Swift", icon: SvgAsJsx({ icon: swiftSvg, size: "24", alt: "Swift programming language logo" }) },
+  { label: "Rust", icon: SvgAsJsx({ icon: rustSvg, size: "24", alt: "Rust programming language logo" }) },
+  { label: "C", icon: SvgAsJsx({ icon: cSvg, size: "24", alt: "C programming language logo" }) },
+  { label: "Lua", icon: SvgAsJsx({ icon: luaSvg, size: "24", alt: "Lua programming language logo" }) },
+  { label: "Ruby", icon: SvgAsJsx({ icon: rubySvg, size: "24", alt: "Ruby programming language logo" }) },
 ];
 
 const firstRow = items.slice(0, items.length / 2);

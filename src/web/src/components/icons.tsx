@@ -14,6 +14,7 @@ import {
   PlayIcon,
   Pyramid,
   Shell,
+  TerminalIcon,
   UsersIcon,
   XIcon
 } from "lucide-react";
@@ -38,4 +39,5 @@ export const Icons = {
   check: CheckIcon,
   close: XIcon,
   play: PlayIcon,
+  terminal: TerminalIcon,
 };
