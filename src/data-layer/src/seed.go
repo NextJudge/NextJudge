@@ -574,15 +574,29 @@ func seedSubmissions(database *Database, users []User, problems []ProblemDescrip
 				}
 
 				// create submissions chronologically
-				// spread attempts throughout event duration
-				timePerAttempt := eventDuration / time.Duration(numAttempts+1)
+				// for solved problems: generate random solve time under 2 hours
+				// for unsolved problems: spread attempts reasonably
+				var maxTimeWindow time.Duration
+				if willSolve {
+					// solved problems: random solve time between 5-120 minutes
+					solveTimeMinutes := 5 + rand.Intn(116) // 5-120 minutes (random)
+					maxTimeWindow = time.Duration(solveTimeMinutes) * time.Minute
+				} else {
+					// unsolved problems: spread over first 4 hours max
+					maxTimeWindow = 4 * time.Hour
+					if maxTimeWindow > eventDuration {
+						maxTimeWindow = eventDuration
+					}
+				}
+
+				// calculate time per attempt within the window
+				timePerAttempt := maxTimeWindow / time.Duration(numAttempts+1)
 				if timePerAttempt < time.Minute {
 					timePerAttempt = time.Minute
 				}
 
 				for attemptNum := 0; attemptNum < numAttempts; attemptNum++ {
-					// calculate submission time (progressively later in event)
-					// use a base offset plus random variation
+					// calculate submission time within the time window
 					baseOffset := time.Duration(attemptNum) * timePerAttempt
 					randomVariation := time.Duration(rand.Int63n(int64(timePerAttempt/2)))
 					submitTime := event.StartTime.Add(baseOffset).Add(randomVariation)
@@ -590,6 +604,10 @@ func seedSubmissions(database *Database, users []User, problems []ProblemDescrip
 					// ensure submitTime is within bounds
 					if submitTime.Before(event.StartTime) {
 						submitTime = event.StartTime
+					}
+					maxSubmitTime := event.StartTime.Add(maxTimeWindow)
+					if submitTime.After(maxSubmitTime) {
+						submitTime = maxSubmitTime.Add(-1 * time.Minute)
 					}
 					if submitTime.After(event.EndTime) {
 						submitTime = event.EndTime.Add(-1 * time.Minute)
