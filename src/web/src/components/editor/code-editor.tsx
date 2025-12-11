@@ -2,12 +2,12 @@
 
 import { defaultEditorOptions } from "@/lib/constants";
 import { useSettingsStore } from "@/lib/stores/settings-store";
-import { Language } from "@/lib/types";
+import type { Language } from "@/lib/types";
 import { convertToMonacoLanguageName } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
-import { Theme } from "@/types";
-import Editor, { Monaco } from "@monaco-editor/react";
-import { editor } from "monaco-editor";
+import type { Theme } from "@/types";
+import Editor, { type Monaco } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Icons } from "../icons";
@@ -76,30 +76,26 @@ export default function CodeEditor({
     languages,
     themes,
     problemId,
-    setSubmissionId,
     code,
     setCode,
     submissionLoading,
     error,
-    submissionId,
     handleSubmitCode,
     customInputLoading,
     handleRunCustomInput,
 }: {
     languages: Language[],
         themes: Theme[];
-    problemId: number;
-    setSubmissionId: (submissionId: number) => void;
+        problemId: number;
     code: string;
     setCode: (code: string) => void;
     submissionLoading: boolean;
-    error: string | null;
-    submissionId: number | null;
+        error: string | null;
     handleSubmitCode: (languageId: string, problemId: number) => Promise<void>;
         customInputLoading: boolean;
         handleRunCustomInput: (languageId: string) => Promise<void>;
 }) {
-    const { theme, setTheme } = useContext(ThemeContext);
+    const { theme } = useContext(ThemeContext);
     const { defaultLanguage } = useSettingsStore();
     const [currentLanguage, setCurrentLanguage] = useState<Language>(() => {
         // Use default language from settings if available, otherwise fall back to languages[3]
@@ -117,7 +113,7 @@ export default function CodeEditor({
                 setCode(templateCode);
             }
         }
-    }, [currentLanguage]);
+    }, [currentLanguage, code, setCode]);
     const [screenWidth, setScreenWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
     useEffect(() => {
@@ -140,7 +136,7 @@ export default function CodeEditor({
             }, 50);
             return () => clearTimeout(timer);
         }
-    }, [code]);
+    }, []);
 
     // Update current language when default language changes
     useEffect(() => {
@@ -170,10 +166,6 @@ export default function CodeEditor({
     // setCode(templates[normalizeLanguageKey(languages[0].name)]);
 
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-
-    const getEditorValue = () => {
-        return editorRef.current?.getValue();
-    };
 
     const handleEditorDidMount = (
         editor: editor.IStandaloneCodeEditor,
@@ -333,10 +325,7 @@ export default function CodeEditor({
                 value={code}
                 theme={theme?.name}
                 options={editorOptions}
-                onChange={(value) => {
-                    // @ts-ignore
-                    setCode(value);
-                }}
+                onChange={(value) => setCode(value ?? "")}
                 onMount={handleEditorDidMount}
             />
         </div>
