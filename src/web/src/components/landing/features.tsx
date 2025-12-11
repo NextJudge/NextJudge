@@ -213,7 +213,7 @@ const MockQA = ({ className }: { className?: string }) => (
 
 export default function Features() {
     return (
-        <section className="py-16 md:py-32 px-4">
+        <section id="features" className="py-16 md:py-32 px-4">
             <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl">
                 <div
                     aria-hidden
@@ -234,6 +234,15 @@ export default function Features() {
                     </h2>
 
                 <div className="mx-auto grid gap-4 lg:grid-cols-2">
+                        <FeatureCard className="lg:col-span-2 overflow-hidden px-6 pt-6">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                                <Code2 className="size-4" />
+                                <span className="text-sm">Code Editor</span>
+                            </div>
+                            <p className="text-xl font-semibold mb-4 mt-2">Powered by Monaco's Editor, NextJudge provides syntax highlighting and many themes.</p>
+                            <ClippedCodeEditor />
+                        </FeatureCard>
+
                     <FeatureCard>
                         <CardHeader className="pb-3">
                             <CardHeading
@@ -351,15 +360,6 @@ export default function Features() {
                                 </div>
                         </div>
                     </FeatureCard>
-
-                        <FeatureCard className="lg:col-span-2 overflow-hidden px-6 pt-6">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                                <Code2 className="size-4" />
-                                <span className="text-sm">Code Editor</span>
-                            </div>
-                            <p className="text-xl font-semibold mb-4 mt-2">Powered by Monaco's Editor, NextJudge provides syntax highlighting and many themes.</p>
-                            <ClippedCodeEditor />
-                        </FeatureCard>
 
                         <FeatureCard className="relative col-span-full overflow-hidden">
                             <div className="absolute z-10 max-w-lg px-6 pr-12 pt-6 md:px-12 md:pt-12">
