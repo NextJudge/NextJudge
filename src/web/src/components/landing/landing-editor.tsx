@@ -6,7 +6,6 @@ import { useTheme } from "next-themes";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { useThemesLoader } from "@/hooks/useThemeLoader";
 import { apiGetLanguages, getPublicCustomInputSubmissionStatus, postPublicCustomInputSubmission } from "@/lib/api";
 import { defaultEditorOptions } from "@/lib/constants";
 import type { CustomInputResult, Language } from "@/lib/types";
@@ -14,14 +13,14 @@ import { cn, convertToMonacoLanguageName } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
 
 import { EditorLanguageSelect } from "@/components/editor/editor-language-select";
-import { EditorThemeSelector } from "@/components/editor/editor-theme-select";
 import { Icons } from "@/components/icons";
+import { SubmissionStatusBadge } from "@/components/submissions/submission-status-config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    ResizableHandle,
-    ResizablePanel,
-    ResizablePanelGroup,
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LandingProblemStatement } from "./landing-problem-statement";
@@ -115,7 +114,6 @@ const getStarterCode = (language: Language): string => {
 export const LandingEditor = () => {
   const { theme: editorTheme } = useContext(ThemeContext);
   const { resolvedTheme } = useTheme();
-  const { themes, loading: themesLoading } = useThemesLoader();
 
   const [languages, setLanguages] = useState<Language[]>([]);
   const [currentLanguage, setCurrentLanguage] = useState<Language | null>(null);
@@ -197,12 +195,6 @@ export const LandingEditor = () => {
       }
 
       setCustomInputResult(result);
-
-      if (result.stderr) {
-        toast.error("Execution completed with errors");
-      } else {
-        toast.success("Execution completed!");
-      }
     } catch (error) {
       console.error("Run failed:", error);
       if (error instanceof Error && error.message === "RATE_LIMIT_EXCEEDED") {
@@ -245,7 +237,7 @@ export const LandingEditor = () => {
     [screenWidth]
   );
 
-  if (languages.length === 0 || themesLoading) {
+  if (languages.length === 0) {
     return (
       <section className="container py-12 max-w-7xl" id="try-it">
         <div className="flex items-center justify-center h-[600px] border border-border rounded-lg bg-card">
@@ -385,8 +377,7 @@ export const LandingEditor = () => {
                               <span>Run Code</span>
                             </>
                           )}
-                        </Button>
-                        <EditorThemeSelector themes={themes} />
+                          </Button>
                       </div>
                     </div>
                     <div className="flex-1 min-h-0">
@@ -476,7 +467,15 @@ const OutputPanel = ({
         />
       </div>
       <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Output</label>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Output</label>
+          {isRunning && (
+            <SubmissionStatusBadge status="PENDING" showIcon variant="detailed" />
+          )}
+          {!isRunning && customInputResult && (
+            <SubmissionStatusBadge status={customInputResult.status} showIcon variant="detailed" />
+          )}
+        </div>
         <div className={cn(
           "w-full h-[80px] md:h-[calc(100%-28px)] p-3 text-sm font-mono border rounded-md overflow-auto",
           rateLimitError ? "bg-destructive/10 border-destructive/50 text-destructive" :

@@ -1055,8 +1055,6 @@ export async function getCustomInputSubmissionStatus(
 	return response.json();
 }
 
-// public (unauthenticated) endpoints for landing page demo
-
 export async function postPublicCustomInputSubmission(
 	code: string,
 	languageId: string,

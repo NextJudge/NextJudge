@@ -66,10 +66,10 @@ func main() {
 	mux.Use(c.Handler)
 
 	addAuthRoutes(mux)
+	addInputSubmissionRoutes(mux)
 	addUserRoutes(mux)
 	addProblemRoutes(mux)
 	addSubmissionRoutes(mux)
-	addInputSubmissionRoutes(mux)
 	addLanguageRoutes(mux)
 	addEventsRoutes(mux)
 	addHealthyRoute(mux)

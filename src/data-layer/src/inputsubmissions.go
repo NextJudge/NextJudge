@@ -41,13 +41,14 @@ var customSubmissionMap = make(map[string]*CustomInputSubmissionResult)
 
 // These API endpoints don't touch the database
 func addInputSubmissionRoutes(mux *goji.Mux) {
+	// public endpoints for landing page demo (rate-limited, no auth required)
+	// register these first so they match before the regular routes
+	mux.HandleFunc(pat.Post("/v1/public/input_submissions"), RateLimitMiddleware(postPublicInputSubmission, publicInputLimiter))
+	mux.HandleFunc(pat.Get("/v1/public/input_submissions/:submission_id"), getInputSubmission)
+
 	mux.HandleFunc(pat.Post("/v1/input_submissions"), AuthRequired(postInputSubmission))
 	mux.HandleFunc(pat.Get("/v1/input_submissions/:submission_id"), AuthRequired(getInputSubmission))
 	mux.HandleFunc(pat.Patch("/v1/input_submissions/:submission_id"), AtLeastJudgeRequired(updateCustomInputSubmissionStatus))
-
-	// public endpoints for landing page demo (rate-limited, no auth required)
-	mux.HandleFunc(pat.Post("/v1/public/input_submissions"), RateLimitMiddleware(postPublicInputSubmission, publicInputLimiter))
-	mux.HandleFunc(pat.Get("/v1/public/input_submissions/:submission_id"), getInputSubmission)
 }
 
 func postInputSubmission(w http.ResponseWriter, r *http.Request) {
