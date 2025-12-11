@@ -1,6 +1,8 @@
 'use client'
 
 import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
+import Link from "next/link";
 import cSvg from "../../../public/icons/c.svg";
 import cplusplusSvg from "../../../public/icons/cplusplus.svg";
 import csharpSvg from "../../../public/icons/csharp.svg";
@@ -23,7 +25,6 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import HeroButtons from "./hero-buttons";
-import Link from "next/link";
 
 const languageLogos = [
   { icon: pythonSvg, alt: "Python programming language logo", height: 12 },
@@ -44,6 +45,9 @@ const languageLogos = [
 ];
 
 export function AltHero() {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+
   return (
     <>
       <main>
@@ -55,7 +59,7 @@ export function AltHero() {
           <div className="h-320 -translate-y-87.5 absolute left-0 top-0 w-60 -rotate-45 bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.04)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)]" />
         </div>
 
-        <section className="bg-muted/50 dark:bg-background overflow-hidden relative">
+        <section className="bg-background overflow-hidden relative">
           <div className="relative mx-auto max-w-5xl px-6 pt-10">
             <div className="relative z-10 mx-auto max-w-2xl text-center">
               <TooltipProvider>
@@ -121,15 +125,19 @@ export function AltHero() {
           </div>
 
           <div className="mx-auto 2xl:max-w-7xl">
-            <div className="[perspective:2000px] pl-8 lg:pl-44">
+            <div className={cn(
+              isDark ? "pl-8 lg:pl-44 [perspective:2000px]" : "px-8"
+            )}>
               <div
-                className="lg:h-[44rem] [transform:rotateX(20deg)_skewX(12deg)] pl-6 pt-6"
-                style={{
-                  maskImage: 'linear-gradient(to bottom, black 55%, transparent 100%), linear-gradient(to right, black 75%, transparent 100%)',
-                  WebkitMaskImage: 'linear-gradient(to bottom, black 55%, transparent 100%), linear-gradient(to right, black 75%, transparent 100%)',
+                className={cn(
+                  isDark ? "pl-6 pt-6 lg:h-[44rem] [transform:rotateX(20deg)_skewX(12deg)]" : "pt-6"
+                )}
+                style={isDark ? {
+                  maskImage: 'linear-gradient(to bottom, black 45%, transparent 90%), linear-gradient(to right, black 65%, transparent 90%)',
+                  WebkitMaskImage: 'linear-gradient(to bottom, black 45%, transparent 90%), linear-gradient(to right, black 65%, transparent 90%)',
                   maskComposite: 'intersect',
                   WebkitMaskComposite: 'source-in',
-                }}
+                } : undefined}
               >
                 <video
                   loop
@@ -152,7 +160,7 @@ export function AltHero() {
           </div>
         </section>
 
-        <section className="dark:bg-background bg-muted/50 relative z-10 py-16">
+        <section className="bg-background relative z-10 py-16">
           <div className="m-auto max-w-5xl px-6">
             <h2 className="text-center text-lg font-medium">Solve problems in all of the programming languages that we know and love.</h2>
             <div className="mx-auto mt-20 flex max-w-4xl flex-wrap items-center justify-center gap-x-12 gap-y-8 sm:gap-x-16 sm:gap-y-12">
