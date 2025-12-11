@@ -53,35 +53,48 @@ const FAQList: FAQProps[] = [
 
 export const FAQ = () => {
   return (
-    <section id="faq" className="container py-32 max-w-5xl z-10">
-      <h2 className="text-3xl md:text-4xl font-medium font-sans mb-4 text-center">
-        Frequently Asked{" "}
-        <span className="bg-gradient-to-b from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
-          Questions
-        </span>
-      </h2>
+    <section id="faq" className="py-16 md:py-32 px-4">
+      <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl">
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-zinc-100 dark:bg-zinc-900/80"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.5)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black_40%,transparent_100%)]"
+        />
 
-      <Accordion type="single" collapsible className="w-full AccordionRoot">
-        {FAQList.map(({ question, answer, value }: FAQProps) => (
-          <AccordionItem key={value} value={value}>
-            <AccordionTrigger className="text-left">
-              {question}
-            </AccordionTrigger>
+        <div className="relative mx-auto max-w-3xl px-6 py-16 md:py-24">
+          <h2 className="text-3xl md:text-4xl font-medium font-sans mb-8 text-center">
+            Frequently Asked{" "}
+            <span className="bg-gradient-to-b from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
+              Questions
+            </span>
+          </h2>
 
-            <AccordionContent>{answer}</AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+          <Accordion type="single" collapsible className="w-full AccordionRoot">
+            {FAQList.map(({ question, answer, value }: FAQProps) => (
+              <AccordionItem key={value} value={value}>
+                <AccordionTrigger className="text-left">
+                  {question}
+                </AccordionTrigger>
 
-      <h3 className="font-medium mt-4">
-        Still have questions?{" "}
-        <a
-          href="mailto:hello@nextjudge.org"
-          className="text-primary transition-all border-primary hover:border-b-2"
-        >
-          Contact us
-        </a>
-      </h3>
+                <AccordionContent>{answer}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+
+          <h3 className="font-medium mt-4">
+            Still have questions?{" "}
+            <a
+              href="mailto:hello@nextjudge.org"
+              className="text-primary transition-all border-primary hover:border-b-2"
+            >
+              Contact us
+            </a>
+          </h3>
+        </div>
+      </div>
     </section>
   );
 };

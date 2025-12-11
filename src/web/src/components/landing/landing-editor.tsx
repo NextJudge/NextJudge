@@ -237,9 +237,15 @@ export const LandingEditor = () => {
 
   if (languages.length === 0) {
     return (
-      <section className="container py-12 max-w-7xl" id="try-it">
-        <div className="flex items-center justify-center h-[600px] border border-border rounded-lg bg-card">
-          <Icons.loader className="w-8 h-8 animate-spin text-primary" />
+      <section className="py-12 md:py-20 px-4" id="try-it">
+        <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl">
+          <div aria-hidden className="absolute inset-0 bg-zinc-100 dark:bg-zinc-900/80" />
+          <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.5)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black_40%,transparent_100%)]" />
+          <div className="relative py-16 md:py-24 px-6">
+            <div className="flex items-center justify-center h-[600px] border border-border rounded-lg bg-card mx-auto max-w-6xl">
+              <Icons.loader className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          </div>
         </div>
       </section>
     );
@@ -248,24 +254,29 @@ export const LandingEditor = () => {
   const isMobile = screenWidth < 768;
 
   return (
-    <section className="container py-12 max-w-7xl" id="try-it">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl md:text-4xl font-medium font-sans">
-          Try a practice problem{" "}
-          <span className="bg-gradient-to-br from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
-            right now!
-          </span>
-        </h2>
-        <p className="text-muted-foreground text-lg mt-2">
-          We've prepared a simple problem for you to try out. No sign-up needed.
-        </p>
-      </div>
+    <section className="py-12 md:py-20 px-4" id="try-it">
+      <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl">
+        <div aria-hidden className="absolute inset-0 bg-zinc-100 dark:bg-zinc-900/80" />
+        <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.5)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black_40%,transparent_100%)]" />
 
-      <div className={cn(
-        "relative w-full bg-background",
-        "h-[600px] md:h-[650px]",
-        "border border-border rounded-lg shadow-lg overflow-hidden"
-      )}>
+        <div className="relative py-16 md:py-24 px-6">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-medium font-sans">
+              Try a practice problem{" "}
+              <span className="bg-gradient-to-br from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
+                right now!
+              </span>
+            </h2>
+            <p className="text-muted-foreground text-lg mt-2">
+              We've prepared a simple problem for you to try out. No sign-up needed.
+            </p>
+          </div>
+
+          <div className={cn(
+            "relative w-full bg-background mx-auto max-w-6xl",
+            "h-[600px] md:h-[650px]",
+            "border border-border rounded-lg shadow-lg overflow-hidden"
+          )}>
         {isMobile ? (
           <div className="flex flex-col h-full">
             {/* mobile: stacked layout */}
@@ -433,6 +444,8 @@ export const LandingEditor = () => {
                 <a href="/auth/signup">Sign Up Free</a>
               </Button>
             </div>
+          </div>
+        </div>
           </div>
         </div>
       </div>
