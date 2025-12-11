@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ContestProblemStatus } from "@/components/ui/contest-problem-status-badge";
+import type { ContestProblemStatus } from "@/components/ui/contest-problem-status-badge";
 import {
     Table,
     TableBody,
@@ -12,7 +12,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { apiGetEventAttempts } from "@/lib/api";
-import { Problem, User } from "@/lib/types";
+import type { Problem, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -136,6 +136,15 @@ export function ContestLeaderboard({
         fetchLeaderboardData();
     }, [session?.nextjudge_token, contestId, contestStatus, participants, problems, isAdmin]);
 
+    const formatPenaltyTime = (minutes: number): string => {
+        if (minutes === 0) return "0";
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (hours === 0) return `${mins}m`;
+        if (mins === 0) return `${hours}h`;
+        return `${hours}h ${mins}m`;
+    };
+
     const renderProblemCell = (ps: ParticipantProblemStatus) => {
         const isAttempted = ps.submissionCount > 0 && !ps.isAccepted;
         const isUpcoming = ps.status === 'NOT_AVAILABLE';
@@ -152,13 +161,11 @@ export function ContestLeaderboard({
             text = "PREVIEW";
         } else if (ps.isAccepted) {
             bgClass = "bg-green-500 text-white border-green-600 shadow-sm";
-            // ICPC style: attempts/solveMinutes (e.g., "1/56", "7/278")
             const attemptsToSolve = ps.attemptsForScore && ps.attemptsForScore > 0 ? ps.attemptsForScore : 1;
             const minutes = ps.minutesToSolve ?? 0;
             text = `${attemptsToSolve}/${minutes}`;
         } else if (isAttempted) {
             bgClass = "bg-primary text-primary-foreground border-primary/80 shadow-sm";
-            // ICPC style: attempts/-- for unsolved (e.g., "2/--")
             text = `${ps.submissionCount}/--`;
         }
 
@@ -248,7 +255,7 @@ export function ContestLeaderboard({
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-center text-muted-foreground">
-                                            {participant.penaltyTimeMinutes}
+                                            {formatPenaltyTime(participant.penaltyTimeMinutes)}
                                         </TableCell>
                                         {problems.map((problem) => renderProblemCell(participant.problemStatuses[problem.id]))}
                                         <TableCell className="text-center text-muted-foreground">

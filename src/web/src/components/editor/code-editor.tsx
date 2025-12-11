@@ -5,6 +5,7 @@ import { useSettingsStore } from "@/lib/stores/settings-store";
 import { Language } from "@/lib/types";
 import { convertToMonacoLanguageName } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
+import { Theme } from "@/types";
 import Editor, { Monaco } from "@monaco-editor/react";
 import { editor } from "monaco-editor";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -82,9 +83,11 @@ export default function CodeEditor({
     error,
     submissionId,
     handleSubmitCode,
+    customInputLoading,
+    handleRunCustomInput,
 }: {
     languages: Language[],
-    themes: any;
+        themes: Theme[];
     problemId: number;
     setSubmissionId: (submissionId: number) => void;
     code: string;
@@ -93,6 +96,8 @@ export default function CodeEditor({
     error: string | null;
     submissionId: number | null;
     handleSubmitCode: (languageId: string, problemId: number) => Promise<void>;
+        customInputLoading: boolean;
+        handleRunCustomInput: (languageId: string) => Promise<void>;
 }) {
     const { theme, setTheme } = useContext(ThemeContext);
     const { defaultLanguage } = useSettingsStore();
@@ -243,8 +248,13 @@ export default function CodeEditor({
         await handleSubmitCode(currentLanguage?.id as string, problemId);
     };
 
+    const handleRun = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        await handleRunCustomInput(currentLanguage?.id as string);
+    };
+
     return (
-        <div className="h-full overflow-hidden flex-1 flex flex-col bg-card">
+        <div className="h-full w-full overflow-hidden flex flex-col bg-card">
             <div className="flex justify-between items-center flex-wrap gap-3 p-3 sm:p-4 border-b border-border bg-muted/30">
                 <div className="flex items-center gap-3 min-w-0">
                     <EditorLanguageSelect
@@ -255,9 +265,24 @@ export default function CodeEditor({
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 sm:h-9 sm:w-9"
+                        onClick={handleRun}
+                        disabled={customInputLoading || submissionLoading}
+                        title="Run with custom input"
+                        aria-label="Run with custom input"
+                    >
+                        {customInputLoading ? (
+                            <Icons.loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Icons.play className="w-4 h-4" />
+                        )}
+                    </Button>
+                    <Button
                         className="text-xs sm:text-sm px-3 sm:px-4 py-2 font-medium"
                         onClick={handleSubmit}
-                        disabled={submissionLoading}
+                        disabled={submissionLoading || customInputLoading}
                         variant={error ? "destructive" : "default"}
                         size="sm"
                     >
