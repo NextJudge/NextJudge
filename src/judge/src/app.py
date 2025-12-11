@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 
-from dataclasses import dataclass
-from typing import Callable, Literal
-from pathlib import Path
+import argparse
 import asyncio
-import os
-import sys
-import uuid
-import time
 import json
+import os
+import shutil
 import subprocess
+import sys
+import time
 import tomllib
+import uuid
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Literal
+
 import aio_pika
 import aio_pika.abc
-import shutil
-import time
-import argparse
 import requests
 
 RABBITMQ_HOST=os.getenv("RABBITMQ_HOST", "localhost")
@@ -60,7 +60,7 @@ class RabbitMQClient(object):
         self.callback_queue: aio_pika.abc.AbstractQueue = None
         self.futures = {}
         # dict[str, Callable] = dict()
-    
+
     async def setup(self):
 
         # For getting information from the bridge
@@ -80,7 +80,7 @@ class RabbitMQClient(object):
 
     async def generic_call(self, body: object):
         corr_id = str(uuid.uuid4())
-        
+
         self.response = None
 
         future = asyncio.Future()
@@ -96,22 +96,22 @@ class RabbitMQClient(object):
         )
 
         return await future
-    
+
     async def get_languages(self):
         return json.loads(await self.generic_call({"type":"get_languages"}))
 
     async def call_test(self, n):
         return await self.generic_call({"type":"test","body":n})
-    
+
     async def get_submission_data(self, submission_id: str):
         return await self.generic_call({"type":"submission_data", "body":submission_id})
-    
+
     async def get_test_data(self, testcase_id: str):
         return await self.generic_call({"type":"test_data", "body":testcase_id})
 
     async def send_judgement(self, body: dict):
         return await self.generic_call({"type":"judgement", "body":body})
-    
+
     async def send_custom_input_result(self, body: dict):
         return await self.generic_call({"type":"custom_result", "body":body})
 
@@ -159,7 +159,7 @@ def post_judgement(submission_id: str, data):
     )
     # print(data)
     return data
-    
+
 def post_custom_input_result(submission_id: str, body):
     response = requests.patch(
         f"{NEXTJUDGE_ENDPOINT}/v1/input_submissions/{submission_id}",
@@ -258,24 +258,21 @@ BRIDGE_LANG_ID_MAP: dict[str,int] = dict()
 rabbitmq: RabbitMQClient = None
 
 
-async def submit_judgement(submission, result: ResultReason, stdout: bytes, stderr: bytes, failed_test_case: str = "-1"):
+async def submit_judgement(submission, result: ResultReason, stdout: bytes, stderr: bytes, failed_test_case: str = "-1", test_case_results: list = None, time_elapsed: float = 0.0):
 
+    body = {
+        "submission_id": submission["id"],
+        "status": result,
+        "stdout": stdout.decode("utf-8"),
+        "stderr": stderr.decode("utf-8"),
+        "time_elapsed": time_elapsed
+    }
 
-    if result == "COMPILE_TIME_ERROR" or result == "ACCEPTED":
-        body = {
-            "submission_id": submission["id"],
-            "status": result,
-            "stdout": stdout.decode("utf-8"),
-            "stderr": stderr.decode("utf-8")
-        }
-    else:
-        body = {
-            "submission_id": submission["id"],
-            "status": result,
-            "failed_test_case_id":failed_test_case,
-            "stdout": stdout.decode("utf-8"),
-            "stderr": stderr.decode("utf-8")
-        }
+    if result != "COMPILE_TIME_ERROR" and result != "ACCEPTED":
+        body["failed_test_case_id"] = failed_test_case
+
+    if test_case_results:
+        body["test_case_results"] = test_case_results
 
     print("Submitting judgement to bridge")
     print(body)
@@ -389,7 +386,7 @@ def simple_compile_and_run_tests(source_code: str, tests:list[Test], language: L
             print("EXPECTED")
             print(t.expected_output)
 
-        
+
     environment.remove_files()
 
     return None
@@ -423,7 +420,7 @@ async def handle_test_submission(submission_id: str):
         print("No such language!")
         environment.remove_files()
         return
-    
+
     compile_result = compile_in_jail(submission_data["source_code"], LOCAL_LANGUAGES_MAP[local_language_id], environment)
 
     if not compile_result.success:
@@ -431,17 +428,44 @@ async def handle_test_submission(submission_id: str):
         environment.remove_files()
         await submit_judgement(submission_data, "COMPILE_TIME_ERROR", compile_result.stdout, compile_result.stderr)
         return
-    
+
+    test_case_results = []
+    last_stdout = b""
+    last_stderr = b""
+    total_time_elapsed = 0.0
+
     for test in tests:
+        start_time = time.time()
         run_result = run_single_test_case(test, environment)
+        elapsed = time.time() - start_time
+        total_time_elapsed += elapsed
+
+        test_case_results.append({
+            "test_case_id": test.id,
+            "stdout": run_result.stdout.decode("utf-8"),
+            "stderr": run_result.stderr.decode("utf-8"),
+            "passed": run_result.result == "ACCEPTED"
+        })
+
         if run_result.result != "ACCEPTED":
             environment.remove_files()
-            await submit_judgement(submission_data, run_result.result, run_result.stdout, run_result.stderr, test.id)
+            await submit_judgement(
+                submission_data,
+                run_result.result,
+                run_result.stdout,
+                run_result.stderr,
+                test.id,
+                test_case_results,
+                total_time_elapsed
+            )
             return
-    
+
+        last_stdout = run_result.stdout
+        last_stderr = run_result.stderr
+
     environment.remove_files()
 
-    await submit_judgement(submission_data,"ACCEPTED",b"",b"")
+    await submit_judgement(submission_data, "ACCEPTED", last_stdout, last_stderr, "-1", test_case_results, total_time_elapsed)
 
 
 async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
@@ -450,7 +474,7 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
     async with message.process(requeue=True,reject_on_redelivered=True):
         print(f"Judge received a submission")
         print(message.body)
-        
+
         json_data = json.loads(message.body.decode("utf-8"))
 
         work_item_type = json_data["type"]
@@ -471,13 +495,13 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
                 print("No such language!")
                 environment.remove_files()
                 return
-            
+
             if not compile_in_jail(source_code, LOCAL_LANGUAGES_MAP[local_language_id], environment).success:
                 # Compile time error
                 environment.remove_files()
                 await submit_custom_input_judgement(json_data["id"], "COMPILE_TIME_ERROR", b"", b"")
                 return
-            
+
             run_result = run_single(environment, bytes(stdin,"utf-8"))
             environment.remove_files()
 
@@ -539,13 +563,13 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
             "--mode", "o",
 
             "--time_limit", f"{10}", # Max wall time
-            "--max_cpus", f"{1}", 
+            "--max_cpus", f"{1}",
 
             "--rlimit_nofile", f"{128}", # Max file descriptor number (32)
             "--rlimit_as", f"{1024*8}", # Max virtual memory space
             "--rlimit_cpu", f"{10}", # Max CPU time
             "--rlimit_fsize", f"{512}", # Max file size in MB (1)
-            
+
             "--user", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
             "--group", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
 
@@ -568,9 +592,9 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
 
             "--env", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "--env", "HOME=/home/NEXTJUDGE_USER", # User is not really root, but some Dockerfile commands for compilers/runtimes add application files to root home
-            
+
             "--exec_file",f"{environment.inside_chroot_build_script}",
-            
+
             "--log_fd", f"{nsjail_log_pipes[1]}",
             # "--really_quiet"
             "-v"
@@ -603,7 +627,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
         print(f"stdout: {compile_result.stdout}")
         print(f"stderr: {compile_result.stderr}")
         print("Compiling succeeded!")
-    
+
     return CompileResult(True,compile_result.stdout,compile_result.stderr)
 
 
@@ -618,7 +642,7 @@ def run_single_test_case(testcase: Test, environment: ProgramEnvironment, verbos
     # if verbose:
     #     print("OUTPUT:",run_result.stdout.decode("utf-8"))
     #     print("EXPECTED:",testcase.expected_output)
-    
+
     if(run_result.result != "ACCEPTED"):
         return TestResult(run_result.result, run_result.stdout, run_result.stderr)
     else:
@@ -643,26 +667,26 @@ def run_single(environment: ProgramEnvironment, input: bytes, verbose=True) -> R
     # if verbose:
     #     print(f"Input: {input}")
     #     print("Starting execution")
-    
-    
+
+
     t = time.time()
     run_result = subprocess.run(
         [
             "nsjail",
             "--mode", "o",
             "--time_limit", f"{10}",
-            "--max_cpus", f"{1}", 
+            "--max_cpus", f"{1}",
             "--rlimit_as", f"{1024*4}", # // Max virtual memory space
             "--rlimit_cpu", f"{10}", # Max CPU time
             # // "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
             "--nice_level", "-20", # High priority
-            # // "--seccomp_policy", "Path to file containined seccomp-bpf policy. _string for string" // Allowed syscalls 
+            # // "--seccomp_policy", "Path to file containined seccomp-bpf policy. _string for string" // Allowed syscalls
             "--persona_addr_no_randomize", # // Disable ASLR
             "--user", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
             "--group", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
 
             "--chroot", f"/chroot", # // Chroot entire file system
-            
+
             "--bindmount_ro", f"{environment.top_level_dir_build_dir}:{environment.inside_chroot_build_dir}", # Map build dir as read/write
             "--bindmount_ro", f"{environment.top_level_dir_executable_dir}:{environment.inside_chroot_executable_dir}", # Map executable dir as read/write
 
@@ -706,7 +730,7 @@ def run_single(environment: ProgramEnvironment, input: bytes, verbose=True) -> R
     return RunResult("ACCEPTED", run_result.stdout, run_result.stderr)
 
 
-    
+
 
 def split_and_trim(code: str):
     return [x.rstrip() for x in code.split("\n")]
@@ -718,13 +742,13 @@ def compare_input_output(expected: str, real: str):
 
     if len(expected_lines) != len(real_lines):
       return False
-  
+
     # Compare the output line by line
-    
+
     for a,b in zip(expected_lines, real_lines):
         if a != b:
             return False
-        
+
     return True
 
 
@@ -802,7 +826,7 @@ async def main():
     global rabbitmq
     rabbitmq = RabbitMQClient(connection)
     await rabbitmq.setup()
-    
+
     languages = get_languages()
     # languages = await rabbitmq.get_languages()
     for bridge_lang in languages:
@@ -815,7 +839,7 @@ async def main():
 
     await submission_channel.set_qos(prefetch_count=1)
     queue = await submission_channel.declare_queue(SUBMISSION_QUEUE_NAME, durable=True)
-    
+
     print("consuming")
     await queue.consume(handle_submission)
 
@@ -846,7 +870,7 @@ if __name__ == '__main__':
         except OSError as e:
             print(f"Could not open file {args.file} - {e}")
             sys.exit(1)
-        
+
         extension = Path(args.file).suffix[1:]
         language = get_language_by_extension(extension)
 
