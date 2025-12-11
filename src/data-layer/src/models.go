@@ -109,6 +109,19 @@ func (TestCase) TableName() string {
 	return "test_cases"
 }
 
+type SubmissionTestCaseResult struct {
+	ID           uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	SubmissionID uuid.UUID `json:"submission_id"`
+	TestCaseID   uuid.UUID `json:"test_case_id"`
+	Stdout       string    `json:"stdout"`
+	Stderr       string    `json:"stderr"`
+	Passed       bool      `json:"passed"`
+}
+
+func (SubmissionTestCaseResult) TableName() string {
+	return "submission_test_case_results"
+}
+
 type Submission struct {
 	ID     uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	UserID uuid.UUID `json:"user_id"`
@@ -132,6 +145,8 @@ type Submission struct {
 	SourceCode       string     `json:"source_code"`
 	Stdout           string     `json:"stdout"`
 	Stderr           string     `json:"stderr"`
+	// per-test-case results stored in separate table
+	TestCaseResults []SubmissionTestCaseResult `json:"test_case_results,omitempty" gorm:"foreignKey:SubmissionID"`
 }
 
 type Language struct {

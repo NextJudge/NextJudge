@@ -338,10 +338,7 @@ func (d *Database) CreateSubmission(submission *Submission) (*Submission, error)
 
 func (d *Database) GetSubmission(submissionId uuid.UUID) (*Submission, error) {
 	submission := &Submission{}
-	// Preload("Language").Preload("Problem", func(db *gorm.DB) *gorm.DB {
-	// 	return db.Select("id, problem_id")
-	// })
-	err := db.NextJudgeDB.Preload("Language").Preload("Problem").First(submission, submissionId).Error
+	err := d.NextJudgeDB.Preload("Language").Preload("Problem").Preload("TestCaseResults").First(submission, submissionId).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -381,10 +378,36 @@ func (d *Database) GetProblemSubmissionsByUserID(userId uuid.UUID, problemId int
 }
 
 func (d *Database) UpdateSubmission(submission *Submission) error {
-	err := db.NextJudgeDB.Omit("Language", "Problem").Save(submission).Error
+	// update submission fields
+	err := d.NextJudgeDB.Model(submission).Select(
+		"status",
+		"failed_test_case_id",
+		"stdout",
+		"stderr",
+		"time_elapsed",
+	).Updates(submission).Error
 	if err != nil {
 		return err
 	}
+
+	// handle test case results if present
+	if len(submission.TestCaseResults) > 0 {
+		// delete existing results for this submission
+		err = d.NextJudgeDB.Where("submission_id = ?", submission.ID).Delete(&SubmissionTestCaseResult{}).Error
+		if err != nil {
+			return err
+		}
+
+		// set submission_id on all results and insert
+		for i := range submission.TestCaseResults {
+			submission.TestCaseResults[i].SubmissionID = submission.ID
+		}
+		err = d.NextJudgeDB.Create(&submission.TestCaseResults).Error
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

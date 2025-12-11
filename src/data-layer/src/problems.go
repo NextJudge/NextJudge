@@ -408,11 +408,19 @@ func getPublicProblemData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Filter test cases to only include public ones
-	var publicTests []TestCase
+	// include all test cases, but sanitize hidden ones (hide input/output)
+	var sanitizedTests []TestCase
 	for _, testCase := range problemExt.TestCases {
-		if !testCase.Hidden {
-			publicTests = append(publicTests, testCase)
+		if testCase.Hidden {
+			sanitizedTests = append(sanitizedTests, TestCase{
+				ID:             testCase.ID,
+				ProblemID:      testCase.ProblemID,
+				Input:          "",
+				ExpectedOutput: "",
+				Hidden:         true,
+			})
+		} else {
+			sanitizedTests = append(sanitizedTests, testCase)
 		}
 	}
 
@@ -431,7 +439,7 @@ func getPublicProblemData(w http.ResponseWriter, r *http.Request) {
 		AcceptTimeout:    problemExt.DefaultAcceptTimeout,
 		ExecutionTimeout: problemExt.DefaultExecutionTimeout,
 		MemoryLimit:      problemExt.DefaultMemoryLimit,
-		Tests:            publicTests,
+		Tests:            sanitizedTests,
 	}
 
 	respJSON, err := json.Marshal(problem)

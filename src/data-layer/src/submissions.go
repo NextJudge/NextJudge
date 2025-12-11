@@ -25,11 +25,20 @@ func addSubmissionRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Patch("/v1/submissions/:submission_id"), AtLeastJudgeRequired(updateSubmissionStatus))
 }
 
+type TestCaseResultRequest struct {
+	TestCaseID string `json:"test_case_id"`
+	Stdout     string `json:"stdout"`
+	Stderr     string `json:"stderr"`
+	Passed     bool   `json:"passed"`
+}
+
 type UpdateSubmissionStatusPatchBody struct {
-	Status           Status     `json:"status"`
-	FailedTestCaseID *uuid.UUID `json:"failed_test_case_id,omitempty"`
-	Stdout           string     `json:"stdout"`
-	Stderr           string     `json:"stderr"`
+	Status           Status                  `json:"status"`
+	FailedTestCaseID *uuid.UUID              `json:"failed_test_case_id,omitempty"`
+	Stdout           string                  `json:"stdout"`
+	Stderr           string                  `json:"stderr"`
+	TestCaseResults  []TestCaseResultRequest `json:"test_case_results,omitempty"`
+	TimeElapsed      float32                 `json:"time_elapsed,omitempty"`
 }
 
 type PostSubmissionBodyType struct {
@@ -467,6 +476,31 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 	submission.Status = reqData.Status
 	submission.Stderr = reqData.Stderr
 	submission.Stdout = reqData.Stdout
+	submission.TimeElapsed = reqData.TimeElapsed
+
+	// convert test case results from request to model
+	if len(reqData.TestCaseResults) > 0 {
+		submission.TestCaseResults = make([]SubmissionTestCaseResult, len(reqData.TestCaseResults))
+		for i, tcr := range reqData.TestCaseResults {
+			testCaseID, parseErr := uuid.Parse(tcr.TestCaseID)
+			if parseErr != nil {
+				logrus.WithError(parseErr).Warn("invalid test_case_id in results")
+				continue
+			}
+			submission.TestCaseResults[i] = SubmissionTestCaseResult{
+				TestCaseID: testCaseID,
+				Stdout:     tcr.Stdout,
+				Stderr:     tcr.Stderr,
+				Passed:     tcr.Passed,
+			}
+		}
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"submission_id": submission.ID,
+		"results_count": len(submission.TestCaseResults),
+	}).Info("Updating submission with test case results")
+
 	err = db.UpdateSubmission(submission)
 	if err != nil {
 		logrus.WithError(err).Error("error updating submission status in db")

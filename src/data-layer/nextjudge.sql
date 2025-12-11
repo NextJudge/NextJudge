@@ -74,6 +74,16 @@ CREATE TABLE "submissions" (
   "stderr" varchar
 );
 
+CREATE TABLE "submission_test_case_results" (
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "submission_id" UUID NOT NULL,
+  "test_case_id" UUID NOT NULL,
+  "stdout" varchar,
+  "stderr" varchar,
+  "passed" boolean NOT NULL,
+  UNIQUE("submission_id", "test_case_id")
+);
+
 CREATE TABLE "test_cases" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "hidden" boolean NOT NULL,
@@ -197,6 +207,10 @@ ALTER TABLE "submissions" ADD FOREIGN KEY ("event_problem_id") REFERENCES "event
 ALTER TABLE "submissions" ADD FOREIGN KEY ("language_id") REFERENCES "languages" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "submissions" ADD FOREIGN KEY ("failed_test_case_id") REFERENCES "test_cases" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "submission_test_case_results" ADD FOREIGN KEY ("submission_id") REFERENCES "submissions" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "submission_test_case_results" ADD FOREIGN KEY ("test_case_id") REFERENCES "test_cases" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "event_problems" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id") ON DELETE CASCADE;
 
