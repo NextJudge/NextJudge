@@ -1,4 +1,4 @@
-import { statusMap, Submission } from "@/lib/types";
+import { Submission, statusMap } from "@/lib/types";
 import { cn } from "@/lib/utils";
 export function SubmissionState({
   submission,
@@ -23,7 +23,7 @@ export function SubmissionState({
         </div>
         <div className="flex self-center ml-2 mt-1 gap-1">
           <p className="text-xs">Runtime:</p>
-          <p className="text-xs">{submission.time_elapsed}ms</p>
+          <p className="text-xs">{Math.round(submission.time_elapsed * 1000)}ms</p>
         </div>
       </div>
     </>

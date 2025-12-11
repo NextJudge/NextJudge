@@ -13,10 +13,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Language } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import * as React from "react";
-import { Language } from "@/lib/types";
 
 
 interface EditorLanguageSelectProps {

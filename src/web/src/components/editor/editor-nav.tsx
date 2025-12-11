@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-
+import { Icons } from "@/components/icons";
+import { MainNavigationMenu } from "@/components/nav/navbar";
+import { ModeToggle } from "@/components/theme";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -9,28 +11,21 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-
-import { Icons } from "@/components/icons";
-import { MainNavigationMenu } from "@/components/nav/navbar";
-import { ModeToggle } from "@/components/theme";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { routeList } from "@/lib/constants";
 import { Menu } from "lucide-react";
-import { Session } from "next-auth";
-import { NotificationBellServer } from "../ui/notification-bell-server";
+import { useState } from "react";
 
-// TODO: Feed these props from Zustand (global state solution)
 export default function EditorNavbar({
   children,
-  session,
+  notificationSlot,
 }: {
   children: React.ReactNode;
-  session: Session;
+    notificationSlot: React.ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   return (
     <header className="border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-neutral-500/40 dark:bg-background">
-      <div className="container h-14 px-4 w-screen flex justify-between">
+      <div className="container h-14 px-4 w-full flex justify-between">
         <div className="font-bold flex items-center mx-6 gap-2">
           <Icons.logo className="text-orange-600 w-6 h-6" />
           <a href="/" className="text-xl">
@@ -76,7 +71,7 @@ export default function EditorNavbar({
 
         <div className="hidden md:flex flex-row gap-4 justify-center items-center mx-12 ">
           <MainNavigationMenu />
-          <NotificationBellServer session={session} />
+          {notificationSlot}
           {children}
           <ModeToggle />
         </div>
