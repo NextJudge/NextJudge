@@ -8,3 +8,4 @@ src/data-layer/Pipfile.lock
 .DS_Store
 .vscode
 .vercel
+.env.coolify
