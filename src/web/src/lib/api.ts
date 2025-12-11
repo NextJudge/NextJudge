@@ -1,18 +1,18 @@
 import {
-	AnswerQuestionRequest,
-	Category,
-	CreateEventRequest,
-	CreateQuestionRequest,
-	CustomInputResult,
-	EventQuestion,
-	Language,
-	NextJudgeEvent,
-	Notification,
-	NotificationCount,
-	Problem,
-	ProblemRequest,
-	Submission,
-	User,
+    AnswerQuestionRequest,
+    Category,
+    CreateEventRequest,
+    CreateQuestionRequest,
+    CustomInputResult,
+    EventQuestion,
+    Language,
+    NextJudgeEvent,
+    Notification,
+    NotificationCount,
+    Problem,
+    ProblemRequest,
+    Submission,
+    User,
 } from "./types";
 import { getBridgeUrl } from "./utils";
 
@@ -1041,6 +1041,60 @@ export async function getCustomInputSubmissionStatus(
 			headers: {
 				"Content-Type": "application/json",
 				Authorization: token,
+			},
+		},
+	);
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		throw new Error(
+			errorData.message || `HTTP error! status: ${response.status}`,
+		);
+	}
+
+	return response.json();
+}
+
+// public (unauthenticated) endpoints for landing page demo
+
+export async function postPublicCustomInputSubmission(
+	code: string,
+	languageId: string,
+	stdin: string,
+): Promise<string> {
+	const response = await fetch(`${getBridgeUrl()}/v1/public/input_submissions`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			source_code: code,
+			language_id: languageId,
+			stdin: stdin,
+		}),
+	});
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		if (response.status === 429) {
+			throw new Error("RATE_LIMIT_EXCEEDED");
+		}
+		throw new Error(
+			errorData.message || `HTTP error! status: ${response.status}`,
+		);
+	}
+
+	return response.text();
+}
+
+export async function getPublicCustomInputSubmissionStatus(
+	submissionId: string,
+): Promise<CustomInputResult> {
+	const response = await fetch(
+		`${getBridgeUrl()}/v1/public/input_submissions/${submissionId}`,
+		{
+			headers: {
+				"Content-Type": "application/json",
 			},
 		},
 	);

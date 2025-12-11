@@ -44,6 +44,10 @@ func addInputSubmissionRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/input_submissions"), AuthRequired(postInputSubmission))
 	mux.HandleFunc(pat.Get("/v1/input_submissions/:submission_id"), AuthRequired(getInputSubmission))
 	mux.HandleFunc(pat.Patch("/v1/input_submissions/:submission_id"), AtLeastJudgeRequired(updateCustomInputSubmissionStatus))
+
+	// public endpoints for landing page demo (rate-limited, no auth required)
+	mux.HandleFunc(pat.Post("/v1/public/input_submissions"), RateLimitMiddleware(postPublicInputSubmission, publicInputLimiter))
+	mux.HandleFunc(pat.Get("/v1/public/input_submissions/:submission_id"), getInputSubmission)
 }
 
 func postInputSubmission(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +92,41 @@ func postInputSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reqData.UserID = userId
+
+	new_uuid := uuid.New()
+
+	status_object := CustomInputSubmissionResult{
+		Finished: false,
+	}
+
+	customSubmissionMap[new_uuid.String()] = &status_object
+
+	RabbitMQPublishCustomInputSubmission(new_uuid.String(), reqData)
+
+	fmt.Fprint(w, new_uuid.String())
+}
+
+// postPublicInputSubmission handles public (unauthenticated) code execution for landing page demo
+func postPublicInputSubmission(w http.ResponseWriter, r *http.Request) {
+	reqData := new(CustomInputSubmissionStatusPostBody)
+	reqBodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		logrus.WithError(err).Error("error reading request body")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
+		return
+	}
+
+	err = json.Unmarshal(reqBodyBytes, reqData)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+
+	// use a nil UUID for anonymous submissions
+	reqData.UserID = uuid.Nil
 
 	new_uuid := uuid.New()
 

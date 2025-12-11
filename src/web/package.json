@@ -103,6 +103,7 @@
         "sharp": "^0.33.2",
         "simplex-noise": "^4.0.1",
         "sonner": "^1.4.3",
+        "streamdown": "^1.6.10",
         "tailwind-merge": "^2.3.0",
         "tailwindcss-animate": "^1.0.7",
         "tiptap-markdown": "^0.8.10",

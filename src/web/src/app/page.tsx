@@ -14,6 +14,10 @@ const WhyNextJudge = dynamic(
   () => import("@/components/landing/bento").then((mod) => mod.WhyNextJudge),
   { ssr: false }
 );
+const LandingEditor = dynamic(
+  () => import("@/components/landing/landing-editor").then((mod) => mod.LandingEditor),
+  { ssr: false }
+);
 
 export const metadata: Metadata = {
   title: "NextJudge - Elevate your coding skills to the next level.",
@@ -57,6 +61,7 @@ export default async function Home() {
         <AltHero />
         <WhyNextJudge />
         <Services />
+        <LandingEditor />
         <LanguagesBanner />
         <EarlyAccess />
         <FAQ />
