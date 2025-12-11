@@ -13,7 +13,7 @@ interface PlatformLayoutProps {
 export default function EditorLayout({ children }: PlatformLayoutProps) {
   return (
     <>
-      <main className="flex-1 flex flex-col min-w-full">{children}</main>
+      <main className="flex-1 flex flex-col w-full min-w-0">{children}</main>
     </>
   );
 }

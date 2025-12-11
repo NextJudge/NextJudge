@@ -53,6 +53,7 @@
 @layer base {
 	* {
 		@apply border-border;
+		scrollbar-width: thin;
 	}
 	body {
 		@apply bg-background text-foreground;
@@ -61,6 +62,33 @@
 	html {
 		@apply antialiased;
 		scroll-behavior: smooth;
+	}
+
+	*::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+
+	*::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	*::-webkit-scrollbar-thumb {
+		background: hsl(var(--muted-foreground) / 0.3);
+		border-radius: 5px;
+	}
+
+	*::-webkit-scrollbar-thumb:hover {
+		background: hsl(var(--muted-foreground) / 0.5);
+	}
+
+	.monaco-editor,
+	.monaco-editor .overflow-guard {
+		max-width: 100% !important;
+	}
+
+	.monaco-editor .view-lines {
+		max-width: 100% !important;
 	}
 }
 

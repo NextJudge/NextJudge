@@ -3,15 +3,19 @@ import { IconBrandGithub, IconBrandGoogle } from "@tabler/icons-react";
 import {
   ArrowLeftIcon,
   CalendarIcon,
+  CheckIcon,
   ClockIcon,
   CopyIcon,
   EyeIcon,
   EyeOffIcon,
   HelpCircleIcon,
   Loader2Icon,
+  LockIcon,
+  PlayIcon,
   Pyramid,
   Shell,
-  UsersIcon
+  UsersIcon,
+  XIcon
 } from "lucide-react";
 
 export const Icons = {
@@ -30,4 +34,8 @@ export const Icons = {
   users: UsersIcon,
   copy: CopyIcon,
   help: HelpCircleIcon,
+  lock: LockIcon,
+  check: CheckIcon,
+  close: XIcon,
+  play: PlayIcon,
 };
