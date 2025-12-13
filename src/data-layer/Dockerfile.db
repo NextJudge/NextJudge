@@ -1,0 +1,4 @@
+FROM postgres:16
+
+COPY nextjudge.sql /docker-entrypoint-initdb.d/0_nextjudge.sql
+COPY init_prod_data.sql /docker-entrypoint-initdb.d/1_init_prod_data.sql
