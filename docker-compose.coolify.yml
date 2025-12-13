@@ -1,0 +1,75 @@
+services:
+  nextjudge-data-layer:
+    image: tnyuma/nextjudge-core:latest
+    platform: linux/amd64
+    expose:
+      - "5000"
+    environment:
+      - JUDGE_PASSWORD=${JUDGE_PASSWORD}
+      - JWT_SIGNING_SECRET=${JWT_SIGNING_SECRET}
+      - AUTH_PROVIDER_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - DB_HOST=db
+      - DB_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - ADMIN_EMAILS=${ADMIN_EMAILS}
+    healthcheck:
+      test: ["/app/nextjudge-core", "healthcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    platform: linux/amd64
+    environment:
+      - POSTGRES_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - POSTGRES_DB=nextjudge
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    platform: linux/amd64
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nextjudge-judge:
+    image: tnyuma/nextjudge-judge:latest
+    platform: linux/amd64
+    privileged: true
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - NEXTJUDGE_HOST=nextjudge-data-layer
+      - NEXTJUDGE_PORT=5000
+      - JUDGE_PASSWORD=${JUDGE_PASSWORD}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    depends_on:
+      nextjudge-data-layer:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
