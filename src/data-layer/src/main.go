@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"net/http"
 	"os"
@@ -16,24 +15,14 @@ var db *Database
 var es *ElasticSearch
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
-		if err := runHealthcheck(); err != nil {
-			logrus.WithError(err).Error("healthcheck failed")
-			os.Exit(1)
-		}
-		os.Exit(0)
-	}
-
 	var debug = flag.Bool("d", false, "enable debug logging")
 	var port = flag.String("p", "5000", "port")
-	flag.Parse()
+	var err error
 
 	if *debug {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
 	}
-
-	var err error
 
 	err = SetupRabbitMQConnection()
 	if err != nil {
@@ -101,66 +90,11 @@ func main() {
 	}
 }
 
-func runHealthcheck() error {
-	testDB, err := NewDatabase()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if testDB != nil && testDB.NextJudgeDB != nil {
-			sqlDB, err := testDB.NextJudgeDB.DB()
-			if err == nil && sqlDB != nil {
-				sqlDB.Close()
-			}
-		}
-	}()
-
-	var sqlDB *sql.DB
-	sqlDB, err = testDB.NextJudgeDB.DB()
-	if err != nil {
-		return err
-	}
-
-	if err := sqlDB.Ping(); err != nil {
-		return err
-	}
-
-	rabbitConn, err := NewRabbitMQConnection()
-	if err != nil {
-		return err
-	}
-	defer rabbitConn.Close()
-
-	return nil
-}
-
 func addHealthyRoute(mux *goji.Mux) {
 	mux.HandleFunc(pat.Get("/healthy"), getHealthy)
 }
 
 func getHealthy(w http.ResponseWriter, r *http.Request) {
-	if db == nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		return
-	}
-
-	var sqlDB *sql.DB
-	sqlDB, err := db.NextJudgeDB.DB()
-	if err != nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		return
-	}
-
-	if err := sqlDB.Ping(); err != nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		return
-	}
-
-	if rabbit_connection == nil || rabbit_connection.Channel == nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		return
-	}
-
 	w.WriteHeader(http.StatusOK)
 }
 

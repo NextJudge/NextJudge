@@ -851,37 +851,13 @@ async def main():
         await connection.close()
 
 
-def run_healthcheck():
-    import pika
-    try:
-        connection = pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=RABBITMQ_HOST,
-                port=int(RABBITMQ_PORT),
-                credentials=pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
-            )
-        )
-        connection.close()
-
-        response = requests.get(f"{NEXTJUDGE_ENDPOINT}/healthy", timeout=3)
-        if response.status_code != 200:
-            sys.exit(1)
-
-        sys.exit(0)
-    except Exception as e:
-        print(f"Healthcheck failed: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == "healthcheck":
-        run_healthcheck()
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--file", dest="file", required=False, default=None)
     parser.add_argument("--tests", dest="tests", required=False, default=None)
     parser.add_argument("--stdin", dest="stdin", required=False, default=None)
+
 
     args = parser.parse_args()
 

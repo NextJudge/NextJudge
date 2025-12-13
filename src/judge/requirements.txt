@@ -1,3 +1,2 @@
 aio-pika
 requests
-pika

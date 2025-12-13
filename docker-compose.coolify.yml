@@ -15,12 +15,6 @@ services:
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
       - CORS_ORIGIN=${CORS_ORIGIN}
       - ADMIN_EMAILS=${ADMIN_EMAILS}
-    healthcheck:
-      test: ["CMD", "/app/nextjudge-core healthcheck"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 15s
     depends_on:
       db:
         condition: service_healthy
@@ -65,15 +59,9 @@ services:
       - JUDGE_PASSWORD=${JUDGE_PASSWORD}
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-    healthcheck:
-      test: ["CMD", "python3", "/app/app.py", "healthcheck"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
     depends_on:
       nextjudge-data-layer:
-        condition: service_healthy
+        condition: service_started
       rabbitmq:
         condition: service_healthy
 
