@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
+import Image from "next/image";
 import Link from "next/link";
 import cSvg from "../../../public/icons/c.svg";
 import cplusplusSvg from "../../../public/icons/cplusplus.svg";
@@ -165,13 +166,15 @@ export function AltHero() {
             <h2 className="text-center text-lg font-medium">Solve problems in all of the programming languages that we know and love.</h2>
             <div className="mx-auto mt-20 flex max-w-4xl flex-wrap items-center justify-center gap-x-12 gap-y-8 sm:gap-x-16 sm:gap-y-12">
               {languageLogos.map((logo, index) => (
-                <img
+                <Image
                   key={index}
                   className={cn("w-fit", `size-${logo.height}`, {
                     "scale-125": logo.scale,
                   })}
-                  src={logo.icon.src}
+                  src={logo.icon}
                   alt={logo.alt}
+                  width={48}
+                  height={48}
                 />
               ))}
             </div>

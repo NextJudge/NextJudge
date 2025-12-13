@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function StatsSection() {
   return (
     <section className="py-16 md:py-32">
@@ -39,12 +41,12 @@ export default function StatsSection() {
 
               <div className="mt-6 space-y-3">
                 <cite className="block font-medium">ACM@OSU Team</cite>
-                <img
+                <Image
                   className="h-5 w-fit dark:invert"
                   src="https://html.tailus.io/blocks/customers/nvidia.svg"
                   alt="OSU Logo"
-                  height="20"
-                  width="auto"
+                  height={20}
+                  width={80}
                 />
               </div>
             </blockquote>

@@ -1,11 +1,10 @@
-import React from 'react'
-import Link from 'next/link'
-import { ArrowRight, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ArrowRight, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
-import { TextEffect } from '@/components/motion-primitives/text-effect'
-import { AnimatedGroup } from '@/components/motion-primitives/animated-group'
+import Link from 'next/link'
 import { HeroHeader } from './header'
+import { AnimatedGroup } from './ui/animated-group'
+import { TextEffect } from './ui/text-effect'
 
 const transitionVariants = {
     item: {
@@ -19,13 +18,13 @@ const transitionVariants = {
             filter: 'blur(0px)',
             y: 0,
             transition: {
-                type: 'spring',
+                type: 'spring' as const,
                 bounce: 0.3,
                 duration: 1.5,
             },
         },
     },
-}
+} as const
 
 export default function HeroSection() {
     return (
@@ -59,7 +58,7 @@ export default function HeroSection() {
                                         opacity: 1,
                                         y: 0,
                                         transition: {
-                                            type: 'spring',
+                                            type: 'spring' as const,
                                             bounce: 0.3,
                                             duration: 2,
                                         },
@@ -83,7 +82,16 @@ export default function HeroSection() {
 
                         <div className="mx-auto max-w-7xl px-6">
                             <div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
-                                <AnimatedGroup variants={transitionVariants}>
+                                <AnimatedGroup variants={{
+                                    container: {
+                                        visible: {
+                                            transition: {
+                                                staggerChildren: 0.05,
+                                            },
+                                        },
+                                    },
+                                }}>
+                                    <AnimatedGroup variants={transitionVariants}>
                                     <Link
                                         href="#link"
                                         className="hover:bg-background dark:hover:border-t-border bg-muted group mx-auto flex w-fit items-center gap-4 rounded-full border p-1 pl-4 shadow-md shadow-zinc-950/5 transition-colors duration-300 dark:border-t-white/5 dark:shadow-zinc-950">
@@ -156,6 +164,7 @@ export default function HeroSection() {
                                         </Link>
                                     </Button>
                                 </AnimatedGroup>
+                                </AnimatedGroup>
                             </div>
                         </div>
 
@@ -205,77 +214,77 @@ export default function HeroSection() {
                         </div>
                         <div className="group-hover:blur-xs mx-auto mt-12 grid max-w-2xl grid-cols-4 gap-x-12 gap-y-8 transition-all duration-500 group-hover:opacity-50 sm:gap-x-16 sm:gap-y-14">
                             <div className="flex">
-                                <img
+                                <Image
                                     className="mx-auto h-5 w-fit dark:invert"
                                     src="https://html.tailus.io/blocks/customers/nvidia.svg"
                                     alt="Nvidia Logo"
-                                    height="20"
-                                    width="auto"
+                                    height={20}
+                                    width={80}
                                 />
                             </div>
 
                             <div className="flex">
-                                <img
+                                <Image
                                     className="mx-auto h-4 w-fit dark:invert"
                                     src="https://html.tailus.io/blocks/customers/column.svg"
                                     alt="Column Logo"
-                                    height="16"
-                                    width="auto"
+                                    height={16}
+                                    width={64}
                                 />
                             </div>
                             <div className="flex">
-                                <img
+                                <Image
                                     className="mx-auto h-4 w-fit dark:invert"
                                     src="https://html.tailus.io/blocks/customers/github.svg"
                                     alt="GitHub Logo"
-                                    height="16"
-                                    width="auto"
+                                    height={16}
+                                    width={64}
                                 />
                             </div>
                             <div className="flex">
-                                <img
+                                <Image
                                     className="mx-auto h-5 w-fit dark:invert"
                                     src="https://html.tailus.io/blocks/customers/nike.svg"
                                     alt="Nike Logo"
-                                    height="20"
-                                    width="auto"
+                                    height={20}
+                                    width={80}
                                 />
                             </div>
                             <div className="flex">
-                                <img
+                                <Image
                                     className="mx-auto h-5 w-fit dark:invert"
                                     src="https://html.tailus.io/blocks/customers/lemonsqueezy.svg"
                                     alt="Lemon Squeezy Logo"
-                                    height="20"
-                                    width="auto"
+                                    height={20}
+                                    width={120}
                                 />
                             </div>
                             <div className="flex">
-                                <img
+                                <Image
                                     className="mx-auto h-4 w-fit dark:invert"
                                     src="https://html.tailus.io/blocks/customers/laravel.svg"
                                     alt="Laravel Logo"
-                                    height="16"
-                                    width="auto"
+                                    height={16}
+                                    width={64}
                                 />
                             </div>
                             <div className="flex">
-                                <img
+                                <Image
                                     className="mx-auto h-7 w-fit dark:invert"
                                     src="https://html.tailus.io/blocks/customers/lilly.svg"
                                     alt="Lilly Logo"
-                                    height="28"
-                                    width="auto"
+                                    height={28}
+                                    width={80}
                                 />
                             </div>
 
                             <div className="flex">
-                                <img
+                                <Image
                                     className="mx-auto h-6 w-fit dark:invert"
                                     src="https://html.tailus.io/blocks/customers/openai.svg"
                                     alt="OpenAI Logo"
-                                    height="24"
-                                    width="auto"
+                                    height={24}
+                                    width={80}
                                 />
                             </div>
                         </div>

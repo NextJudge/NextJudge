@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function getBridgeUrl() {
     return process.env.NODE_ENV === "production"
-        ? "https://bridge.nextjudge.net"
+        ? "https://api.nextjudge.net"
         : "http://localhost:5000";
 }
 
