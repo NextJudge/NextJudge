@@ -22,6 +22,12 @@ const nextConfig = {
         port: "",
         pathname: "**",
       },
+      {
+        protocol: "https",
+        hostname: "html.tailus.io",
+        port: "",
+        pathname: "**",
+      },
     ],
   },
 };
