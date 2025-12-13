@@ -14,8 +14,9 @@ import (
 const SUBMISSION_KEY string = "submission_queue"
 
 type RabbitMQService struct {
-	Channel *amqp.Channel
-	Queue   *amqp.Queue
+	Connection *amqp.Connection
+	Channel    *amqp.Channel
+	Queue      *amqp.Queue
 }
 
 var rabbit_connection *RabbitMQService
@@ -33,8 +34,7 @@ type RabbitMQCustomInputSubmission struct {
 	Stdin      string `json:"stdin"`
 }
 
-func SetupRabbitMQConnection() error {
-
+func NewRabbitMQConnection() (*RabbitMQService, error) {
 	rabbitMQEndpoint := fmt.Sprintf("amqp://%s:%s@%s:5672", url.QueryEscape(cfg.RabbitUser), url.QueryEscape(cfg.RabbitPassword), cfg.RabbitMQHost)
 
 	var conn *amqp.Connection
@@ -51,7 +51,7 @@ func SetupRabbitMQConnection() error {
 			if attempts < MAX_ATTEMPTS {
 				time.Sleep(2 * time.Second)
 			} else {
-				return err
+				return nil, err
 			}
 		}
 		attempts += 1
@@ -59,7 +59,8 @@ func SetupRabbitMQConnection() error {
 
 	channel, err := conn.Channel()
 	if err != nil {
-		return err
+		conn.Close()
+		return nil, err
 	}
 
 	submission_queue, err := channel.QueueDeclare(
@@ -71,14 +72,24 @@ func SetupRabbitMQConnection() error {
 		nil,            // arguments
 	)
 	if err != nil {
+		channel.Close()
+		conn.Close()
+		return nil, err
+	}
+
+	return &RabbitMQService{
+		Connection: conn,
+		Channel:    channel,
+		Queue:      &submission_queue,
+	}, nil
+}
+
+func SetupRabbitMQConnection() error {
+	service, err := NewRabbitMQConnection()
+	if err != nil {
 		return err
 	}
-
-	rabbit_connection = &RabbitMQService{
-		channel,
-		&submission_queue,
-	}
-
+	rabbit_connection = service
 	return nil
 }
 
@@ -144,5 +155,27 @@ func RabbitMQPublishCustomInputSubmission(id string, body *CustomInputSubmission
 }
 
 func CloseRabbitMQConnection() {
-	rabbit_connection.Channel.Close()
+	if rabbit_connection != nil {
+		if rabbit_connection.Channel != nil {
+			rabbit_connection.Channel.Close()
+		}
+		if rabbit_connection.Connection != nil {
+			rabbit_connection.Connection.Close()
+		}
+	}
+}
+
+func (r *RabbitMQService) Close() error {
+	var err error
+	if r.Channel != nil {
+		if closeErr := r.Channel.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}
+	if r.Connection != nil {
+		if closeErr := r.Connection.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}
+	return err
 }
