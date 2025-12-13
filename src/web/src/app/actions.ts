@@ -58,7 +58,7 @@ export async function sendEmail(formData: FormData): Promise<ReturnType> {
 
 export async function signUpUser(data: SignUpFormValues): Promise<ReturnType> {
   try {
-    const response = await fetch(`${getAppUrl()}/api/auth/register`, {
+    const response = await fetch(`/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
