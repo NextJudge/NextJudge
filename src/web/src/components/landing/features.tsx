@@ -231,7 +231,7 @@ export default function Features() {
                         </span>
                         programming contests.
                     </h2>
-                    <div className="mx-auto grid w-full gap-2 sm:gap-4 lg:grid-cols-2">
+                    <div className="mx-auto grid w-full gap-1 lg:grid-cols-2">
                         <FeatureCard className="lg:col-span-2 overflow-hidden">
                             <CardHeader className="pb-3 px-2 sm:px-4 md:px-6 pt-3 sm:pt-6">
                                 <CardHeading

@@ -10,6 +10,7 @@ import { Resend } from "resend";
 import { ZodError } from "zod";
 import { auth, signIn } from "./auth";
 import { newsletterFormSchema } from "./validation";
+import { getAppUrl } from "@/lib/utils";
 
 export interface ReturnType {
   status: "error" | "success";
@@ -57,7 +58,7 @@ export async function sendEmail(formData: FormData): Promise<ReturnType> {
 
 export async function signUpUser(data: SignUpFormValues): Promise<ReturnType> {
   try {
-    const response = await fetch(`/api/auth/register`, {
+    const response = await fetch(`${getAppUrl()}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
