@@ -3,28 +3,29 @@ import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import "web-streams-polyfill/polyfill";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NextJudge - Run competitive programming contests with ease.",
+  title: "NextJudge - Host Competitive Programming Contests with Ease",
   description:
-    "NextJudge is a competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible.",
+    "NextJudge is a competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible for everyone.",
   openGraph: {
     type: "website",
-    url: "https://nextjudge.vercel.app/",
-    title: "NextJudge - Run competitive programming contests with ease.",
+    url: "https://nextjudge.net/",
+    title: "NextJudge - Host Competitive Programming Contests with Ease",
     description:
-      "NextJudge is a competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible.",
+      "NextJudge is a competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible for everyone.",
     siteName: "NextJudge",
     images: [
       {
-        url: "https://nextjudge.vercel.app/og.png",
-        secureUrl: "https://nextjudge.vercel.app/og.png",
+        url: "https://nextjudge.net/og.png",
+        secureUrl: "https://nextjudge.net/og.png",
         width: 2880,
         height: 1612,
-        alt: "NextJudge - Run competitive programming contests with ease.",
+        alt: "NextJudge - Host Competitive Programming Contests with Ease",
       },
     ],
   },
