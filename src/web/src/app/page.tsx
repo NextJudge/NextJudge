@@ -27,34 +27,135 @@ export default async function Home() {
   const session = await auth();
 
   return (
-    <div className="min-h-screen w-full text-white relative" style={{
-      backgroundImage: "url('/page-bg.jpg')",
-      backgroundSize: "100% 100%",
-      backgroundPosition: "bottom",
-      backgroundRepeat: "no-repeat",
-    }}>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/90 backdrop-blur-sm z-0" />
+    <div className="min-h-screen w-full text-white relative bg-black">
       <LandingNavbar session={session || undefined} />
       <main className="flex max-w-screen-2xl mx-auto gap-10 flex-col items-center justify-between overflow-x-hidden relative z-10">
-        <AltHero />
-        <LandingEditor />
-        <Features />
-        <EarlyAccess />
-        <FAQ />
         <div
-          className="relative overflow-hidden"
+          className="relative overflow-hidden w-full"
           style={{
             backgroundImage: `
-      linear-gradient(
-        to bottom,
-        rgba(0,0,0,0.95) 0%,
-        rgba(0,0,0,0.6) 25%,
-        rgba(0,0,0,0.25) 55%,
-        rgba(0,0,0,0.05) 75%,
-        rgba(0,0,0,0.0) 100%
-      ),
-      url('/4.png')
-    `,
+              linear-gradient(
+                to bottom,
+                rgba(0,0,0,1.0) 0%,
+                rgba(0,0,0,0.8) 15%,
+                rgba(0,0,0,0.4) 30%,
+                rgba(0,0,0,0.0) 50%,
+                rgba(0,0,0,0.0) 50%,
+                rgba(0,0,0,0.4) 70%,
+                rgba(0,0,0,0.8) 85%,
+                rgba(0,0,0,1.0) 100%
+              ),
+              url('/1%20(1).png')
+            `,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          <div className="relative z-10">
+            <AltHero />
+          </div>
+        </div>
+
+        <div
+          className="relative overflow-hidden w-full"
+          style={{
+            backgroundImage: `
+              linear-gradient(
+                to bottom,
+                rgba(0,0,0,1.0) 0%,
+                rgba(0,0,0,0.5) 15%,
+                rgba(0,0,0,0.4) 30%,
+                rgba(0,0,0,0.0) 50%,
+                rgba(0,0,0,0.0) 50%,
+                rgba(0,0,0,0.4) 70%,
+                rgba(0,0,0,0.8) 85%,
+                rgba(0,0,0,1.0) 100%
+              ),
+              url('/1%20(1).png')
+            `,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          <div className="relative z-10">
+            <LandingEditor />
+          </div>
+        </div>
+
+        <div
+          className="relative overflow-hidden w-full"
+          style={{
+            backgroundImage: `
+              linear-gradient(
+                to bottom,
+                rgba(0,0,0,1.0) 0%,
+                rgba(0,0,0,0.8) 15%,
+                rgba(0,0,0,0.4) 30%,
+                rgba(0,0,0,0.0) 50%,
+                rgba(0,0,0,0.0) 50%,
+                rgba(0,0,0,0.4) 70%,
+                rgba(0,0,0,0.8) 85%,
+                rgba(0,0,0,1.0) 100%
+              ),
+              url('/1%20(1).png')
+            `,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          <div className="relative z-10">
+            <Features />
+          </div>
+        </div>
+
+        <div
+          className="relative overflow-hidden w-full"
+          style={{
+            backgroundImage: `
+              linear-gradient(
+                to bottom,
+                rgba(0,0,0,1.0) 0%,
+                rgba(0,0,0,0.8) 15%,
+                rgba(0,0,0,0.4) 30%,
+                rgba(0,0,0,0.0) 50%,
+                rgba(0,0,0,0.0) 50%,
+                rgba(0,0,0,0.4) 70%,
+                rgba(0,0,0,0.8) 85%,
+                rgba(0,0,0,1.0) 100%
+              ),
+              url('/3.png')
+            `,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          <div className="relative z-10">
+            <EarlyAccess />
+          </div>
+        </div>
+
+        <div className="relative overflow-hidden w-full">
+          <FAQ />
+        </div>
+
+        <div
+          className="relative overflow-hidden w-full"
+          style={{
+            backgroundImage: `
+              linear-gradient(
+                to bottom,
+                rgba(0,0,0,1.0) 0%,
+                rgba(0,0,0,0.8) 15%,
+                rgba(0,0,0,0.4) 30%,
+                rgba(0,0,0,0.0) 50%,
+                rgba(0,0,0,0.0) 50%
+              ),
+              url('/4.png')
+            `,
             backgroundSize: 'cover',
             backgroundPosition: 'bottom center',
             backgroundRepeat: 'no-repeat'

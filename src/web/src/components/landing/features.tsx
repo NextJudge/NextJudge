@@ -214,14 +214,14 @@ const MockQA = ({ className }: { className?: string }) => (
 
 export default function Features() {
     return (
-        <section id="features" className="py-8 sm:py-16 md:py-32 px-2 sm:px-4 text-white overflow-x-hidden">
+        <section id="features" className="py-8 sm:py-16 md:py-24 px-2 sm:px-4 text-white overflow-x-hidden">
             <div
                 className="relative mx-auto w-full max-w-[calc(100vw-1rem)] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[90vw] overflow-hidden rounded-3xl"
             >
-                <div
+                {/* <div
                     aria-hidden
                     className="absolute inset-0 bg-black/75"
-                />
+                /> */}
 
                 <div className="relative mx-auto w-full max-w-5xl px-2 sm:px-4 md:px-6 py-8 sm:py-16 md:py-24">
                     <h2 className="text-lg sm:text-2xl md:text-4xl font-medium font-sans text-center w-full mx-auto max-w-3xl px-1 sm:px-4 md:px-6 mb-6 sm:mb-12 text-white break-words">
@@ -364,11 +364,9 @@ export default function Features() {
                             />
                             </CardHeader>
 
-                            <div className="relative flex-1 border-t border-dashed max-sm:mb-6">
-                                <div className="flex h-full flex-col p-2 sm:p-3 px-2 sm:px-4">
-                                    <div className="relative h-[240px] overflow-hidden">
-                                        <AnimatedSubmissionsList />
-                                    </div>
+                            <div className="relative flex-1 border-t border-dashed">
+                                <div className="flex max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                    <AnimatedSubmissionsList />
                                 </div>
                         </div>
                     </FeatureCard>
@@ -513,7 +511,7 @@ const SubmissionItem = ({ problem, language, status, time, user }: MockSubmissio
 }
 
 const AnimatedSubmissionsList = () => (
-    <div className="relative flex h-full w-full flex-col overflow-hidden px-1 sm:px-4 py-2">
+    <div className="relative flex h-full w-full flex-col overflow-hidden px-2 sm:px-3 py-3">
         <AnimatedList delay={2000}>
             {mockSubmissionsData.map((submission) => (
                 <SubmissionItem key={submission.id} {...submission} />

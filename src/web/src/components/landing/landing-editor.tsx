@@ -286,7 +286,7 @@ export const LandingEditor = () => {
       <div
         className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl"
       >
-        <div aria-hidden className="absolute inset-0 bg-black/80" />
+        {/* <div aria-hidden className="absolute inset-0 bg-black/80" /> */}
 
         <div className="relative py-16 md:py-24 px-6">
           <div className="text-center mb-8">
