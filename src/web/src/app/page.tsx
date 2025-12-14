@@ -45,7 +45,7 @@ export default async function Home() {
                 rgba(0,0,0,0.8) 85%,
                 rgba(0,0,0,1.0) 100%
               ),
-              url('/1%20(1).png')
+              url('/footer-background.png')
             `,
             backgroundSize: 'cover',
             backgroundPosition: 'center center',
@@ -72,7 +72,7 @@ export default async function Home() {
                 rgba(0,0,0,0.8) 85%,
                 rgba(0,0,0,1.0) 100%
               ),
-              url('/1%20(1).png')
+              url('/hero-background.png')
             `,
             backgroundSize: 'cover',
             backgroundPosition: 'center center',
@@ -96,10 +96,10 @@ export default async function Home() {
                 rgba(0,0,0,0.0) 50%,
                 rgba(0,0,0,0.0) 50%,
                 rgba(0,0,0,0.4) 70%,
-                rgba(0,0,0,0.8) 85%,
+                rgba(0,0,0,0.6) 85%,
                 rgba(0,0,0,1.0) 100%
               ),
-              url('/1%20(1).png')
+              url('/footer-background.png')
             `,
             backgroundSize: 'cover',
             backgroundPosition: 'center center',
@@ -126,7 +126,7 @@ export default async function Home() {
                 rgba(0,0,0,0.8) 85%,
                 rgba(0,0,0,1.0) 100%
               ),
-              url('/3.png')
+              url('/early-access-background.png')
             `,
             backgroundSize: 'cover',
             backgroundPosition: 'center center',
@@ -156,7 +156,7 @@ export default async function Home() {
                 rgba(0,0,0,0.0) 50%,
                 rgba(0,0,0,0.0) 50%
               ),
-              url('/4.png')
+              url('/footer-background.png')
             `,
             backgroundSize: 'cover',
             backgroundPosition: 'bottom center',

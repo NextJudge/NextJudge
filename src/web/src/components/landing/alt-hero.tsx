@@ -83,7 +83,7 @@ export function AltHero() {
                           <span className="absolute inset-0 rounded-full shadow-lg bg-white/20 dark:bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(220,68,5,0.3)_0%,rgba(0,0,0,0.5)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                         </span>
                         <div className="relative flex space-x-2 items-center z-10 rounded-full py-0.5 px-4 ring-1 ring-white/20 dark:ring-white/10">
-                          <span>NextJudge is in early access!</span>
+                          <span>The CodeForces Alternative You Wanted</span>
                           <svg
                             fill="none"
                             height="16"
@@ -108,7 +108,7 @@ export function AltHero() {
                 </a>
               </TooltipProvider>
 
-              <h1 className="mt-8 max-w-2xl text-balance text-3xl font-medium text-white dark:text-white sm:text-4xl md:text-5xl lg:mt-12 lg:text-6xl">
+              <h1 className="mt-8 max-w-2xl text-balance text-3xl font-medium text-white dark:text-white sm:text-4xl md:text-5xl lg:mt-6 lg:text-6xl">
                 Host and participate in online coding contests
                 <span className="bg-gradient-to-r from-osu to-osu text-transparent bg-clip-text font-serif italic">
                   {" "}with ease.
