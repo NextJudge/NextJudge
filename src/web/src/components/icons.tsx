@@ -22,7 +22,7 @@ import Image from "next/image";
 
 function LogoIcon({ className }: { className?: string }) {
   return (
-    <Image src="/nextjudge.png" alt="NextJudge Logo" width={12} height={12} className={cn("size-12 aspect-square", className)} />
+    <Image src="/nextjudge.png" alt="NextJudge Logo" width={48} height={48} className={cn("size-12 aspect-square", className)} />
   )
 }
 

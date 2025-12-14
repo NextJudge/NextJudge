@@ -51,8 +51,10 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          forcedTheme="dark"
+          themes={["dark"]}
+          // enableSystem
           disableTransitionOnChange
         >
           {children}

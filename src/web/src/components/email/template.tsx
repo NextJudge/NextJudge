@@ -32,53 +32,24 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
       </style>
     </Head>
     <Tailwind>
-      <div
-        className="min-h-screen flex flex-col items-center py-10 geistfont"
-        style={{
-          fontFamily: "'Geist', 'Inter', 'Segoe UI', 'Arial', 'sans-serif'",
-          background: "#f7f7fa",
-        }}
-      >
-        <div
-          className="shadow-md rounded-lg p-6 max-w-2xl w-full bg-white"
-          style={{
-            fontFamily: "'Geist', 'Inter', 'Segoe UI', 'Arial', 'sans-serif'",
-            boxShadow: "0 4px 28px 0 rgba(24,39,75,0.10)",
-            border: "1px solid #ececec",
-            position: "relative",
-          }}
-        >
+      <div className="min-h-screen bg-[#f7f7fa] flex items-center justify-center geistfont">
+        <div className="shadow-md rounded-lg p-6 max-w-2xl w-full bg-white border border-[#ececec] relative">
           {/* Header: Logo top-right and Title */}
-          <div
-            className="flex items-center justify-between mb-4"
-            style={{ marginBottom: 32, alignItems: "center" }}
-          >
-            <h2
-              className="text-2xl font-bold"
-              style={{
-                fontFamily: "'Geist', 'Inter', 'Segoe UI', 'Arial', 'sans-serif'",
-                margin: 0,
-              }}
-            >
+          <div className="flex flex-row items-start mb-6 w-full">
+            <h2 className="text-2xl font-bold font-geist m-0 flex-1">
               Welcome to the NextJudge Community
             </h2>
-            <img
-              src="https://nextjudge.net/nextjudge.png"
-              alt="NextJudge Logo"
-              width={48}
-              height={48}
-              style={{
-                borderRadius: 12,
-                boxShadow: "none",
-                background: "none",
-                marginLeft: 20,
-                border: "none",
-                display: "block"
-              }}
-            />
+            <span className="inline-block ml-5 flex-none self-start">
+              <img
+                src="https://nextjudge.net/nextjudge.png"
+                alt="NextJudge Logo"
+                width={48}
+                height={48}
+                className="rounded-xl block"
+              />
+            </span>
           </div>
-
-          <p className="mb-4">Hi {firstName},</p>
+          <p className="mb-4">{firstName},</p>
           <p className="mb-4">
             Thank you for signing up. We’re glad you’re here. NextJudge is being
             built to make competitive programming more intuitive, more social, and
@@ -89,16 +60,7 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
             From us, expect short, infrequent updates that matter – release dates, new
             judge features, and first-look invites to test the platform.
           </p>
-
-          <h2
-            className="text-xl font-semibold mb-2 mt-6"
-            style={{
-              fontFamily: "'Geist', 'Inter', 'Segoe UI', 'Arial', 'sans-serif'",
-              color: "#FF6600",
-              marginBottom: 10,
-              marginTop: 32,
-            }}
-          >
+          <h2 className="text-xl font-semibold mb-2 mt-8 text-[#FF6600] font-geist">
             What happens next
           </h2>
           <div className="mb-4 space-y-2">
@@ -110,12 +72,7 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
               help write problems on our site? We'd love to have you! Reply to this e-mail or write to{" "}
               <a
                 href="mailto:hello@nextjudge.net"
-                className="text-orange-600 underline"
-                style={{
-                  color: "#FF6600",
-                  textDecoration: "underline",
-                  fontFamily: "'Geist', 'Inter', 'Segoe UI', 'Arial', 'sans-serif'",
-                }}
+                className="text-orange-600 underline font-geist"
               >
                 hello@nextjudge.net
               </a>{" "}
@@ -123,96 +80,47 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
               short approval process.
             </div>
             <div>
-              <strong>Product updates:</strong> concise changelogs and
-              behind the scenes notes delivered straight to your inbox.
+              <strong>Product updates:</strong> concise changelogs and behind the scenes notes delivered straight to your inbox.
             </div>
           </div>
-
           <p className="mb-4">
-            Questions, ideas, or just want to say hi? We read every message sent
-            to{" "}
+            Questions, ideas, or just want to say hi? We read every message sent to{" "}
             <a
               href="mailto:hello@nextjudge.net"
-              className="text-orange-600 underline"
-              style={{
-                color: "#FF6600",
-                textDecoration: "underline",
-                fontFamily: "'Geist', 'Inter', 'Segoe UI', 'Arial', 'sans-serif'",
-              }}
+              className="text-orange-600 underline font-geist"
             >
               hello@nextjudge.net
             </a>
             .
           </p>
-
           <p className="mb-1">Looking forward to building together,</p>
           <p className="mb-4">
             <strong>The NextJudge Team</strong>
           </p>
-
           {/* Footer with logo and support/info links */}
-          <div
-            className="mt-6 border-t pt-4 text-center text-gray-600 text-sm"
-            style={{
-              borderTop: "1px solid #ECECEC",
-              marginTop: 32,
-              paddingTop: 20,
-              color: "#6B7280",
-              textAlign: "center",
-              fontSize: 14,
-              letterSpacing: "0.01em",
-              background: "transparent",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-                marginBottom: 4,
-              }}
-            >
+          <div className="mt-8 border-t pt-5 text-center text-gray-600 text-sm bg-transparent" style={{letterSpacing: "0.01em"}}>
+            <div className="flex items-center justify-center gap-2 mb-1">
               <img
                 src="https://nextjudge.net/nextjudge.png"
                 alt="NextJudge Footer Icon"
                 width={32}
                 height={32}
-                style={{
-                  borderRadius: 8,
-                  background: "none",
-                  border: "none",
-                  marginRight: 8,
-                  boxShadow: "none"
-                }}
+                className="rounded-lg mr-2"
               />
               <a
                 href="https://nextjudge.net"
-                className="underline text-orange-600"
-                style={{
-                  color: "#FF6600",
-                  textDecoration: "underline",
-                  fontFamily: "'Geist', 'Inter', 'Segoe UI', 'Arial', 'sans-serif'",
-                  fontWeight: 600,
-                  fontSize: 16,
-                  marginRight: 0,
-                }}
+                className="underline text-orange-600 font-geist font-semibold text-base"
               >
                 NextJudge
               </a>
-              <span style={{ color: "#bbb", marginLeft: 2 }}>|</span>
-              <span style={{ marginLeft: 3 }}>Competitive Programming Platform</span>
+              <span className="text-gray-300 mx-1">|</span>
+              <span className="ml-1">Competitive Programming Platform</span>
             </div>
-            <p style={{margin: 0}}>
+            <p className="m-0">
               Support:{" "}
               <a
                 href={`mailto:${dev ? "dev@nextjudge.net" : "hello@nextjudge.net"}`}
-                className="text-orange-600 underline"
-                style={{
-                  color: "#FF6600",
-                  textDecoration: "underline",
-                  fontFamily: "'Geist', 'Inter', 'Segoe UI', 'Arial', 'sans-serif'",
-                }}
+                className="text-orange-600 underline font-geist"
               >
                 {dev ? "dev@nextjudge.net" : "hello@nextjudge.net"}
               </a>

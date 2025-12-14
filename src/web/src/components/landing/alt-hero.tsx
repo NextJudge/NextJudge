@@ -25,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import Demo from "./demo";
 import HeroButtons from "./hero-buttons";
 
 const languageLogos = [
@@ -59,8 +60,8 @@ export function AltHero() {
 
       <section className="relative w-full space-y-2">
         <div className="relative z-10 py-24 md:pb-32 lg:pb-36 lg:pt-44">
-          <div className="mx-auto flex w-full max-w-screen-2xl flex-col px-6 lg:block lg:px-12">
-            <div className="mx-auto max-w-lg text-center lg:ml-0 lg:max-w-2xl lg:text-left">
+          <div className="mx-auto flex w-full max-w-screen-2xl flex-col px-6 lg:flex-row lg:items-center lg:gap-8 lg:px-12">
+            <div className="mx-auto max-w-lg text-center lg:mx-0 lg:max-w-2xl lg:flex-1 lg:text-left">
               <TooltipProvider>
                 <a href="#early-access" className="inline-block mx-auto lg:mx-0" aria-hidden>
                   <Tooltip delayDuration={0}>
@@ -130,6 +131,9 @@ export function AltHero() {
               <div className="mt-8 flex flex-col items-center justify-center gap-2 sm:mt-12 sm:flex-row lg:justify-start">
                 <HeroButtons />
               </div>
+            </div>
+            <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+              <Demo />
             </div>
           </div>
         </div>
