@@ -5,8 +5,6 @@ import { EarlyAccess } from "@/components/landing/early-access";
 import { FAQ } from "@/components/landing/faq";
 import Features from "@/components/landing/features";
 import { ScrollToTop } from "@/components/landing/scroll-up";
-import { Services } from "@/components/landing/services";
-import StatsSection from "@/components/landing/stats-section";
 import { LandingNavbar } from "@/components/nav/landing-navbar";
 import { Metadata } from "next";
 import dynamic from "next/dynamic";
@@ -29,7 +27,13 @@ export default async function Home() {
   const session = await auth();
 
   return (
-    <div className="min-h-screen w-full bg-black text-white">
+    <div className="min-h-screen w-full text-white relative" style={{
+      backgroundImage: "url('/page-bg.jpg')",
+      backgroundSize: "100% 100%",
+      backgroundPosition: "bottom",
+      backgroundRepeat: "no-repeat",
+    }}>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/90 backdrop-blur-sm z-0" />
       <LandingNavbar session={session || undefined} />
       <main className="flex max-w-screen-2xl mx-auto gap-10 flex-col items-center justify-between overflow-x-hidden relative z-10">
         <AltHero />
@@ -37,7 +41,30 @@ export default async function Home() {
         <Features />
         <EarlyAccess />
         <FAQ />
-        <Footer />
+        <div
+          className="relative overflow-hidden"
+          style={{
+            backgroundImage: `
+      linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.95) 0%,
+        rgba(0,0,0,0.6) 25%,
+        rgba(0,0,0,0.25) 55%,
+        rgba(0,0,0,0.05) 75%,
+        rgba(0,0,0,0.0) 100%
+      ),
+      url('/4.png')
+    `,
+            backgroundSize: 'cover',
+            backgroundPosition: 'bottom center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          <div className="relative z-10">
+            <Footer />
+          </div>
+        </div>
+
         <ScrollToTop />
       </main>
     </div>

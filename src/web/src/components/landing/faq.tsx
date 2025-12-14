@@ -55,8 +55,7 @@ export const FAQ = () => {
   return (
     <section id="faq" className="py-16 md:py-32 px-4">
       <div
-        className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl bg-cover bg-center"
-        style={{ backgroundImage: "url('/1%20(1).png')" }}
+        className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl"
       >
         <div
           aria-hidden

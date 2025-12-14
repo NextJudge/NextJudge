@@ -216,8 +216,7 @@ export default function Features() {
     return (
         <section id="features" className="py-8 sm:py-16 md:py-32 px-2 sm:px-4 text-white overflow-x-hidden">
             <div
-                className="relative mx-auto w-full max-w-[calc(100vw-1rem)] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[90vw] overflow-hidden rounded-3xl bg-cover bg-center"
-                style={{ backgroundImage: "url('/4.png')" }}
+                className="relative mx-auto w-full max-w-[calc(100vw-1rem)] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[90vw] overflow-hidden rounded-3xl"
             >
                 <div
                     aria-hidden

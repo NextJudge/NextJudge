@@ -284,8 +284,7 @@ export const LandingEditor = () => {
   return (
     <section className="py-12 md:py-16 px-4 text-white" id="try-it">
       <div
-        className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl bg-cover bg-center"
-        style={{ backgroundImage: "url('/4.png')" }}
+        className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl"
       >
         <div aria-hidden className="absolute inset-0 bg-black/80" />
 

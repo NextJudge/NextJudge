@@ -7,10 +7,9 @@ export function EarlyAccess() {
   return (
     <section
       id="early-access"
-      className="relative flex h-full flex-col items-center justify-center overflow-hidden space-y-20 bg-cover bg-center px-4"
-      style={{ backgroundImage: "url('/1%20(1).png')" }}
+      className="relative flex h-full flex-col items-center justify-center overflow-hidden space-y-20 px-4"
     >
-      <div aria-hidden className="absolute inset-0 bg-black/65 z-0" />
+      <div aria-hidden className="absolute inset-0 z-0" />
       <Vortex
         rangeSpeed={0.5}
         baseSpeed={0.1}
