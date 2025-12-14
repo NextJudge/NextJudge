@@ -266,8 +266,8 @@ export const LandingEditor = () => {
 
   if (languages.length === 0) {
     return (
-      <section className="py-12 md:py-20 px-4 text-white" id="try-it">
-        <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl bg-black/90">
+      <section className="w-full py-12 md:py-20 px-4 text-white" id="try-it">
+        <div className="relative mx-auto w-full overflow-hidden rounded-3xl bg-black/90">
           <div aria-hidden className="absolute inset-0 bg-black/80" />
           <div className="relative py-16 md:py-24 px-6">
             <div className="flex items-center justify-center h-[600px] border border-osu/60 rounded-lg bg-black/80 mx-auto max-w-6xl">
@@ -282,9 +282,9 @@ export const LandingEditor = () => {
   const isMobile = screenWidth < 768;
 
   return (
-    <section className="py-12 md:py-16 px-4 text-white" id="try-it">
+    <section className="w-full py-12 md:py-16 px-4 text-white" id="try-it">
       <div
-        className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl"
+        className="relative mx-auto w-full overflow-hidden rounded-3xl"
       >
         {/* <div aria-hidden className="absolute inset-0 bg-black/80" /> */}
 

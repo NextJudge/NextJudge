@@ -216,7 +216,7 @@ export default function Features() {
     return (
         <section id="features" className="py-8 sm:py-16 md:py-24 px-2 sm:px-4 text-white overflow-x-hidden">
             <div
-                className="relative mx-auto w-full max-w-[calc(100vw-1rem)] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[90vw] overflow-hidden rounded-3xl"
+                className="relative mx-auto w-full overflow-hidden rounded-3xl"
             >
                 {/* <div
                     aria-hidden
@@ -348,10 +348,17 @@ export default function Features() {
                             />
                             </CardHeader>
 
-                            <div className="border-t border-dashed">
+                            <div className="relative border-t border-dashed">
                                 <div className="p-2 sm:p-3 px-2 sm:px-4 min-h-[180px] overflow-x-hidden">
                                     <AnimatedExecutionFeedThemed />
                                 </div>
+                                <div
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-0 z-10"
+                                    style={{
+                                        background: 'radial-gradient(125% 125% at 50% 0%, transparent 20%, rgba(0,0,0,0.75) 55%, rgba(0,0,0,0.95) 90%)'
+                                    }}
+                                />
                             </div>
                         </FeatureCard>
 
@@ -368,6 +375,13 @@ export default function Features() {
                                 <div className="flex max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                                     <AnimatedSubmissionsList />
                                 </div>
+                                <div
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-0 z-10"
+                                    style={{
+                                        background: 'radial-gradient(125% 125% at 50% 0%, transparent 20%, rgba(0,0,0,0.75) 55%, rgba(0,0,0,0.95) 90%)'
+                                    }}
+                                />
                         </div>
                     </FeatureCard>
 

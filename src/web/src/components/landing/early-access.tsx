@@ -16,7 +16,7 @@ export function EarlyAccess() {
         rangeY={800}
         particleCount={100}
         baseHue={120}
-        className="flex items-center flex-col justify-center w-screen h-screen relative z-10"
+        className="flex items-center flex-col justify-center w-full h-screen relative z-10"
       >
         <EmailForm />
       </Vortex>

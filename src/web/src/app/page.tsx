@@ -79,7 +79,7 @@ export default async function Home() {
             backgroundRepeat: 'no-repeat'
           }}
         >
-          <div className="relative z-10">
+          <div className="relative z-10 max-w-screen-2xl mx-auto">
             <LandingEditor />
           </div>
         </div>
@@ -106,7 +106,7 @@ export default async function Home() {
             backgroundRepeat: 'no-repeat'
           }}
         >
-          <div className="relative z-10">
+          <div className="relative z-10 max-w-screen-2xl mx-auto">
             <Features />
           </div>
         </div>
@@ -133,13 +133,15 @@ export default async function Home() {
             backgroundRepeat: 'no-repeat'
           }}
         >
-          <div className="relative z-10">
+          <div className="relative z-10 max-w-screen-2xl mx-auto">
             <EarlyAccess />
           </div>
         </div>
 
         <div className="relative overflow-hidden w-full">
-          <FAQ />
+          <div className="max-w-screen-2xl mx-auto">
+            <FAQ />
+          </div>
         </div>
 
         <div
@@ -161,7 +163,7 @@ export default async function Home() {
             backgroundRepeat: 'no-repeat'
           }}
         >
-          <div className="relative z-10">
+          <div className="relative z-10 max-w-screen-2xl mx-auto">
             <Footer />
           </div>
         </div>
