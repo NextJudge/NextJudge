@@ -57,7 +57,7 @@ export function AltHero() {
         <div className="h-320 -translate-y-87.5 absolute left-0 top-0 w-60 -rotate-45 bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.04)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)]" />
       </div>
 
-      <section className="relative w-full">
+      <section className="relative w-full space-y-2">
         <div className="relative z-10 py-24 md:pb-32 lg:pb-36 lg:pt-44">
           <div className="mx-auto flex w-full max-w-screen-2xl flex-col px-6 lg:block lg:px-12">
             <div className="mx-auto max-w-lg text-center lg:ml-0 lg:max-w-2xl lg:text-left">
@@ -134,7 +134,7 @@ export function AltHero() {
           </div>
         </div>
 
-        <div className="mt-4 absolute inset-x-4 inset-y-1 -z-10 overflow-hidden rounded-3xl border border-black/10 ring-2 ring-osu/40 lg:rounded-[3rem] dark:border-white/5 dark:ring-osu/20">
+        <div className="absolute inset-x-4 inset-y-1 -z-10 overflow-hidden rounded-3xl border border-black/10 lg:rounded-[3rem] dark:border-white/10">
           <video
             autoPlay
             loop
