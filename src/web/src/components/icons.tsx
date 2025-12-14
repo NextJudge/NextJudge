@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { EnterIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { IconBrandGithub, IconBrandGoogle } from "@tabler/icons-react";
 import {
@@ -12,15 +13,21 @@ import {
   Loader2Icon,
   LockIcon,
   PlayIcon,
-  Pyramid,
   Shell,
   TerminalIcon,
   UsersIcon,
   XIcon
 } from "lucide-react";
+import Image from "next/image";
+
+function LogoIcon({ className }: { className?: string }) {
+  return (
+    <Image src="/nextjudge.png" alt="NextJudge Logo" width={12} height={12} className={cn("size-12 aspect-square", className)} />
+  )
+}
 
 export const Icons = {
-  logo: Pyramid,
+  logo: LogoIcon,
   github: GitHubLogoIcon,
   spinner: Shell,
   loader: Loader2Icon,
