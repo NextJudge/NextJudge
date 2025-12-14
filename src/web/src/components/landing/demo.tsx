@@ -1,55 +1,247 @@
-import React, { useState, useEffect } from 'react';
+'use client';
+
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
+import type { Transition } from 'motion/react';
+
+const stages = [
+    { id: 0, label: 'Queue', delay: 700 },
+    { id: 1, label: 'Jail', delay: 850 },
+    { id: 2, label: 'Execute', delay: 900 },
+    { id: 3, label: 'Judge', delay: 1100 }
+] as const;
+
+const cursorTransition: Transition = {
+    duration: 1.35,
+    ease: 'easeInOut'
+};
+
+type Point = { x: number; y: number };
+
+function buildCursorPath(start: Point, end: Point) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const distance = Math.hypot(dx, dy);
+    const lift = Math.min(260, Math.max(120, distance * 0.35));
+
+    const c1 = { x: start.x + dx * 0.25, y: start.y - lift };
+    const c2 = { x: start.x + dx * 0.75, y: end.y + lift * 0.15 };
+
+    return `M ${start.x} ${start.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${end.x} ${end.y}`;
+}
+
+function sleep(ms: number) {
+    return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
 export default function Demo() {
     const [activeStage, setActiveStage] = useState(-1);
-    const [completedStages, setCompletedStages] = useState(new Set());
+    const [completedStages, setCompletedStages] = useState<Set<number>>(() => new Set());
     const [showResult, setShowResult] = useState(false);
 
-    const stages = [
-        { id: 0, label: 'Queue', delay: 700 },
-        { id: 1, label: 'Sandbox', delay: 850 },
-        { id: 2, label: 'Execute', delay: 900 },
-        { id: 3, label: 'Validate', delay: 1100 }
-    ];
+    const [isCycling, setIsCycling] = useState(false);
+
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const runButtonRef = useRef<HTMLButtonElement | null>(null);
+    const runTokenRef = useRef(0);
+    const isCyclingRef = useRef(false);
+
+    const [containerSize, setContainerSize] = useState<{ w: number; h: number } | null>(null);
+    const [cursorPath, setCursorPath] = useState<string | null>(null);
+    const [cursorKey, setCursorKey] = useState(0);
+    const [cursorPhase, setCursorPhase] = useState<'moving' | 'fading'>('moving');
+    const cursorPhaseRef = useRef<'moving' | 'fading'>('moving');
+
+    const [buttonPulse, setButtonPulse] = useState(false);
 
     useEffect(() => {
-        let isMounted = true;
+        cursorPhaseRef.current = cursorPhase;
+    }, [cursorPhase]);
 
-        const runCycle = async () => {
-            if (!isMounted) return;
+    useEffect(() => {
+        isCyclingRef.current = isCycling;
+    }, [isCycling]);
 
-            setActiveStage(-1);
-            setCompletedStages(new Set());
-            setShowResult(false);
+    const startCycle = useCallback(async (source: 'auto' | 'user') => {
+        if (isCyclingRef.current) return;
+        const token = ++runTokenRef.current;
 
-            await new Promise(resolve => setTimeout(resolve, 300));
+        isCyclingRef.current = true;
+        setIsCycling(true);
+        setActiveStage(-1);
+        setCompletedStages(new Set());
+        setShowResult(false);
 
-            for (const stage of stages) {
-                if (!isMounted) return;
-                setActiveStage(stage.id);
-                await new Promise(resolve => setTimeout(resolve, stage.delay));
-                if (!isMounted) return;
-                setCompletedStages(prev => new Set([...Array.from(prev), stage.id]));
-            }
+        if (source === 'auto') {
+            setButtonPulse(true);
+            window.setTimeout(() => setButtonPulse(false), 180);
+        }
 
-            if (!isMounted) return;
-            setShowResult(true);
-            await new Promise(resolve => setTimeout(resolve, 2000));
+        await sleep(300);
+        if (token !== runTokenRef.current) return;
 
-            if (isMounted) runCycle();
-        };
+        for (const stage of stages) {
+            if (token !== runTokenRef.current) return;
+            setActiveStage(stage.id);
+            await sleep(stage.delay);
+            if (token !== runTokenRef.current) return;
+            setCompletedStages((prev) => new Set([...Array.from(prev), stage.id]));
+        }
 
-        runCycle();
+        if (token !== runTokenRef.current) return;
+        setShowResult(true);
+        await sleep(2000);
+        if (token !== runTokenRef.current) return;
 
-        return () => {
-            isMounted = false;
-        };
+        setIsCycling(false);
+        isCyclingRef.current = false;
+
+        window.setTimeout(() => {
+            if (token !== runTokenRef.current) return;
+            cursorPhaseRef.current = 'moving';
+            setCursorPhase('moving');
+            setCursorKey((k) => k + 1);
+        }, 650);
     }, []);
 
+    const updateCursorPath = useCallback(() => {
+        const container = containerRef.current;
+        const button = runButtonRef.current;
+        if (!container || !button) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const buttonRect = button.getBoundingClientRect();
+        const end: Point = {
+            x: buttonRect.left - containerRect.left + buttonRect.width / 2,
+            y: buttonRect.top - containerRect.top + buttonRect.height / 2
+        };
+
+        const start: Point = {
+            x: -52,
+            y: Math.min(containerRect.height - 30, Math.max(28, containerRect.height * 0.32))
+        };
+
+        setCursorPath(buildCursorPath(start, end));
+        setContainerSize({ w: containerRect.width, h: containerRect.height });
+    }, []);
+
+    useLayoutEffect(() => {
+        updateCursorPath();
+    }, [updateCursorPath]);
+
+    useEffect(() => {
+        updateCursorPath();
+        window.addEventListener('resize', updateCursorPath);
+        const ro = new ResizeObserver(() => updateCursorPath());
+        if (containerRef.current) ro.observe(containerRef.current);
+
+        return () => {
+            window.removeEventListener('resize', updateCursorPath);
+            ro.disconnect();
+            runTokenRef.current++;
+        };
+    }, [updateCursorPath]);
+
+    const hasAutoStartedRef = useRef(false);
+    useEffect(() => {
+        if (!cursorPath || hasAutoStartedRef.current) return;
+        hasAutoStartedRef.current = true;
+        window.setTimeout(() => setCursorKey(1), 450);
+    }, [cursorPath]);
+
+    useEffect(() => {
+        if (cursorKey <= 0) return;
+        cursorPhaseRef.current = 'moving';
+        setCursorPhase('moving');
+    }, [cursorKey]);
+
+    const cursorStyle = cursorPath
+        ? ({
+              width: 24,
+              height: 24,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              offsetPath: `path("${cursorPath}")`,
+              offsetRotate: '0deg',
+              filter: 'drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6))'
+          } as React.CSSProperties)
+        : undefined;
+
     return (
-        <div className="w-full max-w-3xl">
+        <div ref={containerRef} className="relative w-full max-w-3xl" aria-hidden>
+            {cursorPath && (
+                <div className="pointer-events-none absolute inset-0 z-20">
+                    {containerSize && cursorKey > 0 && (
+                        <svg
+                            className="absolute inset-0 h-full w-full overflow-visible"
+                            width={containerSize.w}
+                            height={containerSize.h}
+                            viewBox={`0 0 ${containerSize.w} ${containerSize.h}`}
+                            aria-hidden="true"
+                        >
+                            <motion.path
+                                key={cursorKey}
+                                d={cursorPath}
+                                fill="transparent"
+                                strokeWidth="2"
+                                stroke="rgba(249, 115, 22, 0.18)"
+                                strokeLinecap="round"
+                                initial={{ pathLength: 0, opacity: 0 }}
+                                animate={
+                                    cursorPhase === 'moving'
+                                        ? { pathLength: [0, 1, 1], opacity: [0, 1, 0] }
+                                        : { pathLength: 1, opacity: 0 }
+                                }
+                                transition={
+                                    cursorPhase === 'moving'
+                                        ? {
+                                              duration: cursorTransition.duration,
+                                              ease: cursorTransition.ease,
+                                              times: [0, 0.75, 1]
+                                          }
+                                        : { duration: 0.18, ease: 'easeOut' }
+                                }
+                            />
+                        </svg>
+                    )}
+
+                    {cursorKey > 0 && (
+                        <motion.div
+                            key={cursorKey}
+                            style={cursorStyle}
+                            initial={{ offsetDistance: '0%', opacity: 0, scale: 0.9 }}
+                            animate={
+                                cursorPhase === 'moving'
+                                    ? { offsetDistance: '100%', opacity: 1, scale: 1 }
+                                    : { offsetDistance: '100%', opacity: 0, scale: 0.9 }
+                            }
+                            transition={cursorPhase === 'moving' ? cursorTransition : { duration: 0.18, ease: 'easeOut' }}
+                            onAnimationComplete={() => {
+                                if (cursorPhaseRef.current !== 'moving') return;
+                                cursorPhaseRef.current = 'fading';
+                                setCursorPhase('fading');
+                                runButtonRef.current?.focus();
+                                startCycle('auto');
+                            }}
+                            aria-hidden="true"
+                        >
+                            <div className="relative">
+                                <svg
+                                    className="h-6 w-6 text-neutral-100"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path d="M4.5 2.5L20 12.2l-7.2 1.9 2.1 7.4-3.1 1.1-2.4-7.4L4.5 2.5z" />
+                                </svg>
+                                <div className="absolute left-[6px] top-[6px] h-2 w-2 rounded-full bg-orange-500/90"></div>
+                            </div>
+                        </motion.div>
+                    )}
+                </div>
+            )}
+
             <div className="bg-black rounded-lg border border-neutral-800/50 overflow-hidden backdrop-blur-sm">
-                {/* Editor Header */}
                 <div className="flex items-center justify-between px-4 py-2 bg-neutral-950/80 border-b border-neutral-900/50">
                     <div className="flex items-center gap-3">
                         <div className="flex gap-1.5">
@@ -61,10 +253,24 @@ export default function Demo() {
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="text-xs text-neutral-700">C++17</div>
+                        <motion.button
+                            ref={runButtonRef}
+                            type="button"
+                            disabled={isCycling}
+                            onClick={() => startCycle('user')}
+                            animate={buttonPulse ? { scale: 0.96 } : { scale: 1 }}
+                            transition={{ duration: 0.18, ease: 'easeOut' }}
+                            className={`relative inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition ${isCycling
+                                    ? 'cursor-not-allowed border-neutral-900 bg-neutral-950/40 text-neutral-700'
+                                    : 'border-orange-500/20 bg-orange-500/10 text-orange-400 hover:bg-orange-500/15 hover:text-orange-300'
+                                }`}
+                            aria-label="Run demo pipeline"
+                        >
+                            <span className="font-mono">{isCycling ? 'Running…' : 'Run'}</span>
+                        </motion.button>
                     </div>
                 </div>
 
-                {/* Code Block */}
                 <div className="px-4 py-4 bg-neutral-950/50">
                     <pre className="text-[11px] leading-5 font-mono">
                         <code>
@@ -129,10 +335,8 @@ export default function Demo() {
                     </pre>
                 </div>
 
-                {/* Pipeline Visualization */}
                 <div className="px-6 py-8 bg-gradient-to-b from-black to-neutral-950/50">
                     <div className="relative">
-                        {/* Progress Track */}
                         <div className="absolute top-6 left-0 right-0 h-px bg-neutral-900"></div>
                         <div
                             className="absolute top-6 left-0 h-px bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-1000 ease-out"
@@ -142,7 +346,6 @@ export default function Demo() {
                             }}
                         ></div>
 
-                        {/* Stage Nodes */}
                         <div className="relative flex items-center justify-between">
                             {stages.map((stage) => {
                                 const isActive = activeStage === stage.id;
@@ -173,7 +376,6 @@ export default function Demo() {
                     </div>
                 </div>
 
-                {/* Result Panel */}
                 <div className={`border-t border-neutral-900/50 transition-all duration-700 ${showResult ? 'opacity-100 max-h-24' : 'opacity-0 max-h-0 overflow-hidden'
                     }`}>
                     <div className="px-6 py-4 bg-gradient-to-b from-neutral-950/50 to-black">
