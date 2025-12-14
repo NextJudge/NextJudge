@@ -1,10 +1,8 @@
+import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
+  NavigationMenuList
 } from "@/components/ui/navigation-menu";
 import {
   Sheet,
@@ -13,12 +11,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Session } from "next-auth";
-import { Button } from "@/components/ui/button";
-import { directoryRoutes, platformRoutes, routeList } from "@/lib/constants";
+import { routeList } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
-import { Menu, Pyramid } from "lucide-react";
+import { Menu } from "lucide-react";
+import { Session } from "next-auth";
 import Link from "next/link";
 import { Icons } from "../icons";
 import { ModeToggle } from "../theme";
@@ -28,13 +25,14 @@ import { UserAvatar } from "./user-avatar";
 export function LandingNavbar({ session }: { session: Session | undefined }) {
 
   return (
-    <header className="sticky md:relative top-0 z-40 max-w-7xl mx-auto w-screen bg-transparent backdrop-blur-lg flex justify-between items-center p-8">
+    <header className="absolute left-0 right-0 top-0 z-40 mx-auto max-w-7xl px-6 py-6 lg:px-12">
       <NavigationMenu
         className={cn("flex justify-between items-center w-full max-w-full")}
       >
         <div className="flex justify-start align-middle items-center w-full">
           <Icons.logo className="text-orange-600 translate-y-[0.8px]" />
-          <Link href="/" passHref className="ml-3 text-xl">
+          <Link href="/" passHref className="ml-3 text-xl text-white dark:text-white" aria-label="NextJudge">
+            <span className="sr-only">NextJudge</span>
             NextJudge
           </Link>
         </div>
@@ -42,7 +40,7 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
         <div className="flex md:hidden">
           <Sheet>
             <SheetTrigger className="px-2" asChild>
-              <Button variant="ghost" className={cn("self-end")}>
+              <Button variant="ghost" className="self-end text-white hover:bg-white/10">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -100,9 +98,10 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
             <a
               href={route.href}
               key={i}
-              className={`text-[17px] ${buttonVariants({
-                variant: "ghost",
-              })}`}
+              className={cn(
+                "text-[17px] text-white/90 hover:text-white hover:bg-white/10",
+                buttonVariants({ variant: "ghost" })
+              )}
             >
               {route.label}
             </a>
@@ -114,18 +113,22 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
               <UserAvatar session={session} />
             ) : (
               <div className="flex items-center gap-2">
-                <Link
+                  <Link
+                    aria-label="Login"
                   href="/auth/login"
                   className={cn(
-                    buttonVariants({ variant: "link", className: "text-black dark:text-white" })
+                    buttonVariants({ variant: "link" }),
+                    "text-white/90 hover:text-white"
                   )}
                 >
                   Login
                 </Link>
                 <Link
+                  aria-label="Sign Up"
                   href="/auth/signup"
                   className={cn(
-                    buttonVariants({ variant: "link", className: "text-black dark:text-white" })
+                    buttonVariants({ variant: "link" }),
+                    "text-white/90 hover:text-white"
                   )}
                 >
                   Sign Up

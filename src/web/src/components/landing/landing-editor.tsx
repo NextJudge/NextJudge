@@ -121,8 +121,10 @@ export const LandingEditor = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [rateLimitError, setRateLimitError] = useState(false);
   const [screenWidth, setScreenWidth] = useState<number>(typeof window !== "undefined" ? window.innerWidth : 1200);
+  const [currentTheme, setCurrentTheme] = useState<string>(editorTheme?.name || "hc-black");
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<Monaco | null>(null);
 
   useEffect(() => {
     const fetchLanguages = async () => {
@@ -153,13 +155,44 @@ export const LandingEditor = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    if (monacoRef.current && editorRef.current) {
+      const targetTheme = editorTheme?.name || "hc-black";
+      if (targetTheme !== currentTheme) {
+        applyThemeWithRetry(monacoRef.current, targetTheme);
+      }
+    }
+  }, [editorTheme?.name, currentTheme]);
+
   const handleLanguageSelect = (language: Language) => {
     setCurrentLanguage(language);
     setCode(getStarterCode(language));
   };
 
+  const applyThemeWithRetry = async (monaco: Monaco, themeName: string, retryAttempt = 0): Promise<void> => {
+    try {
+      monaco.editor.setTheme(themeName);
+      setCurrentTheme(themeName);
+    } catch (error) {
+      console.error(`Failed to load theme ${themeName} (attempt ${retryAttempt + 1}):`, error);
+      if (retryAttempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 500 * (retryAttempt + 1)));
+        return applyThemeWithRetry(monaco, themeName, retryAttempt + 1);
+      } else {
+        console.warn(`Theme ${themeName} failed to load after 3 attempts, falling back to hc-black`);
+        try {
+          monaco.editor.setTheme("hc-black");
+          setCurrentTheme("hc-black");
+        } catch (fallbackError) {
+          console.error("Failed to load fallback theme hc-black:", fallbackError);
+        }
+      }
+    }
+  };
+
   const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
     setTimeout(() => editor.layout(), 0);
 
     monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
@@ -167,6 +200,9 @@ export const LandingEditor = () => {
       allowJs: true,
       checkJs: true,
     });
+
+    const targetTheme = editorTheme?.name || "hc-black";
+    applyThemeWithRetry(monaco, targetTheme);
   };
 
   const handleRun = async () => {
@@ -216,15 +252,8 @@ export const LandingEditor = () => {
       fontSize: screenWidth < 640 ? 12 : screenWidth < 1024 ? 13 : 14,
       lineHeight: screenWidth < 640 ? 18 : screenWidth < 1024 ? 19 : 20,
       fontFamily: 'JetBrains Mono, Consolas, "Courier New", monospace',
-      minimap: { enabled: screenWidth > 1024 },
-      lineNumbers: screenWidth < 640 ? ("off" as const) : ("on" as const),
-      glyphMargin: screenWidth > 768,
       folding: screenWidth > 768,
-      lineDecorationsWidth: screenWidth < 640 ? 0 : 10,
-      lineNumbersMinChars: screenWidth < 640 ? 0 : 3,
-      renderLineHighlight: screenWidth < 640 ? ("none" as const) : ("line" as const),
-      fixedOverflowWidgets: true,
-      overviewRulerBorder: false,
+      renderLineHighlight: "none" as const,
       scrollbar: {
         vertical: "auto" as const,
         horizontal: "auto" as const,
@@ -237,13 +266,12 @@ export const LandingEditor = () => {
 
   if (languages.length === 0) {
     return (
-      <section className="py-12 md:py-20 px-4" id="try-it">
-        <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl">
-          <div aria-hidden className="absolute inset-0 bg-zinc-100 dark:bg-zinc-900/80" />
-          <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.5)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black_40%,transparent_100%)]" />
+      <section className="py-12 md:py-20 px-4 text-white" id="try-it">
+        <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl bg-black/90">
+          <div aria-hidden className="absolute inset-0 bg-black/80" />
           <div className="relative py-16 md:py-24 px-6">
-            <div className="flex items-center justify-center h-[600px] border border-border rounded-lg bg-card mx-auto max-w-6xl">
-              <Icons.loader className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex items-center justify-center h-[600px] border border-osu/60 rounded-lg bg-black/80 mx-auto max-w-6xl">
+              <Icons.loader className="w-8 h-8 animate-spin text-osu" />
             </div>
           </div>
         </div>
@@ -254,52 +282,55 @@ export const LandingEditor = () => {
   const isMobile = screenWidth < 768;
 
   return (
-    <section className="py-12 md:py-20 px-4" id="try-it">
-      <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl">
-        <div aria-hidden className="absolute inset-0 bg-zinc-100 dark:bg-zinc-900/80" />
-        <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.5)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black_40%,transparent_100%)]" />
+    <section className="py-12 md:py-20 px-4 text-white" id="try-it">
+      <div
+        className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl bg-cover bg-center"
+        style={{ backgroundImage: "url('/4.png')" }}
+      >
+        <div aria-hidden className="absolute inset-0 bg-black/80" />
 
         <div className="relative py-16 md:py-24 px-6">
           <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-medium font-sans">
+            <h2 className="text-3xl md:text-4xl font-medium font-sans text-white">
               Try a practice problem{" "}
               <span className="bg-gradient-to-br from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
                 right now!
               </span>
             </h2>
-            <p className="text-muted-foreground text-lg mt-2">
+            <p className="text-gray-300 text-lg mt-2">
               We've prepared a simple problem for you to try out. No sign-up needed.
             </p>
           </div>
 
           <div className={cn(
-            "relative w-full bg-background mx-auto max-w-6xl",
+            "relative w-full mx-auto max-w-6xl",
             "h-[600px] md:h-[650px]",
-            "border border-border rounded-lg shadow-lg overflow-hidden"
+            "border border-osu/60 rounded-lg shadow-lg overflow-hidden",
+            "bg-black/80 backdrop-blur text-white"
           )}>
         {isMobile ? (
           <div className="flex flex-col h-full">
             {/* mobile: stacked layout */}
             <div className="flex-1 min-h-0 flex flex-col">
               <Tabs defaultValue="problem" className="flex flex-col h-full">
-                <div className="border-b border-border bg-muted/30 px-2">
-                  <TabsList className="h-10 bg-transparent">
-                    <TabsTrigger value="problem" className="text-xs">Problem</TabsTrigger>
-                    <TabsTrigger value="code" className="text-xs">Code</TabsTrigger>
-                    <TabsTrigger value="output" className="text-xs">Output</TabsTrigger>
+                    <div className="border-b border-osu/50 bg-black/60 px-2">
+                      <TabsList className="h-10 bg-transparent text-white">
+                        <TabsTrigger value="problem" className="text-xs text-white data-[state=active]:text-osu">Problem</TabsTrigger>
+                        <TabsTrigger value="code" className="text-xs text-white data-[state=active]:text-osu">Code</TabsTrigger>
+                        <TabsTrigger value="output" className="text-xs text-white data-[state=active]:text-osu">Output</TabsTrigger>
                   </TabsList>
                 </div>
-                <TabsContent value="problem" className="flex-1 overflow-auto m-0 p-4">
+                    <TabsContent value="problem" className="flex-1 overflow-auto m-0 p-4 text-white">
                   <div className="flex items-start justify-between gap-3 mb-4">
-                    <h3 className="text-lg font-bold text-foreground">{DEMO_PROBLEM.title}</h3>
-                    <Badge variant="secondary" className="text-xs shrink-0">
+                        <h3 className="text-lg font-bold text-white">{DEMO_PROBLEM.title}</h3>
+                        <Badge variant="secondary" className="text-xs shrink-0 bg-osu/20 text-osu border border-osu/60">
                       {DEMO_PROBLEM.difficulty.charAt(0) + DEMO_PROBLEM.difficulty.slice(1).toLowerCase()}
                     </Badge>
                   </div>
                   <LandingProblemStatement prompt={DEMO_PROBLEM.prompt} />
                 </TabsContent>
-                <TabsContent value="code" className="flex-1 m-0 flex flex-col min-h-0">
-                  <div className="flex items-center justify-between gap-2 p-2 border-b border-border bg-muted/30">
+                    <TabsContent value="code" className="flex-1 m-0 flex flex-col min-h-0 text-white">
+                      <div className="flex items-center justify-between gap-2 p-2 border-b border-osu/50 bg-black/60">
                     {currentLanguage && (
                       <EditorLanguageSelect
                         languages={languages}
@@ -319,14 +350,14 @@ export const LandingEditor = () => {
                       loading={<div className="flex items-center justify-center h-full"><Icons.loader className="w-6 h-6 animate-spin text-primary" /></div>}
                       language={currentLanguage ? convertToMonacoLanguageName(currentLanguage) : "python"}
                       value={code}
-                      theme={editorTheme?.name || (resolvedTheme === "dark" ? "vs-dark" : "vs")}
+                          theme={currentTheme}
                       options={editorOptions}
                       onChange={(value) => setCode(value ?? "")}
                       onMount={handleEditorDidMount}
                     />
                   </div>
                 </TabsContent>
-                <TabsContent value="output" className="flex-1 overflow-auto m-0 p-4">
+                    <TabsContent value="output" className="flex-1 overflow-auto m-0 p-4 text-white">
                   <OutputPanel
                     customInput={customInput}
                     setCustomInput={setCustomInput}
@@ -339,31 +370,31 @@ export const LandingEditor = () => {
             </div>
           </div>
         ) : (
-          <ResizablePanelGroup direction="horizontal" className="h-full">
+                <ResizablePanelGroup direction="horizontal" className="h-full text-white">
             {/* problem panel */}
-            <ResizablePanel defaultSize={35} minSize={25} maxSize={50} className="bg-card">
+                  <ResizablePanel defaultSize={35} minSize={25} maxSize={50} className="bg-black/70 border-r border-osu/40">
               <div className="h-full flex flex-col">
-                <div className="flex items-center justify-between gap-3 p-4 border-b border-border bg-muted/30">
-                  <h3 className="text-lg font-semibold text-foreground truncate">{DEMO_PROBLEM.title}</h3>
-                  <Badge variant="secondary" className="text-xs shrink-0">
+                      <div className="flex items-center justify-between gap-3 p-4 border-b border-osu/40 bg-black/60">
+                        <h3 className="text-lg font-semibold text-white truncate">{DEMO_PROBLEM.title}</h3>
+                        <Badge variant="secondary" className="text-xs shrink-0 bg-osu/20 text-osu border border-osu/60">
                     {DEMO_PROBLEM.difficulty.charAt(0) + DEMO_PROBLEM.difficulty.slice(1).toLowerCase()}
                   </Badge>
                 </div>
-                <div className="flex-1 overflow-auto p-4">
+                      <div className="flex-1 overflow-auto p-4 text-white">
                   <LandingProblemStatement prompt={DEMO_PROBLEM.prompt} />
                 </div>
               </div>
             </ResizablePanel>
 
-            <ResizableHandle withHandle className="bg-border hover:bg-muted/50 transition-colors" />
+                  <ResizableHandle withHandle className="bg-osu/60 hover:bg-osu/80 transition-colors" />
 
             {/* editor panel */}
-            <ResizablePanel defaultSize={65} minSize={40} className="bg-background">
+                  <ResizablePanel defaultSize={65} minSize={40} className="bg-black/70">
               <ResizablePanelGroup direction="vertical" className="h-full">
                 {/* code editor */}
                 <ResizablePanel defaultSize={65} minSize={30} className="min-h-0">
                   <div className="h-full flex flex-col">
-                    <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-border bg-muted/30">
+                          <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-osu/40 bg-black/60">
                       <div className="flex items-center gap-3">
                         {currentLanguage && (
                           <EditorLanguageSelect
@@ -392,13 +423,13 @@ export const LandingEditor = () => {
                     <div className="flex-1 min-h-0">
                       <Editor
                         loading={
-                          <div className="flex items-center justify-center h-full bg-background">
-                            <Icons.loader className="w-8 h-8 animate-spin text-primary" />
+                                <div className="flex items-center justify-center h-full bg-black/80">
+                                  <Icons.loader className="w-8 h-8 animate-spin text-osu" />
                           </div>
                         }
                         language={currentLanguage ? convertToMonacoLanguageName(currentLanguage) : "python"}
                         value={code}
-                        theme={editorTheme?.name || (resolvedTheme === "dark" ? "vs-dark" : "vs")}
+                              theme={currentTheme}
                         options={editorOptions}
                         onChange={(value) => setCode(value ?? "")}
                         onMount={handleEditorDidMount}
@@ -407,16 +438,16 @@ export const LandingEditor = () => {
                   </div>
                 </ResizablePanel>
 
-                <ResizableHandle withHandle className="bg-border hover:bg-muted/50 transition-colors" />
+                      <ResizableHandle withHandle className="bg-osu/60 hover:bg-osu/80 transition-colors" />
 
                 {/* output panel */}
-                <ResizablePanel defaultSize={35} minSize={15} maxSize={60} className="min-h-0 bg-card">
+                      <ResizablePanel defaultSize={35} minSize={15} maxSize={60} className="min-h-0 bg-black/70">
                   <div className="h-full flex flex-col">
-                    <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
-                      <Icons.terminal className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-muted-foreground">Output</span>
+                          <div className="flex items-center gap-2 px-3 py-2 border-b border-osu/40 bg-black/60">
+                            <Icons.terminal className="w-4 h-4 text-osu" />
+                            <span className="text-sm font-medium text-white">Output</span>
                     </div>
-                    <div className="flex-1 overflow-auto p-4">
+                          <div className="flex-1 overflow-auto p-4 text-white">
                       <OutputPanel
                         customInput={customInput}
                         setCustomInput={setCustomInput}
@@ -433,11 +464,11 @@ export const LandingEditor = () => {
         )}
 
         {/* cta banner at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-3 px-4">
-          <div className="flex items-center justify-center gap-4 text-sm">
-            <span className="text-muted-foreground">Ready for more challenges?</span>
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent pt-8 pb-3 px-4">
+              <div className="flex items-center justify-center gap-4 text-sm text-white">
+                <span className="text-gray-300">Ready for more challenges?</span>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild className="border-osu/60 text-white hover:bg-osu/20">
                 <a href="/auth/login">Log In</a>
               </Button>
               <Button size="sm" asChild>
@@ -467,19 +498,19 @@ const OutputPanel = ({
   rateLimitError: boolean;
 }) => {
   return (
-    <div className="grid md:grid-cols-2 gap-4 h-full">
+    <div className="grid md:grid-cols-2 gap-4 h-full text-white">
       <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Input</label>
+        <label className="text-xs font-medium text-gray-300 uppercase tracking-wide">Input</label>
         <textarea
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
           placeholder="Enter input..."
-          className="w-full h-[80px] md:h-[calc(100%-28px)] p-3 text-sm font-mono bg-muted/30 border border-border rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full h-[80px] md:h-[calc(100%-28px)] p-3 text-sm font-mono bg-black/60 text-white border border-osu/50 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-osu"
         />
       </div>
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Output</label>
+          <label className="text-xs font-medium text-gray-300 uppercase tracking-wide">Output</label>
           {isRunning && (
             <SubmissionStatusBadge status="PENDING" showIcon variant="detailed" />
           )}
@@ -489,23 +520,23 @@ const OutputPanel = ({
         </div>
         <div className={cn(
           "w-full h-[80px] md:h-[calc(100%-28px)] p-3 text-sm font-mono border rounded-md overflow-auto",
-          rateLimitError ? "bg-destructive/10 border-destructive/50 text-destructive" :
-          customInputResult?.stderr ? "bg-destructive/10 border-destructive/50" :
-          "bg-muted/30 border-border"
+          rateLimitError ? "bg-red-900/60 border-red-500/70 text-red-200" :
+            customInputResult?.stderr ? "bg-red-900/60 border-red-500/70 text-red-200" :
+              "bg-black/60 border-osu/50 text-white"
         )}>
           {isRunning ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Icons.loader className="w-4 h-4 animate-spin" />
+            <div className="flex items-center gap-2 text-gray-300">
+              <Icons.loader className="w-4 h-4 animate-spin text-osu" />
               <span>Running...</span>
             </div>
           ) : rateLimitError ? (
-            <span>Rate limit exceeded. Please wait a moment.</span>
+              <span className="text-red-200">Rate limit exceeded. Please wait a moment.</span>
           ) : customInputResult?.stderr ? (
-            <span className="text-destructive whitespace-pre-wrap">{customInputResult.stderr}</span>
+                <span className="text-red-200 whitespace-pre-wrap">{customInputResult.stderr}</span>
           ) : customInputResult?.stdout ? (
-            <span className="text-foreground whitespace-pre-wrap">{customInputResult.stdout}</span>
+                  <span className="text-white whitespace-pre-wrap">{customInputResult.stdout}</span>
           ) : (
-            <span className="text-muted-foreground">Run your code to see output</span>
+                    <span className="text-gray-400">Run your code to see output</span>
           )}
         </div>
       </div>

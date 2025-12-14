@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { Editor } from '@monaco-editor/react'
 import { Activity, CheckCircle, CircleDot, Code2, HelpCircle, LucideIcon, MessageCircle, Trophy, XCircle, Zap } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { ReactNode, useCallback, useEffect, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 
 type ProblemStatus =
     | { solved: true; attempts: number; time: number }
@@ -50,6 +50,7 @@ const ClippedCodeEditor = () => {
                 defaultValue={sampleCode}
                 options={{
                     lineNumbers: 'off',
+                    overviewRulerBorder: false,
                     minimap: { enabled: false },
                     scrollBeyondLastLine: false,
                     automaticLayout: true,
@@ -101,47 +102,47 @@ const ProblemCell = ({ status }: { status: ProblemStatus }) => {
 }
 
 const MockLeaderboard = () => (
-    <div className="w-full overflow-hidden rounded-md border bg-card text-xs shadow-sm">
-        <div className="flex items-center justify-between border-b px-3 py-2">
-            <h3 className="text-sm font-semibold text-card-foreground">Leaderboard</h3>
-            <span className="rounded bg-emerald-600/20 px-1.5 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400">
+    <div className="w-full overflow-x-auto rounded-md border border-osu/60 bg-black/70 text-xs shadow-sm">
+        <div className="flex items-center justify-between border-b border-osu/50 px-2 sm:px-3 py-2 bg-black/60">
+            <h3 className="text-xs sm:text-sm font-semibold text-white">Leaderboard</h3>
+            <span className="rounded bg-emerald-600/30 px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[10px] text-emerald-200 whitespace-nowrap">
                 42 participants
             </span>
         </div>
 
-        <table className="w-full">
+        <table className="w-full text-white min-w-[400px]">
             <thead>
-                <tr className="border-b text-[10px] text-muted-foreground">
-                    <th className="px-2 py-1.5 text-left font-medium">#</th>
-                    <th className="px-2 py-1.5 text-left font-medium">Participant</th>
-                    <th className="px-2 py-1.5 text-center font-medium">Solved</th>
-                    <th className="px-2 py-1.5 text-center font-medium">Time</th>
-                    <th className="px-2 py-1.5 text-center font-medium">A</th>
-                    <th className="px-2 py-1.5 text-center font-medium">B</th>
-                    <th className="px-2 py-1.5 text-center font-medium">C</th>
+                <tr className="border-b border-osu/40 text-[9px] sm:text-[10px] text-gray-300">
+                    <th className="px-1 sm:px-2 py-1 sm:py-1.5 text-left font-medium">#</th>
+                    <th className="px-1 sm:px-2 py-1 sm:py-1.5 text-left font-medium">Participant</th>
+                    <th className="px-1 sm:px-2 py-1 sm:py-1.5 text-center font-medium">Solved</th>
+                    <th className="px-1 sm:px-2 py-1 sm:py-1.5 text-center font-medium">Time</th>
+                    <th className="px-1 sm:px-2 py-1 sm:py-1.5 text-center font-medium">A</th>
+                    <th className="px-1 sm:px-2 py-1 sm:py-1.5 text-center font-medium">B</th>
+                    <th className="px-1 sm:px-2 py-1 sm:py-1.5 text-center font-medium">C</th>
                 </tr>
             </thead>
             <tbody>
                 {mockLeaderboardData.map((entry) => (
                     <tr
                         key={entry.rank}
-                        className="border-b border-border/50 text-card-foreground last:border-0"
+                        className="border-b border-osu/30 text-white last:border-0 bg-black/60"
                     >
-                        <td className="px-2 py-1 text-muted-foreground">{entry.rank}</td>
-                        <td className="px-2 py-1 font-medium">{entry.name}</td>
-                        <td className="px-2 py-1 text-center">{entry.solved}</td>
-                        <td className="px-2 py-1 text-center text-muted-foreground">{entry.totalTime}</td>
-                        <td className="px-2 py-1">
+                        <td className="px-1 sm:px-2 py-1 text-gray-300">{entry.rank}</td>
+                        <td className="px-1 sm:px-2 py-1 font-medium text-white truncate max-w-[80px] sm:max-w-none">{entry.name}</td>
+                        <td className="px-1 sm:px-2 py-1 text-center text-white">{entry.solved}</td>
+                        <td className="px-1 sm:px-2 py-1 text-center text-gray-300 whitespace-nowrap">{entry.totalTime}</td>
+                        <td className="px-1 sm:px-2 py-1">
                             <div className="flex justify-center">
                                 <ProblemCell status={entry.problemA} />
                             </div>
                         </td>
-                        <td className="px-2 py-1">
+                        <td className="px-1 sm:px-2 py-1">
                             <div className="flex justify-center">
                                 <ProblemCell status={entry.problemB} />
                             </div>
                         </td>
-                        <td className="px-2 py-1">
+                        <td className="px-1 sm:px-2 py-1">
                             <div className="flex justify-center">
                                 <ProblemCell status={entry.problemC} />
                             </div>
@@ -171,36 +172,36 @@ const mockQuestionsData: MockQuestion[] = [
 ]
 
 const MockQA = ({ className }: { className?: string }) => (
-    <div className={cn("flex w-full flex-col overflow-hidden rounded-md border bg-card text-xs shadow-sm", className)}>
-        <div className="flex items-center justify-between border-b px-3 py-2">
-            <h3 className="text-sm font-semibold text-card-foreground">Q&A</h3>
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+    <div className={cn("flex w-full flex-col overflow-hidden rounded-md border border-osu/60 bg-black/70 text-xs shadow-sm", className)}>
+        <div className="flex items-center justify-between border-b border-osu/50 px-2 sm:px-3 py-2 bg-black/60">
+            <h3 className="text-xs sm:text-sm font-semibold text-white">Q&A</h3>
+            <span className="flex items-center gap-1 text-[9px] sm:text-[10px] text-gray-300 whitespace-nowrap">
                 <HelpCircle className="size-3" />
-                Ask a question
+                <span className="hidden sm:inline">Ask a question</span>
             </span>
         </div>
 
-        <div className="flex-1 divide-y divide-border/50">
+        <div className="flex-1 divide-y divide-osu/40 text-white">
             {mockQuestionsData.map((q) => (
-                <div key={q.id} className="flex items-start gap-2 px-3 py-2">
+                <div key={q.id} className="flex items-start gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-black/60">
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                            <span className="font-medium text-card-foreground truncate">{q.user}</span>
-                            <span className="shrink-0 rounded bg-secondary px-1 py-0.5 text-[9px] text-secondary-foreground">
+                        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                            <span className="font-medium text-white truncate text-xs sm:text-sm">{q.user}</span>
+                            <span className="shrink-0 rounded bg-osu/20 px-1 py-0.5 text-[8px] sm:text-[9px] text-osu">
                                 {q.problem}
                             </span>
                         </div>
-                        <p className="mt-0.5 text-muted-foreground line-clamp-1">{q.question}</p>
+                        <p className="mt-0.5 text-gray-300 line-clamp-1 text-[10px] sm:text-xs">{q.question}</p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                        <span className="text-[10px] text-muted-foreground">{q.time}</span>
+                    <div className="flex shrink-0 items-center gap-1 sm:gap-1.5 flex-col sm:flex-row">
+                        <span className="text-[9px] sm:text-[10px] text-gray-300 whitespace-nowrap">{q.time}</span>
                         {q.isAnswered ? (
-                            <span className="flex items-center gap-0.5 rounded bg-emerald-600/20 px-1 py-0.5 text-[9px] text-emerald-600 dark:text-emerald-400">
-                                <CheckCircle className="size-2.5" />
-                                Answered
+                            <span className="flex items-center gap-0.5 rounded bg-emerald-600/30 px-1 py-0.5 text-[8px] sm:text-[9px] text-emerald-200">
+                                <CheckCircle className="size-2 sm:size-2.5" />
+                                <span className="hidden sm:inline">Answered</span>
                             </span>
                         ) : (
-                            <span className="rounded bg-muted px-1 py-0.5 text-[9px] text-muted-foreground">
+                                <span className="rounded bg-neutral-700 px-1 py-0.5 text-[8px] sm:text-[9px] text-gray-200">
                                 Pending
                             </span>
                         )}
@@ -213,34 +214,46 @@ const MockQA = ({ className }: { className?: string }) => (
 
 export default function Features() {
     return (
-        <section id="features" className="py-16 md:py-32 px-4">
-            <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl">
+        <section id="features" className="py-8 sm:py-16 md:py-32 px-2 sm:px-4 text-white overflow-x-hidden">
+            <div
+                className="relative mx-auto w-full max-w-[calc(100vw-1rem)] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[90vw] overflow-hidden rounded-3xl bg-cover bg-center"
+                style={{ backgroundImage: "url('/4.png')" }}
+            >
                 <div
                     aria-hidden
-                    className="absolute inset-0 bg-zinc-100 dark:bg-zinc-900/80"
-                />
-                <div
-                    aria-hidden
-                    className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.5)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black_40%,transparent_100%)]"
+                    className="absolute inset-0 bg-black/75"
                 />
 
-                <div className="relative mx-auto max-w-2xl px-6 py-16 md:py-24 lg:max-w-5xl">
-                    <h2 className="text-2xl md:text-4xl font-medium font-sans text-center w-full mx-auto max-w-3xl px-6 mb-12">
+                <div className="relative mx-auto w-full max-w-5xl px-2 sm:px-4 md:px-6 py-8 sm:py-16 md:py-24">
+                    <h2 className="text-lg sm:text-2xl md:text-4xl font-medium font-sans text-center w-full mx-auto max-w-3xl px-1 sm:px-4 md:px-6 mb-6 sm:mb-12 text-white break-words">
                         NextJudge offers all the tools you need to{' '}
                         <span className="bg-gradient-to-r from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
                             host, participate in, and organize{' '}
                         </span>
                         programming contests.
                     </h2>
+                    <div className="mx-auto grid w-full gap-2 sm:gap-4 lg:grid-cols-2">
+                        <FeatureCard className="lg:col-span-2 overflow-hidden">
+                            <CardHeader className="pb-3 px-2 sm:px-4 md:px-6 pt-3 sm:pt-6">
+                                <CardHeading
+                                    icon={Code2}
+                                    title="Code Editor"
+                                    description="Powered by Monaco's Editor, NextJudge provides syntax highlighting and many themes."
+                                />
+                            </CardHeader>
 
-                <div className="mx-auto grid gap-4 lg:grid-cols-2">
-                        <FeatureCard className="lg:col-span-2 overflow-hidden px-6 pt-6">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                                <Code2 className="size-4" />
-                                <span className="text-sm">Code Editor</span>
+                            <div className="relative border-t border-dashed max-sm:mb-6">
+                                <div className="p-2 sm:p-3 px-2 sm:px-4 bg-black/70">
+                                    <ClippedCodeEditor />
+                                </div>
+                                <div
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-0 z-10"
+                                    style={{
+                                        background: 'radial-gradient(125% 125% at 50% 0%, transparent 20%, rgba(0,0,0,0.75) 55%, rgba(0,0,0,0.95) 90%)'
+                                    }}
+                                />
                             </div>
-                            <p className="text-xl font-semibold mb-4 mt-2">Powered by Monaco's Editor, NextJudge provides syntax highlighting and many themes.</p>
-                            <ClippedCodeEditor />
                         </FeatureCard>
 
                     <FeatureCard>
@@ -253,14 +266,14 @@ export default function Features() {
                         </CardHeader>
 
                         <div className="relative border-t border-dashed max-sm:mb-6">
-                            <div className="p-3 px-4">
+                                <div className="p-2 sm:p-3 px-2 sm:px-4 bg-black/70">
                                 <MockLeaderboard />
                             </div>
                             <div
                                 aria-hidden
                                 className="pointer-events-none absolute inset-0 z-10"
                                 style={{
-                                    background: 'radial-gradient(125% 125% at 50% 0%, transparent 20%, hsl(var(--muted) / 0.8) 50%, hsl(var(--background)) 85%)'
+                                    background: 'radial-gradient(125% 125% at 50% 0%, transparent 20%, rgba(0,0,0,0.75) 55%, rgba(0,0,0,0.95) 90%)'
                                 }}
                             />
                         </div>
@@ -276,21 +289,21 @@ export default function Features() {
                         </CardHeader>
 
                         <div className="relative flex-1 border-t border-dashed max-sm:mb-6">
-                            <div className="flex h-full flex-col p-3 px-4">
+                                <div className="flex h-full flex-col p-2 sm:p-3 px-2 sm:px-4 bg-black/70">
                                 <MockQA className="flex-1" />
                             </div>
                             <div
                                 aria-hidden
                                 className="pointer-events-none absolute inset-0 z-10"
                                 style={{
-                                    background: 'radial-gradient(125% 125% at 50% 0%, transparent 25%, hsl(var(--muted) / 0.8) 55%, hsl(var(--background)) 85%)'
+                                    background: 'radial-gradient(125% 125% at 50% 0%, transparent 25%, rgba(0,0,0,0.75) 60%, rgba(0,0,0,0.95) 90%)'
                                 }}
                             />
                         </div>
                     </FeatureCard>
 
-                        <FeatureCard className="lg:col-span-2 p-12">
-                            <p className="text-center text-4xl font-semibold lg:text-7xl">
+                        <FeatureCard className="lg:col-span-2 p-4 sm:p-6 md:p-8 lg:p-12">
+                            <p className="text-center text-xl sm:text-3xl md:text-4xl lg:text-7xl font-semibold break-words px-1">
                                 100%{' '}
                                 <span className="relative inline-block">
                                     Open Source
@@ -324,7 +337,7 @@ export default function Features() {
                                     </svg>
                                 </span>
                             </p>
-                            <p className="text-center text-muted-foreground mt-4">Self-host your own judge, contribute to the codebase, or fork it entirely</p>
+                            <p className="text-center text-xs sm:text-base text-muted-foreground mt-3 sm:mt-4 px-2 sm:px-4 break-words">Self-host your own judge, contribute to the codebase, or fork it entirely</p>
                         </FeatureCard>
 
                         <FeatureCard className="overflow-hidden">
@@ -337,8 +350,8 @@ export default function Features() {
                             </CardHeader>
 
                             <div className="border-t border-dashed">
-                                <div className="p-3 px-4 min-h-[180px]">
-                                    <AnimatedExecutionFeed />
+                                <div className="p-2 sm:p-3 px-2 sm:px-4 min-h-[180px] overflow-x-hidden">
+                                    <AnimatedExecutionFeedThemed />
                                 </div>
                             </div>
                         </FeatureCard>
@@ -353,7 +366,7 @@ export default function Features() {
                             </CardHeader>
 
                             <div className="relative flex-1 border-t border-dashed max-sm:mb-6">
-                                <div className="flex h-full flex-col p-3 px-4">
+                                <div className="flex h-full flex-col p-2 sm:p-3 px-2 sm:px-4">
                                     <div className="relative h-[240px] overflow-hidden">
                                         <AnimatedSubmissionsList />
                                     </div>
@@ -362,15 +375,14 @@ export default function Features() {
                     </FeatureCard>
 
                         <FeatureCard className="relative col-span-full overflow-hidden">
-                            <div className="absolute z-10 max-w-lg px-6 pr-12 pt-6 md:px-12 md:pt-12">
-                                <span className="text-muted-foreground flex items-center gap-2">
-                                    <Activity className="size-4" />
-                                    Activity Overview
-                                </span>
-
-                                <p className="my-8 text-2xl font-semibold">
-                                    Track submission patterns and performance. <span className="text-muted-foreground">See your progress over time.</span>
-                                </p>
+                            <div className="absolute z-10 max-w-lg">
+                                <CardHeader className="pb-3">
+                                    <CardHeading
+                                        icon={Activity}
+                                        title="Activity Overview"
+                                        description="Track submission patterns and performance. See your progress over time."
+                                    />
+                                </CardHeader>
                             </div>
                             <MockActivityChart />
                         </FeatureCard>
@@ -387,7 +399,12 @@ interface FeatureCardProps {
 }
 
 const FeatureCard = ({ children, className }: FeatureCardProps) => (
-    <Card className={cn('group relative rounded-none shadow-zinc-950/5', className)}>
+    <Card className={cn(
+        'group relative rounded-none shadow-zinc-950/5',
+        'bg-black/80 text-white border border-osu/60 backdrop-blur',
+        'w-full max-w-full overflow-hidden',
+        className
+    )}>
         <CardDecorator />
         {children}
     </Card>
@@ -409,12 +426,12 @@ interface CardHeadingProps {
 }
 
 const CardHeading = ({ icon: Icon, title, description }: CardHeadingProps) => (
-    <div className="p-6">
-        <span className="text-muted-foreground flex items-center gap-2">
-            <Icon className="size-4" />
+    <div className="p-3 sm:p-5 md:p-6">
+        <span className="text-gray-300 flex items-center gap-2 text-xs sm:text-base">
+            <Icon className="size-3 sm:size-4" />
             {title}
         </span>
-        <p className="mt-8 text-2xl font-semibold">{description}</p>
+        <p className="mt-3 sm:mt-6 md:mt-8 text-base sm:text-xl md:text-2xl font-semibold text-white break-words">{description}</p>
     </div>
 )
 
@@ -444,7 +461,7 @@ const statusConfig: Record<SubmissionStatus, { label: string; className: string 
     ACCEPTED: { label: 'Accepted', className: 'bg-emerald-600 text-white' },
     WRONG_ANSWER: { label: 'Wrong Answer', className: 'bg-red-600 text-white' },
     RUNTIME_ERROR: { label: 'Runtime Error', className: 'bg-orange-600 text-white' },
-    PENDING: { label: 'Pending', className: 'bg-muted text-muted-foreground' },
+    PENDING: { label: 'Pending', className: 'bg-neutral-700 text-gray-200' },
     TIME_LIMIT_EXCEEDED: { label: 'TLE', className: 'bg-amber-600 text-white' },
 }
 
@@ -463,32 +480,32 @@ const mockSubmissionsData: MockSubmission[] = [
 
 const SubmissionItem = ({ problem, language, status, time, user }: MockSubmission) => {
     const statusInfo = statusConfig[status]
-    const langColor = languageColors[language.toLowerCase()] || 'text-muted-foreground'
+    const langColor = languageColors[language.toLowerCase()] || 'text-gray-300'
 
     return (
         <figure
             className={cn(
-                'relative mx-auto min-h-fit w-full cursor-pointer overflow-hidden rounded-xl p-3',
+                'relative mx-auto min-h-fit w-full cursor-pointer overflow-hidden rounded-xl p-2 sm:p-3',
                 'transition-all duration-200 ease-in-out hover:scale-[102%]',
-                'bg-white [box-shadow:0_0_0_1px_rgba(0,0,0,.03),0_2px_4px_rgba(0,0,0,.05),0_12px_24px_rgba(0,0,0,.05)]',
-                'transform-gpu dark:bg-zinc-900/80 dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset] dark:backdrop-blur-md dark:[border:1px_solid_rgba(255,255,255,.1)]'
+                'bg-black/70 text-white border border-osu/50',
+                'transform-gpu backdrop-blur'
             )}
         >
-            <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm text-card-foreground truncate">{problem}</span>
-                        <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-medium', statusInfo.className)}>
+            <div className="flex items-center justify-between gap-2 sm:gap-3 min-w-0">
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <span className="font-medium text-xs sm:text-sm text-card-foreground truncate min-w-0">{problem}</span>
+                        <span className={cn('rounded px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium whitespace-nowrap shrink-0', statusInfo.className)}>
                             {statusInfo.label}
                         </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                            <CircleDot className={cn('size-2.5', langColor)} />
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1 whitespace-nowrap">
+                            <CircleDot className={cn('size-2 sm:size-2.5 shrink-0', langColor)} />
                             {language}
                         </span>
-                        <span>·</span>
-                        <span>{time}</span>
+                        <span className="shrink-0">·</span>
+                        <span className="whitespace-nowrap shrink-0">{time}</span>
                     </div>
                 </div>
             </div>
@@ -497,7 +514,7 @@ const SubmissionItem = ({ problem, language, status, time, user }: MockSubmissio
 }
 
 const AnimatedSubmissionsList = () => (
-    <div className="relative flex h-full w-full flex-col overflow-hidden px-4 py-2">
+    <div className="relative flex h-full w-full flex-col overflow-hidden px-1 sm:px-4 py-2">
         <AnimatedList delay={2000}>
             {mockSubmissionsData.map((submission) => (
                 <SubmissionItem key={submission.id} {...submission} />
@@ -642,6 +659,126 @@ const AnimatedExecutionFeed = () => {
     )
 }
 
+const AnimatedExecutionFeedThemed = () => {
+    const [steps, setSteps] = useState<ExecutionStep[]>([])
+    const [result, setResult] = useState<FinalResult | null>(null)
+    const [isRunning, setIsRunning] = useState(false)
+    const timeoutsRef = useRef<number[]>([])
+    const hasStartedRef = useRef(false)
+
+    const totalTests = 5
+
+    useEffect(() => {
+        if (hasStartedRef.current) return
+        hasStartedRef.current = true
+
+        setSteps([])
+        setResult(null)
+        setIsRunning(true)
+
+        setSteps([{ label: 'Compiling...', status: 'running' }])
+
+        const compileTimeout = window.setTimeout(() => {
+            setSteps([{ label: 'Compiling...', status: 'completed', time: getRandomTime() }])
+
+            let currentTest = 1
+
+            const runNextTest = () => {
+                if (currentTest > totalTests) {
+                    setResult('success')
+                    setIsRunning(false)
+                    return
+                }
+
+                setSteps(prev => [
+                    ...prev,
+                    { label: `Running test case ${currentTest}/${totalTests}`, status: 'running' }
+                ])
+
+                const testTimeout = window.setTimeout(() => {
+                    setSteps(prev => {
+                        const updated = [...prev]
+                        updated[updated.length - 1] = {
+                            ...updated[updated.length - 1],
+                            status: 'completed',
+                            time: getRandomTime()
+                        }
+                        return updated
+                    })
+
+                    currentTest++
+                    const nextTimeout = window.setTimeout(runNextTest, 400 + Math.random() * 300)
+                    timeoutsRef.current.push(nextTimeout)
+                }, 500 + Math.random() * 400)
+                timeoutsRef.current.push(testTimeout)
+            }
+
+            const firstTestTimeout = window.setTimeout(runNextTest, 300)
+            timeoutsRef.current.push(firstTestTimeout)
+        }, 600)
+
+        timeoutsRef.current.push(compileTimeout)
+
+        return () => {
+            timeoutsRef.current.forEach(clearTimeout)
+            timeoutsRef.current = []
+            hasStartedRef.current = false
+        }
+    }, [])
+
+    const resultConfig: Record<FinalResult, { label: string; className: string }> = {
+        success: { label: 'All tests passed!', className: 'bg-emerald-600 text-white' },
+        wrong_answer: { label: 'Wrong Answer on test case', className: 'bg-red-600 text-white' },
+        runtime_error: { label: 'Runtime Error', className: 'bg-orange-600 text-white' },
+        time_limit: { label: 'Time Limit Exceeded', className: 'bg-amber-600 text-white' },
+    }
+
+    return (
+        <div className="h-[280px] overflow-y-auto overflow-x-hidden space-y-2 rounded-md border border-osu/60 bg-black/70 p-2 sm:p-3 text-xs shadow-sm">
+            {steps.map((step, i) => (
+                <div key={`${step.label}-${i}`} className="flex items-center justify-between gap-1.5 sm:gap-2 bg-black/60 rounded px-1.5 sm:px-2 py-1 sm:py-1.5 min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                        {step.status === 'completed' && (
+                            <CheckCircle className="size-3 sm:size-3.5 text-emerald-500 shrink-0" />
+                        )}
+                        {step.status === 'running' && (
+                            <div className="size-3 sm:size-3.5 rounded-full border-2 border-osu border-t-transparent animate-spin shrink-0" />
+                        )}
+                        {step.status === 'pending' && (
+                            <div className="size-3 sm:size-3.5 rounded-full border border-osu/30 shrink-0" />
+                        )}
+                        {step.status === 'error' && (
+                            <XCircle className="size-3 sm:size-3.5 text-red-500 shrink-0" />
+                        )}
+                        <span className={cn(
+                            'text-white text-[10px] sm:text-xs truncate min-w-0',
+                            step.status === 'pending' && 'text-gray-300',
+                            step.status === 'error' && 'text-red-500'
+                        )}>
+                            {step.label}
+                        </span>
+                    </div>
+                    {step.time && (
+                        <span className={cn(
+                            'text-gray-300 text-[10px] sm:text-xs whitespace-nowrap shrink-0 ml-1',
+                            step.status === 'error' && 'text-red-500'
+                        )}>{step.time}</span>
+                    )}
+                </div>
+            ))}
+
+            {result && !isRunning && (
+                <div className={cn(
+                    'mt-3 rounded-md px-2 sm:px-3 py-2 text-center font-medium text-xs sm:text-sm break-words',
+                    resultConfig[result].className
+                )}>
+                    {resultConfig[result].label}
+                </div>
+            )}
+        </div>
+    )
+}
+
 const chartData = [
     { value: 30 }, { value: 45 }, { value: 35 }, { value: 60 },
     { value: 40 }, { value: 75 }, { value: 55 }, { value: 80 },
@@ -653,7 +790,7 @@ const MockActivityChart = () => {
     const maxValue = Math.max(...chartData.map(d => d.value))
 
     return (
-        <div className="h-64 md:h-80 w-full pt-32 md:pt-24">
+        <div className="h-48 sm:h-64 md:h-80 w-full pt-24 sm:pt-28 md:pt-32">
             <svg
                 className="h-full w-full"
                 viewBox="0 0 800 200"

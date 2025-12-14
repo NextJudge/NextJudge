@@ -54,14 +54,13 @@ const FAQList: FAQProps[] = [
 export const FAQ = () => {
   return (
     <section id="faq" className="py-16 md:py-32 px-4">
-      <div className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl">
+      <div
+        className="relative mx-auto w-[90vw] md:w-[80vw] lg:w-[90vw] overflow-hidden rounded-3xl bg-cover bg-center"
+        style={{ backgroundImage: "url('/1%20(1).png')" }}
+      >
         <div
           aria-hidden
-          className="absolute inset-0 bg-zinc-100 dark:bg-zinc-900/80"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.5)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.5)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,black_40%,transparent_100%)]"
+          className="absolute inset-0 bg-black/75"
         />
 
         <div className="relative mx-auto max-w-3xl px-6 py-16 md:py-24">

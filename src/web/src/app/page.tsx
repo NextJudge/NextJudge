@@ -29,9 +29,9 @@ export default async function Home() {
   const session = await auth();
 
   return (
-    <>
+    <div className="min-h-screen w-full bg-black text-white">
       <LandingNavbar session={session || undefined} />
-      <main className="flex max-w-full gap-10 flex-col items-center justify-between overflow-x-hidden relative z-10">
+      <main className="flex max-w-screen-2xl mx-auto gap-10 flex-col items-center justify-between overflow-x-hidden relative z-10">
         <AltHero />
         <LandingEditor />
         <Features />
@@ -40,6 +40,6 @@ export default async function Home() {
         <Footer />
         <ScrollToTop />
       </main>
-    </>
+    </div>
   );
 }

@@ -9,7 +9,7 @@ export default function HeroButtons() {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push("/auth/signup");
+    window.location.href = "#try-it";
   };
 
   const handleDocumentationClick = () => {
@@ -19,29 +19,29 @@ export default function HeroButtons() {
   };
 
   return (
-    <>
-      <div className="flex flex-col justify-center gap-1 items-center">
-        <EnhancedButton
-          variant="expandIcon"
-          Icon={ArrowRightIcon}
-          onClick={handleClick}
-          iconPlacement="right"
-          className={cn("w-full md:w-4/6 font-semibold text-lg")}
-          size={"lg"}
-        >
-          Join the Arena
-        </EnhancedButton>
+    <div className="flex flex-col items-center gap-2 sm:flex-row">
+      <EnhancedButton
+        variant="expandIcon"
+        Icon={ArrowRightIcon}
+        onClick={handleClick}
+        iconPlacement="right"
+        className={cn("h-12 rounded-full px-6 font-semibold text-base")}
+        size="lg"
+        aria-label="Try It Now"
+      >
+        Try It Now
+      </EnhancedButton>
 
-        <EnhancedButton
-          variant="linkHover2"
-          size={"lg"}
-          onClick={handleDocumentationClick}
-          className="w-3/6 mt-2"
-        >
-          Host NextJudge Yourself!
-          <Icons.github className="w-6 h-6 ml-2 mb-1 opacity-70" />
-        </EnhancedButton>
-      </div>
-    </>
+      <EnhancedButton
+        variant="secondary"
+        size="lg"
+        onClick={handleDocumentationClick}
+        className="h-12 rounded-full px-5 text-base text-secondary-foreground"
+        aria-label="Self-Host Your Own Instance"
+      >
+        Self-Host Your Own Instance
+        <Icons.github className="ml-2 size-5 opacity-70" />
+      </EnhancedButton>
+    </div>
   );
 }

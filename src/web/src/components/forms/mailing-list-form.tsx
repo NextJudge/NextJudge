@@ -48,7 +48,7 @@ export function EmailForm() {
   }
 
   return (
-    <Card className="p-4 m-4 md:p-6">
+    <Card className="p-4 m-4 md:p-6 bg-black text-white border border-osu/60">
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
@@ -153,7 +153,7 @@ export function UserAuthForm({ children }: { children?: React.ReactNode }) {
   }
 
   return (
-    <Card>
+    <Card className="bg-black text-white border border-osu/60">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">Create an account</CardTitle>
         <CardDescription>Sign up to get started with NextJudge</CardDescription>
