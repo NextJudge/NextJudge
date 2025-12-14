@@ -372,7 +372,7 @@ export default function Features() {
                             </CardHeader>
 
                             <div className="relative flex-1 border-t border-dashed">
-                                <div className="flex max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                <div className="flex min-h-[300px] max-h-[300px] overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                                     <AnimatedSubmissionsList />
                                 </div>
                                 <div
@@ -496,10 +496,9 @@ const SubmissionItem = ({ problem, language, status, time, user }: MockSubmissio
     return (
         <figure
             className={cn(
-                'relative mx-auto min-h-fit w-full cursor-pointer overflow-hidden rounded-xl p-2 sm:p-3',
-                'transition-all duration-200 ease-in-out hover:scale-[102%]',
+                'relative mx-auto min-h-fit w-full overflow-hidden rounded-xl p-2 sm:p-3',
                 'bg-black/70 text-white border border-osu/50',
-                'transform-gpu backdrop-blur'
+                'transform-gpu backdrop-blur select-none pointer-events-none'
             )}
         >
             <div className="flex items-center justify-between gap-2 sm:gap-3 min-w-0">
@@ -525,7 +524,7 @@ const SubmissionItem = ({ problem, language, status, time, user }: MockSubmissio
 }
 
 const AnimatedSubmissionsList = () => (
-    <div className="relative flex h-full w-full flex-col overflow-hidden px-2 sm:px-3 py-3">
+    <div className="relative flex h-full w-full flex-col overflow-hidden px-2 sm:px-3 py-3 select-none pointer-events-none">
         <AnimatedList delay={2000}>
             {mockSubmissionsData.map((submission) => (
                 <SubmissionItem key={submission.id} {...submission} />

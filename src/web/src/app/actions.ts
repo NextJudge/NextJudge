@@ -1,11 +1,10 @@
 "use server";
 
 import { EmailTemplate } from "@/components/email/template";
-
 import { apiCreateProblem, apiDeleteProblem, apiUpdateProblem } from "@/lib/api";
 import { ProblemRequest } from "@/lib/types";
-import { getAppUrl } from "@/lib/utils";
 import { LoginFormValues, SignUpFormValues } from "@/types";
+import { pretty, render, toPlainText } from "@react-email/components";
 import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { ZodError } from "zod";
@@ -25,18 +24,18 @@ interface FormData {
 export async function sendEmail(formData: FormData): Promise<ReturnType> {
   try {
     if (!formData) return { status: "error", message: "Invalid form data" };
-
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const { email, name } = newsletterFormSchema.parse(formData);
 
-    const nameWithCapital =
-      name.toString().charAt(0).toUpperCase() + name.toString().slice(1);
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const nameWithCapital = name.toString().charAt(0).toUpperCase() + name.toString().slice(1);
+    const html = await pretty(await render(EmailTemplate({ firstName: nameWithCapital })))
+
     await resend.emails.send({
-      from: "NextJudge <hello@nextjudge.org>",
-      to: [email.toString()],
+      from: process.env.NODE_ENV === "production" ? "NextJudge <hello@nextjudge.net>" : "NextJudge <dev@nextjudge.net>",
+      to: process.env.NODE_ENV === "production" ? [email.toString()] : ["delivered+welcome@resend.dev"],
       react: EmailTemplate({ firstName: nameWithCapital }),
       subject: "Welcome to the NextJudge community! 🚀",
-      text: "",
+      text: toPlainText(html),
     });
   } catch (error) {
     if (error instanceof ZodError) {

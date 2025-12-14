@@ -8,6 +8,7 @@ import { ScrollToTop } from "@/components/landing/scroll-up";
 import { LandingNavbar } from "@/components/nav/landing-navbar";
 import { Metadata } from "next";
 import dynamic from "next/dynamic";
+import { preload } from "react-dom";
 const WhyNextJudge = dynamic(
   () => import("@/components/landing/bento").then((mod) => mod.WhyNextJudge),
   { ssr: false }
@@ -25,6 +26,11 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const session = await auth();
+  preload("/hero-background.png", { as: "image" });
+  preload("/footer-background.png", { as: "image" });
+  preload("/early-access-background.png", { as: "image" });
+  preload("/auth/signup", { as: "document" });
+  preload("/auth/login", { as: "document" });
 
   return (
     <div className="min-h-screen w-full text-white relative bg-black">

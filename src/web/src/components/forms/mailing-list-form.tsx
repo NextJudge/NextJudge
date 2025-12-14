@@ -1,5 +1,6 @@
 "use client";
 
+import { sendEmail } from "@/app/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -34,17 +35,10 @@ export function EmailForm() {
     },
   });
 
-  async function onSubmit(data: z.infer<typeof FormSchema>) {
-    try {
-      const { name, email } = JSON.parse(JSON.stringify(data));
-      // await sendEmail({ name, email });
-      toast.error("Our waitlist is currently closed. Check back later!");
-      return;
-      form.reset();
-      toast("Thank you for joining the waitlist!");
-    } catch (error) {
-      toast("An error occurred. Please try again later.");
-    }
+  function onSubmit(data: z.infer<typeof FormSchema>) {
+    form.reset();
+    toast("Thank you for joining the waitlist!");
+    void sendEmail(data);
   }
 
   return (
