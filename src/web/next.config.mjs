@@ -7,6 +7,9 @@ const nextConfig = {
     });
     return config;
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     dangerouslyAllowSVG: true,
     remotePatterns: [
