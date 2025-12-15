@@ -9,6 +9,7 @@ import type { Theme } from "@/types";
 import Editor, { type Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useClickAway } from "react-use";
 import { toast } from "sonner";
 import { Icons } from "../icons";
 import { Button } from "../ui/button";
@@ -105,15 +106,31 @@ export default function CodeEditor({
         return languages?.[3];
     });
 
+    const hasLoadedInitialTemplate = useRef(false);
+    const previousLanguageRef = useRef<Language | null>(null);
+
     // Load template code on initial mount if we have a default language and the editor is empty
     useEffect(() => {
-        if (currentLanguage && code.trim() === "") {
+        if (currentLanguage && !hasLoadedInitialTemplate.current && code.trim() === "") {
+            const templateCode = getLanguageTemplateCode(currentLanguage);
+            if (templateCode) {
+                setCode(templateCode);
+                hasLoadedInitialTemplate.current = true;
+                previousLanguageRef.current = currentLanguage;
+            }
+        }
+    }, []);
+
+    // Load template when language changes (user switches language)
+    useEffect(() => {
+        if (currentLanguage && hasLoadedInitialTemplate.current && previousLanguageRef.current?.id !== currentLanguage.id) {
             const templateCode = getLanguageTemplateCode(currentLanguage);
             if (templateCode) {
                 setCode(templateCode);
             }
+            previousLanguageRef.current = currentLanguage;
         }
-    }, [currentLanguage, code, setCode]);
+    }, [currentLanguage, setCode]);
     const [screenWidth, setScreenWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
     useEffect(() => {
@@ -166,6 +183,12 @@ export default function CodeEditor({
     // setCode(templates[normalizeLanguageKey(languages[0].name)]);
 
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+    const editorContainerRef = useRef<HTMLDivElement | null>(null);
+    const [isEditorFocused, setIsEditorFocused] = useState(false);
+
+    useClickAway(editorContainerRef, () => {
+        setIsEditorFocused(false);
+    });
 
     const handleEditorDidMount = (
         editor: editor.IStandaloneCodeEditor,
@@ -194,6 +217,46 @@ export default function CodeEditor({
         monaco.languages.typescript.typescriptDefaults.addExtraLib(
             "node_modules/@types/node/index.d.ts"
         );
+
+        const editorElement = editor.getDomNode();
+        if (editorElement && editorContainerRef.current) {
+            editorContainerRef.current = editorElement as HTMLDivElement;
+        }
+
+        editor.onDidFocusEditorWidget(() => {
+            setIsEditorFocused(true);
+        });
+
+        editor.onDidBlurEditorWidget(() => {
+            setIsEditorFocused(false);
+        });
+
+        if (editorElement) {
+            const handleKeyDown = (e: KeyboardEvent) => {
+                if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    const textarea = editorElement.querySelector("textarea");
+                    if (textarea && document.activeElement === textarea) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const selection = editor.getSelection();
+                        if (selection && selection.isEmpty()) {
+                            editor.trigger("keyboard", "type", { text: "  " });
+                        } else {
+                            editor.trigger("keyboard", "editor.action.indentLines", null);
+                        }
+                    }
+                } else if (e.key === "Tab" && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    const textarea = editorElement.querySelector("textarea");
+                    if (textarea && document.activeElement === textarea) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        editor.trigger("keyboard", "editor.action.outdentLines", null);
+                    }
+                }
+            };
+
+            editorElement.addEventListener("keydown", handleKeyDown, true);
+        }
     };
 
 
@@ -222,6 +285,10 @@ export default function CodeEditor({
             lineDecorationsWidth: screenWidth < 640 ? 0 : 10,
             lineNumbersMinChars: screenWidth < 640 ? 0 : 3,
             renderLineHighlight: screenWidth < 640 ? 'none' as const : 'line' as const,
+            guides: {
+                indentation: false,
+            },
+            autoIndent: "full" as const,
             // Ensure editor takes full width and height
             fixedOverflowWidgets: true,
             overviewRulerBorder: false,
@@ -314,20 +381,22 @@ export default function CodeEditor({
                 </div>
             </div>
 
-            <Editor
-                loading={
-                    <div className="flex items-center justify-center h-full bg-background">
-                        <Icons.loader className="w-8 h-8 animate-spin text-primary" />
-                    </div>
-                }
-                language={convertToMonacoLanguageName(currentLanguage)}
-                defaultLanguage={currentLanguage?.name}
-                value={code}
-                theme={theme?.name}
-                options={editorOptions}
-                onChange={(value) => setCode(value ?? "")}
-                onMount={handleEditorDidMount}
-            />
+            <div ref={editorContainerRef} className="flex-1 min-h-0">
+                <Editor
+                    loading={
+                        <div className="flex items-center justify-center h-full bg-background">
+                            <Icons.loader className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                    }
+                    language={convertToMonacoLanguageName(currentLanguage)}
+                    defaultLanguage={currentLanguage?.name}
+                    value={code}
+                    theme={theme?.name}
+                    options={editorOptions}
+                    onChange={(value) => setCode(value ?? "")}
+                    onMount={handleEditorDidMount}
+                />
+            </div>
         </div>
     );
 }

@@ -707,8 +707,9 @@ def run_single(environment: ProgramEnvironment, input: bytes, verbose=True) -> R
     )
     os.close(nsjail_log_pipes[1])
 
+    elapsed_time = time.time() - t
     if verbose:
-        print("Program finished execution", time.time() - t)
+        print("Program finished execution", elapsed_time)
 
     read_from = os.fdopen(nsjail_log_pipes[0])
     nsjail_errors = read_from.read()
@@ -721,6 +722,14 @@ def run_single(environment: ProgramEnvironment, input: bytes, verbose=True) -> R
     print(f"stderr: {run_result.stderr}")
 
     if run_result.returncode:
+        nsjail_errors_lower = nsjail_errors.lower()
+        has_timeout_keywords = "time limit" in nsjail_errors_lower or "timeout" in nsjail_errors_lower or "wall time" in nsjail_errors_lower or "sigkill" in nsjail_errors_lower
+        is_likely_timeout = elapsed_time >= 9.5 and not run_result.stdout and not run_result.stderr
+
+        if has_timeout_keywords or is_likely_timeout:
+            if verbose:
+                print(f"Time limit exceeded - {run_result.returncode}")
+            return RunResult("TIME_LIMIT_EXCEEDED", run_result.stdout, run_result.stderr)
         if verbose:
             print(f"Runtime error - {run_result.returncode}")
             print(f"stdout: {run_result.stdout}")

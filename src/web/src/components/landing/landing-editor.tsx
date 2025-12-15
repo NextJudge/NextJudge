@@ -3,6 +3,7 @@
 import Editor, { type Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useClickAway } from "react-use";
 import { toast } from "sonner";
 
 import { FALLBACK_TYPESCRIPT, getLanguagesResource } from "@/hooks/use-languages-suspense";
@@ -169,6 +170,11 @@ const getStarterCode = (language: Language): string => {
   return STARTER_CODE[language.name.toLowerCase()] || `// ${language.name}`;
 };
 
+const computeExpectedOutput = (input: string): string => {
+  const lines = input.split('\n');
+  return lines.map(line => line.split('').reverse().join('')).join('\n');
+};
+
 const compareOutput = (expected: string, actual: string): boolean => {
   const expectedLines = expected.trim().split('\n').map(line => line.trim());
   const actualLines = actual.trim().split('\n').map(line => line.trim());
@@ -208,6 +214,8 @@ const LandingEditorContent = () => {
 
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isEditorFocused, setIsEditorFocused] = useState(false);
 
   useEffect(() => {
     const checkForLanguageUpdate = () => {
@@ -235,6 +243,11 @@ const LandingEditorContent = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useClickAway(editorContainerRef, () => {
+    setIsEditorFocused(false);
+  });
+
 
   useEffect(() => {
     if (monacoRef.current && editorRef.current) {
@@ -282,6 +295,46 @@ const LandingEditorContent = () => {
       checkJs: true,
     });
 
+    const editorElement = editor.getDomNode();
+    if (editorElement && editorContainerRef.current) {
+      editorContainerRef.current = editorElement as HTMLDivElement;
+    }
+
+    editor.onDidFocusEditorWidget(() => {
+      setIsEditorFocused(true);
+    });
+
+    editor.onDidBlurEditorWidget(() => {
+      setIsEditorFocused(false);
+    });
+
+    if (editorElement) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          const textarea = editorElement.querySelector("textarea");
+          if (textarea && document.activeElement === textarea) {
+            e.preventDefault();
+            e.stopPropagation();
+            const selection = editor.getSelection();
+            if (selection && selection.isEmpty()) {
+              editor.trigger("keyboard", "type", { text: "  " });
+            } else {
+              editor.trigger("keyboard", "editor.action.indentLines", null);
+            }
+          }
+        } else if (e.key === "Tab" && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          const textarea = editorElement.querySelector("textarea");
+          if (textarea && document.activeElement === textarea) {
+            e.preventDefault();
+            e.stopPropagation();
+            editor.trigger("keyboard", "editor.action.outdentLines", null);
+          }
+        }
+      };
+
+      editorElement.addEventListener("keydown", handleKeyDown, true);
+    }
+
     const targetTheme = editorTheme?.name || "hc-black";
     applyThemeWithRetry(monaco, targetTheme);
   };
@@ -306,15 +359,17 @@ const LandingEditorContent = () => {
       }
 
       const matchingTestCase = DEMO_PROBLEM.testCases.find(tc => tc.input === customInput);
-      if (matchingTestCase) {
-        let finalStatus: SubmissionStatus = result.status;
-        if (result.status === "ACCEPTED" || (result.status === "RUNTIME_ERROR" && !result.stderr)) {
-          if (!compareOutput(matchingTestCase.expected, result.stdout)) {
-            finalStatus = "WRONG_ANSWER";
-          }
+      const expectedOutput = matchingTestCase ? matchingTestCase.expected : computeExpectedOutput(customInput);
+
+      let finalStatus: SubmissionStatus = result.status;
+      if (result.status === "ACCEPTED") {
+        const comparisonResult = compareOutput(expectedOutput, result.stdout);
+
+        if (!comparisonResult) {
+          finalStatus = "WRONG_ANSWER";
         }
-        result = { ...result, status: finalStatus };
       }
+      result = { ...result, status: finalStatus };
 
       setCustomInputResult(result);
     } catch (error) {
@@ -342,6 +397,10 @@ const LandingEditorContent = () => {
       fontFamily: 'JetBrains Mono, Consolas, "Courier New", monospace',
       folding: screenWidth > 768,
       renderLineHighlight: "none" as const,
+      guides: {
+        indentation: false,
+      },
+      autoIndent: "full" as const,
       scrollbar: {
         vertical: "auto" as const,
         horizontal: "auto" as const,
@@ -416,7 +475,7 @@ const LandingEditorContent = () => {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex-1 min-h-0">
+                      <div className="flex-1 min-h-0" ref={editorContainerRef}>
                     <Editor
                       loading={<div className="flex items-center justify-center h-full"><Icons.loader className="w-6 h-6 animate-spin text-primary" /></div>}
                           language={convertToMonacoLanguageName(currentLanguage)}
@@ -490,7 +549,7 @@ const LandingEditorContent = () => {
                           </Button>
                       </div>
                     </div>
-                    <div className="flex-1 min-h-0">
+                          <div className="flex-1 min-h-0" ref={editorContainerRef}>
                       <Editor
                         loading={
                                 <div className="flex items-center justify-center h-full bg-black/80">
@@ -652,7 +711,17 @@ const OutputPanel = ({
                   ? customInputResult.stderr
                   : customInputResult?.stdout
                     ? customInputResult.stdout
-                    : "Run your code to see output"
+                    : customInputResult?.status === "TIME_LIMIT_EXCEEDED"
+                      ? "Your code took too long to execute."
+                      : customInputResult?.status === "MEMORY_LIMIT_EXCEEDED"
+                        ? "Your code used too much memory."
+                        : customInputResult?.status === "RUNTIME_ERROR"
+                          ? "Check your code for errors."
+                          : customInputResult?.status === "COMPILE_TIME_ERROR"
+                            ? "Check your code syntax."
+                            : customInputResult?.status === "WRONG_ANSWER"
+                              ? "Your output doesn't match the expected output."
+                              : "Run code to see output"
           }
           className={cn(
             "w-full min-h-[80px] p-3 text-sm font-mono border rounded-md resize-y whitespace-pre-wrap",
