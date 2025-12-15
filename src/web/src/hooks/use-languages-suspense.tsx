@@ -55,6 +55,7 @@ const createLanguagesResource = (): { read: () => Language[] } => {
         result = langs;
       }
       languagesPromise = null;
+      return langs;
     })
     .catch((error) => {
       if (timeoutId) {
@@ -65,6 +66,7 @@ const createLanguagesResource = (): { read: () => Language[] } => {
         result = error;
         languagesPromise = null;
       }
+      return [FALLBACK_TYPESCRIPT];
     });
 
   languagesPromise = promise;
