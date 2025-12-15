@@ -53,7 +53,7 @@
 @layer base {
 	* {
 		@apply border-border;
-		scrollbar-width: thin;
+		scrollbar-width: none;
 	}
 	body {
 		@apply bg-background text-foreground;
@@ -65,21 +65,7 @@
 	}
 
 	*::-webkit-scrollbar {
-		width: 10px;
-		height: 10px;
-	}
-
-	*::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	*::-webkit-scrollbar-thumb {
-		background: hsl(var(--muted-foreground) / 0.3);
-		border-radius: 5px;
-	}
-
-	*::-webkit-scrollbar-thumb:hover {
-		background: hsl(var(--muted-foreground) / 0.5);
+		display: none;
 	}
 
 	.monaco-editor,

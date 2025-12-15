@@ -1,6 +1,6 @@
 'use client';
 
-import { Code2, MousePointer, MousePointerClick, Server } from 'lucide-react';
+import { Code2, MousePointer, MousePointerClick, Server, User } from 'lucide-react';
 import type { Transition } from 'motion/react';
 import { motion } from 'motion/react';
 import React, { Children, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -315,7 +315,7 @@ export default function Demo() {
         : undefined;
 
     return (
-        <div ref={containerRef} className="relative w-full max-w-3xl" aria-hidden>
+        <div ref={containerRef} className="relative w-full max-w-3xl select-none" aria-hidden>
             {cursorPath && (
                 <div className="pointer-events-none absolute inset-0 z-20">
                     {containerSize && cursorKey > 0 && (
@@ -562,19 +562,23 @@ export default function Demo() {
                                                         transition={{ duration: 0.6, ease: 'easeInOut' }}
                                                     />
                                                 </div>
-                                                {isCodeIconInSegment && (
+                                                {(isCodeIconInSegment || (codeIconProgress === 0 && index === 0)) && (
                                                     <motion.div
                                                         className="absolute top-1/2 left-0 -translate-y-1/2"
                                                         initial={false}
                                                         animate={{
-                                                            left: `${segmentProgress * 100}%`
+                                                            left: codeIconProgress === 0 ? '0%' : `${segmentProgress * 100}%`
                                                         }}
                                                         transition={{ duration: 0.4, ease: 'easeInOut' }}
                                                     >
                                                         <div className="relative -translate-x-1/2">
                                                             <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-md"></div>
                                                             <div className="relative w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center border-2 border-orange-400 shadow-lg">
-                                                                <Code2 className="w-4 h-4 text-white" />
+                                                                {codeIconProgress === 0 ? (
+                                                                    <User className="w-4 h-4 text-white" />
+                                                                ) : (
+                                                                        <Code2 className="w-4 h-4 text-white" />
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </motion.div>
@@ -628,15 +632,6 @@ export default function Demo() {
                                             {log.text}
                                         </motion.div>
                                     ))}
-                                    {isCycling && (
-                                        <motion.div
-                                            className="text-orange-400/60"
-                                            animate={{ opacity: [0.5, 1, 0.5] }}
-                                            transition={{ duration: 1, repeat: Infinity }}
-                                        >
-                                            ▋
-                                        </motion.div>
-                                    )}
                                 </div>
                                 </div>
                         )}
