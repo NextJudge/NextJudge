@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -92,10 +93,60 @@ func (d *Database) GetUserByAccountIdentifierWithPasswordHash(accountIdentifier 
 	return user, nil
 }
 
+func (d *Database) updateUserFromOAuthData(user *User, newUserData *User) error {
+	updated := false
+	if newUserData.Image != "" && user.Image != newUserData.Image {
+		user.Image = newUserData.Image
+		updated = true
+	}
+	if newUserData.Name != "" && user.Name != newUserData.Name {
+		user.Name = newUserData.Name
+		updated = true
+	}
+	if newUserData.Email != "" && user.Email != newUserData.Email {
+		user.Email = newUserData.Email
+		updated = true
+	}
+	if updated {
+		return d.NextJudgeDB.Save(user).Error
+	}
+	return nil
+}
+
 func (d *Database) GetOrCreateUserByAccountIdentifier(newUserData *User) (*User, error) {
-	var user User
-	err := d.NextJudgeDB.Where(User{AccountIdentifier: newUserData.AccountIdentifier}).FirstOrCreate(&user, newUserData).Error
-	return &user, err
+	user, err := d.GetUserByAccountIdentifier(newUserData.AccountIdentifier)
+	if err != nil {
+		return nil, err
+	}
+
+	if user != nil {
+		err = d.updateUserFromOAuthData(user, newUserData)
+		if err != nil {
+			return nil, err
+		}
+		return user, nil
+	}
+
+	newUserData.JoinDate = time.Now()
+	err = d.NextJudgeDB.Create(newUserData).Error
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "23505") {
+			user, fetchErr := d.GetUserByAccountIdentifier(newUserData.AccountIdentifier)
+			if fetchErr != nil {
+				return nil, fetchErr
+			}
+			if user != nil {
+				err = d.updateUserFromOAuthData(user, newUserData)
+				if err != nil {
+					return nil, err
+				}
+				return user, nil
+			}
+		}
+		return nil, err
+	}
+
+	return newUserData, nil
 }
 
 func (d *Database) CreateUser(user *User) (*User, error) {
