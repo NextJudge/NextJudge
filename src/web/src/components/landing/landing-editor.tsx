@@ -131,7 +131,7 @@ export const LandingEditor = () => {
       try {
         const langs = await apiGetLanguages();
         setLanguages(langs);
-        const defaultLang = langs.find((l) => l.name.toLowerCase() === "python") || langs[0];
+        const defaultLang = langs.find((l) => l.name.toLowerCase() === "typescript") || langs[0];
         if (defaultLang) {
           setCurrentLanguage(defaultLang);
           setCode(getStarterCode(defaultLang));
@@ -335,6 +335,7 @@ export const LandingEditor = () => {
                         languages={languages}
                         onLanguageSelect={handleLanguageSelect}
                         defaultLanguage={currentLanguage}
+                            variant="landing"
                       />
                     )}
                     <div className="flex items-center gap-2">
@@ -400,6 +401,7 @@ export const LandingEditor = () => {
                             languages={languages}
                             onLanguageSelect={handleLanguageSelect}
                             defaultLanguage={currentLanguage}
+                                  variant="landing"
                           />
                         )}
                       </div>
