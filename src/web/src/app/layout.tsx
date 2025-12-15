@@ -9,25 +9,43 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "NextJudge - Host Competitive Programming Contests with Ease",
+  generator: "Next.js",
+  applicationName: "NextJudge",
+  alternates: {
+    canonical: "https://nextjudge.net",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    "max-snippet": 120,
+  },
   description:
-    "NextJudge is a competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible for everyone.",
+    "NextJudge is a competitive programming platform built for the modern era. It is designed to be easy to use, fast, and extensible for everyone.",
   openGraph: {
-    type: "website",
-    url: "https://nextjudge.net/",
     title: "NextJudge - Host Competitive Programming Contests with Ease",
     description:
-      "NextJudge is a competitive programming platform built for the modern era. NextJudge is designed to be easy to use, fast, and extensible for everyone.",
-    siteName: "NextJudge",
+      "NextJudge is a competitive programming platform built for the modern era. It is designed to be easy to use, fast, and extensible for everyone.",
     images: [
       {
-        url: "https://nextjudge.net/og.png",
-        secureUrl: "https://nextjudge.net/og.png",
-        width: 2880,
-        height: 1612,
-        alt: "NextJudge - Host Competitive Programming Contests with Ease",
+        url: "https://nextjudge.net/opengraph-image.webp",
+        width: 1496,
+        height: 883,
+        alt: "NextJudge OpenGraph Image",
       },
     ],
+    type: "website",
+    url: "https://nextjudge.net",
+    siteName: "NextJudge",
+    locale: "en_US",
+    countryName: "United States",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "NextJudge - Host Competitive Programming Contests with Ease",
+    description: "NextJudge is a competitive programming platform built for the modern era. It is designed to be easy to use, fast, and extensible for everyone.",
+    creator: "@tomnyuma",
+    images: ["https://nextjudge.net/opengraph-image.webp"]
+  }
 };
 
 export default function RootLayout({

@@ -43,8 +43,6 @@ export const Hero = () => {
           </a>
         </div>
       </div>
-
-      {/* Hero preview */}
       <div className="z-10 lg:scale-125">
         <Image
           src="/preview.png"
