@@ -1,18 +1,19 @@
 'use client';
 
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
+import { Code2, MousePointer, MousePointerClick, Server } from 'lucide-react';
 import type { Transition } from 'motion/react';
+import { motion } from 'motion/react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const stages = [
-    { id: 0, label: 'Queue', delay: 700 },
-    { id: 1, label: 'Jail', delay: 850 },
+    { id: 0, label: 'Queue', delay: 650 },
+    { id: 1, label: 'Jail', delay: 800 },
     { id: 2, label: 'Execute', delay: 900 },
-    { id: 3, label: 'Judge', delay: 1100 }
+    { id: 3, label: 'Judge', delay: 1200 }
 ] as const;
 
 const cursorTransition: Transition = {
-    duration: 1.35,
+    duration: 2.6,
     ease: 'easeInOut'
 };
 
@@ -38,6 +39,7 @@ export default function Demo() {
     const [activeStage, setActiveStage] = useState(-1);
     const [completedStages, setCompletedStages] = useState<Set<number>>(() => new Set());
     const [showResult, setShowResult] = useState(false);
+    const [codeIconProgress, setCodeIconProgress] = useState(0);
 
     const [isCycling, setIsCycling] = useState(false);
 
@@ -51,6 +53,7 @@ export default function Demo() {
     const [cursorKey, setCursorKey] = useState(0);
     const [cursorPhase, setCursorPhase] = useState<'moving' | 'fading'>('moving');
     const cursorPhaseRef = useRef<'moving' | 'fading'>('moving');
+    const [isClicking, setIsClicking] = useState(false);
 
     const [buttonPulse, setButtonPulse] = useState(false);
 
@@ -71,6 +74,7 @@ export default function Demo() {
         setActiveStage(-1);
         setCompletedStages(new Set());
         setShowResult(false);
+        setCodeIconProgress(0);
 
         if (source === 'auto') {
             setButtonPulse(true);
@@ -80,11 +84,23 @@ export default function Demo() {
         await sleep(300);
         if (token !== runTokenRef.current) return;
 
-        for (const stage of stages) {
+        for (let i = 0; i < stages.length; i++) {
+            const stage = stages[i];
             if (token !== runTokenRef.current) return;
+
+            const segmentStart = i;
+            const segmentEnd = i + 1;
+
             setActiveStage(stage.id);
-            await sleep(stage.delay);
+            setCodeIconProgress(segmentStart);
+
+            await sleep(stage.delay * 0.6);
             if (token !== runTokenRef.current) return;
+
+            setCodeIconProgress(segmentEnd);
+            await sleep(stage.delay * 0.4);
+            if (token !== runTokenRef.current) return;
+
             setCompletedStages((prev) => new Set([...Array.from(prev), stage.id]));
         }
 
@@ -153,6 +169,7 @@ export default function Demo() {
         if (cursorKey <= 0) return;
         cursorPhaseRef.current = 'moving';
         setCursorPhase('moving');
+        setIsClicking(false);
     }, [cursorKey]);
 
     const cursorStyle = cursorPath
@@ -190,15 +207,22 @@ export default function Demo() {
                                 initial={{ pathLength: 0, opacity: 0 }}
                                 animate={
                                     cursorPhase === 'moving'
-                                        ? { pathLength: [0, 1, 1], opacity: [0, 1, 0] }
+                                        ? { pathLength: [0, 1], opacity: [0, 1, 0] }
                                         : { pathLength: 1, opacity: 0 }
                                 }
                                 transition={
                                     cursorPhase === 'moving'
                                         ? {
-                                              duration: cursorTransition.duration,
-                                              ease: cursorTransition.ease,
-                                              times: [0, 0.75, 1]
+                                            pathLength: {
+                                                duration: cursorTransition.duration,
+                                                ease: cursorTransition.ease,
+                                                times: [0, 1]
+                                            },
+                                            opacity: {
+                                                duration: cursorTransition.duration,
+                                                ease: cursorTransition.ease,
+                                                times: [0, 0.95, 1]
+                                            }
                                           }
                                         : { duration: 0.18, ease: 'easeOut' }
                                 }
@@ -210,6 +234,7 @@ export default function Demo() {
                         <motion.div
                             key={cursorKey}
                             style={cursorStyle}
+                            className="relative z-50"
                             initial={{ offsetDistance: '0%', opacity: 0, scale: 0.9 }}
                             animate={
                                 cursorPhase === 'moving'
@@ -219,22 +244,22 @@ export default function Demo() {
                             transition={cursorPhase === 'moving' ? cursorTransition : { duration: 0.18, ease: 'easeOut' }}
                             onAnimationComplete={() => {
                                 if (cursorPhaseRef.current !== 'moving') return;
-                                cursorPhaseRef.current = 'fading';
-                                setCursorPhase('fading');
-                                runButtonRef.current?.focus();
-                                startCycle('auto');
+                                setIsClicking(true);
+                                setTimeout(() => {
+                                    cursorPhaseRef.current = 'fading';
+                                    setCursorPhase('fading');
+                                    runButtonRef.current?.focus();
+                                    startCycle('auto');
+                                }, 150);
                             }}
                             aria-hidden="true"
                         >
                             <div className="relative">
-                                <svg
-                                    className="h-6 w-6 text-neutral-100"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                >
-                                    <path d="M4.5 2.5L20 12.2l-7.2 1.9 2.1 7.4-3.1 1.1-2.4-7.4L4.5 2.5z" />
-                                </svg>
-                                <div className="absolute left-[6px] top-[6px] h-2 w-2 rounded-full bg-orange-500/90"></div>
+                                {isClicking ? (
+                                    <MousePointerClick className="h-6 w-6 text-osu" />
+                                ) : (
+                                    <MousePointer className="h-6 w-6 text-secondary-foreground" />
+                                )}
                             </div>
                         </motion.div>
                     )}
@@ -335,41 +360,99 @@ export default function Demo() {
                     </pre>
                 </div>
 
-                <div className="px-6 py-8 bg-gradient-to-b from-black to-neutral-950/50">
+                <div className="px-6 py-10 bg-gradient-to-b from-black to-neutral-950/50">
                     <div className="relative">
-                        <div className="absolute top-6 left-0 right-0 h-px bg-neutral-900"></div>
-                        <div
-                            className="absolute top-6 left-0 h-px bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-1000 ease-out"
-                            style={{
-                                width: activeStage >= 0 ? `${((activeStage + 1) / stages.length) * 100}%` : '0%',
-                                opacity: activeStage >= 0 ? 1 : 0
-                            }}
-                        ></div>
-
-                        <div className="relative flex items-center justify-between">
-                            {stages.map((stage) => {
+                        <div className="flex items-center justify-between">
+                            {stages.map((stage, index) => {
                                 const isActive = activeStage === stage.id;
                                 const isCompleted = completedStages.has(stage.id);
+                                const isPast = activeStage > stage.id || isCompleted;
+                                const segmentStart = index;
+                                const segmentEnd = index + 1;
+                                const isCodeIconInSegment = codeIconProgress >= segmentStart && codeIconProgress <= segmentEnd;
+                                const segmentProgress = isCodeIconInSegment
+                                    ? Math.max(0, Math.min(1, (codeIconProgress - segmentStart) / (segmentEnd - segmentStart)))
+                                    : codeIconProgress > segmentEnd
+                                        ? 1
+                                        : 0;
 
                                 return (
-                                    <div key={stage.id} className="flex flex-col items-center gap-3">
-                                        <div className={`relative w-12 h-12 rounded-full border transition-all duration-500 flex items-center justify-center ${isActive
-                                                ? 'bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/30 scale-110'
-                                                : isCompleted
-                                                    ? 'bg-neutral-900 border-neutral-800'
-                                                    : 'bg-black border-neutral-900'
-                                            }`}>
-                                            {isActive && (
-                                                <div className="absolute inset-0 rounded-full bg-orange-500 animate-ping opacity-20"></div>
-                                            )}
-                                            <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${isActive ? 'bg-white scale-150' : isCompleted ? 'bg-neutral-700' : 'bg-neutral-800'
-                                                }`}></div>
+                                    <React.Fragment key={stage.id}>
+                                        <div className="flex flex-col items-center gap-4 flex-1">
+                                            <div className="relative w-full flex justify-center">
+                                                <div
+                                                    className={`relative transition-all duration-500 ${isActive
+                                                        ? 'scale-110'
+                                                        : isCompleted
+                                                            ? 'scale-100'
+                                                            : 'scale-95'
+                                                        }`}
+                                                >
+                                                    <div
+                                                        className={`relative w-14 h-14 rounded-lg border-2 transition-all duration-500 flex items-center justify-center ${isActive
+                                                            ? 'bg-orange-500/20 border-orange-500 shadow-lg shadow-orange-500/30'
+                                                            : isCompleted
+                                                                ? 'bg-neutral-900/50 border-orange-500/30'
+                                                                : 'bg-neutral-950/50 border-neutral-800'
+                                                            }`}
+                                                    >
+                                                        {isActive && (
+                                                            <div className="absolute inset-0 rounded-lg bg-orange-500/20 animate-pulse"></div>
+                                                        )}
+                                                        <Server
+                                                            className={`w-7 h-7 transition-all duration-300 ${isActive
+                                                                ? 'text-orange-400'
+                                                                : isCompleted
+                                                                    ? 'text-orange-500/60'
+                                                                    : 'text-neutral-700'
+                                                                }`}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span
+                                                className={`text-xs font-medium tracking-wide transition-all duration-300 ${isActive
+                                                    ? 'text-orange-400'
+                                                    : isCompleted
+                                                        ? 'text-orange-500/70'
+                                                        : 'text-neutral-600'
+                                                    }`}
+                                            >
+                                                {stage.label}
+                                            </span>
                                         </div>
-                                        <span className={`text-xs font-medium tracking-wide transition-all duration-300 ${isActive ? 'text-orange-500' : isCompleted ? 'text-neutral-500' : 'text-neutral-700'
-                                            }`}>
-                                            {stage.label}
-                                        </span>
-                                    </div>
+                                        {index < stages.length - 1 && (
+                                            <div className="flex-1 mx-2 relative h-14">
+                                                <div className="absolute top-1/2 left-0 right-0 h-px -translate-y-1/2 bg-neutral-900">
+                                                    <motion.div
+                                                        className="absolute top-0 left-0 h-full bg-gradient-to-r from-orange-500 to-orange-600"
+                                                        initial={{ width: '0%' }}
+                                                        animate={{
+                                                            width: isPast || isActive ? '100%' : activeStage > index ? '100%' : '0%'
+                                                        }}
+                                                        transition={{ duration: 0.6, ease: 'easeInOut' }}
+                                                    />
+                                                </div>
+                                                {isCodeIconInSegment && (
+                                                    <motion.div
+                                                        className="absolute top-1/2 left-0 -translate-y-1/2"
+                                                        initial={false}
+                                                        animate={{
+                                                            left: `${segmentProgress * 100}%`
+                                                        }}
+                                                        transition={{ duration: 0.4, ease: 'easeInOut' }}
+                                                    >
+                                                        <div className="relative -translate-x-1/2">
+                                                            <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-md"></div>
+                                                            <div className="relative w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center border-2 border-orange-400 shadow-lg">
+                                                                <Code2 className="w-4 h-4 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </React.Fragment>
                                 );
                             })}
                         </div>
