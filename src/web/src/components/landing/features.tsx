@@ -214,7 +214,7 @@ const MockQA = ({ className }: { className?: string }) => (
 
 export default function Features() {
     return (
-        <section id="features" className="py-8 sm:py-16 md:py-24 px-2 sm:px-4 text-white overflow-x-hidden">
+        <section id="features" className="py-6 sm:py-10 md:py-14 px-2 sm:px-4 text-white overflow-x-hidden">
             <div
                 className="relative mx-auto w-full overflow-hidden rounded-3xl"
             >
@@ -223,8 +223,8 @@ export default function Features() {
                     className="absolute inset-0 bg-black/75"
                 /> */}
 
-                <div className="relative mx-auto w-full max-w-5xl px-2 sm:px-4 md:px-6 py-8 sm:py-16 md:py-24">
-                    <h2 className="text-lg sm:text-2xl md:text-4xl font-medium font-sans text-center w-full mx-auto max-w-3xl px-1 sm:px-4 md:px-6 mb-6 sm:mb-12 text-white break-words">
+                <div className="relative mx-auto w-full max-w-5xl px-2 sm:px-4 md:px-6 py-6 sm:py-10 md:py-14">
+                    <h2 className="text-lg sm:text-2xl md:text-4xl font-medium font-sans text-center w-full mx-auto max-w-3xl px-1 sm:px-4 md:px-6 mb-4 sm:mb-8 text-white break-words">
                         NextJudge offers all the tools you need to{' '}
                         <span className="bg-gradient-to-r from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
                             host, participate in, and organize{' '}

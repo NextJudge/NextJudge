@@ -53,7 +53,7 @@ const FAQList: FAQProps[] = [
 
 export const FAQ = () => {
   return (
-    <section id="faq" className="py-16 md:py-32 px-4">
+    <section id="faq" className="py-10 md:py-16 px-4">
       <div
         className="relative mx-auto w-full overflow-hidden rounded-3xl"
       >
@@ -62,8 +62,8 @@ export const FAQ = () => {
           className="absolute inset-0 bg-black/75"
         />
 
-        <div className="relative mx-auto max-w-3xl px-6 py-16 md:py-24">
-          <h2 className="text-3xl md:text-4xl font-medium font-sans mb-8 text-center">
+        <div className="relative mx-auto max-w-3xl px-6 py-10 md:py-14">
+          <h2 className="text-3xl md:text-4xl font-medium font-sans mb-6 text-center">
             Frequently Asked{" "}
             <span className="bg-gradient-to-b from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
               Questions

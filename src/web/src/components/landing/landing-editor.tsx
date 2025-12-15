@@ -432,8 +432,8 @@ const LandingEditorContent = () => {
       >
         {/* <div aria-hidden className="absolute inset-0 bg-black/80" /> */}
 
-        <div className="relative py-16 md:py-24 px-6">
-          <div className="text-center mb-8">
+        <div className="relative py-10 md:py-14 px-6">
+          <div className="text-center mb-6">
             <h2 className="text-3xl md:text-4xl font-medium font-sans text-white">
               Try a practice problem{" "}
               <span className="bg-gradient-to-br from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
@@ -627,13 +627,13 @@ const LandingEditorContent = () => {
 
 export const LandingEditor = () => {
   return (
-    <section className="w-full py-12 md:py-16 px-4 text-white" id="try-it">
+    <section className="w-full py-8 md:py-10 px-4 text-white" id="try-it">
       <Suspense
         fallback={
           <>
             <div className="relative mx-auto w-full overflow-hidden rounded-3xl">
-              <div className="relative py-16 md:py-24 px-6">
-                <div className="text-center mb-8">
+              <div className="relative py-10 md:py-14 px-6">
+                <div className="text-center mb-6">
                   <h2 className="text-3xl md:text-4xl font-medium font-sans text-white">
                     Try a practice problem{" "}
                     <span className="bg-gradient-to-br from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">

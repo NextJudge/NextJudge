@@ -7,7 +7,7 @@ export function EarlyAccess() {
   return (
     <section
       id="early-access"
-      className="relative flex h-full flex-col items-center justify-center overflow-hidden space-y-20 px-4"
+      className="relative flex h-full flex-col items-center justify-center overflow-hidden space-y-12 px-4"
     >
       <div aria-hidden className="absolute inset-0 z-0" />
       <Vortex

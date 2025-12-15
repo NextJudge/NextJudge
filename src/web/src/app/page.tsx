@@ -5,6 +5,7 @@ import { EarlyAccess } from "@/components/landing/early-access";
 import { FAQ } from "@/components/landing/faq";
 import Features from "@/components/landing/features";
 import { ScrollToTop } from "@/components/landing/scroll-up";
+import { SectionDivider } from "@/components/landing/section-divider";
 import { LandingNavbar } from "@/components/nav/landing-navbar";
 import { Metadata } from "next";
 import dynamic from "next/dynamic";
@@ -35,7 +36,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen w-full text-white relative bg-black">
       <LandingNavbar session={session || undefined} />
-      <main className="flex max-w-screen-2xl mx-auto gap-10 flex-col items-center justify-between overflow-x-hidden relative z-10">
+      <main className="flex max-w-screen-2xl mx-auto gap-4 flex-col items-center justify-between overflow-x-hidden relative z-10">
         <div
           className="relative overflow-hidden w-full"
           style={{
@@ -47,8 +48,8 @@ export default async function Home() {
                 rgba(0,0,0,0.4) 30%,
                 rgba(0,0,0,0.0) 50%,
                 rgba(0,0,0,0.0) 50%,
-                rgba(0,0,0,0.4) 70%,
-                rgba(0,0,0,0.8) 85%,
+                rgba(0,0,0,0.8) 70%,
+                rgba(0,0,0,1.0) 85%,
                 rgba(0,0,0,1.0) 100%
               ),
               url('/footer-background.png')
@@ -62,6 +63,8 @@ export default async function Home() {
             <AltHero />
           </div>
         </div>
+
+        <SectionDivider className="translate-y-5 mt-2" />
 
         <div
           className="relative overflow-hidden w-full"
@@ -90,6 +93,8 @@ export default async function Home() {
           </div>
         </div>
 
+        <SectionDivider />
+
         <div
           className="relative overflow-hidden w-full"
           style={{
@@ -117,6 +122,8 @@ export default async function Home() {
           </div>
         </div>
 
+        <SectionDivider />
+
         <div
           className="relative overflow-hidden w-full"
           style={{
@@ -143,6 +150,8 @@ export default async function Home() {
             <EarlyAccess />
           </div>
         </div>
+
+        <SectionDivider />
 
         <div className="relative overflow-hidden w-full">
           <div className="max-w-screen-2xl mx-auto">
