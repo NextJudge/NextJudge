@@ -62,7 +62,7 @@ export function SignUpCard({ children }: SignUpCardProps) {
 
       <CardContent className="grid gap-4">
         {/* OAuth Providers */}
-        <div className="grid grid-cols-2 gap-6 hidden">{children}</div>
+        <div className="grid grid-cols-2 gap-6">{children}</div>
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
