@@ -89,8 +89,12 @@ interface RouteProps {
 
 export const routeList: RouteProps[] = [
   {
+    href: "/team",
+    label: "The Team",
+  },
+  {
     href: "/#try-it",
-    label: "Try It",
+    label: "Demo",
   },
   {
     href: "/#features",

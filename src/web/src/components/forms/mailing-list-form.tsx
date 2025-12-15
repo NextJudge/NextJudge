@@ -42,7 +42,7 @@ export function EmailForm() {
   }
 
   return (
-    <Card className="p-4 m-4 md:p-6 bg-black text-white border border-osu/60">
+    <Card className="p-4 m-4 md:p-6 bg-black text-white border border-osu/60 translate-y-10">
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}

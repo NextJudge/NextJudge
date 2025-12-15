@@ -84,7 +84,7 @@ export function AltHero() {
                           <span className="absolute inset-0 rounded-full shadow-lg bg-white/20 dark:bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(220,68,5,0.3)_0%,rgba(0,0,0,0.5)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                         </span>
                         <div className="relative flex space-x-2 items-center z-10 rounded-full py-0.5 px-4 ring-1 ring-white/20 dark:ring-white/10">
-                          <span>The CodeForces Alternative You Wanted</span>
+                          <span>Reserve Your Spot</span>
                           <svg
                             fill="none"
                             height="16"
@@ -111,21 +111,13 @@ export function AltHero() {
 
               <h1 className="mt-8 max-w-2xl text-balance text-3xl font-medium text-white dark:text-white sm:text-3xl md:text-4xl lg:mt-6 lg:text-4xl">
                 Host and participate in online coding contests
-                <span className="bg-gradient-to-r from-osu to-osu text-transparent bg-clip-text font-serif italic">
-                  {" "}with ease.
+                <span className="bg-gradient-to-r from-osu to-osu text-transparent bg-clip-text font-serif ">
+                  {" "}in just a few clicks.
                 </span>
               </h1>
 
-              <p className="mt-6 max-w-xl md:max-w-3xl lg:max-w-2xl text-pretty text-base text-white/80 dark:text-muted-foreground sm:mt-8 sm:text-lg">
-                What started as a way for{" "}
-                <Link
-                  href="https://acm.oregonstate.edu"
-                  className="text-osu hover:underline"
-                >
-                  ACM@OSU
-                </Link>{" "}
-                to practice for ICPC, is now a fully-featured platform to host,
-                judge, and compete in programming contests.
+              <p className="mt-6 max-w-md text-pretty text-base text-white/80 dark:text-muted-foreground sm:mt-8 sm:text-lg">
+                An open, self-hostable platform for competitive programming and online contests.
               </p>
 
               <div className="mt-8 flex flex-col items-center justify-center gap-2 sm:mt-12 sm:flex-row lg:justify-start">

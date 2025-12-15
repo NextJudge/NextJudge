@@ -43,13 +43,9 @@ export default async function Home() {
             backgroundImage: `
               linear-gradient(
                 to bottom,
-                rgba(0,0,0,1.0) 0%,
-                rgba(0,0,0,0.8) 15%,
-                rgba(0,0,0,0.4) 30%,
-                rgba(0,0,0,0.0) 50%,
-                rgba(0,0,0,0.0) 50%,
-                rgba(0,0,0,0.8) 70%,
-                rgba(0,0,0,1.0) 85%,
+                rgba(0,0,0,1.0) 40%,
+                rgba(0,0,0,0.7) 55%,
+                rgba(0,0,0,0.55) 25%,
                 rgba(0,0,0,1.0) 100%
               ),
               url('/footer-background.png')

@@ -15,13 +15,13 @@ export const Footer = () => {
         <div className="flex flex-col gap-2">
           <h3 className="font-bold text-lg">Docs</h3>
           <div>
-            <a href="#" className="opacity-60 hover:opacity-100">
-              Getting Started
+            <a href="/auth/login" className="opacity-60 hover:opacity-100">
+              Get Started
             </a>
           </div>
 
           <div>
-            <a href="#" className="opacity-60 hover:opacity-100">
+            <a href="https://github.com/NextJudge/NextJudge/blob/main/src/data-layer/README.md" className="opacity-60 hover:opacity-100" target="_blank">
               API Reference
             </a>
           </div>
@@ -41,19 +41,19 @@ export const Footer = () => {
         <div className="flex flex-col gap-2">
           <h3 className="font-bold text-lg">NextJudge</h3>
           <div>
-            <a href="#services" className="opacity-60 hover:opacity-100">
+            <a href="/#try-it" className="opacity-60 hover:opacity-100">
               Services
             </a>
           </div>
 
           <div>
-            <a href="#features" className="opacity-60 hover:opacity-100">
+            <a href="/#features" className="opacity-60 hover:opacity-100">
               Features
             </a>
           </div>
 
           <div>
-            <a href="#early-access" className="opacity-60 hover:opacity-100">
+            <a href="/#early-access" className="opacity-60 hover:opacity-100">
               Early Access
             </a>
           </div>
@@ -62,19 +62,19 @@ export const Footer = () => {
         <div className="flex flex-col gap-2">
           <h3 className="font-bold text-lg">Platform</h3>
           <div>
-            <a href="#" className="opacity-60 hover:opacity-100">
+            <a href="/platform" className="opacity-60 hover:opacity-100">
               Home
             </a>
           </div>
 
           <div>
-            <a href="#" className="opacity-60 hover:opacity-100">
+            <a href="/platform/problems" className="opacity-60 hover:opacity-100">
               Problem Set
             </a>
           </div>
 
           <div>
-            <a href="#" className="opacity-60 hover:opacity-100">
+            <a href="/platform/contests" className="opacity-60 hover:opacity-100">
               Contests
             </a>
           </div>
@@ -84,7 +84,7 @@ export const Footer = () => {
           <h3 className="font-bold text-lg">Community</h3>
           <div>
             <a
-              href="https://github.com/nextjudge"
+              href="https://github.com/nextjudge/nextjudge"
               rel="noopener noreferrer"
               target="_blank"
               className="opacity-60 hover:opacity-100"
@@ -94,13 +94,13 @@ export const Footer = () => {
           </div>
 
           <div>
-            <a href="#" className="opacity-60 hover:opacity-100">
+            <a href="/team" className="opacity-60 hover:opacity-100">
               Our Team
             </a>
           </div>
 
           <div>
-            <a href="#" className="opacity-60 hover:opacity-100">
+            <a href="mailto:hello@nextjudge.net" className="opacity-60 hover:opacity-100">
               Contact
             </a>
           </div>
@@ -112,7 +112,7 @@ export const Footer = () => {
           &copy; 2024{" "}
           <a
             target="_blank"
-            href="https://github.com/nextjudge/nextjudge"
+            href="https://nextjudge.net"
             className="text-orange-600 transition-all border-primary hover:border-b-2"
           >
             NextJudge
