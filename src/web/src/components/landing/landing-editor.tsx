@@ -28,7 +28,7 @@ import { LandingProblemStatement } from "./landing-problem-statement";
 
 const DEMO_PROBLEM = {
   title: "Reverse Multiple Lines",
-  difficulty: "VERY EASY" as const,
+  difficulty: "EASY" as const,
   prompt: `You are given a working solution to the problem "Reverse a String". This is to help you get an idea for how NextJudge handles input/output in each of our supported languages.
 
 ## Your Task
@@ -216,6 +216,7 @@ const LandingEditorContent = () => {
   const monacoRef = useRef<Monaco | null>(null);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
+  const isEditorFocusedRef = useRef(false);
 
   useEffect(() => {
     const checkForLanguageUpdate = () => {
@@ -302,10 +303,12 @@ const LandingEditorContent = () => {
 
     editor.onDidFocusEditorWidget(() => {
       setIsEditorFocused(true);
+      isEditorFocusedRef.current = true;
     });
 
     editor.onDidBlurEditorWidget(() => {
       setIsEditorFocused(false);
+      isEditorFocusedRef.current = false;
     });
 
     if (editorElement) {
@@ -333,6 +336,14 @@ const LandingEditorContent = () => {
       };
 
       editorElement.addEventListener("keydown", handleKeyDown, true);
+
+      const handleClick = () => {
+        if (!isEditorFocusedRef.current) {
+          editor.focus();
+        }
+      };
+
+      editorElement.addEventListener("click", handleClick, true);
     }
 
     const targetTheme = editorTheme?.name || "hc-black";
@@ -406,6 +417,7 @@ const LandingEditorContent = () => {
         horizontal: "auto" as const,
         verticalScrollbarSize: 10,
         horizontalScrollbarSize: 10,
+        alwaysConsumeMouseWheel: false,
       },
     }),
     [screenWidth]
