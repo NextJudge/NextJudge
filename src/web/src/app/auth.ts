@@ -19,8 +19,6 @@ import GitHub from "next-auth/providers/github";
 // }
 
 
-
-
 const AUTH_PROVIDER_PASSWORD: string = process.env.AUTH_PROVIDER_PASSWORD as string
 
 const providers: Provider[] = [
@@ -130,6 +128,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (account?.provider === "github") {
                 console.log("Reaching out")
                 const user_id = `github-${account.providerAccountId}`
+                const githubProfile = profile
+                const image = user.image || githubProfile?.avatar_url || `https://api.dicebear.com/8.x/pixel-art/svg?seed=${user.email}`
 
                 try {
                     const response = await fetch(
@@ -142,7 +142,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         body: JSON.stringify({
                             id: user_id,
                             name: user.name,
-                            email: user.email
+                            email: user.email,
+                            image: image
                         }),
                     }
                     )
