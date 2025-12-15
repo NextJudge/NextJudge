@@ -22,7 +22,7 @@ import * as React from "react";
 interface EditorLanguageSelectProps {
   languages: Language[],
   onLanguageSelect: (language: Language) => void;
-  defaultLanguage: Language;
+  defaultLanguage?: Language;
   variant?: "default" | "landing";
 }
 
@@ -33,10 +33,10 @@ export function EditorLanguageSelect({
   variant = "default"
 }: EditorLanguageSelectProps) {
   const [open, setOpen] = React.useState(false);
-  const [currentLanguage, setCurrentLanguage] = React.useState<Language>(defaultLanguage);
-  const prevDefaultLanguageRef = React.useRef<Language>(defaultLanguage);
+  const [currentLanguage, setCurrentLanguage] = React.useState<Language | undefined>(defaultLanguage);
+  const prevDefaultLanguageRef = React.useRef<Language | undefined>(defaultLanguage);
 
-  if (defaultLanguage.id !== prevDefaultLanguageRef.current.id) {
+  if (defaultLanguage?.id !== prevDefaultLanguageRef.current?.id) {
     setCurrentLanguage(defaultLanguage);
     prevDefaultLanguageRef.current = defaultLanguage;
   }
@@ -102,7 +102,7 @@ export function EditorLanguageSelect({
                 <CheckIcon
                   className={cn(
                     "ml-auto h-4 w-4",
-                    currentLanguage?.id === language.id
+                    currentLanguage && currentLanguage.id === language.id
                       ? "opacity-100"
                       : "opacity-0",
                     isLanding && "text-osu"

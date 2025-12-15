@@ -2,13 +2,13 @@
 
 import Editor, { type Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
-import { useTheme } from "next-themes";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { apiGetLanguages, getPublicCustomInputSubmissionStatus, postPublicCustomInputSubmission } from "@/lib/api";
+import { FALLBACK_TYPESCRIPT, getLanguagesResource } from "@/hooks/use-languages-suspense";
+import { getPublicCustomInputSubmissionStatus, postPublicCustomInputSubmission } from "@/lib/api";
 import { defaultEditorOptions } from "@/lib/constants";
-import type { CustomInputResult, Language } from "@/lib/types";
+import type { CustomInputResult, Language, SubmissionStatus } from "@/lib/types";
 import { cn, convertToMonacoLanguageName } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
 
@@ -26,18 +26,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LandingProblemStatement } from "./landing-problem-statement";
 
 const DEMO_PROBLEM = {
-  title: "Reverse a String",
+  title: "Reverse Multiple Lines",
   difficulty: "VERY EASY" as const,
-  prompt: `Given a string, print it in reverse order.
+  prompt: `You are given a working solution to the problem "Reverse a String". This is to help you get an idea for how NextJudge handles input/output in each of our supported languages.
+
+## Your Task
+
+Extend the given solution to handle **multiple lines** of input. For each line of input, reverse it and print it on a separate line.
 
 ## Input
-A single line containing a string \`s\` (1 ≤ |s| ≤ 1000).
+Multiple lines, each containing a string. The number of lines is at least 1 and at most 100. Each string has length between 1 and 1000.
 
 ## Output
-Print the reversed string.
+For each line of input, print the reversed string on a separate line.
+
+## Example
+
+**Input:**
+\`\`\`
+hello
+world
+\`\`\`
+
+**Output:**
+\`\`\`
+olleh
+dlrow
+\`\`\`
 `,
-  sampleInput: "hello",
-  expectedOutput: "olleh",
+  testCases: [
+    { input: "hello", expected: "olleh", label: "Test Case 1" },
+    { input: "hello\nworld", expected: "olleh\ndlrow", label: "Test Case 2" },
+    { input: "a\nb\nc", expected: "a\nb\nc", label: "Test Case 3" },
+    { input: "programming\ncontest", expected: "gnimmargorp\ntsetnoc", label: "Test Case 4" },
+  ],
 };
 
 const STARTER_CODE: Record<string, string> = {
@@ -103,20 +125,81 @@ public class Solution {
     println(s.reversed())
 }
 `,
+  rust: `use std::io;
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_line(&mut s).unwrap();
+    s = s.trim().to_string();
+    println!("{}", s.chars().rev().collect::<String>());
+}
+`,
+  go: `package main
+
+import (
+    "bufio"
+    "fmt"
+    "os"
+)
+
+func main() {
+    scanner := bufio.NewScanner(os.Stdin)
+    scanner.Scan()
+    s := scanner.Text()
+    runes := []rune(s)
+    for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+        runes[i], runes[j] = runes[j], runes[i]
+    }
+    fmt.Println(string(runes))
+}
+`,
+  ruby: `s = gets.chomp
+puts s.reverse
+`,
+  lua: `s = io.read()
+print(string.reverse(s))
+`,
+  haskell: `main = do
+    s <- getLine
+    putStrLn (reverse s)
+`,
 };
 
 const getStarterCode = (language: Language): string => {
   return STARTER_CODE[language.name.toLowerCase()] || `// ${language.name}`;
 };
 
-export const LandingEditor = () => {
-  const { theme: editorTheme } = useContext(ThemeContext);
-  const { resolvedTheme } = useTheme();
+const compareOutput = (expected: string, actual: string): boolean => {
+  const expectedLines = expected.trim().split('\n').map(line => line.trim());
+  const actualLines = actual.trim().split('\n').map(line => line.trim());
 
-  const [languages, setLanguages] = useState<Language[]>([]);
-  const [currentLanguage, setCurrentLanguage] = useState<Language | null>(null);
-  const [code, setCode] = useState<string>("");
-  const [customInput, setCustomInput] = useState<string>(DEMO_PROBLEM.sampleInput);
+  if (expectedLines.length !== actualLines.length) {
+    return false;
+  }
+
+  for (let i = 0; i < expectedLines.length; i++) {
+    if (expectedLines[i] !== actualLines[i]) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const LandingEditorContent = () => {
+  const { theme: editorTheme } = useContext(ThemeContext);
+
+  const languagesResource = getLanguagesResource();
+  const languages = languagesResource.read();
+  const [currentLanguage, setCurrentLanguage] = useState<Language>(() => {
+    const defaultLang = languages.find((l) => l.name.toLowerCase() === "typescript") || languages[0] || FALLBACK_TYPESCRIPT;
+    return defaultLang;
+  });
+  const [code, setCode] = useState<string>(() => {
+    const defaultLang = languages.find((l) => l.name.toLowerCase() === "typescript") || languages[0] || FALLBACK_TYPESCRIPT;
+    return getStarterCode(defaultLang);
+  });
+  const [customInput, setCustomInput] = useState<string>(DEMO_PROBLEM.testCases[0].input);
   const [customInputResult, setCustomInputResult] = useState<CustomInputResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [rateLimitError, setRateLimitError] = useState(false);
@@ -127,22 +210,20 @@ export const LandingEditor = () => {
   const monacoRef = useRef<Monaco | null>(null);
 
   useEffect(() => {
-    const fetchLanguages = async () => {
-      try {
-        const langs = await apiGetLanguages();
-        setLanguages(langs);
-        const defaultLang = langs.find((l) => l.name.toLowerCase() === "typescript") || langs[0];
-        if (defaultLang) {
-          setCurrentLanguage(defaultLang);
-          setCode(getStarterCode(defaultLang));
-        }
-      } catch (error) {
-        console.error("Failed to fetch languages:", error);
-        toast.error("Failed to load languages");
+    const checkForLanguageUpdate = () => {
+      const updatedLanguagesResource = getLanguagesResource();
+      const updatedLanguages = updatedLanguagesResource.read();
+      const defaultLang = updatedLanguages.find((l) => l.name.toLowerCase() === "typescript") || updatedLanguages[0] || FALLBACK_TYPESCRIPT;
+      if (currentLanguage.id === FALLBACK_TYPESCRIPT.id && defaultLang.id !== FALLBACK_TYPESCRIPT.id) {
+        setCurrentLanguage(defaultLang);
+        setCode(getStarterCode(defaultLang));
       }
     };
-    fetchLanguages();
-  }, []);
+
+    checkForLanguageUpdate();
+    const intervalId = setInterval(checkForLanguageUpdate, 500);
+    return () => clearInterval(intervalId);
+  }, [currentLanguage]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -206,10 +287,6 @@ export const LandingEditor = () => {
   };
 
   const handleRun = async () => {
-    if (!currentLanguage) {
-      toast.error("Please select a language");
-      return;
-    }
 
     setIsRunning(true);
     setCustomInputResult(null);
@@ -226,6 +303,17 @@ export const LandingEditor = () => {
         await new Promise((resolve) => setTimeout(resolve, 500));
         result = await getPublicCustomInputSubmissionStatus(runId);
         attempts++;
+      }
+
+      const matchingTestCase = DEMO_PROBLEM.testCases.find(tc => tc.input === customInput);
+      if (matchingTestCase) {
+        let finalStatus: SubmissionStatus = result.status;
+        if (result.status === "ACCEPTED" || (result.status === "RUNTIME_ERROR" && !result.stderr)) {
+          if (!compareOutput(matchingTestCase.expected, result.stdout)) {
+            finalStatus = "WRONG_ANSWER";
+          }
+        }
+        result = { ...result, status: finalStatus };
       }
 
       setCustomInputResult(result);
@@ -264,25 +352,10 @@ export const LandingEditor = () => {
     [screenWidth]
   );
 
-  if (languages.length === 0) {
-    return (
-      <section className="w-full py-12 md:py-20 px-4 text-white" id="try-it">
-        <div className="relative mx-auto w-full overflow-hidden rounded-3xl bg-black/90">
-          <div aria-hidden className="absolute inset-0 bg-black/80" />
-          <div className="relative py-16 md:py-24 px-6">
-            <div className="flex items-center justify-center h-[600px] border border-osu/60 rounded-lg bg-black/80 mx-auto max-w-6xl">
-              <Icons.loader className="w-8 h-8 animate-spin text-osu" />
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   const isMobile = screenWidth < 768;
 
   return (
-    <section className="w-full py-12 md:py-16 px-4 text-white" id="try-it">
+    <>
       <div
         className="relative mx-auto w-full overflow-hidden rounded-3xl"
       >
@@ -330,16 +403,14 @@ export const LandingEditor = () => {
                 </TabsContent>
                     <TabsContent value="code" className="flex-1 m-0 flex flex-col min-h-0 text-white">
                       <div className="flex items-center justify-between gap-2 p-2 border-b border-osu/50 bg-black/60">
-                    {currentLanguage && (
-                      <EditorLanguageSelect
-                        languages={languages}
-                        onLanguageSelect={handleLanguageSelect}
-                        defaultLanguage={currentLanguage}
-                            variant="landing"
-                      />
-                    )}
+                        <EditorLanguageSelect
+                          languages={languages}
+                          onLanguageSelect={handleLanguageSelect}
+                          defaultLanguage={currentLanguage}
+                          variant="landing"
+                        />
                     <div className="flex items-center gap-2">
-                      <Button onClick={handleRun} disabled={isRunning} size="sm" className="gap-1.5">
+                          <Button onClick={handleRun} disabled={isRunning} size="sm" className="gap-1.5">
                         {isRunning ? <Icons.loader className="w-3.5 h-3.5 animate-spin" /> : <Icons.play className="w-3.5 h-3.5" />}
                         <span className="hidden sm:inline">{isRunning ? "Running..." : "Run"}</span>
                       </Button>
@@ -348,7 +419,7 @@ export const LandingEditor = () => {
                   <div className="flex-1 min-h-0">
                     <Editor
                       loading={<div className="flex items-center justify-center h-full"><Icons.loader className="w-6 h-6 animate-spin text-primary" /></div>}
-                      language={currentLanguage ? convertToMonacoLanguageName(currentLanguage) : "python"}
+                          language={convertToMonacoLanguageName(currentLanguage)}
                       value={code}
                           theme={currentTheme}
                       options={editorOptions}
@@ -395,18 +466,16 @@ export const LandingEditor = () => {
                 <ResizablePanel defaultSize={65} minSize={30} className="min-h-0">
                   <div className="h-full flex flex-col">
                           <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-osu/40 bg-black/60">
-                      <div className="flex items-center gap-3">
-                        {currentLanguage && (
-                          <EditorLanguageSelect
-                            languages={languages}
-                            onLanguageSelect={handleLanguageSelect}
-                            defaultLanguage={currentLanguage}
-                                  variant="landing"
-                          />
-                        )}
+                            <div className="flex items-center gap-3">
+                              <EditorLanguageSelect
+                                languages={languages}
+                                onLanguageSelect={handleLanguageSelect}
+                                defaultLanguage={currentLanguage}
+                                variant="landing"
+                              />
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button onClick={handleRun} disabled={isRunning} size="sm" className="gap-2">
+                              <Button onClick={handleRun} disabled={isRunning} size="sm" className="gap-2">
                           {isRunning ? (
                             <>
                               <Icons.loader className="w-4 h-4 animate-spin" />
@@ -428,7 +497,7 @@ export const LandingEditor = () => {
                                   <Icons.loader className="w-8 h-8 animate-spin text-osu" />
                           </div>
                         }
-                        language={currentLanguage ? convertToMonacoLanguageName(currentLanguage) : "python"}
+                              language={convertToMonacoLanguageName(currentLanguage)}
                         value={code}
                               theme={currentTheme}
                         options={editorOptions}
@@ -481,6 +550,57 @@ export const LandingEditor = () => {
           </div>
         </div>
       </div>
+    </>
+  );
+};
+
+export const LandingEditor = () => {
+  return (
+    <section className="w-full py-12 md:py-16 px-4 text-white" id="try-it">
+      <Suspense
+        fallback={
+          <>
+            <div className="relative mx-auto w-full overflow-hidden rounded-3xl">
+              <div className="relative py-16 md:py-24 px-6">
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl md:text-4xl font-medium font-sans text-white">
+                    Try a practice problem{" "}
+                    <span className="bg-gradient-to-br from-osu to-osu text-transparent bg-clip-text font-serif italic font-semibold">
+                      right now!
+                    </span>
+                  </h2>
+                  <p className="text-gray-300 text-lg mt-2">
+                    We've prepared a simple problem for you to try out. No sign-up needed.
+                  </p>
+                </div>
+
+                <div className={cn(
+                  "relative w-full mx-auto max-w-6xl",
+                  "h-[600px] md:h-[650px]",
+                  "border border-osu/60 rounded-lg shadow-lg overflow-hidden",
+                  "bg-black/80 backdrop-blur text-white"
+                )}>
+                  <div className="flex items-center justify-center h-full">
+                    <Icons.loader className="w-8 h-8 animate-spin text-osu" />
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent pt-8 pb-3 px-4">
+                    <div className="flex items-center justify-center gap-4 text-sm text-white">
+                      <span className="text-gray-300">Ready for more challenges?</span>
+                      <div className="flex gap-2">
+                        <div className="h-9 w-20 bg-black/60 border border-osu/60 rounded-md" />
+                        <div className="h-9 w-24 bg-osu/20 rounded-md" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        }
+      >
+        <LandingEditorContent />
+      </Suspense>
     </section>
   );
 };
@@ -501,16 +621,18 @@ const OutputPanel = ({
   return (
     <div className="grid md:grid-cols-2 gap-4 h-full text-white">
       <div className="space-y-2">
-        <label className="text-xs font-medium text-gray-300 uppercase tracking-wide">Input</label>
+        <div className="flex items-center gap-2 min-h-[20px]">
+          <label className="text-xs font-medium text-gray-300 uppercase tracking-wide">Input</label>
+        </div>
         <textarea
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
           placeholder="Enter input..."
-          className="w-full h-[80px] md:h-[calc(100%-28px)] p-3 text-sm font-mono bg-black/60 text-white border border-osu/50 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-osu"
+          className="w-full min-h-[80px] p-3 text-sm font-mono bg-black/60 text-white border border-osu/50 rounded-md resize-y focus:outline-none focus:ring-1 focus:ring-osu"
         />
       </div>
       <div className="space-y-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-h-[20px]">
           <label className="text-xs font-medium text-gray-300 uppercase tracking-wide">Output</label>
           {isRunning && (
             <SubmissionStatusBadge status="PENDING" showIcon variant="detailed" />
@@ -519,27 +641,26 @@ const OutputPanel = ({
             <SubmissionStatusBadge status={customInputResult.status} showIcon variant="detailed" />
           )}
         </div>
-        <div className={cn(
-          "w-full h-[80px] md:h-[calc(100%-28px)] p-3 text-sm font-mono border rounded-md overflow-auto",
-          rateLimitError ? "bg-red-900/60 border-red-500/70 text-red-200" :
-            customInputResult?.stderr ? "bg-red-900/60 border-red-500/70 text-red-200" :
-              "bg-black/60 border-osu/50 text-white"
-        )}>
-          {isRunning ? (
-            <div className="flex items-center gap-2 text-gray-300">
-              <Icons.loader className="w-4 h-4 animate-spin text-osu" />
-              <span>Running...</span>
-            </div>
-          ) : rateLimitError ? (
-              <span className="text-red-200">Rate limit exceeded. Please wait a moment.</span>
-          ) : customInputResult?.stderr ? (
-                <span className="text-red-200 whitespace-pre-wrap">{customInputResult.stderr}</span>
-          ) : customInputResult?.stdout ? (
-                  <span className="text-white whitespace-pre-wrap">{customInputResult.stdout}</span>
-          ) : (
-                    <span className="text-gray-400">Run your code to see output</span>
+        <textarea
+          readOnly
+          value={
+            isRunning
+              ? ""
+              : rateLimitError
+                ? "Rate limit exceeded. Please wait a moment."
+                : customInputResult?.stderr
+                  ? customInputResult.stderr
+                  : customInputResult?.stdout
+                    ? customInputResult.stdout
+                    : "Run your code to see output"
+          }
+          className={cn(
+            "w-full min-h-[80px] p-3 text-sm font-mono border rounded-md resize-y whitespace-pre-wrap",
+            rateLimitError ? "bg-red-900/60 border-red-500/70 text-red-200" :
+              customInputResult?.stderr ? "bg-red-900/60 border-red-500/70 text-red-200" :
+                "bg-black/60 border-osu/50 text-white"
           )}
-        </div>
+        />
       </div>
     </div>
   );
