@@ -109,14 +109,14 @@ export function AltHero() {
                 </a>
               </TooltipProvider>
 
-              <h1 className="mt-8 max-w-2xl text-balance text-3xl font-medium text-white dark:text-white sm:text-4xl md:text-5xl lg:mt-6 lg:text-6xl">
+              <h1 className="mt-8 max-w-2xl text-balance text-3xl font-medium text-white dark:text-white sm:text-3xl md:text-4xl lg:mt-6 lg:text-4xl">
                 Host and participate in online coding contests
                 <span className="bg-gradient-to-r from-osu to-osu text-transparent bg-clip-text font-serif italic">
                   {" "}with ease.
                 </span>
               </h1>
 
-              <p className="mt-6 max-w-xl md:max-w-3xl text-pretty text-base text-white/80 dark:text-muted-foreground sm:mt-8 sm:text-lg">
+              <p className="mt-6 max-w-xl md:max-w-3xl lg:max-w-2xl text-pretty text-base text-white/80 dark:text-muted-foreground sm:mt-8 sm:text-lg">
                 What started as a way for{" "}
                 <Link
                   href="https://acm.oregonstate.edu"

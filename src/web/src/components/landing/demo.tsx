@@ -3,13 +3,55 @@
 import { Code2, MousePointer, MousePointerClick, Server } from 'lucide-react';
 import type { Transition } from 'motion/react';
 import { motion } from 'motion/react';
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { Children, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ItemIndexContext, SequenceContext } from '../ui/terminal';
+
+const SimpleSequenceProvider = ({ children, startImmediately = false, resetKey }: { children: React.ReactNode; startImmediately?: boolean; resetKey?: number | null }) => {
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [hasStarted, setHasStarted] = useState(startImmediately);
+
+    useEffect(() => {
+        if (startImmediately) {
+            setHasStarted(true);
+        }
+    }, [startImmediately]);
+
+    useEffect(() => {
+        if (resetKey !== undefined) {
+            setActiveIndex(0);
+            setHasStarted(startImmediately);
+        }
+    }, [resetKey, startImmediately]);
+
+    const contextValue = useMemo(() => ({
+        completeItem: (index: number) => {
+            setActiveIndex((current) => (index === current ? current + 1 : current));
+        },
+        activeIndex,
+        sequenceStarted: hasStarted,
+    }), [activeIndex, hasStarted]);
+
+    const wrappedChildren = useMemo(() => {
+        const array = Children.toArray(children);
+        return array.map((child, index) => (
+            <ItemIndexContext.Provider key={index} value={index}>
+                {child as React.ReactNode}
+            </ItemIndexContext.Provider>
+        ));
+    }, [children]);
+
+    return (
+        <SequenceContext.Provider value={contextValue}>
+            {wrappedChildren}
+        </SequenceContext.Provider>
+    );
+};
 
 const stages = [
-    { id: 0, label: 'Queue', delay: 650 },
-    { id: 1, label: 'Jail', delay: 800 },
-    { id: 2, label: 'Execute', delay: 900 },
-    { id: 3, label: 'Judge', delay: 1200 }
+    { id: 0, label: 'Queue', delay: 1200 },
+    { id: 1, label: 'Jail', delay: 1500 },
+    { id: 2, label: 'Execute', delay: 2800 },
+    { id: 3, label: 'Judge', delay: 1800 }
 ] as const;
 
 const cursorTransition: Transition = {
@@ -35,16 +77,71 @@ function sleep(ms: number) {
     return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
+const generateQueueLogs = (): TerminalLog[] => [
+    { text: '[INFO] Submission received: solution.cpp', delay: 50, className: 'text-blue-400/80' },
+    { text: '[INFO] Language detected: C++17', delay: 100, className: 'text-blue-400/80' },
+    { text: '[INFO] Assigning submission ID: #2847', delay: 150, className: 'text-blue-400/80' },
+    { text: '[INFO] Queued for processing...', delay: 200, className: 'text-orange-500/80' },
+    { text: '[INFO] Position in queue: 1/1', delay: 250, className: 'text-neutral-500' },
+];
+
+const generateJailLogs = (): TerminalLog[] => [
+    { text: '[INFO] Initializing sandbox environment...', delay: 50, className: 'text-blue-400/80' },
+    { text: '[INFO] Creating isolated filesystem', delay: 100, className: 'text-blue-400/80' },
+    { text: '[INFO] Setting resource limits: CPU=2s, MEM=256MB', delay: 150, className: 'text-blue-400/80' },
+    { text: '[INFO] Mounting read-only problem data', delay: 200, className: 'text-blue-400/80' },
+    { text: '[INFO] Jail initialized successfully', delay: 250, className: 'text-green-400/80' },
+];
+
+const generateExecuteLogs = (): TerminalLog[] => [
+    { text: '[INFO] Compiling solution.cpp...', delay: 50, className: 'text-blue-400/80' },
+    { text: '[INFO] g++ -std=c++17 -O2 -Wall solution.cpp -o solution', delay: 100, className: 'text-neutral-500' },
+    { text: '[INFO] Compilation successful', delay: 200, className: 'text-green-400/80' },
+    { text: '[INFO] Running test case 1/10...', delay: 250, className: 'text-orange-400' },
+    { text: '[INFO] Test case 1: PASSED (8ms)', delay: 300, className: 'text-green-400/80' },
+    { text: '[INFO] Running test case 2/10...', delay: 350, className: 'text-orange-400' },
+    { text: '[INFO] Test case 2: PASSED (7ms)', delay: 400, className: 'text-green-400/80' },
+    { text: '[INFO] Running test case 3/10...', delay: 450, className: 'text-orange-400' },
+    { text: '[INFO] Test case 3: PASSED (9ms)', delay: 500, className: 'text-green-400/80' },
+    { text: '[INFO] Running test case 4/10...', delay: 550, className: 'text-orange-400' },
+    { text: '[INFO] Test case 4: PASSED (8ms)', delay: 600, className: 'text-green-400/80' },
+    { text: '[INFO] Running test case 5/10...', delay: 650, className: 'text-orange-400' },
+    { text: '[INFO] Test case 5: PASSED (7ms)', delay: 700, className: 'text-green-400/80' },
+    { text: '[INFO] Running test case 6/10...', delay: 750, className: 'text-orange-400' },
+    { text: '[INFO] Test case 6: PASSED (9ms)', delay: 800, className: 'text-green-400/80' },
+    { text: '[INFO] Running test case 7/10...', delay: 850, className: 'text-orange-400' },
+    { text: '[INFO] Test case 7: PASSED (8ms)', delay: 900, className: 'text-green-400/80' },
+    { text: '[INFO] Running test case 8/10...', delay: 950, className: 'text-orange-400' },
+    { text: '[INFO] Test case 8: PASSED (7ms)', delay: 1000, className: 'text-green-400/80' },
+    { text: '[INFO] Running test case 9/10...', delay: 1050, className: 'text-orange-400' },
+    { text: '[INFO] Test case 9: PASSED (9ms)', delay: 1100, className: 'text-green-400/80' },
+    { text: '[INFO] Running test case 10/10...', delay: 1150, className: 'text-orange-400' },
+    { text: '[INFO] Test case 10: PASSED (8ms)', delay: 1200, className: 'text-green-400/80' },
+];
+
+const generateJudgeLogs = (): TerminalLog[] => [
+    { text: '[INFO] All test cases completed', delay: 50, className: 'text-green-400/80' },
+    { text: '[INFO] Verifying output correctness...', delay: 100, className: 'text-blue-400/80' },
+    { text: '[INFO] Memory usage: 10.2 MB (within limits)', delay: 150, className: 'text-blue-400/80' },
+    { text: '[INFO] Runtime: 8ms (average)', delay: 200, className: 'text-blue-400/80' },
+    { text: '[INFO] Verdict: ACCEPTED', delay: 250, className: 'text-green-400' },
+];
+
+type TerminalLog = { text: string; delay: number; className?: string };
+
 export default function Demo() {
     const [activeStage, setActiveStage] = useState(-1);
     const [completedStages, setCompletedStages] = useState<Set<number>>(() => new Set());
     const [showResult, setShowResult] = useState(false);
     const [codeIconProgress, setCodeIconProgress] = useState(0);
+    const [cycleStartTime, setCycleStartTime] = useState<number | null>(null);
+    const [terminalLogs, setTerminalLogs] = useState<TerminalLog[]>([]);
 
     const [isCycling, setIsCycling] = useState(false);
 
     const containerRef = useRef<HTMLDivElement | null>(null);
     const runButtonRef = useRef<HTMLButtonElement | null>(null);
+    const terminalRef = useRef<HTMLDivElement | null>(null);
     const runTokenRef = useRef(0);
     const isCyclingRef = useRef(false);
 
@@ -65,6 +162,12 @@ export default function Demo() {
         isCyclingRef.current = isCycling;
     }, [isCycling]);
 
+    useEffect(() => {
+        if (terminalRef.current) {
+            terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+        }
+    }, [terminalLogs]);
+
     const startCycle = useCallback(async (source: 'auto' | 'user') => {
         if (isCyclingRef.current) return;
         const token = ++runTokenRef.current;
@@ -75,6 +178,8 @@ export default function Demo() {
         setCompletedStages(new Set());
         setShowResult(false);
         setCodeIconProgress(0);
+        setCycleStartTime(Date.now());
+        setTerminalLogs([]);
 
         if (source === 'auto') {
             setButtonPulse(true);
@@ -94,8 +199,32 @@ export default function Demo() {
             setActiveStage(stage.id);
             setCodeIconProgress(segmentStart);
 
-            await sleep(stage.delay * 0.6);
-            if (token !== runTokenRef.current) return;
+            let stageLogs: TerminalLog[] = [];
+            if (stage.id === 0) {
+                stageLogs = generateQueueLogs();
+            } else if (stage.id === 1) {
+                stageLogs = generateJailLogs();
+            } else if (stage.id === 2) {
+                stageLogs = generateExecuteLogs();
+            } else if (stage.id === 3) {
+                stageLogs = generateJudgeLogs();
+            }
+
+            const stageDuration = stage.delay * 0.6;
+            const logInterval = stageDuration / (stageLogs.length + 1);
+
+            for (let j = 0; j < stageLogs.length; j++) {
+                if (token !== runTokenRef.current) return;
+                await sleep(logInterval);
+                if (token !== runTokenRef.current) return;
+                setTerminalLogs((prev) => [...prev, stageLogs[j]]);
+            }
+
+            const remainingTime = stageDuration - (logInterval * stageLogs.length);
+            if (remainingTime > 0) {
+                await sleep(remainingTime);
+                if (token !== runTokenRef.current) return;
+            }
 
             setCodeIconProgress(segmentEnd);
             await sleep(stage.delay * 0.4);
@@ -459,26 +588,58 @@ export default function Demo() {
                     </div>
                 </div>
 
-                <div className={`border-t border-neutral-900/50 transition-all duration-700 ${showResult ? 'opacity-100 max-h-24' : 'opacity-0 max-h-0 overflow-hidden'
-                    }`}>
-                    <div className="px-6 py-4 bg-gradient-to-b from-neutral-950/50 to-black">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-7 h-7 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-                                    <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                    </svg>
+                <div className="border-t border-neutral-900/50 h-[88px] relative">
+                    <div className="absolute inset-0 px-6 py-4 bg-gradient-to-b from-neutral-950/50 to-black">
+                        {showResult ? (
+                            <motion.div
+                                className="h-full flex items-center justify-between"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.7, ease: 'easeOut' }}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-7 h-7 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-medium text-orange-500">Accepted</div>
+                                        <div className="text-xs text-neutral-600 mt-0.5">8ms runtime</div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="text-sm font-medium text-orange-500">Accepted</div>
-                                    <div className="text-xs text-neutral-600 mt-0.5">8ms runtime</div>
+                                <div className="text-right">
+                                    <div className="text-xs text-neutral-700 mb-0.5">Memory</div>
+                                    <div className="text-sm font-mono text-neutral-500">10.2 MB</div>
                                 </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-xs text-neutral-700 mb-0.5">Memory</div>
-                                <div className="text-sm font-mono text-neutral-500">10.2 MB</div>
-                            </div>
-                        </div>
+                            </motion.div>
+                        ) : (
+                            <div ref={terminalRef} className="h-full flex items-start overflow-y-auto overflow-x-hidden">
+                                <div className="grid gap-y-0.5 font-mono text-xs w-full py-1">
+                                    <div className="text-neutral-400">$ nextjudge submit solution.cpp</div>
+                                    {terminalLogs.map((log, index) => (
+                                        <motion.div
+                                            key={index}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ duration: 0.2 }}
+                                            className={log.className || 'text-neutral-500'}
+                                        >
+                                            {log.text}
+                                        </motion.div>
+                                    ))}
+                                    {isCycling && (
+                                        <motion.div
+                                            className="text-orange-400/60"
+                                            animate={{ opacity: [0.5, 1, 0.5] }}
+                                            transition={{ duration: 1, repeat: Infinity }}
+                                        >
+                                            ▋
+                                        </motion.div>
+                                    )}
+                                </div>
+                                </div>
+                        )}
                     </div>
                 </div>
             </div>
