@@ -84,7 +84,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         error: "/error",
         newUser: "/platform",
     },
-    debug: true,
+    debug: process.env.NODE_ENV === "development" ? true : false,
     callbacks: {
         async jwt({ token, user, trigger }) {
             // This is only true during the initial sign-in
