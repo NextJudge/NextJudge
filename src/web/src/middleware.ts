@@ -2,7 +2,6 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { auth } from "./app/auth";
 
-const protectedRoutes = ["/platform", "/platform/*"];
 const adminRoutes = ["/platform/admin", "/platform/admin/*"];
 const unprotectedRoutes = [
   "/",
@@ -14,6 +13,7 @@ const unprotectedRoutes = [
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
   const isUnprotected = unprotectedRoutes.some(route => {
     if (route.endsWith("/*")) {
       const basePath = route.slice(0, -2);
@@ -22,7 +22,6 @@ export default async function middleware(request: NextRequest) {
     return pathname === route;
   });
 
-  // skip auth for unprotected routes
   if (isUnprotected) {
     const response = NextResponse.next();
     response.headers.set("x-pathname", pathname);
@@ -31,7 +30,10 @@ export default async function middleware(request: NextRequest) {
 
   const session = await auth();
 
-  // check if requesting admin routes
+  if (pathname.startsWith("/platform") && !session) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   const isAdminRoute = adminRoutes.some(route => {
     if (route.endsWith("/*")) {
       const basePath = route.slice(0, -2);
@@ -40,17 +42,12 @@ export default async function middleware(request: NextRequest) {
     return pathname === route;
   });
 
-  // if accessing admin routes, check if user is admin
-  if (isAdminRoute) {
-    if (!session) {
-      // redirect to login if not authenticated
-      return NextResponse.redirect(new URL("/auth/login", request.url));
-    }
+  if (session && isAdminRoute && !session.user?.is_admin) {
+    return NextResponse.redirect(new URL("/platform", request.url));
+  }
 
-    if (!session.user?.is_admin) {
-      // redirect to platform home if not admin
-      return NextResponse.redirect(new URL("/platform", request.url));
-    }
+  if (isAdminRoute && !session?.user?.is_admin) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   const response = NextResponse.next();
