@@ -158,7 +158,7 @@ export function AltHero() {
                 Solve problems in all of the languages we know and love
               </p>
             </div>
-            <div className="relative py-6 md:w-[calc(100%-13rem)]">
+            <div className="relative pb-6 md:w-[calc(100%-13rem)]">
               <Marquee className="[--duration:30s] [--gap:3rem]">
                 {languageLogos.map((logo, index) => (
                   <div key={index} className="flex">
