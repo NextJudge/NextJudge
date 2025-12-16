@@ -1,4 +1,3 @@
-import { auth } from "@/app/auth";
 import { Footer } from "@/components/footer";
 import { AltHero } from "@/components/landing/alt-hero";
 import { EarlyAccess } from "@/components/landing/early-access";
@@ -7,8 +6,10 @@ import Features from "@/components/landing/features";
 import { ScrollToTop } from "@/components/landing/scroll-up";
 import { SectionDivider } from "@/components/landing/section-divider";
 import { LandingNavbar } from "@/components/nav/landing-navbar";
+import { NavbarWithSession } from "@/components/nav/navbar-with-session";
 import { Metadata } from "next";
 import dynamic from "next/dynamic";
+import { Suspense } from "react";
 import { preload } from "react-dom";
 const WhyNextJudge = dynamic(
   () => import("@/components/landing/bento").then((mod) => mod.WhyNextJudge),
@@ -25,8 +26,7 @@ export const metadata: Metadata = {
     "NextJudge is a competitive programming platform built for the modern era. It is designed to be easy to use, fast, and extensible.",
 };
 
-export default async function Home() {
-  const session = await auth();
+export default function Home() {
   preload("/hero-background.png", { as: "image" });
   preload("/footer-background.png", { as: "image" });
   preload("/early-access-background.png", { as: "image" });
@@ -35,7 +35,9 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen w-full text-white relative bg-black">
-      <LandingNavbar session={session || undefined} />
+      <Suspense fallback={<LandingNavbar session={undefined} />}>
+        <NavbarWithSession />
+      </Suspense>
       <main className="flex max-w-screen-2xl mx-auto gap-4 flex-col items-center justify-between overflow-x-hidden relative z-10">
         <div
           className="relative overflow-hidden w-full"

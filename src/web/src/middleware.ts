@@ -13,8 +13,23 @@ const unprotectedRoutes = [
 ];
 
 export default async function middleware(request: NextRequest) {
-  const session = await auth();
   const { pathname } = request.nextUrl;
+  const isUnprotected = unprotectedRoutes.some(route => {
+    if (route.endsWith("/*")) {
+      const basePath = route.slice(0, -2);
+      return pathname.startsWith(basePath);
+    }
+    return pathname === route;
+  });
+
+  // skip auth for unprotected routes
+  if (isUnprotected) {
+    const response = NextResponse.next();
+    response.headers.set("x-pathname", pathname);
+    return response;
+  }
+
+  const session = await auth();
 
   // check if requesting admin routes
   const isAdminRoute = adminRoutes.some(route => {
