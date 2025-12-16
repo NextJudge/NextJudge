@@ -1,5 +1,6 @@
 "use client";
 
+import { FALLBACK_TYPESCRIPT } from "@/hooks/use-languages-suspense";
 import { defaultEditorOptions } from "@/lib/constants";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 import type { Language } from "@/lib/types";
@@ -98,6 +99,7 @@ export default function CodeEditor({
 }) {
     const { theme } = useContext(ThemeContext);
     const { defaultLanguage } = useSettingsStore();
+    const isLanguagesUnavailable = languages.length === 1 && languages[0].id === FALLBACK_TYPESCRIPT.id;
     const [currentLanguage, setCurrentLanguage] = useState<Language>(() => {
         // Use default language from settings if available, otherwise fall back to languages[3]
         if (defaultLanguage && languages.some(lang => lang.id === defaultLanguage.id)) {
@@ -328,7 +330,7 @@ export default function CodeEditor({
                         size="icon"
                         className="h-8 w-8 sm:h-9 sm:w-9"
                         onClick={handleRun}
-                        disabled={customInputLoading || submissionLoading}
+                        disabled={customInputLoading || submissionLoading || isLanguagesUnavailable}
                         title="Run with custom input"
                         aria-label="Run with custom input"
                     >
@@ -341,7 +343,7 @@ export default function CodeEditor({
                     <Button
                         className="text-xs sm:text-sm px-3 sm:px-4 py-2 font-medium"
                         onClick={handleSubmit}
-                        disabled={submissionLoading || customInputLoading}
+                        disabled={submissionLoading || customInputLoading || isLanguagesUnavailable}
                         variant={error ? "destructive" : "default"}
                         size="sm"
                     >

@@ -20,9 +20,17 @@ export function getAppUrl() {
 
 
 export function convertToMonacoLanguageName(language: Language | undefined) {
-    return language?.name === "pypy"
-        ? "python"
-        : language?.name === "c++"
-            ? "cpp"
-            : language?.name
+    if (!language) return "typescript";
+
+    if (language.name === "pypy") {
+        return "python";
+    }
+    if (language.name === "c++") {
+        return "cpp";
+    }
+    if (language.id === "typescript-fallback" || language.name.toLowerCase() === "typescript") {
+        return "typescript";
+    }
+
+    return language.name.toLowerCase();
 }

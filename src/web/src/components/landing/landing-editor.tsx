@@ -197,6 +197,7 @@ const LandingEditorContent = () => {
 
   const languagesResource = getLanguagesResource();
   const languages = languagesResource.read();
+  const isLanguagesUnavailable = languages.length === 1 && languages[0].id === FALLBACK_TYPESCRIPT.id;
   const [currentLanguage, setCurrentLanguage] = useState<Language>(() => {
     const defaultLang = languages.find((l) => l.name.toLowerCase() === "typescript") || languages[0] || FALLBACK_TYPESCRIPT;
     return defaultLang;
@@ -546,7 +547,7 @@ const LandingEditorContent = () => {
                               />
                       </div>
                       <div className="flex items-center gap-2">
-                              <Button onClick={handleRun} disabled={isRunning} size="sm" className="gap-2">
+                              <Button onClick={handleRun} disabled={isRunning || isLanguagesUnavailable} size="sm" className="gap-2">
                           {isRunning ? (
                             <>
                               <Icons.loader className="w-4 h-4 animate-spin" />

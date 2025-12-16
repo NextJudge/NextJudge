@@ -56,13 +56,15 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
                   <>
                     <Link
                       href="/auth/login"
-                      className={buttonVariants({ variant: "link" })}
+                      className={cn(buttonVariants({ variant: "link" }), "pointer-events-none opacity-50 cursor-not-allowed")}
+                      aria-disabled="true"
                     >
                       Login
                     </Link>
                     <Link
                       href="/auth/signup"
-                      className={buttonVariants({ variant: "link" })}
+                      className={cn(buttonVariants({ variant: "link" }), "pointer-events-none opacity-50 cursor-not-allowed")}
+                      aria-disabled="true"
                     >
                       Sign Up
                     </Link>
@@ -118,8 +120,9 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
                   href="/auth/login"
                   className={cn(
                     buttonVariants({ variant: "link" }),
-                    "text-white/90 hover:text-white"
+                    "text-white/90 hover:text-white pointer-events-none opacity-50 cursor-not-allowed"
                   )}
+                  aria-disabled="true"
                 >
                   Login
                 </Link>
@@ -128,8 +131,9 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
                   href="/auth/signup"
                   className={cn(
                     buttonVariants({ variant: "link" }),
-                    "text-white/90 hover:text-white"
+                    "text-white/90 hover:text-white pointer-events-none opacity-50 cursor-not-allowed"
                   )}
+                  aria-disabled="true"
                 >
                   Sign Up
                 </Link>

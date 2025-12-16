@@ -17,8 +17,21 @@ import {
 import { getBridgeUrl } from "./utils";
 
 export async function apiGetLanguages(): Promise<Language[]> {
-	const data = await fetch(`${getBridgeUrl()}/v1/languages`);
-	return data.json();
+	try {
+		const data = await fetch(`${getBridgeUrl()}/v1/languages`);
+		if (!data.ok) {
+			throw new Error(`Failed to fetch languages: ${data.status}`);
+		}
+		return data.json();
+	} catch (error) {
+		console.error("Failed to fetch languages:", error);
+		return [{
+			id: "typescript-fallback",
+			name: "TypeScript",
+			extension: "ts",
+			version: "5.4.5",
+		}];
+	}
 }
 
 export async function apiGetCategories(token: string): Promise<Category[]> {
