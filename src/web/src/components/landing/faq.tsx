@@ -46,7 +46,7 @@ const FAQList: FAQProps[] = [
   {
     question: "How do I report a bug or issue with the platform?",
     answer:
-      "To report a bug or issue with the platform, you can contact our team directly (hello@nextjudge.org) or submit an issue on our Github repository. We are always looking for feedback on how we can improve the platform and make it better for our users.",
+      "To report a bug or issue with the platform, you can contact our team directly (hello@nextjudge.net) or submit an issue on our Github repository. We are always looking for feedback on how we can improve the platform and make it better for our users.",
     value: "item-6",
   },
 ];
@@ -85,7 +85,7 @@ export const FAQ = () => {
           <h3 className="font-medium mt-4">
             Still have questions?{" "}
             <a
-              href="mailto:hello@nextjudge.org"
+              href="mailto:hello@nextjudge.net"
               className="text-primary transition-all border-primary hover:border-b-2"
             >
               Contact us
