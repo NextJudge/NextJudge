@@ -22,6 +22,7 @@ import { ModeToggle } from "../theme";
 import { buttonVariants } from "../ui/button";
 import { UserAvatar } from "./user-avatar";
 
+
 export function LandingNavbar({ session }: { session: Session | undefined }) {
 
   return (
@@ -45,52 +46,70 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
               </Button>
             </SheetTrigger>
 
-            <SheetContent side={"left"}>
-              <SheetHeader>
-                <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
+            <SheetContent side={"left"} className="flex flex-col h-full w-[300px] sm:w-[400px]">
+              <SheetHeader className="text-left px-1 border-b pb-4">
+                <div className="flex items-center gap-2">
+                  <Icons.logo className="size-8" />
+                  <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
+                </div>
               </SheetHeader>
-              <nav className="flex flex-col justify-center items-center gap-2 mt-4">
-                {session?.user ? (
-                  <UserAvatar session={session} />
-                ) : (
-                  <>
+
+              <div className="flex flex-col gap-4 py-4 flex-1">
+                <nav className="flex flex-col gap-2">
+                  {routeList.map(({ href, label }) => (
                     <Link
-                      href="/auth/login"
-                      className={cn(buttonVariants({ variant: "link" }), "pointer-events-none opacity-50 cursor-not-allowed")}
-                      aria-disabled="true"
+                      key={label}
+                      href={href}
+                      className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "w-full justify-start text-lg font-medium")}
                     >
-                      Login
+                      {label}
                     </Link>
-                    <Link
-                      href="/auth/signup"
-                      className={cn(buttonVariants({ variant: "link" }), "pointer-events-none opacity-50 cursor-not-allowed")}
-                      aria-disabled="true"
-                    >
-                      Sign Up
-                    </Link>
-                  </>
-                )}
-                {routeList.map(({ href, label }) => (
+                  ))}
+                </nav>
+              </div>
+
+              <div className="flex flex-col gap-4 py-4 mt-auto border-t">
+                <div className="flex flex-col gap-2">
+                  {session?.user ? (
+                    <div className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/50">
+                      <UserAvatar session={session} />
+                      <div className="flex flex-col text-sm">
+                        <span className="font-medium">{session.user.name}</span>
+                        <span className="text-muted-foreground truncate max-w-[150px]">{session.user.email}</span>
+                      </div>
+                    </div>
+                  ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        <Link
+                          href="/auth/login"
+                          className={cn(buttonVariants({ variant: "outline" }), "w-full pointer-events-none opacity-50 cursor-not-allowed")}
+                          aria-disabled="true"
+                        >
+                          Login
+                        </Link>
+                        <Link
+                          href="/auth/signup"
+                          className={cn(buttonVariants({ variant: "default" }), "w-full bg-orange-600 hover:bg-orange-700 text-white pointer-events-none opacity-50 cursor-not-allowed")}
+                          aria-disabled="true"
+                        >
+                          Sign Up
+                        </Link>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between gap-2 mt-1">
                   <a
-                    key={label}
-                    href={href}
-                    className={buttonVariants({ variant: "ghost" })}
+                    href="https://github.com/nextjudge/nextjudge"
+                    target="_blank"
+                    className={cn(buttonVariants({ variant: "ghost" }), "flex items-center gap-2 px-2")}
                   >
-                    {label}
+                    <GitHubLogoIcon className="h-5 w-5" />
+                    <span>GitHub</span>
                   </a>
-                ))}
-                <a
-                  href="https://github.com/nextjudge/nextjudge"
-                  target="_blank"
-                  className={`w-[110px] border ${buttonVariants({
-                    variant: "secondary",
-                  })}`}
-                >
-                  <GitHubLogoIcon className="mr-2 w-5 h-5" />
-                  Github
-                </a>
-                <ModeToggle />
-              </nav>
+                  <ModeToggle />
+                </div>
+              </div>
             </SheetContent>
           </Sheet>
         </div>

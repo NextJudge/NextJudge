@@ -28,13 +28,13 @@ export function ModeToggle() {
     <TooltipProvider>
       <Tooltip disableHoverableContent>
         <TooltipTrigger asChild>
-          <Button variant="link" size="icon">
+          <Button variant="link" size="icon" tabIndex={-1}>
             <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom" sideOffset={5}>
+        <TooltipContent side="bottom" sideOffset={5} tabIndex={-1}>
           <p className="text-sm">Light mode coming soon!</p>
         </TooltipContent>
       </Tooltip>

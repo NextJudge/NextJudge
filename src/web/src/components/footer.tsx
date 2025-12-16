@@ -1,27 +1,32 @@
 import { Pyramid } from "lucide-react";
+import Link from "next/link";
 import { Separator } from "./ui/separator";
+
 export const Footer = () => {
   return (
     <footer id="footer">
       <Separator className="w-11/12 mx-auto bg-neutral-900/50" />
       <section className="container py-20 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-x-12 gap-y-8">
-        <div className="col-span-full xl:col-span-2">
-          <a href="/" className="font-bold text-xl flex">
+        <div className="col-span-full xl:col-span-2 flex justify-center">
+          <Link href="/" className="font-bold text-xl flex items-center">
             <Pyramid size={24} className="text-orange-600" />
             <span className="ml-2">NextJudge</span>
-          </a>
+          </Link>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 items-center">
           <h3 className="font-bold text-lg">Docs</h3>
           <div>
-            <a href="/auth/login" className="opacity-60 hover:opacity-100">
-              Get Started
-            </a>
+            <span className="opacity-40 cursor-not-allowed">Get Started</span>
           </div>
 
           <div>
-            <a href="https://github.com/NextJudge/NextJudge/blob/main/src/data-layer/README.md" className="opacity-60 hover:opacity-100" target="_blank">
+            <a
+              href="https://github.com/NextJudge/NextJudge/blob/main/src/data-layer/README.md"
+              className="opacity-60 hover:opacity-100"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               API Reference
             </a>
           </div>
@@ -38,49 +43,43 @@ export const Footer = () => {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 items-center">
           <h3 className="font-bold text-lg">NextJudge</h3>
           <div>
-            <a href="/#try-it" className="opacity-60 hover:opacity-100">
+            <Link href="/#try-it" className="opacity-60 hover:opacity-100">
               Services
-            </a>
+            </Link>
           </div>
 
           <div>
-            <a href="/#features" className="opacity-60 hover:opacity-100">
+            <Link href="/#features" className="opacity-60 hover:opacity-100">
               Features
-            </a>
+            </Link>
           </div>
 
           <div>
-            <a href="/#early-access" className="opacity-60 hover:opacity-100">
+            <Link href="/#early-access" className="opacity-60 hover:opacity-100">
               Early Access
-            </a>
+            </Link>
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 items-center">
           <h3 className="font-bold text-lg">Platform</h3>
           <div>
-            <a href="/platform" className="opacity-60 hover:opacity-100">
-              Home
-            </a>
+            <span className="opacity-40 cursor-not-allowed">Home</span>
           </div>
 
           <div>
-            <a href="/platform/problems" className="opacity-60 hover:opacity-100">
-              Problem Set
-            </a>
+            <span className="opacity-40 cursor-not-allowed">Problem Set</span>
           </div>
 
           <div>
-            <a href="/platform/contests" className="opacity-60 hover:opacity-100">
-              Contests
-            </a>
+            <span className="opacity-40 cursor-not-allowed">Contests</span>
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 items-center">
           <h3 className="font-bold text-lg">Community</h3>
           <div>
             <a
@@ -94,13 +93,16 @@ export const Footer = () => {
           </div>
 
           <div>
-            <a href="/team" className="opacity-60 hover:opacity-100">
+            <Link href="/team" className="opacity-60 hover:opacity-100">
               Our Team
-            </a>
+            </Link>
           </div>
 
           <div>
-            <a href="mailto:hello@nextjudge.net" className="opacity-60 hover:opacity-100">
+            <a
+              href="mailto:hello@nextjudge.net"
+              className="opacity-60 hover:opacity-100"
+            >
               Contact
             </a>
           </div>
@@ -109,7 +111,7 @@ export const Footer = () => {
 
       <section className="container pb-14 text-center">
         <h3>
-          &copy; 2024{" "}
+          &copy; 2025{" "}
           <a
             target="_blank"
             href="https://nextjudge.net"
