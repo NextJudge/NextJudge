@@ -37,6 +37,8 @@ BRIDGE_QUEUE_NAME="bridge_queue"
 NEXTJUDGE_USER_ID = 99999
 
 TARGET_TOP_LEVEL_DIRECTORY = "program_files"
+GO_CACHE_DIRECTORY = "/go_cache"
+GO_MOD_CACHE_DIRECTORY = "/go_mod_cache"
 
 BUILD_DIRECTORY_NAME = "build"
 RUN_DIRECTORY_NAME = "executable"
@@ -355,7 +357,7 @@ def simple_compile_and_run(source_code: str, language: Language, stdin_input=b""
         environment.remove_files()
         return FullResult("COMPILE_TIME_ERROR",compile_result.stdout, compile_result.stderr)
 
-    output = run_single(environment, stdin_input)
+    output = run_single(environment, stdin_input, language=language)
 
     environment.remove_files()
 
@@ -434,9 +436,10 @@ async def handle_test_submission(submission_id: str):
     last_stderr = b""
     total_time_elapsed = 0.0
 
+    language = LOCAL_LANGUAGES_MAP[local_language_id]
     for test in tests:
         start_time = time.time()
-        run_result = run_single_test_case(test, environment)
+        run_result = run_single_test_case(test, environment, language=language)
         elapsed = time.time() - start_time
         total_time_elapsed += elapsed
 
@@ -502,7 +505,8 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
                 await submit_custom_input_judgement(json_data["id"], "COMPILE_TIME_ERROR", b"", b"")
                 return
 
-            run_result = run_single(environment, bytes(stdin,"utf-8"))
+            language = LOCAL_LANGUAGES_MAP[local_language_id]
+            run_result = run_single(environment, bytes(stdin,"utf-8"), language=language)
             environment.remove_files()
 
             await submit_custom_input_judgement(json_data["id"], run_result.result, run_result.stdout, run_result.stderr)
@@ -515,23 +519,15 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
     if language is None:
         return CompileResult(False,b"",b"")
 
-    # print("Source code")
-    # print(source_code)
-
     build_script = language.script
     extension = language.extension
 
     INPUT_FILE_NAME = f"input.{extension}"
 
-    # print(f"Writing code to {environment.top_level_dir_build_dir}/{INPUT_FILE_NAME}")
-
     with open(f"/{environment.top_level_dir_build_dir}/{INPUT_FILE_NAME}", "w") as f:
         f.write(source_code)
 
     build_script = build_script.replace("{IN_FILE}", f"input.{extension}")
-
-    # print("Build script")
-    # print(build_script)
 
     with open(f"{environment.top_level_dir_build_script}", "w") as f:
         f.write(build_script)
@@ -539,88 +535,84 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
     os.chmod(f"{environment.top_level_dir_build_script}", 0o755)
     os.chown(f"{environment.top_level_dir_build_script}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
 
-    # Chown the build and executable directories
     os.chown(f"{environment.top_level_dir_build_dir}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
     os.chown(f"{environment.top_level_dir_executable_dir}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
 
-
-    # print("Compiling")
-
-    # subprocess.run(["ls","-pla", "/"])
-    # subprocess.run(["ls","-pla", "/program_files"])
-    # subprocess.run(["ls","-pla", "/chroot/"])
-    # subprocess.run(["ls","-pla", f"/chroot/build"])
-    # subprocess.run(["ls","-pla", f"/chroot/executable"])
-
-    # print(LOCAL_BUILD_DIR)
-    # print(LOCAL_BUILD_SCRIPT_PATH)
-
     nsjail_log_pipes = os.pipe()
 
+    is_go = language and language.name.lower() == "go"
+    max_cpus = "4" if is_go else "1"
+
+    nsjail_args = [
+        "nsjail",
+        "--mode", "o",
+        "--time_limit", f"{30}",
+        "--max_cpus", max_cpus,
+        "--rlimit_nofile", f"{128}",
+        "--rlimit_as", f"{1024*16}",
+        "--rlimit_cpu", f"{30}",
+        "--rlimit_fsize", f"{512}",
+        "--user", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
+        "--group", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
+        "--chroot", f"/chroot/",
+        "--bindmount", f"{environment.top_level_dir_build_dir}:{environment.inside_chroot_build_dir}",
+        "--bindmount", f"{environment.top_level_dir_executable_dir}:{environment.inside_chroot_executable_dir}",
+        "--bindmount_ro", f"/dev/null",
+        "--bindmount_ro", f"/dev/random",
+        "--bindmount_ro", f"/dev/urandom",
+        "--cwd", f"{environment.inside_chroot_build_dir}",
+        '--mount', 'none:/tmp:tmpfs:size=419430400',
+        "--env", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "--env", "HOME=/home/NEXTJUDGE_USER",
+    ]
+
+    if is_go:
+        os.makedirs(GO_CACHE_DIRECTORY, exist_ok=True)
+        os.chown(GO_CACHE_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+        chroot_go_cache = "/chroot/go_cache"
+        os.makedirs(chroot_go_cache, exist_ok=True)
+        os.chown(chroot_go_cache, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+        nsjail_args.extend(["--bindmount", f"{GO_CACHE_DIRECTORY}:/go_cache"])
+        os.makedirs(GO_MOD_CACHE_DIRECTORY, exist_ok=True)
+        os.chown(GO_MOD_CACHE_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+        chroot_go_mod_cache = "/chroot/go_mod_cache"
+        os.makedirs(chroot_go_mod_cache, exist_ok=True)
+        os.chown(chroot_go_mod_cache, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+        nsjail_args.extend(["--bindmount", f"{GO_MOD_CACHE_DIRECTORY}:/go_mod_cache"])
+
+    nsjail_args.extend([
+        "--exec_file", f"{environment.inside_chroot_build_script}",
+        "--log_fd", f"{nsjail_log_pipes[1]}",
+        "-v"
+    ])
+
+    if verbose and is_go:
+        print(f"Go compile nsjail args: {' '.join(nsjail_args)}")
+
+    compile_start = time.time()
     compile_result = subprocess.run(
-        [
-            "nsjail",
-            "--mode", "o",
-
-            "--time_limit", f"{10}", # Max wall time
-            "--max_cpus", f"{1}",
-
-            "--rlimit_nofile", f"{128}", # Max file descriptor number (32)
-            "--rlimit_as", f"{1024*8}", # Max virtual memory space
-            "--rlimit_cpu", f"{10}", # Max CPU time
-            "--rlimit_fsize", f"{512}", # Max file size in MB (1)
-
-            "--user", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
-            "--group", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
-
-            "--chroot", f"/chroot/", # Chroot entire file system
-
-            # // Read/write mounts
-            "--bindmount", f"{environment.top_level_dir_build_dir}:{environment.inside_chroot_build_dir}", # Map build dir as read/write
-            "--bindmount", f"{environment.top_level_dir_executable_dir}:{environment.inside_chroot_executable_dir}", # Map executable dir as read/write
-
-            # // Readonly mounts
-            # // "--bindmount_ro", `/dev/zero:/dev/zero`,
-            "--bindmount_ro", f"/dev/null",
-            "--bindmount_ro", f"/dev/random",
-            "--bindmount_ro", f"/dev/urandom",
-
-            "--cwd", f"{environment.inside_chroot_build_dir}",
-
-            # // "--tmpfsmount", "/tmp",
-            '--mount', 'none:/tmp:tmpfs:size=419430400', # // Mount /tmp as tmpfs, make it larger than default (4194304)
-
-            "--env", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-            "--env", "HOME=/home/NEXTJUDGE_USER", # User is not really root, but some Dockerfile commands for compilers/runtimes add application files to root home
-
-            "--exec_file",f"{environment.inside_chroot_build_script}",
-
-            "--log_fd", f"{nsjail_log_pipes[1]}",
-            # "--really_quiet"
-            "-v"
-        ],
+        nsjail_args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         pass_fds=[nsjail_log_pipes[1]]
     )
+    compile_elapsed = time.time() - compile_start
 
     os.close(nsjail_log_pipes[1])
 
     if verbose:
-        print("Done compiling!")
+        print(f"Done compiling! elapsed={compile_elapsed:.3f}s")
     read_from = os.fdopen(nsjail_log_pipes[0])
     nsjail_errors = read_from.read()
     read_from.close()
-
-    # if verbose:
-    #     print("nsjail output")
-    #     print(nsjail_errors)
 
     if compile_result.returncode:
         if verbose:
             print(f"Compile-time error - {compile_result.returncode}")
             print(f"stdout: {compile_result.stdout}")
             print(f"stderr: {compile_result.stderr}")
+            print(f"nsjail log:\n{nsjail_errors}")
+            print(f"nsjail args: {' '.join(nsjail_args)}")
         return CompileResult(False,compile_result.stdout,compile_result.stderr)
 
     if verbose:
@@ -633,11 +625,11 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
 
 
 
-def run_single_test_case(testcase: Test, environment: ProgramEnvironment, verbose=True) -> TestResult:
+def run_single_test_case(testcase: Test, environment: ProgramEnvironment, verbose=True, language: Language | None = None) -> TestResult:
 
     # print(testcase.input.encode("utf-8"))
 
-    run_result = run_single(environment, testcase.input.encode("utf-8"), verbose)
+    run_result = run_single(environment, testcase.input.encode("utf-8"), verbose, language=language)
 
     # if verbose:
     #     print("OUTPUT:",run_result.stdout.decode("utf-8"))
@@ -656,7 +648,7 @@ def run_single_test_case(testcase: Test, environment: ProgramEnvironment, verbos
         else:
             return TestResult("WRONG_ANSWER",run_result.stdout,run_result.stderr)
 
-def run_single(environment: ProgramEnvironment, input: bytes, verbose=True) -> RunResult:
+def run_single(environment: ProgramEnvironment, input: bytes, verbose=True, language: Language | None = None) -> RunResult:
 
     # os.chmod(f"{environment.top_level_dir_executable_script}", 0o755)
     # os.chown(f"{environment.top_level_dir_executable_dir}", NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
@@ -668,38 +660,45 @@ def run_single(environment: ProgramEnvironment, input: bytes, verbose=True) -> R
     #     print(f"Input: {input}")
     #     print("Starting execution")
 
+    nsjail_args = [
+        "nsjail",
+        "--mode", "o",
+        "--time_limit", f"{10}",
+        "--max_cpus", f"{1}",
+        "--rlimit_as", f"{1024*6}", # // Max virtual memory space (increased for Java)
+        "--rlimit_cpu", f"{10}", # Max CPU time
+        # // "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
+        "--nice_level", "-20", # High priority
+        # // "--seccomp_policy", "Path to file containined seccomp-bpf policy. _string for string" // Allowed syscalls
+        "--persona_addr_no_randomize", # // Disable ASLR
+        "--user", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
+        "--group", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
+
+        "--chroot", f"/chroot", # // Chroot entire file system
+
+        "--bindmount_ro", f"{environment.top_level_dir_build_dir}:{environment.inside_chroot_build_dir}", # Map build dir as read/write
+        "--bindmount_ro", f"{environment.top_level_dir_executable_dir}:{environment.inside_chroot_executable_dir}", # Map executable dir as read/write
+
+        # "--bindmount_ro", f"/chroot/{dir}:/{dir}", # // Map dir as readonly
+        "--cwd", f"{environment.inside_chroot_executable_dir}",
+    ]
+
+    # For Go, mount /tmp as writable tmpfs
+    if language and language.name.lower() == "go":
+        nsjail_args.extend(['--mount', 'none:/tmp:tmpfs:size=419430400'])
+
+    nsjail_args.extend([
+        "--env", f"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+
+        "--exec_file",f"{environment.inside_chroot_executable_script}",
+        "--log_fd", f"{nsjail_log_pipes[1]}",
+        # "--really_quiet"
+        "-v"
+    ])
 
     t = time.time()
     run_result = subprocess.run(
-        [
-            "nsjail",
-            "--mode", "o",
-            "--time_limit", f"{10}",
-            "--max_cpus", f"{1}",
-            "--rlimit_as", f"{1024*4}", # // Max virtual memory space
-            "--rlimit_cpu", f"{10}", # Max CPU time
-            # // "--rlimit_nofile", `${3}`, // Max file descriptor num+1 that can be opened
-            "--nice_level", "-20", # High priority
-            # // "--seccomp_policy", "Path to file containined seccomp-bpf policy. _string for string" // Allowed syscalls
-            "--persona_addr_no_randomize", # // Disable ASLR
-            "--user", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
-            "--group", f"{NEXTJUDGE_USER_ID}:{NEXTJUDGE_USER_ID}",
-
-            "--chroot", f"/chroot", # // Chroot entire file system
-
-            "--bindmount_ro", f"{environment.top_level_dir_build_dir}:{environment.inside_chroot_build_dir}", # Map build dir as read/write
-            "--bindmount_ro", f"{environment.top_level_dir_executable_dir}:{environment.inside_chroot_executable_dir}", # Map executable dir as read/write
-
-            # "--bindmount_ro", f"/chroot/{dir}:/{dir}", # // Map dir as readonly
-            "--cwd", f"{environment.inside_chroot_executable_dir}",
-
-            "--env", f"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-
-            "--exec_file",f"{environment.inside_chroot_executable_script}",
-            "--log_fd", f"{nsjail_log_pipes[1]}",
-            # "--really_quiet"
-            "-v"
-        ],
+        nsjail_args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         input=input,

@@ -17,12 +17,13 @@ WORKDIR /home/NEXTJUDGE_USER
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal -y
 
-# Install Golang (1.25.1)
-RUN wget https://go.dev/dl/go1.25.1.linux-amd64.tar.gz && tar -C /home/NEXTJUDGE_USER -xzf go1.25.1.linux-amd64.tar.gz
+# Install Golang (1.24)
+RUN wget https://go.dev/dl/go1.24.11.linux-amd64.tar.gz && tar -C /home/NEXTJUDGE_USER -xzf go1.24.11.linux-amd64.tar.gz
 
-# Tell Go to use the 64-bit compiler explicitly and install stdlib
-ENV CC=x86_64-linux-gnu-gcc
-RUN GOROOT=/home/NEXTJUDGE_USER/go /home/NEXTJUDGE_USER/go/bin/go install std
+# Pre-compile Go stdlib with CGO_ENABLED=0 to match runtime settings
+ENV GOROOT=/home/NEXTJUDGE_USER/go
+ENV CGO_ENABLED=0
+RUN /home/NEXTJUDGE_USER/go/bin/go install std
 
 
 
@@ -54,5 +55,7 @@ FROM tnyuma/nextjudge-basejudge:latest
 COPY --from=build / /chroot
 RUN chown -R 99999:99999 /chroot/dev
 
+RUN mkdir -p /go_cache /go_mod_cache && chown 99999:99999 /go_cache /go_mod_cache && \
+    mkdir -p /chroot/go_cache /chroot/go_mod_cache && chown 99999:99999 /chroot/go_cache /chroot/go_mod_cache
 
 COPY languages.toml /app/languages.toml

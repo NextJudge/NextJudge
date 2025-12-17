@@ -51,12 +51,22 @@ HOME=/home/NEXTJUDGE_USER /home/NEXTJUDGE_USER/.cargo/bin/rustc {IN_FILE} -o /ex
 
 [[language]]
 name = "go"
-version = "1.25.1"
+version = "1.24.11"
 extension = "go"
 script= """
 #!/bin/sh
-mkdir -p /tmp/.cache/go-cache
-GOCACHE=/tmp/.cache/go-cache GOROOT=/home/NEXTJUDGE_USER/go GODEBUG=installgoroot=all HOME=/home/NEXTJUDGE_USER /home/NEXTJUDGE_USER/go/bin/go build -o /executable/main {IN_FILE}
+export GOCACHE=/go_cache
+export GOMODCACHE=/go_mod_cache
+export GOROOT=/home/NEXTJUDGE_USER/go
+export HOME=/home/NEXTJUDGE_USER
+export CGO_ENABLED=0
+export GOFLAGS="-buildvcs=false"
+rm -f /executable/main /executable/main.bin
+/home/NEXTJUDGE_USER/go/bin/go build -trimpath -ldflags="-s -w" -o /executable/main.bin /build/{IN_FILE}
+chmod +x /executable/main.bin
+echo "#!/bin/sh" >> /executable/main
+echo "exec /executable/main.bin" >> /executable/main
+chmod +x /executable/main
 """
 
 
@@ -145,7 +155,7 @@ fi
 
 
 echo "#!/bin/sh" >> /executable/main
-echo "/usr/bin/java -XX:+UseSerialGC -Xms1920m -Xmx1920m $CLASS_FILE" >> /executable/main
+echo "/usr/bin/java -XX:+UseSerialGC -Xms512m -Xmx512m $CLASS_FILE" >> /executable/main
 chmod +x /executable/main
 
 cat /executable/main
