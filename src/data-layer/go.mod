@@ -1,6 +1,6 @@
 module main
 
-go 1.25.1
+go 1.24.11
 
 require (
 	github.com/elastic/go-elasticsearch/v8 v8.13.1
