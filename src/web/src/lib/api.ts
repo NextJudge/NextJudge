@@ -1,18 +1,18 @@
 import {
-    AnswerQuestionRequest,
-    Category,
-    CreateEventRequest,
-    CreateQuestionRequest,
-    CustomInputResult,
-    EventQuestion,
-    Language,
-    NextJudgeEvent,
-    Notification,
-    NotificationCount,
-    Problem,
-    ProblemRequest,
-    Submission,
-    User,
+	AnswerQuestionRequest,
+	Category,
+	CreateEventRequest,
+	CreateQuestionRequest,
+	CustomInputResult,
+	EventQuestion,
+	Language,
+	NextJudgeEvent,
+	Notification,
+	NotificationCount,
+	Problem,
+	ProblemRequest,
+	Submission,
+	User,
 } from "./types";
 import { getBridgeUrl } from "./utils";
 
@@ -1072,12 +1072,19 @@ export async function postPublicCustomInputSubmission(
 	code: string,
 	languageId: string,
 	stdin: string,
+	options?: { benchmark?: boolean },
 ): Promise<string> {
+	const headers: Record<string, string> = {
+		"Content-Type": "application/json",
+	};
+
+	if (options?.benchmark) {
+		headers["X-Benchmark"] = "true";
+	}
+
 	const response = await fetch(`${getBridgeUrl()}/v1/public/input_submissions`, {
 		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
+		headers,
 		body: JSON.stringify({
 			source_code: code,
 			language_id: languageId,
