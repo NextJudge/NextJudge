@@ -18,10 +18,11 @@ type CustomInputSubmissionResultStatus struct {
 }
 
 type CustomInputSubmissionResult struct {
-	Status   Status `json:"status"`
-	Stdout   string `json:"stdout"`
-	Stderr   string `json:"stderr"`
-	Finished bool   `json:"finished"`
+	Status   Status  `json:"status"`
+	Stdout   string  `json:"stdout"`
+	Stderr   string  `json:"stderr"`
+	Finished bool    `json:"finished"`
+	Runtime  float64 `json:"runtime"`
 }
 
 type CustomInputSubmissionStatusPostBody struct {
@@ -32,9 +33,10 @@ type CustomInputSubmissionStatusPostBody struct {
 }
 
 type UpdateCustomInputSubmissionStatusPatchBody struct {
-	Status Status `json:"status"`
-	Stdout string `json:"stdout"`
-	Stderr string `json:"stderr"`
+	Status  Status  `json:"status"`
+	Stdout  string  `json:"stdout"`
+	Stderr  string  `json:"stderr"`
+	Runtime float64 `json:"runtime"`
 }
 
 var customSubmissionMap = make(map[string]*CustomInputSubmissionResult)
@@ -229,6 +231,7 @@ func updateCustomInputSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		result.Status = reqData.Status
 		result.Stdout = reqData.Stdout
 		result.Stderr = reqData.Stderr
+		result.Runtime = reqData.Runtime
 
 	}
 

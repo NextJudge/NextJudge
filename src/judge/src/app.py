@@ -208,6 +208,7 @@ class RunResult:
     result: RunResultReason
     stdout: bytes
     stderr: bytes
+    runtime: float = 0.0
 
 @dataclass
 class TestResult:
@@ -283,12 +284,13 @@ async def submit_judgement(submission, result: ResultReason, stdout: bytes, stde
     r = post_judgement(submission["id"], body)
     # print(r)
 
-async def submit_custom_input_judgement(id: str, result: ResultReason, stdout: bytes, stderr: bytes):
+async def submit_custom_input_judgement(id: str, result: ResultReason, stdout: bytes, stderr: bytes, runtime: float = 0.0):
 
     body = {
         "status": result,
         "stdout": stdout.decode("utf-8"),
-        "stderr": stderr.decode("utf-8")
+        "stderr": stderr.decode("utf-8"),
+        "runtime": runtime
     }
 
     # r = await rabbitmq.send_custom_input_result(body)
@@ -509,7 +511,7 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
             run_result = run_single(environment, bytes(stdin,"utf-8"), language=language)
             environment.remove_files()
 
-            await submit_custom_input_judgement(json_data["id"], run_result.result, run_result.stdout, run_result.stderr)
+            await submit_custom_input_judgement(json_data["id"], run_result.result, run_result.stdout, run_result.stderr, run_result.runtime)
 
 
 
@@ -728,14 +730,14 @@ def run_single(environment: ProgramEnvironment, input: bytes, verbose=True, lang
         if has_timeout_keywords or is_likely_timeout:
             if verbose:
                 print(f"Time limit exceeded - {run_result.returncode}")
-            return RunResult("TIME_LIMIT_EXCEEDED", run_result.stdout, run_result.stderr)
+            return RunResult("TIME_LIMIT_EXCEEDED", run_result.stdout, run_result.stderr, elapsed_time)
         if verbose:
             print(f"Runtime error - {run_result.returncode}")
             print(f"stdout: {run_result.stdout}")
             print(f"stderr: {run_result.stderr}")
-        return RunResult("RUNTIME_ERROR", run_result.stdout, run_result.stderr)
+        return RunResult("RUNTIME_ERROR", run_result.stdout, run_result.stderr, elapsed_time)
 
-    return RunResult("ACCEPTED", run_result.stdout, run_result.stderr)
+    return RunResult("ACCEPTED", run_result.stdout, run_result.stderr, elapsed_time)
 
 
 

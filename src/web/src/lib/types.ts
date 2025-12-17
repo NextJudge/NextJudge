@@ -214,6 +214,7 @@ export interface CustomInputResult {
 	stdout: string;
 	stderr: string;
 	finished: boolean;
+	runtime: number;
 }
 
 
