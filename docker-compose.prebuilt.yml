@@ -28,6 +28,7 @@ services:
 
   nextjudge-judge:
     image: "ghcr.io/nextjudge/judge:latest"
+    privileged: true
     environment:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
@@ -36,13 +37,16 @@ services:
       - JUDGE_PASSWORD=${JUDGE_PASSWORD}
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    volumes:
+      - go_cache:/var/lib/nextjudge/go-cache
+      - go_mod_cache:/var/lib/nextjudge/go-mod
     depends_on:
       rabbitmq:
         condition: service_healthy
       # No Docker healthcheck in prod container
       # nextjudge-data-layer:
       #   condition: service_healthy
-  
+
   rabbitmq:
     extends:
       file: src/data-layer/docker-compose.rabbitmq.yml
@@ -56,7 +60,7 @@ services:
   #     file: src/data-layer/docker-compose.elasticsearch.yml
   #     service: elasticsearch
 
-volumes: 
+volumes:
   postgres_data:
-  
-  
+  go_cache:
+  go_mod_cache:

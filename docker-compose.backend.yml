@@ -47,7 +47,7 @@ services:
       # No Docker healthcheck in prod container
       # nextjudge-data-layer:
       #   condition: service_healthy
-  
+
   rabbitmq:
     extends:
       file: src/data-layer/docker-compose.rabbitmq.yml
@@ -61,7 +61,7 @@ services:
   #     file: src/data-layer/docker-compose.elasticsearch.yml
   #     service: elasticsearch
 
-volumes: 
+volumes:
   postgres_data:
-  
-  
+  go_cache:
+  go_mod_cache:

@@ -37,8 +37,8 @@ BRIDGE_QUEUE_NAME="bridge_queue"
 NEXTJUDGE_USER_ID = 99999
 
 TARGET_TOP_LEVEL_DIRECTORY = "program_files"
-GO_CACHE_DIRECTORY = "/go_cache"
-GO_MOD_CACHE_DIRECTORY = "/go_mod_cache"
+GO_CACHE_DIRECTORY = "/var/lib/nextjudge/go-cache"
+GO_MOD_CACHE_DIRECTORY = "/var/lib/nextjudge/go-mod"
 GO_ROOT_DIRECTORY = "/home/NEXTJUDGE_USER/go"
 
 BUILD_DIRECTORY_NAME = "build"
@@ -591,6 +591,13 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
         nsjail_args.extend(["--bindmount", f"{GO_MOD_CACHE_DIRECTORY}:/go_mod_cache"])
         if os.path.exists(GO_ROOT_DIRECTORY):
             nsjail_args.extend(["--bindmount_ro", f"{GO_ROOT_DIRECTORY}:{GO_ROOT_DIRECTORY}"])
+        nsjail_args.extend([
+            "--env", "GOCACHE=/go_cache",
+            "--env", "GOMODCACHE=/go_mod_cache",
+            "--env", "GOROOT=/home/NEXTJUDGE_USER/go",
+            "--env", "CGO_ENABLED=0",
+            "--env", "GOTOOLCHAIN=local",
+        ])
 
     nsjail_args.extend([
         "--exec_file", f"{environment.inside_chroot_build_script}",

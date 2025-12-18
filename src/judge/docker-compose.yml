@@ -1,9 +1,16 @@
 services:
   nextjudge-judge:
-    build: 
+    build:
       dockerfile: ./Dockerfile.monolith
       context: .
       args:
         - BASEJUDGE=basejudge:prod
     image: nextjudge/judge
     privileged: true
+    volumes:
+      - go_cache:/var/lib/nextjudge/go-cache
+      - go_mod_cache:/var/lib/nextjudge/go-mod
+
+volumes:
+  go_cache:
+  go_mod_cache:

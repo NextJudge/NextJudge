@@ -68,3 +68,5 @@ services:
 
 volumes:
   postgres_data:
+  go_cache:
+  go_mod_cache:

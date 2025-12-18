@@ -59,6 +59,9 @@ services:
       - JUDGE_PASSWORD=${JUDGE_PASSWORD}
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    volumes:
+      - go_cache:/var/lib/nextjudge/go-cache
+      - go_mod_cache:/var/lib/nextjudge/go-mod
     depends_on:
       nextjudge-data-layer:
         condition: service_started
@@ -67,3 +70,5 @@ services:
 
 volumes:
   postgres_data:
+  go_cache:
+  go_mod_cache:
