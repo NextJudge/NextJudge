@@ -15,16 +15,49 @@ var seedSQL string
 
 // RunMigrations checks if the database schema exists and creates it if not.
 // It also seeds essential data (languages, categories) if they don't exist.
+// NOTE: When adding a new table to nextjudge.sql, you MUST add it to the expectedTables list below.
 func RunMigrations(database *Database) error {
-	// check if tables exist by trying to query the languages table
-	var count int64
-	err := database.NextJudgeDB.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'languages'").Scan(&count).Error
-	if err != nil {
-		return err
+	// List of all expected tables in the schema
+	// IMPORTANT: Keep this list in sync with tables defined in nextjudge.sql
+	expectedTables := []string{
+		"users",
+		"problem_descriptions",
+		"submissions",
+		"submission_test_case_results",
+		"test_cases",
+		"languages",
+		"categories",
+		"problem_categories",
+		"events",
+		"event_problems",
+		"event_problem_languages",
+		"event_users",
+		"event_teams",
+		"event_questions",
+		"notifications",
+		"group",
+		"event_group",
+		"event_problem_id_max_problem_ids",
 	}
 
-	if count == 0 {
-		logrus.Info("Database tables not found, running schema migration...")
+	// Check which tables are missing
+	var missingTables []string
+	for _, tableName := range expectedTables {
+		var count int64
+		// Table names are from a controlled list, so safe to use in query
+		query := "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '" + tableName + "'"
+		err := database.NextJudgeDB.Raw(query).Scan(&count).Error
+		if err != nil {
+			logrus.WithError(err).WithField("table", tableName).Warn("error checking table existence")
+			continue
+		}
+		if count == 0 {
+			missingTables = append(missingTables, tableName)
+		}
+	}
+
+	if len(missingTables) > 0 {
+		logrus.WithField("missing_tables", missingTables).Info("Missing tables detected, running schema migration...")
 
 		// run schema SQL
 		if err := database.NextJudgeDB.Exec(schemaSQL).Error; err != nil {
@@ -38,12 +71,12 @@ func RunMigrations(database *Database) error {
 
 		logrus.Info("Schema migration completed successfully")
 	} else {
-		logrus.Info("Database tables already exist, skipping schema migration")
+		logrus.Info("All expected tables exist, skipping schema migration")
 	}
 
 	// check if languages are seeded
 	var langCount int64
-	err = database.NextJudgeDB.Raw("SELECT COUNT(*) FROM languages").Scan(&langCount).Error
+	err := database.NextJudgeDB.Raw("SELECT COUNT(*) FROM languages").Scan(&langCount).Error
 	if err != nil {
 		logrus.WithError(err).Warn("failed to check languages count, attempting to seed anyway")
 		langCount = 0
@@ -68,4 +101,3 @@ func RunMigrations(database *Database) error {
 
 	return nil
 }
-

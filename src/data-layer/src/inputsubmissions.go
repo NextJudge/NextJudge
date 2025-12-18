@@ -47,6 +47,9 @@ func addInputSubmissionRoutes(mux *goji.Mux) {
 	// register these first so they match before the regular routes
 	mux.HandleFunc(pat.Post("/v1/public/input_submissions"), RateLimitMiddleware(postPublicInputSubmission, publicInputLimiter))
 	mux.HandleFunc(pat.Get("/v1/public/input_submissions/:submission_id"), getInputSubmission)
+	// dedicated benchmark endpoints (no rate limiting, header-free)
+	mux.HandleFunc(pat.Post("/v1/bench/input_submissions"), postPublicInputSubmission)
+	mux.HandleFunc(pat.Get("/v1/bench/input_submissions/:submission_id"), getInputSubmission)
 
 	mux.HandleFunc(pat.Post("/v1/input_submissions"), AuthRequired(postInputSubmission))
 	mux.HandleFunc(pat.Get("/v1/input_submissions/:submission_id"), AuthRequired(getInputSubmission))

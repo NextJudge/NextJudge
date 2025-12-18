@@ -61,7 +61,7 @@ func main() {
 	mux := goji.NewMux()
 	c := cors.New(cors.Options{
 		AllowedOrigins:   cfg.CORSOrigin,
-		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Benchmark"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 		MaxAge:           3600,

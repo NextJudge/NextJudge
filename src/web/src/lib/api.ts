@@ -1074,17 +1074,15 @@ export async function postPublicCustomInputSubmission(
 	stdin: string,
 	options?: { benchmark?: boolean },
 ): Promise<string> {
-	const headers: Record<string, string> = {
-		"Content-Type": "application/json",
-	};
+	const endpoint = options?.benchmark
+		? "/v1/bench/input_submissions"
+		: "/v1/public/input_submissions";
 
-	if (options?.benchmark) {
-		headers["X-Benchmark"] = "true";
-	}
-
-	const response = await fetch(`${getBridgeUrl()}/v1/public/input_submissions`, {
+	const response = await fetch(`${getBridgeUrl()}${endpoint}`, {
 		method: "POST",
-		headers,
+		headers: {
+			"Content-Type": "application/json",
+		},
 		body: JSON.stringify({
 			source_code: code,
 			language_id: languageId,
@@ -1107,15 +1105,17 @@ export async function postPublicCustomInputSubmission(
 
 export async function getPublicCustomInputSubmissionStatus(
 	submissionId: string,
+	options?: { benchmark?: boolean },
 ): Promise<CustomInputResult> {
-	const response = await fetch(
-		`${getBridgeUrl()}/v1/public/input_submissions/${submissionId}`,
-		{
-			headers: {
-				"Content-Type": "application/json",
-			},
+	const endpoint = options?.benchmark
+		? "/v1/bench/input_submissions"
+		: "/v1/public/input_submissions";
+
+	const response = await fetch(`${getBridgeUrl()}${endpoint}/${submissionId}`, {
+		headers: {
+			"Content-Type": "application/json",
 		},
-	);
+	});
 
 	if (!response.ok) {
 		const errorData = await response.json().catch(() => ({}));

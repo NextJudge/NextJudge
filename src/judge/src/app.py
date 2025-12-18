@@ -39,6 +39,7 @@ NEXTJUDGE_USER_ID = 99999
 TARGET_TOP_LEVEL_DIRECTORY = "program_files"
 GO_CACHE_DIRECTORY = "/go_cache"
 GO_MOD_CACHE_DIRECTORY = "/go_mod_cache"
+GO_ROOT_DIRECTORY = "/home/NEXTJUDGE_USER/go"
 
 BUILD_DIRECTORY_NAME = "build"
 RUN_DIRECTORY_NAME = "executable"
@@ -557,7 +558,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
         "--mode", "o",
         "--time_limit", f"{30}",
         "--max_cpus", max_cpus,
-        "--rlimit_nofile", f"{128}",
+        "--rlimit_nofile", f"{512}",
         "--rlimit_as", f"{1024*16}",
         "--rlimit_cpu", f"{30}",
         "--rlimit_fsize", f"{512}",
@@ -588,6 +589,8 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
         os.makedirs(chroot_go_mod_cache, exist_ok=True)
         os.chown(chroot_go_mod_cache, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
         nsjail_args.extend(["--bindmount", f"{GO_MOD_CACHE_DIRECTORY}:/go_mod_cache"])
+        if os.path.exists(GO_ROOT_DIRECTORY):
+            nsjail_args.extend(["--bindmount_ro", f"{GO_ROOT_DIRECTORY}:{GO_ROOT_DIRECTORY}"])
 
     nsjail_args.extend([
         "--exec_file", f"{environment.inside_chroot_build_script}",

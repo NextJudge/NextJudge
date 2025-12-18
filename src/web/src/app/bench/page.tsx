@@ -200,7 +200,9 @@ export default function BenchmarkPage() {
                     { benchmark: true }
                 );
 
-                let result = await getPublicCustomInputSubmissionStatus(runId);
+                let result = await getPublicCustomInputSubmissionStatus(runId, {
+                    benchmark: true,
+                });
                 let attempts = 0;
                 const maxAttempts = 60;
 
@@ -210,7 +212,9 @@ export default function BenchmarkPage() {
                     attempts < maxAttempts
                 ) {
                     await new Promise((resolve) => setTimeout(resolve, 500));
-                    result = await getPublicCustomInputSubmissionStatus(runId);
+                    result = await getPublicCustomInputSubmissionStatus(runId, {
+                        benchmark: true,
+                    });
                     attempts++;
                 }
 

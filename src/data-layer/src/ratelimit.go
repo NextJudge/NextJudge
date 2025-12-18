@@ -3,7 +3,6 @@ package main
 import (
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -102,33 +101,8 @@ func getClientIP(r *http.Request) string {
 	return ip
 }
 
-func isBenchmarkRequest(r *http.Request) bool {
-	referer := r.Header.Get("Referer")
-	benchHeader := r.Header.Get("X-Benchmark")
-	if benchHeader == "true" {
-		if referer != "" && !strings.Contains(strings.ToLower(referer), "bench") {
-			logrus.WithFields(logrus.Fields{
-				"referer":     referer,
-				"x_benchmark": benchHeader,
-			}).Warn("X-Benchmark header present but referer doesn't contain 'bench'")
-		}
-		logrus.WithFields(logrus.Fields{
-			"referer":     referer,
-			"x_benchmark": benchHeader,
-		}).Debug("skipping rate limit - benchmark request detected")
-		return true
-	}
-	return false
-}
-
 func RateLimitMiddleware(next http.HandlerFunc, limiter *ipRateLimiter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if isBenchmarkRequest(r) {
-			logrus.Debug("skipping rate limit for benchmark request")
-			next(w, r)
-			return
-		}
-
 		ip := getClientIP(r)
 		rateLimiter := limiter.getLimiter(ip)
 

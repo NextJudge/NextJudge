@@ -61,6 +61,7 @@ export GOROOT=/home/NEXTJUDGE_USER/go
 export HOME=/home/NEXTJUDGE_USER
 export CGO_ENABLED=0
 export GOFLAGS="-buildvcs=false"
+export GOTOOLCHAIN=local
 rm -f /executable/main /executable/main.bin
 /home/NEXTJUDGE_USER/go/bin/go build -trimpath -ldflags="-s -w" -o /executable/main.bin /build/{IN_FILE}
 chmod +x /executable/main.bin
