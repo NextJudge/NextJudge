@@ -577,18 +577,11 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
     ]
 
     if is_go:
-        os.makedirs(GO_CACHE_DIRECTORY, exist_ok=True)
-        os.chown(GO_CACHE_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
-        chroot_go_cache = "/chroot/go_cache"
-        os.makedirs(chroot_go_cache, exist_ok=True)
-        os.chown(chroot_go_cache, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
-        nsjail_args.extend(["--bindmount", f"{GO_CACHE_DIRECTORY}:/go_cache"])
-        os.makedirs(GO_MOD_CACHE_DIRECTORY, exist_ok=True)
-        os.chown(GO_MOD_CACHE_DIRECTORY, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
-        chroot_go_mod_cache = "/chroot/go_mod_cache"
-        os.makedirs(chroot_go_mod_cache, exist_ok=True)
-        os.chown(chroot_go_mod_cache, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
-        nsjail_args.extend(["--bindmount", f"{GO_MOD_CACHE_DIRECTORY}:/go_mod_cache"])
+        # use persistent cache directories (initialized at startup)
+        nsjail_args.extend([
+            "--bindmount", f"{GO_CACHE_DIRECTORY}:/go_cache",
+            "--bindmount", f"{GO_MOD_CACHE_DIRECTORY}:/go_mod_cache",
+        ])
         if os.path.exists(GO_ROOT_DIRECTORY):
             nsjail_args.extend(["--bindmount_ro", f"{GO_ROOT_DIRECTORY}:{GO_ROOT_DIRECTORY}"])
         nsjail_args.extend([
@@ -831,10 +824,37 @@ def ensure_nextjudge_healthy_and_login(password: str):
     raise Exception("Cannot connect to core server")
 
 
+def init_go_cache_directories():
+    """
+    Initialize Go cache directories with correct permissions.
+    Must be called once at startup before handling any submissions.
+    """
+    print("Initializing Go cache directories...")
+
+    for cache_dir in [GO_CACHE_DIRECTORY, GO_MOD_CACHE_DIRECTORY]:
+        os.makedirs(cache_dir, exist_ok=True)
+        # recursively set ownership to nsjail user
+        for root, dirs, files in os.walk(cache_dir):
+            os.chown(root, NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+            for d in dirs:
+                os.chown(os.path.join(root, d), NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+            for f in files:
+                try:
+                    os.chown(os.path.join(root, f), NEXTJUDGE_USER_ID, NEXTJUDGE_USER_ID)
+                except OSError:
+                    pass
+        # also set permissions to be writable
+        os.chmod(cache_dir, 0o755)
+
+    print(f"Go cache initialized at {GO_CACHE_DIRECTORY} and {GO_MOD_CACHE_DIRECTORY}")
+
+
 async def main():
 
     print("Reading languages.toml file")
     parse_languages()
+
+    init_go_cache_directories()
     connection = await connect_to_rabbitmq()
     if not connection:
         return
@@ -891,6 +911,7 @@ if __name__ == '__main__':
     if args.file is not None:
 
         parse_languages()
+        init_go_cache_directories()
 
         try:
             source_code = open(args.file,"r",encoding="utf-8").read()
