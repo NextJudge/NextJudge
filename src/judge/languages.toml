@@ -55,8 +55,8 @@ version = "1.24.11"
 extension = "go"
 script= """
 #!/bin/sh
-export GOCACHE=/go_cache
-export GOMODCACHE=/go_mod_cache
+export GOCACHE=/tmp/go-build
+export GOMODCACHE=/tmp/go-mod
 export GOROOT=/home/NEXTJUDGE_USER/go
 export HOME=/home/NEXTJUDGE_USER
 export CGO_ENABLED=0

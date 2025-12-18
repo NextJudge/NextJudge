@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/resizable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LandingProblemStatement } from "./landing-problem-statement";
+import Link from "next/link";
 
 const DEMO_PROBLEM = {
   title: "Reverse Multiple Lines",
@@ -596,16 +597,38 @@ const LandingEditorContent = () => {
             </ResizablePanel>
           </ResizablePanelGroup>
         )}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent pt-8 pb-3 px-4">
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent pt-8 pb-3 px-4">
               <div className="flex items-center justify-center gap-4 text-sm text-white">
                 <span className="text-gray-300">Ready for more challenges?</span>
             <div className="flex gap-2">
-                  <Button variant="outline" size="sm" asChild className="border-osu/60 text-white hover:bg-osu/20" disabled>
-                <a href="/auth/login">Log In</a>
-              </Button>
-              <Button size="sm" asChild disabled>
-                <a href="/auth/signup">Sign Up Free</a>
-              </Button>
+                  <Link
+                    href="/auth/login"
+                    tabIndex={-1}
+                    aria-disabled="true"
+                    className="pointer-events-none"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-osu/60 text-white hover:bg-osu/20"
+                      disabled
+                    >
+                      Log In
+                    </Button>
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    tabIndex={-1}
+                    aria-disabled="true"
+                    className="pointer-events-none"
+                  >
+                    <Button
+                      size="sm"
+                      disabled
+                    >
+                      Sign Up Free
+                    </Button>
+                  </Link>
             </div>
           </div>
         </div>
