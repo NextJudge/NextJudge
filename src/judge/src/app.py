@@ -543,7 +543,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
     nsjail_log_pipes = os.pipe()
 
     is_go = language and language.name.lower() == "go"
-    max_cpus = "4" if is_go else "1"
+    max_cpus = "2" if is_go else "1"
 
     nsjail_args = [
         "nsjail",
@@ -563,7 +563,7 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
         "--bindmount_ro", f"/dev/random",
         "--bindmount_ro", f"/dev/urandom",
         "--cwd", f"{environment.inside_chroot_build_dir}",
-        '--mount', 'none:/tmp:tmpfs:size=419430400',
+        '--mount', 'none:/tmp:tmpfs:size=1073741824',
         "--env", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
         "--env", "HOME=/home/NEXTJUDGE_USER",
     ]
