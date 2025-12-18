@@ -163,6 +163,9 @@ def post_judgement(submission_id: str, data):
     return data
 
 def post_custom_input_result(submission_id: str, body):
+    print(f"Sending custom input result for submission {submission_id}: status={body.get('status')}, runtime={body.get('runtime')}", flush=True)
+    print(f"Full body: {json.dumps(body)}", flush=True)
+
     response = requests.patch(
         f"{NEXTJUDGE_ENDPOINT}/v1/input_submissions/{submission_id}",
         json=body,
@@ -170,7 +173,11 @@ def post_custom_input_result(submission_id: str, body):
             "Authorization":JUDGE_JWT_TOKEN
         }
     )
-    print(response)
+
+    if not response.ok:
+        print(f"ERROR: Failed to update custom input submission {submission_id}: status_code={response.status_code}, response={response.text}", flush=True)
+    else:
+        print(f"Successfully updated custom input submission {submission_id} with runtime: {body.get('runtime', 0)}", flush=True)
 
 @dataclass
 class Language:

@@ -177,6 +177,13 @@ func getInputSubmission(w http.ResponseWriter, r *http.Request) {
 
 			fmt.Fprint(w, string(json_data))
 		} else {
+			logrus.WithFields(logrus.Fields{
+				"submission_id": submissionId.String(),
+				"status":        result.Status,
+				"runtime":       result.Runtime,
+				"finished":      result.Finished,
+			}).Info("returning custom input submission result")
+
 			json_data, err := json.Marshal(result)
 			if err != nil {
 				log.Fatal(err)
@@ -212,6 +219,11 @@ func updateCustomInputSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logrus.WithFields(logrus.Fields{
+		"submission_id": submissionId.String(),
+		"raw_body":      string(reqBodyBytes),
+	}).Info("received custom input submission update request")
+
 	err = json.Unmarshal(reqBodyBytes, reqData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
@@ -220,9 +232,17 @@ func updateCustomInputSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logrus.WithFields(logrus.Fields{
+		"submission_id": submissionId.String(),
+		"status":        reqData.Status,
+		"runtime":       reqData.Runtime,
+		"stdout_length": len(reqData.Stdout),
+		"stderr_length": len(reqData.Stderr),
+	}).Info("parsed custom input submission update data")
+
 	result, ok := customSubmissionMap[submissionId.String()]
 	if !ok {
-		logrus.Warn("submission not found")
+		logrus.WithField("submission_id", submissionId.String()).Warn("submission not found")
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprint(w, `{"code":"404", "message":"submission not found"}`)
 		return
@@ -233,6 +253,12 @@ func updateCustomInputSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		result.Stderr = reqData.Stderr
 		result.Runtime = reqData.Runtime
 
+		logrus.WithFields(logrus.Fields{
+			"submission_id": submissionId.String(),
+			"status":        result.Status,
+			"runtime":       result.Runtime,
+			"finished":      result.Finished,
+		}).Info("updated custom input submission result")
 	}
 
 }
