@@ -148,6 +148,7 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
             <DummyCodeEditor
               sourceCode={selectedSubmission.source_code as any}
               language={convertToMonacoLanguageName(selectedSubmission.language)}
+              readOnly={true}
             />
             <DialogFooter className="sm:justify-start">
               <Button

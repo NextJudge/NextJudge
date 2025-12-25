@@ -17,12 +17,19 @@ export const Footer = () => {
         <div className="flex flex-col gap-2 items-center">
           <h3 className="font-bold text-lg">Docs</h3>
           <div>
-            <span className="opacity-40 cursor-not-allowed">Get Started</span>
+            <a
+              href="https://docs.nextjudge.net/start/getting-started/"
+              className="opacity-60 hover:opacity-100"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Get Started
+            </a>
           </div>
 
           <div>
             <a
-              href="https://github.com/NextJudge/NextJudge/blob/main/src/data-layer/README.md"
+              href="https://docs.nextjudge.net/reference/api/"
               className="opacity-60 hover:opacity-100"
               target="_blank"
               rel="noopener noreferrer"
@@ -81,16 +88,6 @@ export const Footer = () => {
 
         <div className="flex flex-col gap-2 items-center">
           <h3 className="font-bold text-lg">Community</h3>
-          <div>
-            <a
-              href="https://github.com/nextjudge/nextjudge"
-              rel="noopener noreferrer"
-              target="_blank"
-              className="opacity-60 hover:opacity-100"
-            >
-              GitHub
-            </a>
-          </div>
 
           <div>
             <Link href="/team" className="opacity-60 hover:opacity-100">

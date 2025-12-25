@@ -54,16 +54,21 @@ export default function EditorNavbar({
                 <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col justify-center items-center gap-2 mt-4">
-                {routeList.map(({ href, label }) => (
-                  <a
-                    key={label}
-                    href={href}
-                    onClick={() => setIsOpen(false)}
-                    className={buttonVariants({ variant: "ghost" })}
-                  >
-                    {label}
-                  </a>
-                ))}
+                {routeList.map(({ href, label }) => {
+                  const isExternal = href.startsWith("http");
+                  return (
+                    <a
+                      key={label}
+                      href={href}
+                      target={isExternal ? "_blank" : undefined}
+                      rel={isExternal ? "noopener noreferrer" : undefined}
+                      onClick={() => setIsOpen(false)}
+                      className={buttonVariants({ variant: "ghost" })}
+                    >
+                      {label}
+                    </a>
+                  );
+                })}
               </nav>
             </SheetContent>
           </Sheet>

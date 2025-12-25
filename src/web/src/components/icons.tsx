@@ -16,7 +16,8 @@ import {
   Shell,
   TerminalIcon,
   UsersIcon,
-  XIcon
+  XIcon,
+  ExternalLinkIcon
 } from "lucide-react";
 import Image from "next/image";
 
@@ -47,4 +48,5 @@ export const Icons = {
   close: XIcon,
   play: PlayIcon,
   terminal: TerminalIcon,
+  externalLink: ExternalLinkIcon,
 };

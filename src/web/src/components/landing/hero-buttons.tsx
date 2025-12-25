@@ -15,7 +15,7 @@ export default function HeroButtons() {
 
   const handleDocumentationClick = () => {
     if (window) {
-      window.open("https://github.com/nextjudge/nextjudge", "_blank");
+      window.open("https://docs.nextjudge.net", "_blank");
     }
   };
 
@@ -41,13 +41,13 @@ export default function HeroButtons() {
         size={isMobile ? "sm" : "lg"}
         onClick={handleDocumentationClick}
         className={cn(
-          "rounded-full text-secondary-foreground",
+          "rounded-full text-secondary-foreground hover:underline",
           isMobile ? "h-10 px-4 text-sm" : "h-12 px-5 text-base"
         )}
-        aria-label="Self-Host Your Own Instance"
+        aria-label="NextJudge Documentation"
       >
-        Self-Host Your Own Instance
-        <Icons.github className={cn("ml-2 opacity-70", isMobile ? "size-4" : "size-5")} />
+        Documentation
+        <Icons.externalLink className={cn("ml-2 opacity-70", isMobile ? "size-4" : "size-5")} />
       </EnhancedButton>
     </div>
   );

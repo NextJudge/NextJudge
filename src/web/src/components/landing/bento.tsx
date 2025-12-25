@@ -112,12 +112,14 @@ interface DummyCodeEditorProps {
   mock?: boolean;
   sourceCode?: string;
   language?: string;
+  readOnly?: boolean;
 }
 
 export const DummyCodeEditor = ({
   mock,
   sourceCode,
   language,
+  readOnly = false,
 }: DummyCodeEditorProps) => {
   const { resolvedTheme } = useTheme();
   return (
@@ -137,6 +139,7 @@ export const DummyCodeEditor = ({
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
           automaticLayout: true,
+          readOnly: readOnly,
         }}
         theme={resolvedTheme === "dark" ? "vs-dark" : "vs-light"}
       />
