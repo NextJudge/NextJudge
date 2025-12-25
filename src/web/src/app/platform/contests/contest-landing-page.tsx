@@ -2,13 +2,24 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+} from "@/components/ui/pagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiAddEventParticipant, apiRegisterForEvent } from "@/lib/api";
 import { NextJudgeEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import { format, formatDistanceToNow, isAfter, isBefore } from "date-fns";
-import { CheckIcon, ClockIcon, UsersIcon } from "lucide-react";
+import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, FileCode, UsersIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -41,26 +52,15 @@ function ContestCard({ contest, onParticipantAdded }: {
             ? "ended"
             : "ongoing";
 
-    // check if user is already registered
     const userIsParticipant = contest.participants?.some(
         p => p.id === session?.nextjudge_id
     ) || isRegistered;
 
-    const getStatusColor = (status: ContestStatus) => {
-        switch (status) {
-            case "upcoming":
-                return "from-blue-500 to-blue-800";
-            case "ongoing":
-                return "from-green-500 to-green-700";
-            case "ended":
-                return "from-gray-400 to-gray-500";
-        }
-    };
 
     const getTimeDisplay = () => {
         switch (status) {
             case "upcoming":
-                return `Contest will start in ${formatDistanceToNow(startTime)}`;
+                return `Starts ${formatDistanceToNow(startTime, { addSuffix: true })}`;
             case "ongoing":
                 return `Ends ${formatDistanceToNow(endTime, { addSuffix: true })}`;
             case "ended":
@@ -74,10 +74,9 @@ function ContestCard({ contest, onParticipantAdded }: {
         const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
 
         if (hours > 0) {
-            return `${hours}H ${minutes}M`;
-        } else {
-            return `${minutes}M`;
+            return `${hours}h ${minutes}m`;
         }
+        return `${minutes}m`;
     };
 
     const handleNavigateToContest = () => {
@@ -90,20 +89,17 @@ function ContestCard({ contest, onParticipantAdded }: {
             return;
         }
 
-        // if user is already registered and contest is ongoing/ended, navigate to contest
         if (userIsParticipant && (status === "ongoing" || status === "ended")) {
             handleNavigateToContest();
             return;
         }
 
-        // if user is already registered for upcoming contest, do nothing
         if (userIsParticipant) {
             return;
         }
 
         setIsRegistering(true);
         try {
-            // use admin endpoint for admins, user endpoint for regular users
             if (session.user?.is_admin) {
                 await apiAddEventParticipant(
                     session.nextjudge_token,
@@ -136,193 +132,284 @@ function ContestCard({ contest, onParticipantAdded }: {
 
     const getButtonText = () => {
         if (userIsParticipant) {
-            return status === "upcoming" ? "Registered" : "Enter";
+            return status === "upcoming" ? "Registered" : "Enter Contest";
         }
-        return status === "upcoming" ? "Register" : status === "ongoing" ? "Enter" : "Enter";
+        return status === "upcoming" ? "Register Now" : status === "ongoing" ? "Enter Contest" : "View Results";
     };
 
     const getButtonIcon = () => {
         if (userIsParticipant && status === "upcoming") {
-            return <CheckIcon className="h-3 w-3" />;
+            return <CheckIcon className="h-4 w-4" />;
         }
         return null;
     };
 
+    const problemCount = contest.problem_count ?? contest.problems?.length ?? 0;
+    const participantCount = contest.participant_count ?? contest.participants?.length ?? 0;
+
     return (
-        <Card className="overflow-hidden">
-            <div className={cn("bg-gradient-to-br text-white p-4 sm:p-6 relative min-h-[120px]", getStatusColor(status))}>
-                <div className="absolute inset-0 opacity-10">
-                    <div className="text-xs font-mono leading-3 break-all">
-                        00010110100101101100100101101100010110100101101100
-                        10010101011001011011001001011011000101101001011011
-                        00100101010110010110110010010110110001011010010110
-                    </div>
-                </div>
-                <div className="relative z-10">
-                    <h3
-                        className="text-lg font-semibold mb-2 pr-20 cursor-pointer hover:text-white/80 transition-colors"
-                        onClick={handleNavigateToContest}
-                    >
-                        {contest.title}
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                        <p className="text-white/90">{getTimeDisplay()}</p>
-                        <div className="flex flex-wrap items-center gap-3 text-xs">
-                            <div className="flex items-center gap-1">
-                                <ClockIcon className="h-3 w-3" />
-                                <span>Duration: {getDuration()}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <UsersIcon className="h-3 w-3" />
-                                <span>{contest.participants?.length || 0} Registrations</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <CardContent className="p-4 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
-                    <span className="text-muted-foreground">{format(startTime, "d MMM yyyy, HH:mm")}</span>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant={userIsParticipant ? "secondary" : "default"}
-                            size="sm"
-                            onClick={handleRegister}
-                            disabled={isRegistering || (userIsParticipant && status === "upcoming")}
-                            className={cn(
-                                "min-w-[100px]",
-                                userIsParticipant && status === "upcoming" &&
-                                "bg-green-100 hover:bg-green-100 text-green-800 border-green-200"
-                            )}
+        <Card className="relative overflow-hidden">
+            <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                        <CardTitle
+                            className="text-2xl font-bold mb-2 cursor-pointer line-clamp-2"
+                            onClick={handleNavigateToContest}
                         >
-                            {getButtonIcon()}
-                            <span className={cn(getButtonIcon() && "ml-1")}>
-                                {isRegistering ? "..." : getButtonText()}
-                            </span>
-                        </Button>
+                            {contest.title}
+                        </CardTitle>
+                        <CardDescription className="text-sm line-clamp-2 mb-4">
+                            {contest.description}
+                        </CardDescription>
                     </div>
+                    <Badge
+                        variant="secondary"
+                        className="text-xs font-semibold px-3 py-1 flex-shrink-0"
+                    >
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Badge>
+                </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ClockIcon className="h-4 w-4" />
+                    <span className="font-medium">{getTimeDisplay()}</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
+                        <ClockIcon className="h-3.5 w-3.5" />
+                        <span className="font-medium">{getDuration()}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
+                        <FileCode className="h-3.5 w-3.5" />
+                        <span className="font-medium">{problemCount} {problemCount === 1 ? "Problem" : "Problems"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
+                        <UsersIcon className="h-3.5 w-3.5" />
+                        <span className="font-medium">{participantCount} {participantCount === 1 ? "Participant" : "Participants"}</span>
+                    </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium text-foreground">
+                            {format(startTime, "MMM d, yyyy")}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}
+                        </span>
+                    </div>
+                    <Button
+                        variant={userIsParticipant && status === "upcoming" ? "secondary" : "default"}
+                        size="default"
+                        onClick={handleRegister}
+                        disabled={isRegistering || (userIsParticipant && status === "upcoming")}
+                        className="min-w-[140px] font-semibold transition-all"
+                    >
+                        {getButtonIcon()}
+                        <span className={cn(getButtonIcon() && "ml-2")}>
+                            {isRegistering ? "Processing..." : getButtonText()}
+                        </span>
+                    </Button>
                 </div>
             </CardContent>
         </Card>
     );
 }
 
-export function ContestLandingPage({ upcomingContests, ongoingContests, pastContests }: ContestLandingPageProps) {
-    const [activeTab, setActiveTab] = useState<"upcoming" | "ongoing" | "past">(
-        ongoingContests.length > 0 ? "ongoing" : "upcoming"
-    );
-    const [contests, setContests] = useState({
-        upcoming: upcomingContests,
-        ongoing: ongoingContests,
-        past: pastContests
-    });
+const ITEMS_PER_PAGE = 6;
 
-    const currentContests = activeTab === "upcoming" ? contests.upcoming :
-        activeTab === "ongoing" ? contests.ongoing :
-            contests.past;
+function ContestTabContent({
+    contests,
+    onParticipantAdded,
+    emptyTitle,
+    emptyDescription
+}: {
+    contests: NextJudgeEvent[];
+    onParticipantAdded?: (eventId: number) => void;
+    emptyTitle?: string;
+    emptyDescription?: string;
+}) {
+    const [currentPage, setCurrentPage] = useState(1);
+    const totalPages = Math.ceil(contests.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedContests = contests.slice(startIndex, endIndex);
+
+    if (contests.length === 0) {
+        return (
+            <div className="col-span-2 flex flex-col items-center justify-center py-16 text-center">
+                <div className="text-muted-foreground text-lg mb-2">{emptyTitle || "No contests"}</div>
+                <div className="text-sm text-muted-foreground/80">{emptyDescription || "Check back later for new contests"}</div>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            <div className="min-h-[1000px]">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {paginatedContests.map((contest) => (
+                        <ContestCard
+                            key={contest.id}
+                            contest={contest}
+                            onParticipantAdded={onParticipantAdded}
+                        />
+                    ))}
+                </div>
+            </div>
+            {totalPages > 1 && (
+                <div className="mt-8 flex justify-center">
+                    <Pagination>
+                        <PaginationContent>
+                            <PaginationItem>
+                                <Button
+                                    variant="ghost"
+                                    size="default"
+                                    onClick={() => {
+                                        if (currentPage > 1) {
+                                            setCurrentPage(currentPage - 1);
+                                        }
+                                    }}
+                                    disabled={currentPage === 1}
+                                    className="gap-1 pl-2.5"
+                                >
+                                    <ChevronLeftIcon className="h-4 w-4" />
+                                    <span>Previous</span>
+                                </Button>
+                            </PaginationItem>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                <PaginationItem key={page}>
+                                    <Button
+                                        variant={currentPage === page ? "outline" : "ghost"}
+                                        size="icon"
+                                        onClick={() => setCurrentPage(page)}
+                                        className={cn(
+                                            currentPage === page && "bg-background"
+                                        )}
+                                    >
+                                        {page}
+                                    </Button>
+                                </PaginationItem>
+                            ))}
+                            <PaginationItem>
+                                <Button
+                                    variant="ghost"
+                                    size="default"
+                                    onClick={() => {
+                                        if (currentPage < totalPages) {
+                                            setCurrentPage(currentPage + 1);
+                                        }
+                                    }}
+                                    disabled={currentPage === totalPages}
+                                    className="gap-1 pr-2.5"
+                                >
+                                    <span>Next</span>
+                                    <ChevronRightIcon className="h-4 w-4" />
+                                </Button>
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </div>
+            )}
+        </>
+    );
+}
+
+export function ContestLandingPage({ upcomingContests, ongoingContests, pastContests }: ContestLandingPageProps) {
+    const defaultTab = ongoingContests.length > 0 ? "ongoing" : upcomingContests.length > 0 ? "upcoming" : "past";
 
     const handleParticipantAdded = (eventId: number) => {
-        // we could refetch the contests here or update the local state
-        // for now, we'll just show the UI feedback
         console.log(`Participant added to event ${eventId}`);
     };
 
     return (
         <div className="min-h-screen bg-background">
-            <div className="max-w-7xl mx-auto px-4 py-6 min-w-[800px]">
-                {/* header */}
-                <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-3xl font-bold">Contests</h1>
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
-                            <ChevronLeftIcon className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                            <ChevronRightIcon className="h-4 w-4" />
-                        </Button>
-                    </div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="mb-8">
+                    <h1 className="text-4xl font-bold tracking-tight mb-2">Contests</h1>
+                    <p className="text-muted-foreground">Compete, learn, and showcase your skills</p>
                 </div>
 
-                {/* tabs */}
-                <div className="border-b border-border mb-6">
-                    <div className="flex space-x-8">
-                        <button
-                            onClick={() => setActiveTab("upcoming")}
-                            className={cn(
-                                "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
-                                activeTab === "upcoming"
-                                    ? "border-primary text-primary"
-                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
-                            )}
+                <Tabs defaultValue={defaultTab} className="w-full">
+                    <TabsList className="grid w-full max-w-md grid-cols-3 mb-8 h-auto p-1 bg-muted/50">
+                        <TabsTrigger
+                            value="upcoming"
+                            className="relative px-4 py-2.5 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
                         >
                             <div className="flex items-center gap-2">
-                                <span>Upcoming contests</span>
-                                {contests.upcoming.length > 0 && (
-                                    <Badge variant="secondary" className="text-xs">
-                                        {contests.upcoming.length}
+                                <span>Upcoming</span>
+                                {upcomingContests.length > 0 && (
+                                    <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                                        {upcomingContests.length}
                                     </Badge>
                                 )}
                             </div>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("ongoing")}
-                            className={cn(
-                                "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
-                                activeTab === "ongoing"
-                                    ? "border-primary text-primary"
-                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
-                            )}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="ongoing"
+                            className="relative px-4 py-2.5 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
                         >
                             <div className="flex items-center gap-2">
-                                <span>Live contests</span>
-                                <div className="flex items-center gap-1">
-                                    {contests.ongoing.length > 0 && (
-                                        <Badge variant="secondary" className="text-xs">
-                                            {contests.ongoing.length}
+                                <span>Live</span>
+                                <div className="flex items-center gap-1.5">
+                                    {ongoingContests.length > 0 && (
+                                        <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                                            {ongoingContests.length}
                                         </Badge>
                                     )}
-                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    {ongoingContests.length > 0 && (
+                                        <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+                                    )}
                                 </div>
                             </div>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("past")}
-                            className={cn(
-                                "py-2 px-1 border-b-2 font-medium text-sm transition-colors",
-                                activeTab === "past"
-                                    ? "border-primary text-primary"
-                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
-                            )}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="past"
+                            className="relative px-4 py-2.5 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
                         >
                             <div className="flex items-center gap-2">
-                                <span>Past contests</span>
-                                {contests.past.length > 0 && (
-                                    <Badge variant="secondary" className="text-xs">
-                                        {contests.past.length}
+                                <span>Past</span>
+                                {pastContests.length > 0 && (
+                                    <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                                        {pastContests.length}
                                     </Badge>
                                 )}
                             </div>
-                        </button>
+                        </TabsTrigger>
+                    </TabsList>
 
-                    </div>
-                </div>
-
-                {/* contest grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    {currentContests.length > 0 ? (
-                        currentContests.map((contest) => (
-                            <ContestCard
-                                key={contest.id}
-                                contest={contest}
+                    <div className="relative">
+                        <TabsContent value="upcoming" className="mt-0">
+                            <ContestTabContent
+                                contests={upcomingContests}
                                 onParticipantAdded={handleParticipantAdded}
+                                emptyTitle="No upcoming contests"
+                                emptyDescription="Check back later for new contests"
                             />
-                        ))
-                    ) : (
-                        <div className="col-span-2 text-center py-12 text-muted-foreground">
-                            No {activeTab} contests available
-                        </div>
-                    )}
-                </div>
+                        </TabsContent>
+
+                        <TabsContent value="ongoing" className="mt-0">
+                            <ContestTabContent
+                                contests={ongoingContests}
+                                onParticipantAdded={handleParticipantAdded}
+                                emptyTitle="No live contests"
+                                emptyDescription="There are no contests running at the moment"
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="past" className="mt-0">
+                            <ContestTabContent
+                                contests={pastContests}
+                                onParticipantAdded={handleParticipantAdded}
+                                emptyTitle="No past contests"
+                                emptyDescription="Past contest results will appear here"
+                            />
+                        </TabsContent>
+                    </div>
+                </Tabs>
             </div>
         </div>
     );

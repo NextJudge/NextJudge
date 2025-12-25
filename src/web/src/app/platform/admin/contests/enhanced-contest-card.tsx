@@ -24,6 +24,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+} from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiAddEventParticipant, apiGetEventParticipants, apiGetUsers } from "@/lib/api";
@@ -38,6 +43,7 @@ import {
     PlusIcon,
     TimerIcon,
 } from "@radix-ui/react-icons";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { useEventMetadata } from "@/hooks/useEventMetadata";
 import { format, formatDistanceToNow, isAfter, isBefore } from "date-fns";
@@ -92,17 +98,8 @@ export function EnhancedContestCard({
 
     const isCreatorOrAdmin = session?.user?.is_admin || session?.nextjudge_id === contest.user_id;
 
-    const getStatusColor = (status: ContestStatus) => {
-        switch (status) {
-            case "upcoming":
-                return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-            case "ongoing":
-                return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-            case "ended":
-                return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-            default:
-                return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-        }
+    const getStatusColor = () => {
+        return "";
     };
 
     const getTimeDisplay = () => {
@@ -246,7 +243,7 @@ export function EnhancedContestCard({
                 <div className="flex items-center gap-2">
                     <Badge
                         variant="secondary"
-                        className={cn("text-xs font-medium", getStatusColor(status))}
+                        className="text-xs font-medium"
                     >
                         {status.charAt(0).toUpperCase() + status.slice(1)}
                     </Badge>
@@ -385,6 +382,8 @@ export function EnhancedContestCard({
     return cardContent;
 }
 
+const ITEMS_PER_PAGE = 6;
+
 export function EnhancedContestGrid({
     contests,
     onDelete,
@@ -398,8 +397,12 @@ export function EnhancedContestGrid({
     onParticipantAdded?: (eventId: number) => void;
     showActions?: boolean;
 }) {
-    // ensure contests is always an array
+    const [currentPage, setCurrentPage] = useState(1);
     const safeContests = Array.isArray(contests) ? contests : [];
+    const totalPages = Math.ceil(safeContests.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedContests = safeContests.slice(startIndex, endIndex);
 
     if (safeContests.length === 0) {
         return (
@@ -413,17 +416,75 @@ export function EnhancedContestGrid({
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {safeContests.map((contest: NextJudgeEvent) => (
-                <EnhancedContestCard
-                    key={contest.id}
-                    contest={contest}
-                    deleteContest={onDelete}
-                    editContest={onEdit}
-                    onParticipantAdded={onParticipantAdded}
-                    showActions={showActions}
-                />
-            ))}
-        </div>
+        <>
+            <div className="min-h-[1200px]">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {paginatedContests.map((contest: NextJudgeEvent) => (
+                        <EnhancedContestCard
+                            key={contest.id}
+                            contest={contest}
+                            deleteContest={onDelete}
+                            editContest={onEdit}
+                            onParticipantAdded={onParticipantAdded}
+                            showActions={showActions}
+                        />
+                    ))}
+                </div>
+            </div>
+            {totalPages > 1 && (
+                <div className="mt-8 flex justify-center">
+                    <Pagination>
+                        <PaginationContent>
+                            <PaginationItem>
+                                <Button
+                                    variant="ghost"
+                                    size="default"
+                                    onClick={() => {
+                                        if (currentPage > 1) {
+                                            setCurrentPage(currentPage - 1);
+                                        }
+                                    }}
+                                    disabled={currentPage === 1}
+                                    className="gap-1 pl-2.5"
+                                >
+                                    <ChevronLeftIcon className="h-4 w-4" />
+                                    <span>Previous</span>
+                                </Button>
+                            </PaginationItem>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                <PaginationItem key={page}>
+                                    <Button
+                                        variant={currentPage === page ? "outline" : "ghost"}
+                                        size="icon"
+                                        onClick={() => setCurrentPage(page)}
+                                        className={cn(
+                                            currentPage === page && "bg-background"
+                                        )}
+                                    >
+                                        {page}
+                                    </Button>
+                                </PaginationItem>
+                            ))}
+                            <PaginationItem>
+                                <Button
+                                    variant="ghost"
+                                    size="default"
+                                    onClick={() => {
+                                        if (currentPage < totalPages) {
+                                            setCurrentPage(currentPage + 1);
+                                        }
+                                    }}
+                                    disabled={currentPage === totalPages}
+                                    className="gap-1 pr-2.5"
+                                >
+                                    <span>Next</span>
+                                    <ChevronRightIcon className="h-4 w-4" />
+                                </Button>
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </div>
+            )}
+        </>
     );
 }

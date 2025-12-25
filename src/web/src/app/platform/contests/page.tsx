@@ -33,7 +33,7 @@ export default async function ContestsPage() {
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-background">
       <PlatformNavbar session={session}>
         <UserAvatar session={session} />
       </PlatformNavbar>
@@ -42,6 +42,6 @@ export default async function ContestsPage() {
         ongoingContests={ongoingContests}
         pastContests={pastContests}
       />
-    </>
+    </div>
   );
 }

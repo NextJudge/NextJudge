@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,17 +17,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
-import {
-  ChevronDownIcon,
-  CircleIcon,
-  PersonIcon,
-  PlusIcon,
-} from "@radix-ui/react-icons";
-
 import { NextJudgeEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Clock, EditIcon } from "lucide-react";
+import { format, formatDistanceToNow, isAfter, isBefore } from "date-fns";
+import {
+  Calendar,
+  Clock,
+  Edit,
+  MoreVertical,
+  Plus,
+  Users
+} from "lucide-react";
 
 type ContestCardProps = {
   className?: string;
@@ -36,6 +37,8 @@ type ContestCardProps = {
   mock?: boolean;
 };
 
+type ContestStatus = "upcoming" | "ongoing" | "ended";
+
 export function ContestCard({
   className,
   contest,
@@ -43,102 +46,179 @@ export function ContestCard({
   editContest,
   mock,
 }: ContestCardProps) {
-  const contestName = contest?.title;
-  const contestDescription = contest?.description;
-  const startTime = contest?.start_time;
-  const endTime = contest?.end_time;
+  const startTime = new Date(contest?.start_time);
+  const endTime = new Date(contest?.end_time);
+  const now = new Date();
+
+  const status: ContestStatus = isBefore(now, startTime)
+    ? "upcoming"
+    : isAfter(now, endTime)
+      ? "ended"
+      : "ongoing";
+
+  const getStatusConfig = () => {
+    return {
+      badge: "",
+      accent: "bg-muted-foreground/20",
+    };
+  };
+
+  const statusConfig = getStatusConfig();
+
+  const getTimeDisplay = () => {
+    switch (status) {
+      case "upcoming":
+        return `Starts ${formatDistanceToNow(startTime, { addSuffix: true })}`;
+      case "ongoing":
+        return `Ends ${formatDistanceToNow(endTime, { addSuffix: true })}`;
+      case "ended":
+        return `Ended ${formatDistanceToNow(endTime, { addSuffix: true })}`;
+    }
+  };
 
   const getDuration = () => {
-    if (!startTime || !endTime) return "Unknown";
+    if (!contest?.start_time || !contest?.end_time) return "Unknown";
 
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    const duration = end.getTime() - start.getTime();
-
+    const duration = endTime.getTime() - startTime.getTime();
     const hours = Math.floor(duration / (1000 * 60 * 60));
     const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
 
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
     }
+    return `${minutes}m`;
   };
+
+  const problemCount = contest.problem_count ?? contest.problems?.length ?? 0;
+  const participantCount = contest.participant_count ?? contest.participants?.length ?? 0;
+
   return (
-    <Card className={cn("max-w-[105%]", className)}>
-      <CardHeader className="grid grid-cols-[1fr_auto] items-start gap-4 space-y-0">
-        <div className="space-y-4">
-          <CardTitle>{contestName}</CardTitle>
-          <CardDescription>{contestDescription}</CardDescription>
-        </div>
-        <div
-          className={cn(
-            "flex items-center rounded-md bg-secondary text-secondary-foreground w-full",
-            {
-              hidden: mock,
-            }
+    <Card
+      className={cn(
+        "relative overflow-hidden",
+        className
+      )}
+    >
+
+      <CardHeader className="pb-5 relative">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 space-y-3 min-w-0">
+            <div className="flex items-start gap-3">
+              <CardTitle className="text-2xl font-bold leading-tight">
+                {contest?.title}
+              </CardTitle>
+            </div>
+            <CardDescription className="text-sm leading-relaxed line-clamp-2 text-muted-foreground/80">
+              {contest?.description}
+            </CardDescription>
+          </div>
+
+          {!mock && (
+            <div className="flex items-start gap-3 flex-shrink-0">
+              <Badge
+                variant="secondary"
+                className="text-xs font-semibold px-3 py-1"
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[200px]">
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => editContest && editContest(contest)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add participant(s)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => deleteContest && deleteContest(contest.id)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
-        >
-          <Separator orientation="vertical" className="h-[20px]" />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" className="px-2 shadow-none">
-                <ChevronDownIcon className="h-4 w-4 text-secondary-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              alignOffset={-5}
-              className="w-[200px]"
-              forceMount
-            >
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => deleteContest && deleteContest(contest.id)}
-              >
-                Delete
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => editContest && editContest(contest)}
-              >
-                <EditIcon className="mr-2 h-4 w-4" /> Edit
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <PlusIcon className="mr-2 h-4 w-4" /> Add participant(s)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </CardHeader>
-      <CardContent className="w-full">
-        <div className="flex flex-row items-center gap-6 text-sm text-muted-foreground">
-          <div className="flex flex-col md:items-center gap-6 md:flex-row ">
-            <div className="flex items-center flex-row">
-              <CircleIcon className="mr-1 h-3 w-3 fill-osu text-osu" />
-              <p>{contest.problem_count ?? contest.problems?.length ?? 0} Problems</p>
-            </div>
-            <div className="flex items-center">
-              <PersonIcon className="mr-1 h-3 w-3" />
-              <p>{contest.participant_count ?? contest.participants?.length ?? 0} Participants</p>
-            </div>
-            <div className="flex items-center">
-              <Clock className="mr-1 size-4 md:mr-2 md:size-4" />
-              <p className="w-[200%] md:w-full">{getDuration()}</p>
-            </div>
+
+      <CardContent className="space-y-5 pt-0 relative">
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
+            <Calendar className="h-4 w-4" />
+            <span className="font-medium">{format(startTime, "MMM d, yyyy")}</span>
           </div>
+          <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
+            <Clock className="h-4 w-4" />
+            <span>{format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 pt-3 border-t">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold">{problemCount}</span>
+            </div>
+            <span className="text-xs text-muted-foreground font-medium">
+              {problemCount === 1 ? "Problem" : "Problems"}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-lg font-bold">{participantCount}</span>
+            </div>
+            <span className="text-xs text-muted-foreground font-medium">
+              {participantCount === 1 ? "Participant" : "Participants"}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-lg font-bold">{getDuration()}</span>
+            </div>
+            <span className="text-xs text-muted-foreground font-medium">Duration</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 bg-muted/30 px-3 py-2 rounded-md">
+          <Clock className="h-3.5 w-3.5" />
+          <span className="font-medium">{getTimeDisplay()}</span>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-export function ContestGrid({ contests, onDelete, onEdit }: any) {
+type ContestGridProps = {
+  contests: NextJudgeEvent[];
+  onDelete?: (id: number) => void;
+  onEdit?: (contest: NextJudgeEvent) => void;
+};
+
+export function ContestGrid({ contests, onDelete, onEdit }: ContestGridProps) {
   return (
-    <div className="grid grid-cols-2 w-full gap-4">
-      {contests?.map((contest: any) => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {contests?.map((contest) => (
         <ContestCard
           key={contest.id}
           contest={contest}
