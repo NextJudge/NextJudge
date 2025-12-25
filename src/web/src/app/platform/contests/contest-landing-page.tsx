@@ -3,27 +3,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import {
     Pagination,
     PaginationContent,
     PaginationItem,
 } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { apiAddEventParticipant, apiRegisterForEvent } from "@/lib/api";
+import { ContestCard } from "@/components/contest-card";
 import { NextJudgeEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { format, formatDistanceToNow, isAfter, isBefore } from "date-fns";
-import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, FileCode, UsersIcon } from "lucide-react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 interface ContestLandingPageProps {
     upcomingContests: NextJudgeEvent[];
@@ -31,209 +20,6 @@ interface ContestLandingPageProps {
     pastContests: NextJudgeEvent[];
 }
 
-type ContestStatus = "upcoming" | "ongoing" | "ended";
-
-function ContestCard({ contest, onParticipantAdded }: {
-    contest: NextJudgeEvent;
-    onParticipantAdded?: (eventId: number) => void;
-}) {
-    const { data: session } = useSession();
-    const router = useRouter();
-    const [isRegistering, setIsRegistering] = useState(false);
-    const [isRegistered, setIsRegistered] = useState(false);
-
-    const startTime = new Date(contest.start_time);
-    const endTime = new Date(contest.end_time);
-    const now = new Date();
-
-    const status: ContestStatus = isBefore(now, startTime)
-        ? "upcoming"
-        : isAfter(now, endTime)
-            ? "ended"
-            : "ongoing";
-
-    const userIsParticipant = contest.participants?.some(
-        p => p.id === session?.nextjudge_id
-    ) || isRegistered;
-
-
-    const getTimeDisplay = () => {
-        switch (status) {
-            case "upcoming":
-                return `Starts ${formatDistanceToNow(startTime, { addSuffix: true })}`;
-            case "ongoing":
-                return `Ends ${formatDistanceToNow(endTime, { addSuffix: true })}`;
-            case "ended":
-                return `Ended ${formatDistanceToNow(endTime, { addSuffix: true })}`;
-        }
-    };
-
-    const getDuration = () => {
-        const duration = endTime.getTime() - startTime.getTime();
-        const hours = Math.floor(duration / (1000 * 60 * 60));
-        const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
-
-        if (hours > 0) {
-            return `${hours}h ${minutes}m`;
-        }
-        return `${minutes}m`;
-    };
-
-    const handleNavigateToContest = () => {
-        router.push(`/platform/contests/${contest.id}`);
-    };
-
-    const handleRegister = async () => {
-        if (status === "ended") {
-            handleNavigateToContest();
-            return;
-        }
-
-        if (!session?.nextjudge_token || !session?.nextjudge_id) {
-            toast.error("You must be logged in to register");
-            return;
-        }
-
-        if (userIsParticipant && status === "ongoing") {
-            handleNavigateToContest();
-            return;
-        }
-
-        if (userIsParticipant) {
-            return;
-        }
-
-        setIsRegistering(true);
-        try {
-            if (session.user?.is_admin) {
-                await apiAddEventParticipant(
-                    session.nextjudge_token,
-                    contest.id,
-                    session.nextjudge_id.toString()
-                );
-            } else {
-                await apiRegisterForEvent(
-                    session.nextjudge_token,
-                    contest.id
-                );
-            }
-            setIsRegistered(true);
-            toast.success("Successfully registered for the contest!");
-            onParticipantAdded?.(contest.id);
-        } catch (error) {
-            console.error('Failed to register:', error);
-            const errorMessage = error instanceof Error ? error.message : "Failed to register";
-
-            if (errorMessage.includes("409") || errorMessage.includes("already a participant")) {
-                setIsRegistered(true);
-                toast.info("You are already registered for this contest");
-            } else {
-                toast.error(errorMessage);
-            }
-        } finally {
-            setIsRegistering(false);
-        }
-    };
-
-    const getButtonText = () => {
-        if (userIsParticipant) {
-            return status === "upcoming" ? "Registered" : "Enter Contest";
-        }
-        return status === "upcoming" ? "Register Now" : status === "ongoing" ? "Enter Contest" : "View Results";
-    };
-
-    const getButtonIcon = () => {
-        if (userIsParticipant && status === "upcoming") {
-            return <CheckIcon className="h-4 w-4" />;
-        }
-        return null;
-    };
-
-    const problemCount = contest.problem_count ?? contest.problems?.length ?? 0;
-    const participantCount = contest.participant_count ?? contest.participants?.length ?? 0;
-
-    return (
-        <Card className="relative overflow-hidden">
-            {status === "ended" && (
-                <div
-                    className="absolute top-0 right-0 w-40 h-10 text-primary-foreground font-bold text-sm flex items-center justify-center rotate-45 translate-x-10 translate-y-5 z-10 shadow-lg opacity-75"
-                    style={{
-                        background: `repeating-linear-gradient(45deg, hsl(var(--primary)) 0px, hsl(var(--primary)) 10px, hsl(var(--muted)) 10px, hsl(var(--muted)) 20px)`
-                    }}
-                >
-                    <span className="whitespace-nowrap bg-primary px-2 py-0.5 border border-primary/20">ENDED</span>
-                </div>
-            )}
-            <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                        <CardTitle
-                            className="text-2xl font-bold mb-2 cursor-pointer line-clamp-2"
-                            onClick={handleNavigateToContest}
-                        >
-                            {contest.title}
-                        </CardTitle>
-                        <CardDescription className="text-sm line-clamp-2">
-                            {contest.description}
-                        </CardDescription>
-                    </div>
-                    {status !== "ended" && (
-                        <Badge
-                            variant="secondary"
-                            className="text-xs font-semibold px-3 py-1 flex-shrink-0"
-                        >
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </Badge>
-                    )}
-                </div>
-            </CardHeader>
-
-            <CardContent className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="font-medium">{getTimeDisplay()}</span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
-                        <ClockIcon className="h-3.5 w-3.5" />
-                        <span className="font-medium">{getDuration()}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
-                        <FileCode className="h-3.5 w-3.5" />
-                        <span className="font-medium">{problemCount} {problemCount === 1 ? "Problem" : "Problems"}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
-                        <UsersIcon className="h-3.5 w-3.5" />
-                        <span className="font-medium">{participantCount} {participantCount === 1 ? "Participant" : "Participants"}</span>
-                    </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t">
-                    <div className="flex flex-col gap-1">
-                        <span className="text-sm font-medium text-foreground">
-                            {format(startTime, "MMM d, yyyy")} - {format(endTime, "MMM d, yyyy")}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                            {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}
-                        </span>
-                    </div>
-                    <Button
-                        variant={userIsParticipant && status === "upcoming" ? "secondary" : "default"}
-                        size="default"
-                        onClick={handleRegister}
-                        disabled={isRegistering || (userIsParticipant && status === "upcoming")}
-                        className="min-w-[140px] font-semibold transition-all"
-                    >
-                        {getButtonIcon()}
-                        <span className={cn(getButtonIcon() && "ml-2")}>
-                            {isRegistering ? "Processing..." : getButtonText()}
-                        </span>
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
 
 const ITEMS_PER_PAGE = 6;
 

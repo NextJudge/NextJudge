@@ -1,5 +1,5 @@
 "use client";
-import { ContestCard } from "@/app/platform/admin/contests/contest-card";
+import { ContestCard } from "@/components/contest-card";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
 import { Submission } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -375,7 +375,7 @@ const mockContest = {
 const ContestCardPreview = () => {
   return (
     <Card className={cn("flex flex-col items-center border-none")}>
-      <ContestCard contest={mockContest} mock />
+      <ContestCard contest={mockContest} showActions={false} />
     </Card>
   );
 };
