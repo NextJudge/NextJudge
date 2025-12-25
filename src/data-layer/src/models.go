@@ -125,6 +125,7 @@ func (SubmissionTestCaseResult) TableName() string {
 type Submission struct {
 	ID     uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	UserID uuid.UUID `json:"user_id"`
+	User   *User     `json:"user" gorm:"foreignKey:UserID;references:ID"`
 	// GORM magic - it will correlate ProblemID with Problem. Expicitly specifying the foreignKey here broke things.
 	ProblemID int                    `json:"problem_id"`
 	Problem   *ProblemDescriptionExt `json:"problem"`

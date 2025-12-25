@@ -389,7 +389,7 @@ func (d *Database) CreateSubmission(submission *Submission) (*Submission, error)
 
 func (d *Database) GetSubmission(submissionId uuid.UUID) (*Submission, error) {
 	submission := &Submission{}
-	err := d.NextJudgeDB.Preload("Language").Preload("Problem").Preload("TestCaseResults").First(submission, submissionId).Error
+	err := d.NextJudgeDB.Preload("Language").Preload("Problem").Preload("User").Preload("TestCaseResults").First(submission, submissionId).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -401,7 +401,7 @@ func (d *Database) GetSubmission(submissionId uuid.UUID) (*Submission, error) {
 
 func (d *Database) GetSubmissionsByUserID(userId uuid.UUID) ([]Submission, error) {
 	submissions := []Submission{}
-	err := db.NextJudgeDB.Order("submit_time desc").Limit(25).Preload("Language").Preload("Problem", func(db *gorm.DB) *gorm.DB {
+	err := db.NextJudgeDB.Order("submit_time desc").Limit(25).Preload("Language").Preload("User").Preload("Problem", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "title", "difficulty", "identifier")
 	}).Where("user_id = ?", userId).Find(&submissions).Error
 	if err != nil {
@@ -415,7 +415,7 @@ func (d *Database) GetSubmissionsByUserID(userId uuid.UUID) ([]Submission, error
 
 func (d *Database) GetProblemSubmissionsByUserID(userId uuid.UUID, problemId int) ([]Submission, error) {
 	submissions := []Submission{}
-	err := db.NextJudgeDB.Order("submit_time desc").Limit(25).Preload("Language").Preload("Problem", func(db *gorm.DB) *gorm.DB {
+	err := db.NextJudgeDB.Order("submit_time desc").Limit(25).Preload("Language").Preload("User").Preload("Problem", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "title", "difficulty", "identifier")
 	}).Where("user_id = ?", userId).Where("problem_id = ?", problemId).Find(&submissions).Error
 	// err := db.NextJudgeDB.Preload("Language").Preload("Problem").Where("user_id = ?", userId).Where("problem_id = ?", problemId).Find(&submissions).Error
