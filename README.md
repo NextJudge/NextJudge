@@ -1,4 +1,4 @@
-<p align="center"><img src="https://i.ibb.co/cg8YFt5/preview.png" width="560" height="300" /></p>
+<p align="center"><img src="https://nextjudge.net/opengraph-image.webp" alt="NextJudge OpenGraph Image" /></p>
 
 <h1 align="center" style="font-size:2em;">NextJudge</h1>
 
@@ -34,12 +34,16 @@ NextJudge is a monorepo, which allows our services to share dependencies and cod
 │   ├── data-layer - HTTP wrapper over underlying database
 │   ├── judge - runs and judges code submissions
 │   ├── web - web application for the platform
+├── compose
+│   ├── docker-compose.backend.yml - Docker compose file for running all backend services
+│   ├── docker-compose.dev.yml - Docker compose file for running all services with hot reload
+│   ├── docker-compose.coolify.yml - Docker compose file for running all services on Coolify
+│   └── docker-compose.prebuilt.yml - Docker compose file using prebuilt images
 ├── deploy.sh - script to deploy all services using Docker compose
 ├── build-frontend.sh - script to build the frontend application
 ├── dev-deploy.sh - script to deploy all services using Docker compose with hot reload
 ├── fully-reset.sh - script to flush the database and remove all volumes
-├── docker-compose.yml - Docker compose file for running all services
-├── docker-compose.dev.yml - Docker compose file for running all services with hot reload
+├── docker-bake.hcl - Docker build configuration for our multi-stage builds
 ├── CONTRIBUTING.md - guidelines for contributing to the project
 ├── LICENSE - MIT License
 └── CODE_OF_CONDUCT.md - guidelines for community behavior
@@ -67,7 +71,7 @@ The source code is mounted, and a process is set up to detect changes and restar
 You can run the following script to start the services:
 
 ```sh
-./dev-deploy.sh
+./dev-deploy.sh [web] [nojudge] [noelastic]
 ```
 
 To flush the database and remove all volumes (completely refreshing the Docker environments), run the following script:
