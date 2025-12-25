@@ -2,7 +2,7 @@ services:
 
   nextjudge-data-layer-dev:
     extends:
-      file: src/data-layer/docker-compose.dev.yml
+      file: ../src/data-layer/docker-compose.dev.yml
       service: nextjudge-data-layer-dev
     environment:
       - ELASTIC_ENDPOINT=http://elasticsearch:9200
@@ -27,14 +27,14 @@ services:
 
   db-dev:
     extends:
-      file: src/data-layer/docker-compose.db.yml
+      file: ../src/data-layer/docker-compose.db.yml
       service: db
     environment:
       - POSTGRES_PASSWORD=${AUTH_PROVIDER_PASSWORD}
 
   nextjudge-judge-dev:
     extends:
-      file: src/judge/docker-compose.dev.yml
+      file: ../src/judge/docker-compose.dev.yml
       service: nextjudge-judge-dev
     environment:
       - RABBITMQ_HOST=rabbitmq-dev
@@ -53,7 +53,7 @@ services:
 
   rabbitmq-dev:
     extends:
-      file: src/data-layer/docker-compose.rabbitmq.yml
+      file: ../src/data-layer/docker-compose.rabbitmq.yml
       service: rabbitmq
     environment:
       - RABBITMQ_LOGS="error"
