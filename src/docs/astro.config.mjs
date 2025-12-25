@@ -7,7 +7,7 @@ export default defineConfig({
         starlight({
             title: 'NextJudge',
             social: [
-                { icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' },
+                { icon: 'github', label: 'GitHub', href: 'https://github.com/nextjudge/nextjudge' },
             ],
             sidebar: [
                 {
