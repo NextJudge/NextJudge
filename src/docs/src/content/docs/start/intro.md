@@ -3,7 +3,7 @@ title: Introduction
 description: A guide in my new Starlight docs site.
 ---
 
-⚡️ Welcome to the documentation for NextJudge! ⚡️
+Welcome to the documentation for NextJudge!
 
 We're an OSU senior capstone software engineering project aiming to create an open-source, extensible, and modular competitive programming code execution and judging framework.
 

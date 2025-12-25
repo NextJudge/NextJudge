@@ -1,11 +1,17 @@
 ---
-title: Example Reference
-description: A reference page in my new Starlight docs site.
+title: Reference Documentation
+description: API and technical reference documentation for NextJudge.
 ---
 
-Reference pages are ideal for outlining how things work in terse and clear terms.
-Less concerned with telling a story or addressing a specific use case, they should give a comprehensive outline of what your documenting.
+The reference section contains detailed technical documentation for NextJudge components.
 
-## Further reading
+## Available References
 
-- Read [about reference](https://diataxis.fr/reference/) in the Diátaxis framework
+- [API Reference](/reference/api/) - Complete REST API documentation for the data layer
+- [Supported Languages](/reference/languages/) - Programming languages and their configurations
+
+## Quick Links
+
+- [Getting Started](/start/getting-started/) - Set up NextJudge
+- [Architecture](/architecture/components/) - System architecture overview
+- [Development Guide](/guides/development/) - Development setup and workflows

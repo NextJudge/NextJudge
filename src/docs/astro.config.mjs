@@ -23,6 +23,14 @@ export default defineConfig({
                     label: 'Architecture',
                     items: [
                         { label: 'Core Components', link: '/architecture/components/' },
+                        { label: 'Judge Service', link: '/architecture/judge/' },
+                    ],
+                },
+                {
+                    label: 'Guides',
+                    items: [
+                        { label: 'Development Guide', link: '/guides/development/' },
+                        { label: 'Deployment Guide', link: '/guides/deployment/' },
                     ],
                 },
                 {
