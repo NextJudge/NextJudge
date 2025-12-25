@@ -158,7 +158,7 @@ function ContestCard({ contest, onParticipantAdded }: {
                         >
                             {contest.title}
                         </CardTitle>
-                        <CardDescription className="text-sm line-clamp-2 mb-4">
+                        <CardDescription className="text-sm line-clamp-2">
                             {contest.description}
                         </CardDescription>
                     </div>
@@ -171,9 +171,8 @@ function ContestCard({ contest, onParticipantAdded }: {
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <ClockIcon className="h-4 w-4" />
                     <span className="font-medium">{getTimeDisplay()}</span>
                 </div>
 
@@ -195,7 +194,7 @@ function ContestCard({ contest, onParticipantAdded }: {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t">
                     <div className="flex flex-col gap-1">
                         <span className="text-sm font-medium text-foreground">
-                            {format(startTime, "MMM d, yyyy")}
+                            {format(startTime, "MMM d, yyyy")} - {format(endTime, "MMM d, yyyy")}
                         </span>
                         <span className="text-xs text-muted-foreground">
                             {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}

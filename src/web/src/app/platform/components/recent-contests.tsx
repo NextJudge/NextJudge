@@ -3,11 +3,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useEventMetadata } from "@/hooks/useEventMetadata";
 import { NextJudgeEvent } from "@/lib/types";
 import { formatDistanceToNow, isAfter } from "date-fns";
 import { ArrowRight, Calendar, FileCode, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEventMetadata } from "@/hooks/useEventMetadata";
 
 interface ContestCardProps {
   contest: NextJudgeEvent;
