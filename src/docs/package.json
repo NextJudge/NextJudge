@@ -11,10 +11,18 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.5.0",
+    "@astrojs/react": "^4.4.2",
     "@astrojs/starlight": "^0.37.1",
+    "@astrojs/starlight-tailwind": "^4.0.2",
     "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.16.6",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.562.0",
+    "motion": "^12.23.26",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "sharp": "^0.34.5",
+    "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
   }
