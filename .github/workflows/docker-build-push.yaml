@@ -3,8 +3,7 @@ name: Build and Push Docker Images
 on:
   workflow_dispatch:
   push:
-    branches:
-      - 'main'
+    branches: [ main ]
     paths:
       - '.github/workflows/docker-build-push.yaml'
       - 'src/data-layer/**'
@@ -14,14 +13,16 @@ on:
 env:
   REGISTRY: docker.io
   DOCKERHUB_NAMESPACE: tnyuma
+  IMAGE_TAG: sha-${{ github.sha }}
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
     steps:
-      - name: Checkout the repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -33,15 +34,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Generate Metadata for basejudge
-        id: meta-basejudge
-        uses: docker/metadata-action@v5.5.1
-        with:
-          images: ${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha
-
       - name: Build and push basejudge
         uses: docker/bake-action@v6
         with:
@@ -49,27 +41,9 @@ jobs:
           targets: basejudge
           push: true
           set: |
-            basejudge.tags=${{ steps.meta-basejudge.outputs.tags }}
+            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.IMAGE_TAG }}
             basejudge.cache-from=type=gha
             basejudge.cache-to=type=gha,mode=max
-
-      - name: Generate Metadata for core
-        id: meta-core
-        uses: docker/metadata-action@v5.5.1
-        with:
-          images: ${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha
-
-      - name: Generate Metadata for judge
-        id: meta-judge
-        uses: docker/metadata-action@v5.5.1
-        with:
-          images: ${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha
 
       - name: Build and push core and judge
         uses: docker/bake-action@v6
@@ -78,11 +52,15 @@ jobs:
           targets: core,judge
           push: true
           set: |
-            core.tags=${{ steps.meta-core.outputs.tags }}
-            judge.tags=${{ steps.meta-judge.outputs.tags }}
+            core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:${{ env.IMAGE_TAG }}
+            judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:${{ env.IMAGE_TAG }}
+            judge.args.BASEJUDGE=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.IMAGE_TAG }}
             core.cache-from=type=gha
             core.cache-to=type=gha,mode=max
             judge.cache-from=type=gha
             judge.cache-to=type=gha,mode=max
-            judge.args.BASEJUDGE=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:latest
             core.target=release
+            judge.target=release
+      - name: Deploy to Coolify
+        run: |
+          curl --request GET '${{ secrets.COOLIFY_WEBHOOK }}' --header 'Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}'
