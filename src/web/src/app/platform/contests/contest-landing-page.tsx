@@ -84,12 +84,17 @@ function ContestCard({ contest, onParticipantAdded }: {
     };
 
     const handleRegister = async () => {
+        if (status === "ended") {
+            handleNavigateToContest();
+            return;
+        }
+
         if (!session?.nextjudge_token || !session?.nextjudge_id) {
             toast.error("You must be logged in to register");
             return;
         }
 
-        if (userIsParticipant && (status === "ongoing" || status === "ended")) {
+        if (userIsParticipant && status === "ongoing") {
             handleNavigateToContest();
             return;
         }
@@ -149,6 +154,16 @@ function ContestCard({ contest, onParticipantAdded }: {
 
     return (
         <Card className="relative overflow-hidden">
+            {status === "ended" && (
+                <div
+                    className="absolute top-0 right-0 w-40 h-10 text-primary-foreground font-bold text-sm flex items-center justify-center rotate-45 translate-x-10 translate-y-5 z-10 shadow-lg opacity-75"
+                    style={{
+                        background: `repeating-linear-gradient(45deg, hsl(var(--primary)) 0px, hsl(var(--primary)) 10px, hsl(var(--muted)) 10px, hsl(var(--muted)) 20px)`
+                    }}
+                >
+                    <span className="whitespace-nowrap bg-primary px-2 py-0.5 border border-primary/20">ENDED</span>
+                </div>
+            )}
             <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -162,12 +177,14 @@ function ContestCard({ contest, onParticipantAdded }: {
                             {contest.description}
                         </CardDescription>
                     </div>
-                    <Badge
-                        variant="secondary"
-                        className="text-xs font-semibold px-3 py-1 flex-shrink-0"
-                    >
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </Badge>
+                    {status !== "ended" && (
+                        <Badge
+                            variant="secondary"
+                            className="text-xs font-semibold px-3 py-1 flex-shrink-0"
+                        >
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </Badge>
+                    )}
                 </div>
             </CardHeader>
 
