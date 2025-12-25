@@ -1,0 +1,39 @@
+---
+title: NextJudge
+description: An open-source, extensible, and modular competitive programming code execution and judging framework.
+template: splash
+hero:
+  tagline: The next generation of competitive programming tooling.
+  actions:
+    - text: Get Started
+      link: /start/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: Introduction
+      link: /start/intro/
+      icon: open-book
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+import Demo from "../../components/landing/demo";
+
+<div className="hero-demo-container">
+  <Demo client:load />
+</div>
+
+## Next steps
+
+<CardGrid stagger>
+  <Card title="Learn the basics" icon="open-book">
+    Start with our [Introduction](/start/intro/) to understand what NextJudge is and why it was created.
+  </Card>
+  <Card title="Set up NextJudge" icon="setting">
+    Follow our [Getting Started](/start/getting-started/) guide to deploy NextJudge on your system.
+  </Card>
+  <Card title="Explore architecture" icon="code">
+    Understand how NextJudge works by reading about [Core Components](/architecture/components/) and the [Judge Service](/architecture/judge/).
+  </Card>
+  <Card title="Development guide" icon="pencil">
+    Learn how to contribute and develop NextJudge with our [Development Guide](/guides/development/).
+  </Card>
+</CardGrid>

@@ -1,0 +1,1005 @@
+@layer base, starlight, theme, components, utilities;
+
+@import '@astrojs/starlight-tailwind';
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme {
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, monospace;
+}
+
+:root {
+  --background: 0 0% 97.65%;
+  --foreground: 0 0% 12.55%;
+  --muted: 0 0% 93.73%;
+  --muted-foreground: 0 0% 39.22%;
+  --popover: 0 0% 98.82%;
+  --popover-foreground: 0 0% 12.55%;
+  --card: 0 0% 98.82%;
+  --card-foreground: 0 0% 12.55%;
+  --border: 0 0% 84.71%;
+  --input: 0 0% 94.12%;
+  --primary: 22.93 92.59% 52.35%;
+  --primary-foreground: 44 0% 100%;
+  --secondary: 34.05 100% 85.49%;
+  --secondary-foreground: 16.27 50.43% 22.94%;
+  --accent: 0 0% 90.98%;
+  --accent-foreground: 0 0% 12.55%;
+  --destructive: 10.16 77.87% 53.92%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 24.8 79.79% 63.14%;
+  --radius: 0.5rem;
+}
+
+:root[data-theme='light'] {
+  --background: 0 0% 97.65%;
+  --foreground: 0 0% 12.55%;
+  --muted: 0 0% 93.73%;
+  --muted-foreground: 0 0% 39.22%;
+  --popover: 0 0% 98.82%;
+  --popover-foreground: 0 0% 12.55%;
+  --card: 0 0% 98.82%;
+  --card-foreground: 0 0% 12.55%;
+  --border: 0 0% 84.71%;
+  --input: 0 0% 94.12%;
+  --primary: 22.93 92.59% 52.35%;
+  --primary-foreground: 44 0% 100%;
+  --secondary: 34.05 100% 85.49%;
+  --secondary-foreground: 16.27 50.43% 22.94%;
+  --accent: 0 0% 90.98%;
+  --accent-foreground: 0 0% 12.55%;
+  --destructive: 10.16 77.87% 53.92%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 24.8 79.79% 63.14%;
+
+  --sl-color-accent-low: hsl(var(--secondary));
+  --sl-color-accent: hsl(var(--primary));
+  --sl-color-accent-high: hsl(var(--ring));
+  --sl-color-white: hsl(0 0% 100%);
+  --sl-color-gray-1: hsl(var(--background));
+  --sl-color-gray-2: hsl(var(--muted));
+  --sl-color-gray-3: hsl(var(--border));
+  --sl-color-gray-4: hsl(var(--muted-foreground));
+  --sl-color-gray-5: hsl(var(--muted-foreground));
+  --sl-color-gray-6: hsl(var(--foreground));
+  --sl-color-gray-7: hsl(var(--popover));
+  --sl-color-black: hsl(0 0% 6.67%);
+  --sl-color-bg: hsl(var(--background));
+  --sl-color-bg-nav: hsl(var(--muted));
+  --sl-color-text: hsl(var(--foreground));
+  --sl-color-text-accent: hsl(var(--primary));
+  --sl-color-text-invert: hsl(var(--foreground));
+  --sl-color-sidebar-bg: hsl(var(--muted));
+  --sl-color-sidebar-text: hsl(var(--foreground));
+}
+
+:root[data-theme='dark'] {
+  --background: 0 0% 6.67%;
+  --foreground: 0 0% 93.33%;
+  --muted: 0 0% 13.33%;
+  --muted-foreground: 0 0% 70.59%;
+  --popover: 0 0% 9.8%;
+  --popover-foreground: 0 0% 93.33%;
+  --card: 0 0% 9.8%;
+  --card-foreground: 0 0% 93.33%;
+  --border: 44 14% 11%;
+  --input: 0 0% 28.24%;
+  --primary: 22.93 92.59% 52.35%;
+  --primary-foreground: 29.51 0% 100%;
+  --secondary: 28.5 64.52% 12.16%;
+  --secondary-foreground: 29.51 100% 88.04%;
+  --accent: 0 0% 16.47%;
+  --accent-foreground: 0 0% 93.33%;
+  --destructive: 10.16 77.87% 53.92%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 23.11 59.8% 40%;
+
+  --sl-color-accent-low: hsl(var(--secondary));
+  --sl-color-accent: hsl(var(--primary));
+  --sl-color-accent-high: hsl(var(--ring));
+  --sl-color-white: hsl(0 0% 100%);
+  --sl-color-gray-1: hsl(var(--muted));
+  --sl-color-gray-2: hsl(var(--accent));
+  --sl-color-gray-3: hsl(var(--input));
+  --sl-color-gray-4: hsl(var(--muted-foreground));
+  --sl-color-gray-5: hsl(var(--muted-foreground));
+  --sl-color-gray-6: hsl(var(--foreground));
+  --sl-color-gray-7: hsl(var(--popover));
+  --sl-color-black: hsl(var(--background));
+  --sl-color-bg: hsl(var(--background));
+  --sl-color-bg-nav: hsl(var(--muted));
+  --sl-color-text: hsl(var(--foreground));
+  --sl-color-text-accent: hsl(var(--primary));
+  --sl-color-text-invert: hsl(var(--foreground));
+  --sl-color-sidebar-bg: hsl(var(--muted));
+  --sl-color-sidebar-text: hsl(var(--foreground));
+}
+
+body,
+.page {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.header {
+  background-color: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.header *,
+.header a,
+.header button {
+  color: hsl(var(--foreground));
+}
+
+.header a:hover {
+  color: hsl(var(--primary));
+}
+
+select,
+select.astro-4yphtoen,
+[data-theme-selector] select,
+starlight-theme-select select,
+starlight-theme-select label select {
+  background-color: hsl(var(--background));
+}
+
+
+select:focus,
+select.astro-4yphtoen:focus,
+[data-theme-selector] select:focus,
+starlight-theme-select select:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+starlight-theme-select,
+starlight-theme-select label {
+  position: relative;
+  display: inline-block;
+}
+
+starlight-theme-select::after,
+starlight-theme-select label::after {
+  display: none;
+}
+
+[data-theme-selector] {
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+
+[data-theme-selector]:hover {
+  background-color: hsl(var(--accent));
+}
+
+[data-theme-selector] button {
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  transition: all 0.2s ease;
+  color: hsl(var(--primary));
+  background-color: transparent;
+}
+
+[data-theme-selector] button:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--primary));
+}
+
+[data-theme-selector] button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.main-pane,
+.content-panel,
+.sl-markdown-content,
+.l-markdown-content {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='light'] .main-pane,
+:root[data-theme='light'] .content-panel,
+:root[data-theme='light'] .sl-markdown-content,
+:root[data-theme='light'] .l-markdown-content {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='dark'] .main-pane,
+:root[data-theme='dark'] .content-panel,
+:root[data-theme='dark'] .sl-markdown-content,
+:root[data-theme='dark'] .l-markdown-content {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.content-panel h1,
+.content-panel h2,
+.content-panel h3,
+.content-panel h4,
+.content-panel h5,
+.content-panel h6,
+.l-container h1,
+.l-container h2,
+.l-container h3,
+.l-container h4,
+.l-container h5,
+.l-container h6,
+main h1,
+main h2,
+main h3,
+main h4,
+main h5,
+main h6 {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='light'] .content-panel h1,
+:root[data-theme='light'] .content-panel h2,
+:root[data-theme='light'] .content-panel h3,
+:root[data-theme='light'] .content-panel h4,
+:root[data-theme='light'] .content-panel h5,
+:root[data-theme='light'] .content-panel h6,
+:root[data-theme='light'] .l-container h1,
+:root[data-theme='light'] .l-container h2,
+:root[data-theme='light'] .l-container h3,
+:root[data-theme='light'] .l-container h4,
+:root[data-theme='light'] .l-container h5,
+:root[data-theme='light'] .l-container h6,
+:root[data-theme='light'] main h1,
+:root[data-theme='light'] main h2,
+:root[data-theme='light'] main h3,
+:root[data-theme='light'] main h4,
+:root[data-theme='light'] main h5,
+:root[data-theme='light'] main h6 {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='dark'] .content-panel h1,
+:root[data-theme='dark'] .content-panel h2,
+:root[data-theme='dark'] .content-panel h3,
+:root[data-theme='dark'] .content-panel h4,
+:root[data-theme='dark'] .content-panel h5,
+:root[data-theme='dark'] .content-panel h6,
+:root[data-theme='dark'] .l-container h1,
+:root[data-theme='dark'] .l-container h2,
+:root[data-theme='dark'] .l-container h3,
+:root[data-theme='dark'] .l-container h4,
+:root[data-theme='dark'] .l-container h5,
+:root[data-theme='dark'] .l-container h6,
+:root[data-theme='dark'] main h1,
+:root[data-theme='dark'] main h2,
+:root[data-theme='dark'] main h3,
+:root[data-theme='dark'] main h4,
+:root[data-theme='dark'] main h5,
+:root[data-theme='dark'] main h6 {
+  color: hsl(var(--foreground)) !important;
+}
+
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3,
+.sl-markdown-content h4,
+.sl-markdown-content h5,
+.sl-markdown-content h6,
+.sl-markdown-content .sl-heading-wrapper h1,
+.sl-markdown-content .sl-heading-wrapper h2,
+.sl-markdown-content .sl-heading-wrapper h3,
+.sl-markdown-content .sl-heading-wrapper h4,
+.sl-markdown-content .sl-heading-wrapper h5,
+.sl-markdown-content .sl-heading-wrapper h6 {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='light'] .sl-markdown-content h1,
+:root[data-theme='light'] .sl-markdown-content h2,
+:root[data-theme='light'] .sl-markdown-content h3,
+:root[data-theme='light'] .sl-markdown-content h4,
+:root[data-theme='light'] .sl-markdown-content h5,
+:root[data-theme='light'] .sl-markdown-content h6,
+:root[data-theme='light'] .sl-markdown-content .sl-heading-wrapper h1,
+:root[data-theme='light'] .sl-markdown-content .sl-heading-wrapper h2,
+:root[data-theme='light'] .sl-markdown-content .sl-heading-wrapper h3,
+:root[data-theme='light'] .sl-markdown-content .sl-heading-wrapper h4,
+:root[data-theme='light'] .sl-markdown-content .sl-heading-wrapper h5,
+:root[data-theme='light'] .sl-markdown-content .sl-heading-wrapper h6 {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='dark'] .sl-markdown-content h1,
+:root[data-theme='dark'] .sl-markdown-content h2,
+:root[data-theme='dark'] .sl-markdown-content h3,
+:root[data-theme='dark'] .sl-markdown-content h4,
+:root[data-theme='dark'] .sl-markdown-content h5,
+:root[data-theme='dark'] .sl-markdown-content h6,
+:root[data-theme='dark'] .sl-markdown-content .sl-heading-wrapper h1,
+:root[data-theme='dark'] .sl-markdown-content .sl-heading-wrapper h2,
+:root[data-theme='dark'] .sl-markdown-content .sl-heading-wrapper h3,
+:root[data-theme='dark'] .sl-markdown-content .sl-heading-wrapper h4,
+:root[data-theme='dark'] .sl-markdown-content .sl-heading-wrapper h5,
+:root[data-theme='dark'] .sl-markdown-content .sl-heading-wrapper h6 {
+  color: hsl(var(--foreground));
+}
+
+.sl-heading-wrapper,
+.sl-heading-wrapper h1,
+.sl-heading-wrapper h2,
+.sl-heading-wrapper h3,
+.sl-heading-wrapper h4,
+.sl-heading-wrapper h5,
+.sl-heading-wrapper h6 {
+  color: hsl(var(--foreground));
+}
+
+h1#_top,
+h1[id="_top"],
+.l-container h1,
+.l-container h1#_top,
+main h1,
+main h1#_top {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='light'] h1#_top,
+:root[data-theme='light'] h1[id="_top"],
+:root[data-theme='light'] .l-container h1,
+:root[data-theme='light'] .l-container h1#_top,
+:root[data-theme='light'] main h1,
+:root[data-theme='light'] main h1#_top {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='dark'] h1#_top,
+:root[data-theme='dark'] h1[id="_top"],
+:root[data-theme='dark'] .l-container h1,
+:root[data-theme='dark'] .l-container h1#_top,
+:root[data-theme='dark'] main h1,
+:root[data-theme='dark'] main h1#_top {
+  color: hsl(var(--foreground)) !important;
+}
+
+.sl-anchor-link,
+a.sl-anchor-link {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='light'] .sl-anchor-link,
+:root[data-theme='light'] a.sl-anchor-link {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='dark'] .sl-anchor-link,
+:root[data-theme='dark'] a.sl-anchor-link {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='light'] .sl-heading-wrapper,
+:root[data-theme='light'] .sl-heading-wrapper h1,
+:root[data-theme='light'] .sl-heading-wrapper h2,
+:root[data-theme='light'] .sl-heading-wrapper h3,
+:root[data-theme='light'] .sl-heading-wrapper h4,
+:root[data-theme='light'] .sl-heading-wrapper h5,
+:root[data-theme='light'] .sl-heading-wrapper h6 {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='dark'] .sl-heading-wrapper,
+:root[data-theme='dark'] .sl-heading-wrapper h1,
+:root[data-theme='dark'] .sl-heading-wrapper h2,
+:root[data-theme='dark'] .sl-heading-wrapper h3,
+:root[data-theme='dark'] .sl-heading-wrapper h4,
+:root[data-theme='dark'] .sl-heading-wrapper h5,
+:root[data-theme='dark'] .sl-heading-wrapper h6 {
+  color: hsl(var(--foreground));
+}
+
+.sl-markdown-content pre,
+.sl-markdown-content code {
+  font-family: var(--font-mono);
+}
+
+.sl-markdown-content li,
+.sl-markdown-content ol li,
+.sl-markdown-content ul li {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='light'] .sl-markdown-content li,
+:root[data-theme='light'] .sl-markdown-content ol li,
+:root[data-theme='light'] .sl-markdown-content ul li {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='dark'] .sl-markdown-content li,
+:root[data-theme='dark'] .sl-markdown-content ol li,
+:root[data-theme='dark'] .sl-markdown-content ul li {
+  color: hsl(var(--foreground));
+}
+
+.sl-markdown-content pre code {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.sl-markdown-content :not(pre) > code {
+  padding: 0.125rem 0.25rem;
+  border-radius: calc(var(--radius) - 2px);
+  background-color: hsl(var(--muted));
+  color: hsl(var(--primary));
+  font-size: 0.875em;
+}
+
+:root[data-theme='dark'] .sl-markdown-content :not(pre) > code {
+  background-color: hsl(var(--input));
+  color: hsl(var(--primary));
+}
+
+.sl-markdown-content pre {
+  padding: 1rem;
+  border-radius: var(--radius);
+  background-color: hsl(var(--muted));
+  overflow-x: auto;
+}
+
+:root[data-theme='dark'] .sl-markdown-content pre {
+  background-color: hsl(var(--muted));
+}
+
+.sl-markdown-content pre code {
+  padding: 0;
+  background-color: transparent;
+  color: inherit;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.sl-markdown-content pre::-webkit-scrollbar {
+  height: 8px;
+}
+
+.sl-markdown-content pre::-webkit-scrollbar-track {
+  background-color: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.sl-markdown-content pre::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 4px;
+  border: 2px solid hsl(var(--muted));
+}
+
+.sl-markdown-content pre::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground));
+}
+
+:root[data-theme='light'] .sl-markdown-content pre::-webkit-scrollbar-track {
+  background-color: hsl(var(--muted));
+}
+
+:root[data-theme='light'] .sl-markdown-content pre::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-color: hsl(var(--muted));
+}
+
+:root[data-theme='light'] .sl-markdown-content pre::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground));
+}
+
+:root[data-theme='dark'] .sl-markdown-content pre::-webkit-scrollbar-track {
+  background-color: hsl(var(--muted));
+}
+
+:root[data-theme='dark'] .sl-markdown-content pre::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--input));
+  border-color: hsl(var(--muted));
+}
+
+:root[data-theme='dark'] .sl-markdown-content pre::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground));
+}
+
+.sl-markdown-content pre {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) hsl(var(--muted));
+}
+
+:root[data-theme='light'] .sl-markdown-content pre {
+  scrollbar-color: hsl(var(--border)) hsl(var(--muted));
+}
+
+:root[data-theme='dark'] .sl-markdown-content pre {
+  scrollbar-color: hsl(var(--input)) hsl(var(--muted));
+}
+
+pre code .token.decorator,
+pre code .token.annotation,
+pre code .token.meta.decorator,
+pre code .token.meta.annotation {
+  color: rgba(255, 102, 0, 1);
+}
+
+pre code .token.keyword,
+pre code .token.storage.type,
+pre code .token.storage.modifier {
+  color: rgba(255, 102, 0, 1);
+}
+
+pre code .token.string,
+pre code .token.string.quoted {
+  color: rgba(75, 135, 185, 1);
+}
+
+pre code .token.comment {
+  color: hsl(var(--muted-foreground));
+}
+
+pre code .token.function,
+pre code .token.entity.name.function {
+  color: rgba(255, 102, 0, 1);
+}
+
+pre code .token.constant,
+pre code .token.variable.other.constant {
+  color: rgba(255, 102, 0, 1);
+}
+
+pre code .token.parameter,
+pre code .token.variable.parameter {
+  color: hsl(var(--foreground));
+}
+
+pre code .token.operator {
+  color: hsl(var(--foreground));
+}
+
+pre code .token.property,
+pre code .token.variable.other.property {
+  color: rgba(255, 102, 0, 1);
+}
+
+pre code .token.variable {
+  color: hsl(var(--foreground));
+}
+
+pre code .token.punctuation {
+  color: hsl(var(--foreground));
+}
+
+figcaption.header {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+nav.sidebar,
+#starlight__sidebar,
+.sidebar-pane,
+.sidebar-content,
+.sidebar-content * {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='light'] nav.sidebar,
+:root[data-theme='light'] #starlight__sidebar,
+:root[data-theme='light'] .sidebar-pane,
+:root[data-theme='light'] .sidebar-content,
+:root[data-theme='light'] .sidebar-content * {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.sidebar-content a,
+.sidebar-content * {
+  color: hsl(var(--foreground));
+}
+
+.sidebar-content a:hover {
+  color: hsl(var(--primary));
+}
+
+.sidebar-content [aria-current="page"],
+.sidebar-content [data-current="true"] {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.sidebar-content [aria-current="page"]:hover,
+.sidebar-content [data-current="true"]:hover {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.right-sidebar,
+.right-sidebar-content,
+[data-page-toc],
+.page-nav,
+.page-nav * {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.right-sidebar a,
+.right-sidebar-content a,
+[data-page-toc] a {
+  color: hsl(var(--foreground));
+}
+
+.right-sidebar a:hover,
+.right-sidebar-content a:hover,
+[data-page-toc] a:hover {
+  color: hsl(var(--primary));
+}
+
+.right-sidebar a[aria-current],
+.right-sidebar-content a[aria-current],
+[data-page-toc] a[aria-current] {
+  color: hsl(var(--primary));
+}
+
+.breadcrumbs,
+[data-breadcrumbs] {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.breadcrumbs a,
+[data-breadcrumbs] a {
+  color: hsl(var(--foreground));
+}
+
+.breadcrumbs a:hover,
+[data-breadcrumbs] a:hover {
+  color: hsl(var(--primary));
+}
+
+site-search button {
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+:root[data-theme='light'] site-search button {
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+:root[data-theme='dark'] site-search button {
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+site-search kbd,
+site-search button kbd {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+:root[data-theme='light'] site-search kbd,
+:root[data-theme='light'] site-search button kbd {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+:root[data-theme='dark'] site-search kbd,
+:root[data-theme='dark'] site-search button kbd {
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+mobile-starlight-toc,
+mobile-starlight-toc details,
+mobile-starlight-toc summary,
+mobile-starlight-toc summary span.toggle,
+mobile-starlight-toc summary span.display-current,
+mobile-starlight-toc nav,
+mobile-starlight-toc ul,
+mobile-starlight-toc li,
+mobile-starlight-toc a,
+mobile-starlight-toc .dropdown,
+mobile-starlight-toc details .dropdown {
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='light'] mobile-starlight-toc,
+:root[data-theme='light'] mobile-starlight-toc details,
+:root[data-theme='light'] mobile-starlight-toc summary,
+:root[data-theme='light'] mobile-starlight-toc summary span.toggle,
+:root[data-theme='light'] mobile-starlight-toc summary span.display-current,
+:root[data-theme='light'] mobile-starlight-toc nav,
+:root[data-theme='light'] mobile-starlight-toc ul,
+:root[data-theme='light'] mobile-starlight-toc li,
+:root[data-theme='light'] mobile-starlight-toc a,
+:root[data-theme='light'] mobile-starlight-toc .dropdown,
+:root[data-theme='light'] mobile-starlight-toc details .dropdown {
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='dark'] mobile-starlight-toc,
+:root[data-theme='dark'] mobile-starlight-toc details,
+:root[data-theme='dark'] mobile-starlight-toc summary,
+:root[data-theme='dark'] mobile-starlight-toc summary span.toggle,
+:root[data-theme='dark'] mobile-starlight-toc summary span.display-current,
+:root[data-theme='dark'] mobile-starlight-toc nav,
+:root[data-theme='dark'] mobile-starlight-toc ul,
+:root[data-theme='dark'] mobile-starlight-toc li,
+:root[data-theme='dark'] mobile-starlight-toc a,
+:root[data-theme='dark'] mobile-starlight-toc .dropdown,
+:root[data-theme='dark'] mobile-starlight-toc details .dropdown {
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground)) !important;
+}
+
+.pagination-link,
+.pagination-link a,
+.pagination-link a span,
+.pagination-link a span.link-title {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='light'] .pagination-link,
+:root[data-theme='light'] .pagination-link a,
+:root[data-theme='light'] .pagination-link a span,
+:root[data-theme='light'] .pagination-link a span.link-title {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='dark'] .pagination-link,
+:root[data-theme='dark'] .pagination-link a,
+:root[data-theme='dark'] .pagination-link a span,
+:root[data-theme='dark'] .pagination-link a span.link-title {
+  color: hsl(var(--foreground));
+}
+
+.pagination-link a:hover,
+.pagination-link a:hover span,
+.pagination-link a:hover span.link-title {
+  color: hsl(var(--primary));
+}
+
+footer,
+footer * {
+  color: hsl(var(--foreground));
+}
+
+footer a,
+footer .pagination-link a {
+  color: hsl(var(--foreground));
+}
+
+footer a:hover,
+footer .pagination-link a:hover {
+  color: hsl(var(--primary));
+}
+
+vite-error-overlay {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='light'] vite-error-overlay {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='dark'] vite-error-overlay {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+vite-error-overlay *,
+vite-error-overlay pre,
+vite-error-overlay code {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='light'] vite-error-overlay *,
+:root[data-theme='light'] vite-error-overlay pre,
+:root[data-theme='light'] vite-error-overlay code {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='dark'] vite-error-overlay *,
+:root[data-theme='dark'] vite-error-overlay pre,
+:root[data-theme='dark'] vite-error-overlay code {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.hero,
+.sl-hero,
+.hero *,
+.sl-hero *,
+.tagline,
+.hero .tagline,
+.sl-hero .tagline {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='light'] .hero,
+:root[data-theme='light'] .sl-hero,
+:root[data-theme='light'] .hero *,
+:root[data-theme='light'] .sl-hero *,
+:root[data-theme='light'] .tagline,
+:root[data-theme='light'] .hero .tagline,
+:root[data-theme='light'] .sl-hero .tagline {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='dark'] .hero,
+:root[data-theme='dark'] .sl-hero,
+:root[data-theme='dark'] .hero *,
+:root[data-theme='dark'] .sl-hero *,
+:root[data-theme='dark'] .tagline,
+:root[data-theme='dark'] .hero .tagline,
+:root[data-theme='dark'] .sl-hero .tagline {
+  color: hsl(var(--foreground)) !important;
+}
+
+.card-grid,
+.card-grid * {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='light'] .card-grid,
+:root[data-theme='light'] .card-grid * {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='dark'] .card-grid,
+:root[data-theme='dark'] .card-grid * {
+  color: hsl(var(--foreground));
+}
+
+article.card,
+.card,
+article.card *,
+.card * {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+:root[data-theme='light'] article.card,
+:root[data-theme='light'] .card,
+:root[data-theme='light'] article.card *,
+:root[data-theme='light'] .card * {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+:root[data-theme='dark'] article.card,
+:root[data-theme='dark'] .card,
+:root[data-theme='dark'] article.card *,
+:root[data-theme='dark'] .card * {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.card .title,
+.card p.title,
+article.card .title,
+article.card p.title {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='light'] .card .title,
+:root[data-theme='light'] .card p.title,
+:root[data-theme='light'] article.card .title,
+:root[data-theme='light'] article.card p.title {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='dark'] .card .title,
+:root[data-theme='dark'] .card p.title,
+:root[data-theme='dark'] article.card .title,
+:root[data-theme='dark'] article.card p.title {
+  color: hsl(var(--foreground)) !important;
+}
+
+.card .body,
+.card div.body,
+article.card .body,
+article.card div.body,
+.card p,
+article.card p {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+:root[data-theme='light'] .card .body,
+:root[data-theme='light'] .card div.body,
+:root[data-theme='light'] article.card .body,
+:root[data-theme='light'] article.card div.body,
+:root[data-theme='light'] .card p,
+:root[data-theme='light'] article.card p {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+:root[data-theme='dark'] .card .body,
+:root[data-theme='dark'] .card div.body,
+:root[data-theme='dark'] article.card .body,
+:root[data-theme='dark'] article.card div.body,
+:root[data-theme='dark'] .card p,
+:root[data-theme='dark'] article.card p {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.l-container,
+.l-heading-wrapper,
+.l-heading-wrapper * {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='light'] .l-container,
+:root[data-theme='light'] .l-heading-wrapper,
+:root[data-theme='light'] .l-heading-wrapper * {
+  color: hsl(var(--foreground));
+}
+
+:root[data-theme='dark'] .l-container,
+:root[data-theme='dark'] .l-heading-wrapper,
+:root[data-theme='dark'] .l-heading-wrapper * {
+  color: hsl(var(--foreground));
+}
+
+.sidebar-pane *,
+#starlight__sidebar * {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='light'] .sidebar-pane *,
+:root[data-theme='light'] #starlight__sidebar * {
+  color: hsl(var(--foreground)) !important;
+}
+
+:root[data-theme='dark'] .sidebar-pane *,
+:root[data-theme='dark'] #starlight__sidebar * {
+  color: hsl(var(--foreground)) !important;
+}
+
+.sl-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.hero-demo-container {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  margin-top: 2rem;
+  z-index: 1;
+}
+
+@media (max-width: 50rem) {
+  .hero-demo-container {
+    padding: 1rem;
+  }
+}
