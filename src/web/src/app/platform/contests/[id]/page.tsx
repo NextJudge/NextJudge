@@ -353,6 +353,7 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
                             problems={problems}
                             contestAttempts={contestAttempts}
                             contestStatus={contestStatus}
+                            contestId={contestId}
                         />
                     </div>
                 </div>

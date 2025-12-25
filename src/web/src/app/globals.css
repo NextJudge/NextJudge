@@ -23,6 +23,8 @@
 		--accent-foreground: 0 0% 12.55%;
 		--destructive: 10.16 77.87% 53.92%;
 		--destructive-foreground: 0 0% 100%;
+		--success: 142.1 76.2% 36.3%;
+		--success-foreground: 355.7 100% 97.3%;
 		--ring: 24.8 79.79% 63.14%;
 		--radius: 0.5rem;
 	}
@@ -46,6 +48,8 @@
 		--accent-foreground: 0 0% 93.33%;
 		--destructive: 10.16 77.87% 53.92%;
 		--destructive-foreground: 0 0% 100%;
+		--success: 142.1 70.6% 45.3%;
+		--success-foreground: 144.9 80.4% 10%;
 		--ring: 23.11 59.8% 40%;
 	}
 }
