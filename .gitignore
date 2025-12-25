@@ -5,6 +5,7 @@ src/data-layer/query.sql
 src/data-layer/Pipfile.lock
 .env
 .env.dev
+.env.actions
 .DS_Store
 .vscode
 .vercel

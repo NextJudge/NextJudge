@@ -1,5 +1,5 @@
 # prod or dev
-# ARG BASEJUDGE
+ARG BASEJUDGE=tnyuma/nextjudge-basejudge:latest
 
 FROM ubuntu:24.04 AS build
 
@@ -49,7 +49,7 @@ RUN wget https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-co
 
 # RUN curl -L https://dot.net/v1/dotnet-install.sh | bash -s -- --version latest
 
-FROM tnyuma/nextjudge-basejudge:latest
+FROM ${BASEJUDGE} AS release
 
 
 COPY --from=build / /chroot
