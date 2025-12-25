@@ -9,10 +9,12 @@ import PlatformNavbar from "@/components/nav/platform-navbar";
 import { UserAvatar } from "@/components/nav/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { NextJudgeEvent, Problem, User } from "@/lib/types";
 import { getBridgeUrl } from "@/lib/utils";
 import { ContestLeaderboard } from "../components/contest-leaderboard";
+import { ContestPodium } from "../components/contest-podium";
 import { ContestProblemsTable } from "../components/contest-problems-table";
 import { ContestTimer } from "../components/contest-timer";
 import { CloneContestDialog } from "./clone-contest-dialog";
@@ -289,7 +291,7 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
                     </div>
                 </div>
                 <Separator className="mb-6" />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 lg:items-stretch">
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold">Problems</h2>
@@ -304,12 +306,33 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
                             contestStatus={contestStatus}
                             isAdmin={session?.user?.is_admin || false}
                         />
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-semibold">Podium</h2>
+                            </div>
+                            <Card>
+                                <CardContent className="p-6">
+                                    <ContestPodium
+                                        problems={problems}
+                                        participants={participants}
+                                        contestId={contestId}
+                                        contestStatus={contestStatus}
+                                        isAdmin={session?.user?.is_admin || false}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
-                    <QuestionsSection
-                        eventId={contestId}
-                        problems={problems}
-                        isAdmin={session?.user?.is_admin || false}
-                    />
+                    <div className="flex flex-col">
+                        <QuestionsSection
+                            eventId={contestId}
+                            problems={problems}
+                            isAdmin={session?.user?.is_admin || false}
+                        />
+
+                        {/* TODO: Add chart (recharts) */}
+                    </div>
                 </div>
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
