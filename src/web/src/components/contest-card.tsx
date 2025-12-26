@@ -30,6 +30,7 @@ import { toast } from "sonner";
 export type ContestStatus = "upcoming" | "ongoing" | "ended";
 
 interface ContestCardProps {
+    className?: string;
     contest: NextJudgeEvent;
     onParticipantAdded?: (eventId: number) => void;
     showActions?: boolean;
@@ -40,6 +41,7 @@ interface ContestCardProps {
 }
 
 export function ContestCard({
+    className,
     contest,
     onParticipantAdded,
     showActions = false,
@@ -183,7 +185,10 @@ export function ContestCard({
     if (variant === "compact") {
         return (
             <Card
-                className="relative overflow-hidden cursor-pointer hover:border-primary/50 transition-all group"
+                className={cn(
+                    "relative overflow-hidden cursor-pointer hover:border-primary/50 transition-all group",
+                    className
+                )}
                 onClick={handleCardClick}
             >
                 {status === "ended" && (
@@ -248,7 +253,8 @@ export function ContestCard({
         <Card
             className={cn(
                 "relative overflow-hidden",
-                (!showActions || (showActions && isCreatorOrAdmin)) && "cursor-pointer hover:bg-accent/20 transition-all"
+                (!showActions || (showActions && isCreatorOrAdmin)) && "cursor-pointer hover:bg-accent/20 transition-all",
+                className
             )}
             onClick={handleCardClick}
         >

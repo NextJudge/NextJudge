@@ -8,17 +8,19 @@ import { SectionDivider } from "@/components/landing/section-divider";
 import { LandingNavbar } from "@/components/nav/landing-navbar";
 import { NavbarWithSession } from "@/components/nav/navbar-with-session";
 import { Metadata } from "next";
-import dynamic from "next/dynamic";
+import Dynamic from "next/dynamic";
 import { Suspense } from "react";
 import { preload } from "react-dom";
-const WhyNextJudge = dynamic(
+const WhyNextJudge = Dynamic(
   () => import("@/components/landing/bento").then((mod) => mod.WhyNextJudge),
   { ssr: false }
 );
-const LandingEditor = dynamic(
+const LandingEditor = Dynamic(
   () => import("@/components/landing/landing-editor").then((mod) => mod.LandingEditor),
   { ssr: false }
 );
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: "NextJudge - Host competitive programming contests with ease",
