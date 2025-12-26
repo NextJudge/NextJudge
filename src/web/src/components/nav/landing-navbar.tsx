@@ -56,15 +56,20 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
 
               <div className="flex flex-col gap-4 py-4 flex-1">
                 <nav className="flex flex-col gap-2">
-                  {routeList.map(({ href, label }) => (
-                    <Link
-                      key={label}
-                      href={href}
-                      className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "w-full justify-start text-lg font-medium")}
-                    >
-                      {label}
-                    </Link>
-                  ))}
+                  {routeList.map(({ href, label }) => {
+                    const isExternal = href.startsWith("http");
+                    return (
+                      <a
+                        key={label}
+                        href={href}
+                        target={isExternal ? "_blank" : undefined}
+                        rel={isExternal ? "noopener noreferrer" : undefined}
+                        className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "w-full justify-start text-lg font-medium")}
+                      >
+                        {label}
+                      </a>
+                    );
+                  })}
                 </nav>
               </div>
 
@@ -115,18 +120,23 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
         </div>
         {/* desktop */}
         <NavigationMenuList className="hidden md:flex justify-center items-center w-full">
-          {routeList.map((route, i) => (
-            <a
-              href={route.href}
-              key={i}
-              className={cn(
-                "text-[17px] text-white/90 hover:text-white hover:bg-white/10",
-                buttonVariants({ variant: "ghost" })
-              )}
-            >
-              {route.label}
-            </a>
-          ))}
+          {routeList.map((route, i) => {
+            const isExternal = route.href.startsWith("http");
+            return (
+              <a
+                href={route.href}
+                key={i}
+                target={isExternal ? "_blank" : undefined}
+                rel={isExternal ? "noopener noreferrer" : undefined}
+                className={cn(
+                  "text-[17px] text-white/90 hover:text-white hover:bg-white/10",
+                  buttonVariants({ variant: "ghost" })
+                )}
+              >
+                {route.label}
+              </a>
+            );
+          })}
         </NavigationMenuList>
         <div className="hidden md:flex justify-end w-full">
           <NavigationMenuItem className="flex items-center justify-end gap-4">

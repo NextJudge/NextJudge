@@ -1,7 +1,8 @@
 "use client";
 
-import { Status, StatusIndicator, StatusLabel } from "@/components/ui/status-badge";
-import { useEffect, useState } from "react";
+import { useAnimate } from "framer-motion";
+import { Clock } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface ContestTimerProps {
     startTime: string;
@@ -9,93 +10,124 @@ interface ContestTimerProps {
     status: 'upcoming' | 'ongoing' | 'ended';
 }
 
+const SECOND = 1000;
+const MINUTE = SECOND * 60;
+const HOUR = MINUTE * 60;
+const DAY = HOUR * 24;
+
 export function ContestTimer({ startTime, endTime, status }: ContestTimerProps) {
-    const [timeLeft, setTimeLeft] = useState<string>("");
+    const [targetTime, setTargetTime] = useState<string>("");
+    const [prefix, setPrefix] = useState<string>("");
 
     useEffect(() => {
-        const updateTimer = () => {
-            const now = new Date();
-            const start = new Date(startTime);
-            const end = new Date(endTime);
-
-            let targetTime: Date;
-            let prefix: string;
-
-            if (status === 'upcoming') {
-                targetTime = start;
-                prefix = "Starts in ";
-            } else if (status === 'ongoing') {
-                targetTime = end;
-                prefix = "Ends in ";
-            } else {
-                setTimeLeft("Contest ended");
-                return;
-            }
-
-            const timeDiff = targetTime.getTime() - now.getTime();
-
-            if (timeDiff <= 0) {
-                if (status === 'upcoming') {
-                    setTimeLeft("Contest starting...");
-                } else {
-                    setTimeLeft("Contest ended");
-                }
-                return;
-            }
-
-            const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-
-            const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            setTimeLeft(prefix + formattedTime);
-        };
-
-        updateTimer();
-        const interval = setInterval(updateTimer, 1000);
-
-        return () => clearInterval(interval);
-    }, [startTime, endTime, status]);
-
-    const getStatusBadgeStatus = (): 'online' | 'offline' | 'maintenance' | 'degraded' => {
-        switch (status) {
-            case 'upcoming':
-                return 'maintenance';  // blue for upcoming
-            case 'ongoing':
-                return 'online';       // green for live/ongoing
-            case 'ended':
-                return 'offline';      // red for ended
-            default:
-                return 'degraded';     // amber for unknown
+        if (status === 'upcoming') {
+            setTargetTime(startTime);
+            setPrefix("Starts in ");
+        } else if (status === 'ongoing') {
+            setTargetTime(endTime);
+            setPrefix("Ends in ");
+        } else {
+            setTargetTime("");
+            setPrefix("");
         }
-    };
-
-    const getStatusText = () => {
-        switch (status) {
-            case 'upcoming':
-                return 'Upcoming';
-            case 'ongoing':
-                return 'Live';
-            case 'ended':
-                return 'Ended';
-            default:
-                return 'Unknown';
-        }
-    };
+    }, [status, startTime, endTime]);
 
     return (
-        <div className="text-right space-y-2">
-            <div className="text-sm text-muted-foreground">Time remaining</div>
-            <div className="text-2xl font-mono font-bold">
-                {timeLeft}
-            </div>
-            <Status
-                status={getStatusBadgeStatus()}
-                className="text-xs font-medium"
-            >
-                <StatusIndicator />
-                <StatusLabel>{getStatusText()}</StatusLabel>
-            </Status>
+        <div className="text-right space-y-2 px-8">
+            {status === 'ended' ? (
+                <div className="text-2xl font-mono font-bold flex items-center justify-end gap-2">
+                    <Clock className="size-8 text-osu flex-shrink-0" />
+                    <p>Ended</p>
+                </div>
+            ) : (
+                <div className="flex items-center justify-end gap-4">
+                    <Clock className="size-8 text-osu flex-shrink-0 mt-2" />
+                    <div className="flex flex-col items-end">
+                        <span className="text-sm font-light mb-2">{prefix}</span>
+                        <div className="flex items-center gap-1">
+                            <CountdownItem unit="Hour" label="Hours" targetTime={targetTime} />
+                            <span className="text-4xl font-light">:</span>
+                            <CountdownItem unit="Minute" label="Minutes" targetTime={targetTime} />
+                            <span className="text-4xl font-light">:</span>
+                            <CountdownItem unit="Second" label="Seconds" targetTime={targetTime} />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
+}
+
+function CountdownItem({ unit, label, targetTime }: { unit: string; label: string; targetTime: string }) {
+    const { ref, time } = useTimer(unit, targetTime);
+    const display = String(time).padStart(2, '0');
+
+    return (
+        <div className="flex flex-col items-center">
+            <span
+                ref={ref}
+                className="block text-6xl font-mono font-bold min-w-fit"
+            >
+                {display}
+            </span>
+            <span className="text-xs font-light text-muted-foreground mt-1">{label}</span>
+        </div>
+    );
+}
+
+function useTimer(unit: string, targetTime: string) {
+    const [ref, animate] = useAnimate();
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const timeRef = useRef(0);
+    const [time, setTime] = useState(0);
+
+    useEffect(() => {
+        handleCountdown();
+        intervalRef.current = setInterval(handleCountdown, 1000);
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [targetTime, unit]);
+
+    const handleCountdown = async () => {
+        const end = new Date(targetTime);
+        const now = new Date();
+        const distance = end.getTime() - now.getTime();
+
+        let newTime = 0;
+        switch (unit) {
+            case "Hour":
+                newTime = Math.max(0, Math.floor((distance % DAY) / HOUR));
+                break;
+            case "Minute":
+                newTime = Math.max(0, Math.floor((distance % HOUR) / MINUTE));
+                break;
+            case "Second":
+                newTime = Math.max(0, Math.floor((distance % MINUTE) / SECOND));
+                break;
+        }
+
+        if (newTime !== timeRef.current) {
+            if (ref.current) {
+                await animate(
+                    ref.current,
+                    { scaleY: 0.2, translateY: -5, opacity: 0 },
+                    { duration: 0.2, ease: "easeIn" }
+                );
+            }
+
+            timeRef.current = newTime;
+            setTime(newTime);
+
+            if (ref.current) {
+                await animate(
+                    ref.current,
+                    { scaleY: 1, translateY: 0, opacity: 1 },
+                    { duration: 0.3, ease: "easeOut" }
+                );
+            }
+        }
+    };
+
+    return { ref, time };
 }

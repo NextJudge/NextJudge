@@ -70,18 +70,14 @@ export function QuestionsSection({ eventId, problems, isAdmin }: QuestionsSectio
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Questions</h2>
-            </div>
-
             <div>
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="pb-3">
                         <div className="flex items-center justify-between gap-4">
-                            <div className="flex flex-col gap-2">
-                                <CardTitle>Q&A</CardTitle>
-                                <p className="text-sm text-muted-foreground">
-                                    Ask a question about a problem. Click the "Answered" button to view the answer.
+                            <div className="flex flex-col gap-1">
+                                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Questions</CardTitle>
+                                <p className="text-xs text-muted-foreground/70">
+                                    Ask a question about a problem
                                 </p>
                             </div>
                             <Button
@@ -89,13 +85,14 @@ export function QuestionsSection({ eventId, problems, isAdmin }: QuestionsSectio
                                 className="gap-2"
                                 variant={"link"}
                                 disabled={!session?.nextjudge_token}
+                                size="sm"
                             >
-                                <Icons.help className="w-4 h-4" />
-                                Ask a question
+                                <Icons.help className="w-3 h-3" />
+                                <span className="hidden sm:inline">Ask</span>
                             </Button>
                         </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-0">
                         {isLoading ? (
                             <div className="text-center text-muted-foreground py-8">
                                 Loading questions...

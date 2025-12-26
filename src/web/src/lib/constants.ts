@@ -105,8 +105,8 @@ export const routeList: RouteProps[] = [
     label: "Early Access",
   },
   {
-    href: "/#faq",
-    label: "FAQ",
+    href: "https://docs.nextjudge.net",
+    label: "Docs",
   },
 ];
 

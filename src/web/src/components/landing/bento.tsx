@@ -1,5 +1,5 @@
 "use client";
-import { ContestCard } from "@/app/platform/admin/contests/contest-card";
+import { ContestCard } from "@/components/contest-card";
 import { RecentSubmissionCard } from "@/app/platform/problems/components/recent-submissions";
 import { Submission } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -112,12 +112,14 @@ interface DummyCodeEditorProps {
   mock?: boolean;
   sourceCode?: string;
   language?: string;
+  readOnly?: boolean;
 }
 
 export const DummyCodeEditor = ({
   mock,
   sourceCode,
   language,
+  readOnly = false,
 }: DummyCodeEditorProps) => {
   const { resolvedTheme } = useTheme();
   return (
@@ -137,6 +139,7 @@ export const DummyCodeEditor = ({
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
           automaticLayout: true,
+          readOnly: readOnly,
         }}
         theme={resolvedTheme === "dark" ? "vs-dark" : "vs-light"}
       />
@@ -372,7 +375,7 @@ const mockContest = {
 const ContestCardPreview = () => {
   return (
     <Card className={cn("flex flex-col items-center border-none")}>
-      <ContestCard contest={mockContest} mock />
+      <ContestCard contest={mockContest} showActions={false} />
     </Card>
   );
 };

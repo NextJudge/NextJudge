@@ -1,13 +1,26 @@
 "use client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { DummyCodeEditor } from "@/components/landing/bento";
 import { SubmissionStatusBadge } from "@/components/submissions/submission-status-config";
-import { Submission, SubmissionStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Submission, SubmissionStatus, statusMap } from "@/lib/types";
+import { cn, convertToMonacoLanguageName } from "@/lib/utils";
+import { format } from "date-fns";
 import { CircleDot } from "lucide-react";
 import moment from "moment";
-import { DialogSubmission } from "./dialog-submission";
 
-const languageColors: { [key: string]: string } = {
+const languageColors: Record<string, string> = {
   python: "text-python fill-python",
   javascript: "text-javascript fill-javascript",
   java: "text-java fill-java",
@@ -31,67 +44,79 @@ export function RecentSubmissionCard({
 }: {
   submission: Submission;
 }) {
+  if (!submission) return null;
+
   const submissionStatus = submission.status as SubmissionStatus;
+
+  const getStatusColor = (status: SubmissionStatus) => {
+    if (status === "ACCEPTED") return "text-green-500";
+    if (
+      status === "WRONG_ANSWER" ||
+      status === "TIME_LIMIT_EXCEEDED" ||
+      status === "MEMORY_LIMIT_EXCEEDED" ||
+      status === "RUNTIME_ERROR" ||
+      status === "COMPILE_TIME_ERROR"
+    ) {
+      return "text-red-500";
+    }
+    if (status === "PENDING") return "text-yellow-500";
+    return "text-primary-foreground";
+  };
+
   return (
-    <>
-      <div className="hidden md:block">
-        <DialogSubmission submission={submission}>
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200 ease-in-out">
-            <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
-              <div className="space-y-1">
-                <CardTitle>{submission.problem.title}</CardTitle>
-              </div>
-              <div className="flex items-center justify-end space-x-1">
-                <SubmissionStatusBadge status={submissionStatus} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between space-x-4 text-sm text-muted-foreground">
-                <div className="flex items-center justify-between">
-                  <CircleDot
-                    className={cn(
-                      "mr-2 size-2",
-                      submission.language.name &&
-                      getColorClass(submission.language.name)
-                    )}
-                  />
-                  {submission.language.name}
-                </div>
-                <div>{moment(submission.submit_time).fromNow()}</div>
-              </div>
-            </CardContent>
-          </Card>
-        </DialogSubmission>
-      </div>
-      <Card
-        className={cn(
-          "md:hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 ease-in-out"
-        )}
-      >
-        <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
-          <div className="space-y-1">
-            <CardTitle>{submission.problem.title}</CardTitle>
-          </div>
-          <div className="flex items-center justify-end space-x-1">
-            <SubmissionStatusBadge status={submissionStatus} />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between space-x-4 text-sm text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <CircleDot
-                className={cn(
-                  "mr-2 size-2",
-                  submission.language.name &&
-                  getColorClass(submission.language.name)
-                )}
-              />
-              {submission.language.name}
+    <Dialog>
+      <DialogTrigger asChild>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200 ease-in-out">
+          <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
+            <div className="space-y-1">
+              <CardTitle>{submission.problem.title}</CardTitle>
             </div>
-            <div>{moment(submission.submit_time).fromNow()}</div>
-          </div>
-        </CardContent>
-      </Card>
-    </>
+            <div className="flex items-center justify-end space-x-1">
+              <SubmissionStatusBadge status={submissionStatus} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between space-x-4 text-sm text-muted-foreground">
+              <div className="flex items-center">
+                <CircleDot
+                  className={cn(
+                    "mr-2 size-2",
+                    submission.language.name && getColorClass(submission.language.name)
+                  )}
+                />
+                {submission.language.name}
+              </div>
+              <div>{moment(submission.submit_time).fromNow()}</div>
+            </div>
+          </CardContent>
+        </Card>
+      </DialogTrigger>
+      <DialogContent className="min-w-2xl max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Submission to {submission.problem.title}</DialogTitle>
+          <DialogDescription>
+            Submitted by {submission.user?.name || submission.user?.account_identifier || "Unknown"} on{" "}
+            {format(submission.submit_time, "PPP 'at' p")}
+          </DialogDescription>
+        </DialogHeader>
+        <div>
+          <h1 className={cn("text-lg font-bold", getStatusColor(submissionStatus))}>
+            {statusMap[submission.status] || submission.status}
+          </h1>
+        </div>
+        <DummyCodeEditor
+          sourceCode={submission.source_code}
+          language={convertToMonacoLanguageName(submission.language)}
+          readOnly={true}
+        />
+        <DialogFooter className="sm:justify-start">
+          <DialogClose asChild>
+            <Button type="button" variant="secondary">
+              Close
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

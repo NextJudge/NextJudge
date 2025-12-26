@@ -153,6 +153,7 @@ export interface TestCaseResult {
 export interface Submission {
 	id: string;
 	user_id: string;
+	user?: User;
 	problem_id: number;
 	problem: Problem;
 	time_elapsed: number;

@@ -9,10 +9,13 @@ import PlatformNavbar from "@/components/nav/platform-navbar";
 import { UserAvatar } from "@/components/nav/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { NextJudgeEvent, Problem, User } from "@/lib/types";
 import { getBridgeUrl } from "@/lib/utils";
 import { ContestLeaderboard } from "../components/contest-leaderboard";
+import { ContestPodium } from "../components/contest-podium";
+import { ContestProblemStatsChart } from "../components/contest-problem-stats-chart";
 import { ContestProblemsTable } from "../components/contest-problems-table";
 import { ContestTimer } from "../components/contest-timer";
 import { CloneContestDialog } from "./clone-contest-dialog";
@@ -104,12 +107,15 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
         now >= startTime && now <= endTime ? 'ongoing' :
             'ended';
 
-    /**
-     * Returns a human-readable string showing how long the contest has been running
-     */
     const getRunningTime = () => {
+        if (contestStatus === 'upcoming') {
+            return `Starts ${formatDistanceToNow(startTime, { addSuffix: true })}`;
+        }
         if (contestStatus === 'ongoing') {
             return `Began ${formatDistanceToNow(startTime, { addSuffix: true })}`;
+        }
+        if (contestStatus === 'ended') {
+            return `Ended ${formatDistanceToNow(endTime, { addSuffix: true })}`;
         }
         return null;
     };
@@ -232,54 +238,32 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
             <PlatformNavbar session={session || undefined}>
                 <UserAvatar session={session || undefined} />
             </PlatformNavbar>
-            <div className="container mx-auto px-4 py-6 max-w-8xl">
-                <div className="mb-6">
-                    <div className="flex items-center gap-3 mb-4">
-                        <Link href="/platform/contests">
-                            <Button variant="ghost" size="sm" className="gap-2">
-                                <Icons.arrowLeft className="w-4 h-4" />
-                                Back to Contests
-                            </Button>
-                        </Link>
-                    </div>
-                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                        <div className="flex-1">
-                            <h1 className="text-2xl md:text-3xl font-bold mb-2">{contest.title}</h1>
-                            <p className="text-muted-foreground mb-4">{contest.description}</p>
-                            <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-2">
-                                    <Icons.calendar className="w-4 h-4" />
-                                    <span>{format(startTime, "MMM d, yyyy 'at' h:mm a")}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icons.clock className="w-4 h-4" />
-                                    <span>Duration: {formatDistance(startTime, endTime)}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icons.users className="w-4 h-4" />
-                                    <span>{participants.length} participants</span>
-                                </div>
-                                {getRunningTime() && (
-                                    <div className="flex items-center gap-2">
-                                        <Icons.clock className="w-4 h-4" />
-                                        <span>{getRunningTime()}</span>
-                                    </div>
-                                )}
-                            </div>
+            <div className="container mx-auto px-4 py-8 max-w-8xl">
+                <div className="mb-8">
+                    <Link href="/platform/contests">
+                        <Button variant="ghost" size="sm" className="gap-2 mb-6 -ml-2">
+                            <Icons.arrowLeft className="w-4 h-4" />
+                            Back to Contests
+                        </Button>
+                    </Link>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                        <div className="lg:col-span-2 space-y-2">
+                            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{contest.title}</h1>
+                            <p className="text-base text-muted-foreground">{contest.description}</p>
                         </div>
-                        <div className="flex flex-col items-end gap-4">
+                        <div className="flex flex-col gap-3 ">
                             <ContestTimer
                                 startTime={contest.start_time}
                                 endTime={contest.end_time}
                                 status={contestStatus}
                             />
-
                             {session?.user?.is_admin && (
                                 <CloneContestDialog
                                     contest={contest}
                                     problems={problems}
                                 >
-                                    <Button className="gap-2">
+                                    <Button className="gap-2 w-full">
                                         <Icons.copy className="w-4 h-4" />
                                         Clone contest
                                     </Button>
@@ -287,45 +271,112 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
                             )}
                         </div>
                     </div>
-                </div>
-                <Separator className="mb-6" />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-semibold">Problems</h2>
-                            <Badge variant="secondary">
-                                {problems.length} problem{problems.length !== 1 ? 's' : ''}
-                            </Badge>
-                        </div>
 
-                        <ContestProblemsTable
+                    <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">
+                            <Icons.calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Dates</p>
+                                <p className="text-sm font-medium truncate">{format(startTime, "MMM d, yyyy")} - {format(endTime, "MMM d, yyyy")}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">
+                            <Icons.clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Contest Length</p>
+                                <p className="text-sm font-medium truncate">{formatDistance(startTime, endTime)}, {problems.length} problems</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">
+                            <Icons.users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Participants</p>
+                                <p className="text-sm font-medium">{participants.length}</p>
+                            </div>
+                        </div>
+                        {getRunningTime() && (
+                            <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                                <div className="w-2 h-2 rounded-full bg-primary animate-pulse flex-shrink-0" />
+                                <div className="min-w-0">
+                                    <p className="text-xs text-primary font-medium uppercase tracking-wider">Status</p>
+                                    <p className="text-sm font-medium truncate">{getRunningTime()}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <Separator className="mb-8" />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 lg:items-stretch">
+                    <div className="space-y-4">
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Problems</h2>
+                                    <Badge variant="secondary" className="text-xs">
+                                        {problems.length}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                                <ContestProblemsTable
+                                    problems={problems}
+                                    contestId={contestId}
+                                    contestStatus={contestStatus}
+                                    isAdmin={session?.user?.is_admin || false}
+                                />
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Podium</h2>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                                <ContestPodium
+                                    problems={problems}
+                                    participants={participants}
+                                    contestId={contestId}
+                                    contestStatus={contestStatus}
+                                    isAdmin={session?.user?.is_admin || false}
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="flex flex-col">
+                        <QuestionsSection
+                            eventId={contestId}
                             problems={problems}
-                            contestId={contestId}
-                            contestStatus={contestStatus}
                             isAdmin={session?.user?.is_admin || false}
                         />
+
+                        <ContestProblemStatsChart
+                            problems={problems}
+                            contestAttempts={contestAttempts}
+                            contestStatus={contestStatus}
+                            contestId={contestId}
+                        />
                     </div>
-                    <QuestionsSection
-                        eventId={contestId}
-                        problems={problems}
-                        isAdmin={session?.user?.is_admin || false}
-                    />
                 </div>
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-semibold">Leaderboard</h2>
-                        <Badge variant="secondary">
-                            {participants.length} participant{participants.length !== 1 ? 's' : ''}
-                        </Badge>
-                    </div>
-
-                    <ContestLeaderboard
-                        problems={problems}
-                        participants={participants}
-                        contestId={contestId}
-                        contestStatus={contestStatus}
-                        isAdmin={session?.user?.is_admin || false}
-                    />
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Leaderboard</h2>
+                                <Badge variant="secondary" className="text-xs">
+                                    {participants.length}
+                                </Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <ContestLeaderboard
+                                problems={problems}
+                                participants={participants}
+                                contestId={contestId}
+                                contestStatus={contestStatus}
+                                isAdmin={session?.user?.is_admin || false}
+                            />
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </>
