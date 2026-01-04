@@ -9,7 +9,7 @@ NextJudge follows a distributed architecture composed of a number of components/
 
 The following diagram shows the current architecture of NextJudge:
 
-![Architecture](/src/assets/architecture.png)
+![Architecture](/architecture.png)
 
 ## Components
 
