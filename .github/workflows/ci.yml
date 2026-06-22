@@ -187,19 +187,34 @@ jobs:
           echo "$response"
           echo "$response" | jq -e '.deployments | length > 0' > /dev/null
 
-      - name: Comment preview URLs on PR
+      - name: Update preview URLs comment on PR
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           WEB_CHANGED: ${{ needs.changes.outputs.web }}
           DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+          DEPLOY_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          body="### Preview deployments\n\n"
+          MARKER="<!-- nextjudge-preview-deploy -->"
+          body="${MARKER}
+          ### Preview deployments
+
+          "
           if [ "$WEB_CHANGED" = "true" ]; then
-            body="${body}- **Web:** https://${PR_NUMBER}-web.preview.nextjudge.net\n"
+            body="${body}- **Web:** https://${PR_NUMBER}-web.preview.nextjudge.net
+          "
           fi
           if [ "$DOCS_CHANGED" = "true" ]; then
-            body="${body}- **Docs:** https://${PR_NUMBER}-docs.preview.nextjudge.net\n"
+            body="${body}- **Docs:** https://${PR_NUMBER}-docs.preview.nextjudge.net
+          "
           fi
-          body="${body}\nDeployed by Coolify after CI passed."
-          gh pr comment "$PR_NUMBER" --repo "${{ github.repository }}" --body "$body"
+          body="${body}
+          Deployed by Coolify after CI passed. Last deploy: \`${DEPLOY_SHA:0:7}\`"
+
+          comment_id=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq "map(select(.body | contains(\"${MARKER}\"))) | .[0].id // empty")
+          if [ -n "$comment_id" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/${comment_id}" -f body="$body"
+          else
+            gh pr comment "$PR_NUMBER" --repo "${{ github.repository }}" --body "$body"
+          fi
