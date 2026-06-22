@@ -14,7 +14,14 @@ services:
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
       - CORS_ORIGIN=${CORS_ORIGIN}
+      - CORS_ALLOW_PREVIEW=${CORS_ALLOW_PREVIEW:-true}
       - ADMIN_EMAILS=${ADMIN_EMAILS}
+    healthcheck:
+      test: ["CMD", "/main", "-healthcheck", "-p", "5000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     depends_on:
       db:
         condition: service_healthy

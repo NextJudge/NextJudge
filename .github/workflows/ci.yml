@@ -163,14 +163,17 @@ jobs:
           COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
           COOLIFY_WEB_APP_UUID: ${{ vars.COOLIFY_WEB_APP_UUID }}
           COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          REPO_FULL_NAME: ${{ github.repository }}
         run: |
-          response=$(curl -sS -X GET \
-            "${COOLIFY_API_URL}/deploy?uuid=${COOLIFY_WEB_APP_UUID}&pr=${PR_NUMBER}&force=true" \
-            -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
-            -H "Accept: application/json")
-          echo "$response"
-          echo "$response" | jq -e '.deployments | length > 0' > /dev/null
+          COOLIFY_APP_UUID="${COOLIFY_WEB_APP_UUID}" \
+            ./scripts/coolify-preview-deploy.sh
 
       - name: Deploy docs preview
         if: needs.changes.outputs.docs == 'true'
@@ -178,14 +181,17 @@ jobs:
           COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
           COOLIFY_DOCS_APP_UUID: ${{ vars.COOLIFY_DOCS_APP_UUID }}
           COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          REPO_FULL_NAME: ${{ github.repository }}
         run: |
-          response=$(curl -sS -X GET \
-            "${COOLIFY_API_URL}/deploy?uuid=${COOLIFY_DOCS_APP_UUID}&pr=${PR_NUMBER}&force=true" \
-            -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
-            -H "Accept: application/json")
-          echo "$response"
-          echo "$response" | jq -e '.deployments | length > 0' > /dev/null
+          COOLIFY_APP_UUID="${COOLIFY_DOCS_APP_UUID}" \
+            ./scripts/coolify-preview-deploy.sh
 
       - name: Update preview URLs comment on PR
         env:

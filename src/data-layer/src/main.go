@@ -2,8 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
+	"net/url"
 	"os"
+	"regexp"
+	"time"
 
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
@@ -14,9 +18,18 @@ import (
 var db *Database
 var es *ElasticSearch
 
+var previewOriginPattern = regexp.MustCompile(`^[0-9]+-(web|docs)\.preview\.nextjudge\.net$`)
+
 func main() {
 	var debug = flag.Bool("d", false, "enable debug logging")
 	var port = flag.String("p", "5000", "port")
+	var healthcheck = flag.Bool("healthcheck", false, "check HTTP health endpoint and exit")
+	flag.Parse()
+
+	if *healthcheck {
+		runHealthcheck(*port)
+	}
+
 	var err error
 
 	if *debug {
@@ -60,7 +73,7 @@ func main() {
 
 	mux := goji.NewMux()
 	c := cors.New(cors.Options{
-		AllowedOrigins:   cfg.CORSOrigin,
+		AllowOriginFunc:  originAllowed,
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
@@ -90,12 +103,52 @@ func main() {
 	}
 }
 
+func originAllowed(origin string) bool {
+	for _, allowed := range cfg.CORSOrigin {
+		if allowed == "*" || allowed == origin {
+			return true
+		}
+	}
+
+	if !cfg.CORSAllowPreview {
+		return false
+	}
+
+	u, err := url.Parse(origin)
+	if err != nil || u.Scheme != "https" {
+		return false
+	}
+
+	return previewOriginPattern.MatchString(u.Hostname())
+}
+
+func runHealthcheck(port string) {
+	client := http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Get("http://127.0.0.1:" + port + "/health")
+	if err != nil {
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
 func addHealthyRoute(mux *goji.Mux) {
+	mux.HandleFunc(pat.Get("/"), getRoot)
+	mux.HandleFunc(pat.Get("/health"), getHealthy)
 	mux.HandleFunc(pat.Get("/healthy"), getHealthy)
+}
+
+func getRoot(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, `{"status":"ok","service":"nextjudge-data-layer","health":"/health","api":"/v1"}`)
 }
 
 func getHealthy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, `{"status":"ok"}`)
 }
 
 func JSONMiddleware(h http.Handler) http.Handler {

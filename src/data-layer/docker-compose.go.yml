@@ -8,9 +8,9 @@ services:
       - DB_PORT=5432
       - DB_USERNAME=postgres
       - DB_PASSWORD=example
-    # wget is not in the container, so this silently fails
-    # healthcheck:
-    #   test: "wget localhost:5000/healthy -q -O - > /dev/null 2>&1"
-    #   interval: 3s
-    #   timeout: 3s
-    #   retries: 20
+    healthcheck:
+      test: ["CMD", "/main", "-healthcheck", "-p", "5000"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
