@@ -57,7 +57,8 @@ jobs:
           targets: basejudge
           push: true
           set: |
-            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.IMAGE_TAG }},${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:latest
+            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.IMAGE_TAG }}
+            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:latest
             basejudge.cache-from=type=gha,scope=nextjudge-basejudge
             basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
       - name: Build and push core and judge
@@ -67,8 +68,10 @@ jobs:
           targets: core,judge
           push: true
           set: |
-            core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:${{ env.IMAGE_TAG }},${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:latest
-            judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:${{ env.IMAGE_TAG }},${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:latest
+            core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:${{ env.IMAGE_TAG }}
+            core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:latest
+            judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:${{ env.IMAGE_TAG }}
+            judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:latest
             judge.args.BASEJUDGE=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.IMAGE_TAG }}
             core.cache-from=type=gha,scope=nextjudge-core
             core.cache-to=type=gha,mode=max,scope=nextjudge-core
