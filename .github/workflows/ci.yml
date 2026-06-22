@@ -193,6 +193,23 @@ jobs:
           COOLIFY_APP_UUID="${COOLIFY_DOCS_APP_UUID}" \
             ./scripts/coolify-preview-deploy.sh
 
+      - name: Wait for preview URLs
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          WEB_CHANGED: ${{ needs.changes.outputs.web }}
+          DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+          PREVIEW_WAIT_TIMEOUT_SEC: "600"
+          PREVIEW_POLL_INTERVAL_SEC: "30"
+        run: |
+          urls=""
+          if [ "$WEB_CHANGED" = "true" ]; then
+            urls="${urls} https://${PR_NUMBER}-web.preview.nextjudge.net"
+          fi
+          if [ "$DOCS_CHANGED" = "true" ]; then
+            urls="${urls} https://${PR_NUMBER}-docs.preview.nextjudge.net"
+          fi
+          PREVIEW_URLS="${urls# }" ./scripts/wait-for-preview-urls.sh
+
       - name: Update preview URLs comment on PR
         env:
           GH_TOKEN: ${{ github.token }}
@@ -215,7 +232,7 @@ jobs:
           "
           fi
           body="${body}
-          Deployed by Coolify after CI passed. Last deploy: \`${DEPLOY_SHA:0:7}\`"
+          Deployed by Coolify successfully. Last deploy: \`${DEPLOY_SHA:0:7}\`"
 
           comment_id=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
             --jq "map(select(.body | contains(\"${MARKER}\"))) | .[0].id // empty")
