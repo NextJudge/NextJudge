@@ -1,0 +1,204 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOCKERHUB_NAMESPACE: tnyuma
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      docs: ${{ steps.filter.outputs.docs }}
+      backend: ${{ steps.filter.outputs.backend }}
+      judge: ${{ steps.filter.outputs.judge }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'src/web/**'
+              - '.github/workflows/ci.yml'
+            docs:
+              - 'src/docs/**'
+              - '.github/workflows/ci.yml'
+            backend:
+              - 'src/data-layer/**'
+              - 'docker-bake.hcl'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/deploy-production.yml'
+            judge:
+              - 'src/judge/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/deploy-production.yml'
+
+  web-lint:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      - name: Configure Tiptap registry
+        run: |
+          printf '@tiptap-pro:registry=https://registry.tiptap.dev/\n//registry.tiptap.dev/:_authToken=%s\n' \
+            "${{ secrets.TIPTAP_NPM_TOKEN }}" > .npmrc
+      - run: npm ci
+      - run: npm run lint
+
+  web-build:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/web
+          file: src/web/Dockerfile
+          push: false
+          load: true
+          tags: nextjudge-web:ci
+          build-args: |
+            TIPTAP_NPM_TOKEN=${{ secrets.TIPTAP_NPM_TOKEN }}
+          cache-from: type=gha,scope=nextjudge-web
+          cache-to: type=gha,mode=max,scope=nextjudge-web
+
+  docs-build:
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build docs image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/docs
+          file: src/docs/Dockerfile
+          push: false
+          load: true
+          tags: nextjudge-docs:ci
+          cache-from: type=gha,scope=nextjudge-docs
+          cache-to: type=gha,mode=max,scope=nextjudge-docs
+
+  backend-build:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build backend images
+        uses: docker/bake-action@v6
+        with:
+          files: docker-bake.hcl
+          targets: basejudge,core,judge
+          push: false
+          set: |
+            judge.args.BASEJUDGE=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci
+            core.target=release
+            judge.target=release
+            basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+            basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
+            core.cache-from=type=gha,scope=nextjudge-core
+            core.cache-to=type=gha,mode=max,scope=nextjudge-core
+            judge.cache-from=type=gha,scope=nextjudge-judge
+            judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
+
+  judge-tests:
+    needs: changes
+    if: needs.changes.outputs.judge == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Run judge integration tests
+        working-directory: src/judge
+        run: |
+          docker build -f Dockerfile.newbase --target prod -t basejudge:prod .
+          docker build -f Dockerfile.monolith --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge-test .
+          docker compose -f docker-compose.test.yml run --build --rm pytest
+
+  preview-deploy:
+    needs: [changes, web-build, docs-build, web-lint]
+    if: |
+      always() &&
+      github.event_name == 'pull_request' &&
+      (
+        needs.changes.outputs.web == 'true' ||
+        needs.changes.outputs.docs == 'true'
+      ) &&
+      (needs.web-build.result == 'success' || needs.web-build.result == 'skipped') &&
+      (needs.docs-build.result == 'success' || needs.docs-build.result == 'skipped') &&
+      (needs.web-lint.result == 'success' || needs.web-lint.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Deploy web preview
+        if: needs.changes.outputs.web == 'true'
+        env:
+          COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
+          COOLIFY_WEB_APP_UUID: ${{ vars.COOLIFY_WEB_APP_UUID }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          response=$(curl -sS -X GET \
+            "${COOLIFY_API_URL}/deploy?uuid=${COOLIFY_WEB_APP_UUID}&pr=${PR_NUMBER}&force=true" \
+            -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
+            -H "Accept: application/json")
+          echo "$response"
+          echo "$response" | jq -e '.deployments | length > 0' > /dev/null
+
+      - name: Deploy docs preview
+        if: needs.changes.outputs.docs == 'true'
+        env:
+          COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
+          COOLIFY_DOCS_APP_UUID: ${{ vars.COOLIFY_DOCS_APP_UUID }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          response=$(curl -sS -X GET \
+            "${COOLIFY_API_URL}/deploy?uuid=${COOLIFY_DOCS_APP_UUID}&pr=${PR_NUMBER}&force=true" \
+            -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
+            -H "Accept: application/json")
+          echo "$response"
+          echo "$response" | jq -e '.deployments | length > 0' > /dev/null
+
+      - name: Comment preview URLs on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          WEB_CHANGED: ${{ needs.changes.outputs.web }}
+          DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        run: |
+          body="### Preview deployments\n\n"
+          if [ "$WEB_CHANGED" = "true" ]; then
+            body="${body}- **Web:** https://${PR_NUMBER}-web.preview.nextjudge.net\n"
+          fi
+          if [ "$DOCS_CHANGED" = "true" ]; then
+            body="${body}- **Docs:** https://${PR_NUMBER}-docs.preview.nextjudge.net\n"
+          fi
+          body="${body}\nDeployed by Coolify after CI passed."
+          gh pr comment "$PR_NUMBER" --body "$body"
