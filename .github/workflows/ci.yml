@@ -139,18 +139,21 @@ jobs:
           docker build -f Dockerfile.monolith --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge-test .
           docker compose -f docker-compose.test.yml run --rm pytest
 
+  ci-success:
+    needs: [changes, web-lint, web-build, docs-build, backend-build, judge-tests]
+    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All CI checks passed"
+
   preview-deploy:
-    needs: [changes, web-build, docs-build, web-lint]
+    needs: [changes, ci-success]
     if: |
-      always() &&
       github.event_name == 'pull_request' &&
       (
         needs.changes.outputs.web == 'true' ||
         needs.changes.outputs.docs == 'true'
-      ) &&
-      (needs.web-build.result == 'success' || needs.web-build.result == 'skipped') &&
-      (needs.docs-build.result == 'success' || needs.docs-build.result == 'skipped') &&
-      (needs.web-lint.result == 'success' || needs.web-lint.result == 'skipped')
+      )
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
