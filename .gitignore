@@ -10,5 +10,6 @@ src/data-layer/Pipfile.lock
 .vscode
 .vercel
 .env.coolify
+coolify.env
 
 presentation/

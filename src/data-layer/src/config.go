@@ -14,6 +14,7 @@ import (
 
 type config struct {
 	CORSOrigin           []string
+	CORSAllowPreview     bool
 	Host                 string
 	Port                 int64
 	Username             string
@@ -59,6 +60,8 @@ func init() {
 			log.Fatalln("CORS_ORIGIN contains a non-absolute URL")
 		}
 	}
+
+	cfg.CORSAllowPreview = envBool("CORS_ALLOW_PREVIEW")
 
 	host := os.Getenv("DB_HOST")
 	if host == "" {
@@ -217,4 +220,9 @@ func init() {
 	} else {
 		cfg.SeedData = false
 	}
+}
+
+func envBool(key string) bool {
+	value := strings.Trim(strings.TrimSpace(os.Getenv(key)), "'\"")
+	return value == "true" || value == "1"
 }
