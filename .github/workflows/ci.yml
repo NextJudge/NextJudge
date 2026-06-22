@@ -116,7 +116,6 @@ jobs:
           targets: basejudge,core,judge
           push: false
           set: |
-            judge.args.BASEJUDGE=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci
             core.target=release
             judge.target=release
             basejudge.cache-from=type=gha,scope=nextjudge-basejudge
@@ -138,7 +137,7 @@ jobs:
         run: |
           docker build -f Dockerfile.newbase --target prod -t basejudge:prod .
           docker build -f Dockerfile.monolith --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge-test .
-          docker compose -f docker-compose.test.yml run --build --rm pytest
+          docker compose -f docker-compose.test.yml run --rm pytest
 
   preview-deploy:
     needs: [changes, web-build, docs-build, web-lint]
@@ -156,6 +155,8 @@ jobs:
     permissions:
       pull-requests: write
     steps:
+      - uses: actions/checkout@v4
+
       - name: Deploy web preview
         if: needs.changes.outputs.web == 'true'
         env:
@@ -201,4 +202,4 @@ jobs:
             body="${body}- **Docs:** https://${PR_NUMBER}-docs.preview.nextjudge.net\n"
           fi
           body="${body}\nDeployed by Coolify after CI passed."
-          gh pr comment "$PR_NUMBER" --body "$body"
+          gh pr comment "$PR_NUMBER" --repo "${{ github.repository }}" --body "$body"
