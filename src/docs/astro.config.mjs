@@ -1,4 +1,5 @@
 import starlight from '@astrojs/starlight';
+import { unified } from '@astrojs/markdown-remark';
 import mermaid from 'astro-mermaid';
 import lucode from 'lucode-starlight';
 import { defineConfig } from 'astro/config';
@@ -18,6 +19,9 @@ const nextJudgeTheme = () => ({
 // https://astro.build/config
 export default defineConfig({
   site: 'https://docs.nextjudge.net',
+  markdown: {
+    processor: unified(),
+  },
   integrations: [
     mermaid({ autoTheme: true }),
     starlight({
