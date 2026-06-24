@@ -1020,3 +1020,82 @@ stages:
       headers:
         content-type: application/json
       status_code: 204
+
+  - name: get user creds for delete authorization test
+    request:
+      url: "{host}/v1/auth_test/user_creds"
+      method: POST
+    response:
+      status_code: 200
+      save:
+        json:
+          auth_delete_user_id: id
+          auth_delete_user_token: token
+
+  - name: create other user for delete authorization test
+    request:
+      url: "{host}/v1/users"
+      method: POST
+      json:
+        name: delete_auth_other_user
+        email: delete_auth_other_user@nextjudge.test
+        is_admin: false
+    response:
+      headers:
+        content-type: application/json
+      status_code: 201
+      save:
+        json:
+          auth_delete_other_user_id: id
+
+  - name: delete other user with own token should be forbidden
+    request:
+      url: "{host}/v1/users/{auth_delete_other_user_id}"
+      method: DELETE
+      headers:
+        Authorization: "{auth_delete_user_token}"
+    response:
+      headers:
+        content-type: application/json
+      status_code: 403
+      json:
+        code: "403"
+        message: forbidden
+
+  - name: other user should still exist after forbidden delete
+    request:
+      url: "{host}/v1/users/{auth_delete_other_user_id}"
+      method: GET
+    response:
+      headers:
+        content-type: application/json
+      status_code: 200
+
+  - name: self delete with user token should succeed
+    request:
+      url: "{host}/v1/auth_test/user_creds"
+      method: POST
+    response:
+      status_code: 200
+      save:
+        json:
+          self_delete_user_id: id
+          self_delete_token: token
+
+  - name: delete own account with token
+    request:
+      url: "{host}/v1/users/{self_delete_user_id}"
+      method: DELETE
+      headers:
+        Authorization: "{self_delete_token}"
+    response:
+      status_code: 204
+
+  - name: deleted own account should not exist
+    request:
+      url: "{host}/v1/users/{self_delete_user_id}"
+      method: GET
+      headers:
+        Authorization: "{self_delete_token}"
+    response:
+      status_code: 404

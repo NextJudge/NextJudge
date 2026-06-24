@@ -267,6 +267,57 @@ func (d *Database) DeleteUser(user *User) error {
 	return nil
 }
 
+func preloadUserIncludingDeleted(db *gorm.DB) *gorm.DB {
+	return db.Unscoped()
+}
+
+func deletedUserAccountIdentifier(userID uuid.UUID) string {
+	return "deleted-" + userID.String()
+}
+
+func deletedUserEmail(userID uuid.UUID) string {
+	return "deleted-" + userID.String() + "@deleted.local"
+}
+
+func (d *Database) SoftDeleteUser(user *User) error {
+	return d.NextJudgeDB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&InputSubmission{}).Where("user_id = ?", user.ID).Update("user_id", nil).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(&User{}).Where("id = ?", user.ID).Updates(map[string]interface{}{
+			"name":               DeletedUserDisplayName,
+			"email":              deletedUserEmail(user.ID),
+			"image":              "",
+			"account_identifier": deletedUserAccountIdentifier(user.ID),
+			"is_admin":           false,
+		}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(&UserWithPassword{}).Where("id = ?", user.ID).Updates(map[string]interface{}{
+			"password_hash": nil,
+			"salt":          nil,
+		}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Delete(user).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (d *Database) CountAdmins() (int64, error) {
+	var count int64
+	err := d.NextJudgeDB.Model(&User{}).Where("is_admin = ?", true).Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func (d *Database) GetCategories() ([]Category, error) {
 	categories := []Category{}
 	err := d.NextJudgeDB.Find(&categories).Error
@@ -390,7 +441,7 @@ func (d *Database) CreateSubmission(submission *Submission) (*Submission, error)
 
 func (d *Database) GetSubmission(submissionId uuid.UUID) (*Submission, error) {
 	submission := &Submission{}
-	err := d.NextJudgeDB.Preload("Language").Preload("Problem").Preload("User").Preload("TestCaseResults").First(submission, submissionId).Error
+	err := d.NextJudgeDB.Preload("Language").Preload("Problem").Preload("User", preloadUserIncludingDeleted).Preload("TestCaseResults").First(submission, submissionId).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
@@ -402,7 +453,7 @@ func (d *Database) GetSubmission(submissionId uuid.UUID) (*Submission, error) {
 
 func (d *Database) GetSubmissionsByUserID(userId uuid.UUID) ([]Submission, error) {
 	submissions := []Submission{}
-	err := db.NextJudgeDB.Order("submit_time desc").Limit(25).Preload("Language").Preload("User").Preload("Problem", func(db *gorm.DB) *gorm.DB {
+	err := db.NextJudgeDB.Order("submit_time desc").Limit(25).Preload("Language").Preload("User", preloadUserIncludingDeleted).Preload("Problem", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "title", "difficulty", "identifier")
 	}).Where("user_id = ?", userId).Find(&submissions).Error
 	if err != nil {
@@ -416,7 +467,7 @@ func (d *Database) GetSubmissionsByUserID(userId uuid.UUID) ([]Submission, error
 
 func (d *Database) GetProblemSubmissionsByUserID(userId uuid.UUID, problemId int) ([]Submission, error) {
 	submissions := []Submission{}
-	err := db.NextJudgeDB.Order("submit_time desc").Limit(25).Preload("Language").Preload("User").Preload("Problem", func(db *gorm.DB) *gorm.DB {
+	err := db.NextJudgeDB.Order("submit_time desc").Limit(25).Preload("Language").Preload("User", preloadUserIncludingDeleted).Preload("Problem", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "title", "difficulty", "identifier")
 	}).Where("user_id = ?", userId).Where("problem_id = ?", problemId).Find(&submissions).Error
 	// err := db.NextJudgeDB.Preload("Language").Preload("Problem").Where("user_id = ?", userId).Where("problem_id = ?", problemId).Find(&submissions).Error
@@ -902,7 +953,7 @@ func (d *Database) GetEventUser(userID uuid.UUID, eventID int) (*EventUser, erro
 
 func (d *Database) GetEventParticipants(eventID int) ([]User, error) {
 	var users []User
-	err := d.NextJudgeDB.Table("users").
+	err := d.NextJudgeDB.Model(&User{}).Unscoped().
 		Joins("JOIN event_users ON users.id = event_users.user_id").
 		Where("event_users.event_id = ?", eventID).
 		Find(&users).Error
@@ -1150,7 +1201,7 @@ func (d *Database) CreateEventQuestion(question *EventQuestion) (*EventQuestion,
 
 func (d *Database) GetEventQuestions(eventID int) ([]EventQuestionExt, error) {
 	var questions []EventQuestionExt
-	err := d.NextJudgeDB.Preload("User").Preload("Problem").Preload("Answerer").
+	err := d.NextJudgeDB.Preload("User", preloadUserIncludingDeleted).Preload("Problem").Preload("Answerer", preloadUserIncludingDeleted).
 		Where("event_id = ?", eventID).
 		Order("created_at DESC").
 		Find(&questions).Error
@@ -1162,7 +1213,7 @@ func (d *Database) GetEventQuestions(eventID int) ([]EventQuestionExt, error) {
 
 func (d *Database) GetEventQuestionByID(questionID uuid.UUID) (*EventQuestionExt, error) {
 	var question EventQuestionExt
-	err := d.NextJudgeDB.Preload("User").Preload("Problem").Preload("Answerer").
+	err := d.NextJudgeDB.Preload("User", preloadUserIncludingDeleted).Preload("Problem").Preload("Answerer", preloadUserIncludingDeleted).
 		Where("id = ?", questionID).
 		First(&question).Error
 	if err != nil {
@@ -1208,7 +1259,7 @@ func (d *Database) AnswerEventQuestion(questionID uuid.UUID, answer string, answ
 
 // func (d *Database) GetUserQuestionNotifications(userID uuid.UUID) ([]EventQuestionExt, error) {
 // 	var questions []EventQuestionExt
-// 	err := d.NextJudgeDB.Preload("User").Preload("Problem").Preload("Answerer").
+// 	err := d.NextJudgeDB.Preload("User", preloadUserIncludingDeleted).Preload("Problem").Preload("Answerer", preloadUserIncludingDeleted).
 // 		Where("user_id = ? AND is_answered = ?", userID, true).
 // 		Where("answered_at > ?", time.Now().Add(-24*time.Hour)).
 // 		Order("answered_at DESC").
@@ -1274,7 +1325,7 @@ func (d *Database) GetUnreadNotificationsCount(userID uuid.UUID) (int64, error) 
 func (d *Database) GetUserNotifications(userID uuid.UUID) ([]NotificationExt, error) {
 	var notifications []NotificationExt
 	err := d.NextJudgeDB.Table("notifications").
-		Preload("Question").Preload("Question.User").Preload("Question.Problem").Preload("Question.Answerer").
+		Preload("Question").Preload("Question.User", preloadUserIncludingDeleted).Preload("Question.Problem").Preload("Question.Answerer", preloadUserIncludingDeleted).
 		Where("user_id = ?", userID).
 		Where("is_read = ? OR (is_read = ? AND created_at > ?)", false, true, time.Now().Add(-24*time.Hour)).
 		Order("created_at DESC").

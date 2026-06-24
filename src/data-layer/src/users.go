@@ -15,7 +15,7 @@ import (
 func addUserRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Get("/v1/users"), AdminRequired(getUsers))
 	mux.HandleFunc(pat.Get("/v1/users/:user_id"), AuthRequired(getUser))
-	mux.HandleFunc(pat.Delete("/v1/users/:user_id"), AdminRequired(deleteUser))
+	mux.HandleFunc(pat.Delete("/v1/users/:user_id"), AuthRequired(deleteUser))
 	mux.HandleFunc(pat.Post("/v1/users"), AdminRequired(postUser))
 	mux.HandleFunc(pat.Put("/v1/users/:user_id"), AdminRequired(updateUser))
 }
@@ -166,11 +166,10 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only admins can users that are not themselves
-	if userId != token.Id && token.Role != AdminRoleEnum {
-		logrus.Error("User attempting to get info on another user")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Authentication error"}`)
+	if !isSelfOrAdmin(token, userId) {
+		logrus.Warn("User attempting to get info on another user")
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, `{"code":"403", "message":"forbidden"}`)
 		return
 	}
 
@@ -277,6 +276,10 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func wouldBlockLastAdminDeletion(isAdmin bool, adminCount int64) bool {
+	return isAdmin && adminCount == 1
+}
+
 func deleteUser(w http.ResponseWriter, r *http.Request) {
 	userIdParam := pat.Param(r, "user_id")
 	userId, err := uuid.Parse(userIdParam)
@@ -284,6 +287,21 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		return
+	}
+
+	if !cfg.AuthDisabled {
+		token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+		if token == nil || !isSelfOrAdmin(token, userId) {
+			logrus.Warn("user attempted to delete another account")
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(w, `{"code":"403", "message":"forbidden"}`)
+			return
+		}
+	} else if token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims); ok && token != nil && !isSelfOrAdmin(token, userId) {
+		logrus.Warn("user attempted to delete another account")
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, `{"code":"403", "message":"forbidden"}`)
 		return
 	}
 
@@ -301,7 +319,23 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.DeleteUser(user)
+	if user.IsAdmin {
+		adminCount, err := db.CountAdmins()
+		if err != nil {
+			logrus.WithError(err).Error("error counting admin users")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error counting admin users"}`)
+			return
+		}
+		if wouldBlockLastAdminDeletion(user.IsAdmin, adminCount) {
+			logrus.Warn("attempt to delete the last admin user")
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(w, `{"code":"403", "message":"cannot delete the last admin user"}`)
+			return
+		}
+	}
+
+	err = db.SoftDeleteUser(user)
 	if err != nil {
 		logrus.WithError(err).Error("error deleting user")
 		w.WriteHeader(http.StatusInternalServerError)

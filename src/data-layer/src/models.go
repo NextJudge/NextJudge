@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type EnqueueState string
@@ -36,15 +37,18 @@ const (
 	VeryHard Difficulty = "VERY HARD"
 )
 
+const DeletedUserDisplayName = "Deleted user"
+
 type User struct {
-	ID                uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
-	AccountIdentifier string    `json:"account_identifier"`
-	Name              string    `json:"name"`
-	Email             string    `json:"email"`
-	EmailVerified     time.Time `json:"emailVerified"`
-	Image             string    `json:"image"`
-	JoinDate          time.Time `json:"join_date"`
-	IsAdmin           bool      `json:"is_admin"`
+	ID                uuid.UUID      `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	AccountIdentifier string         `json:"account_identifier"`
+	Name              string         `json:"name"`
+	Email             string         `json:"email"`
+	EmailVerified     time.Time      `json:"emailVerified"`
+	Image             string         `json:"image"`
+	JoinDate          time.Time      `json:"join_date"`
+	IsAdmin           bool           `json:"is_admin"`
+	DeletedAt         gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
 type UserWithPassword struct {

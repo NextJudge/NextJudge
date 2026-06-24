@@ -53,3 +53,24 @@ CREATE INDEX IF NOT EXISTS idx_submissions_stale_enqueue
 CREATE INDEX IF NOT EXISTS idx_input_submissions_stale_enqueue
     ON input_submissions (created_at)
     WHERE finished = false AND enqueue_state IN ('pending', 'queued');
+
+DO $$ BEGIN
+    ALTER TABLE input_submissions
+        ADD CONSTRAINT input_submissions_user_id_fkey
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE events
+        ADD CONSTRAINT events_user_id_fkey
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users (deleted_at);
