@@ -19,6 +19,7 @@ const NavigationMenu = React.forwardRef<
 >(({ className, children, viewportAlign = "center", viewport = true, ...props }, ref) => (
   <NavigationMenuPrimitive.Root
     ref={ref}
+    viewport={viewport}
     className={cn(
       "relative z-10 flex max-w-max flex-1 items-center",
       viewportAlign === "end" ? "justify-end" : "justify-center",
