@@ -148,7 +148,11 @@ jobs:
 
   preview-deploy:
     needs: [changes, ci-success]
+    # always() is required when ci-success ran via always() with skipped jobs
+    # (e.g. docs-build). Otherwise preview-deploy is skipped even when web changed.
     if: |
+      always() &&
+      needs.ci-success.result == 'success' &&
       github.event_name == 'pull_request' &&
       (
         needs.changes.outputs.web == 'true' ||
