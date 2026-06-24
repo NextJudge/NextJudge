@@ -1,113 +1,88 @@
 ---
 title: Introduction
-description: Complete guide to NextJudge competitive programming platform
+description: Meet NextJudge, a self-hosted platform for programming problems, contests, and sandboxed judging.
 ---
 
-NextJudge is an open-source competitive programming platform designed to host coding contests, judge submissions, and provide a practice environment for programmers. Built as a distributed system, it handles code compilation, secure execution, and automated testing across multiple programming languages.
+NextJudge is an open-source competitive programming platform for running coding contests and giving programmers a place to practice. You host the stack, control the problems and contests, and keep the data on your own infrastructure.
 
-## What is NextJudge?
+The platform combines a focused participant experience with a separate judging pipeline: contestants browse problems, write and run code, submit solutions, and follow contest standings while judge workers compile and evaluate submissions outside the web process.
 
-NextJudge is a complete competitive programming ecosystem that you can self-host. Unlike proprietary platforms like LeetCode or Codeforces, NextJudge gives you full control over your data, customizations, and contest hosting capabilities. The platform consists of several interconnected services that work together to provide a seamless experience for both contest organizers and participants.
+<figure class="nj-product-shot nj-product-shot--wide">
+  <img src="/images/nextjudge-dashboard.jpg" alt="The NextJudge participant dashboard showing submission statistics, a continue-solving prompt, and a contest spotlight." />
+  <figcaption>The participant dashboard keeps practice activity and contests in one place.</figcaption>
+</figure>
 
-### Real-World Use Cases
+## What you can do
 
-**University ACM Chapters**
-Host practice contests for ICPC preparation. Configure problems specific to your curriculum, run internal qualifying rounds, and track student progress over time.
+### Practice programming problems
 
-**Technical Interview Preparation**
-Companies can create custom problem sets that mirror real interview questions. Build a private platform for evaluating candidates or providing employee training.
+Browse the shared problem set, search by title, compare difficulty, and open a problem directly in the solving workspace.
 
-**Programming Bootcamps**
-Run cohort-based competitions with timed contests. Use the modular architecture to integrate with existing learning management systems.
+<figure class="nj-product-shot">
+  <img src="/images/nextjudge-problems.jpg" alt="The NextJudge problem catalog with search, sortable columns, and difficulty labels." />
+  <figcaption>The problem catalog provides a compact entry point into the practice set.</figcaption>
+</figure>
 
-**Online Communities**
-Build public coding challenge platforms with your own branding and community features. Scale from dozens to thousands of concurrent users.
+### Solve and submit in the browser
 
-**High School CS Education**
-Teachers can create beginner-friendly problems and monitor student submissions in real-time. Use the sandboxed execution to ensure safe code evaluation.
+The solving workspace places the problem statement, sample test cases, language selector, and Monaco-powered code editor together. **Run** executes code against custom input; **Submit** sends it through the formal judging pipeline.
 
-## Core Capabilities
+<figure class="nj-product-shot">
+  <img src="/images/nextjudge-solver.jpg" alt="The NextJudge split-screen solver with a problem statement and test cases on the left and the code editor on the right." />
+  <figcaption>Participants can read, test, and submit without leaving the problem workspace.</figcaption>
+</figure>
 
-### Multi-Language Support
-NextJudge supports over 15 programming languages including C, C++, Python, Java, JavaScript, TypeScript, Go, Rust, Ruby, Lua, Kotlin, and Haskell. Each language runs in an isolated environment with configurable resource limits.
+### Host timed contests
 
-### Secure Code Execution
-All submissions execute inside nsjail sandboxes with strict resource limits. Network access is blocked, file system access is restricted, and CPU/memory limits prevent abuse. This ensures fair evaluation and system security.
+Contests group problems into a scheduled event with registration, participant counts, problem status, clarifications, and standings. Organizers manage contests and problems through admin-only routes.
 
-### Scalable Architecture
-The distributed design allows horizontal scaling. Add more judge instances to handle submission spikes during live contests. The message queue ensures reliable processing even under heavy load.
+<figure class="nj-product-shot">
+  <img src="/images/nextjudge-contest.jpg" alt="A completed NextJudge contest showing its schedule, participant count, status, and problem table." />
+  <figcaption>Contest pages combine event context, problems, and competitive progress.</figcaption>
+</figure>
 
-### Contest Management
-Create timed contests with multiple problems. Set start and end times, invite participants, and track leaderboard rankings in real-time. Support for both public and private contests with fine-grained access control.
+## How judging works
 
-### Real-Time Updates
-The web interface provides live submission status updates. Participants see immediate feedback on compilation errors, runtime failures, or accepted solutions without page refreshes.
+Submitting code does not execute it inside the web application.
 
-## System Requirements
+1. The web app sends the submission to the Go data layer.
+2. The data layer stores it as `PENDING` and publishes a RabbitMQ job.
+3. A Python judge worker compiles and runs the code inside an nsjail sandbox.
+4. The judge reports the verdict and test results to the data layer.
+5. The web app polls until the submission reaches a final verdict.
 
-Before deploying NextJudge, ensure your system meets these requirements:
+![NextJudge service architecture](../../../assets/architecture.png)
 
-**Minimum (Development)**
-- 4GB RAM available
-- 2 CPU cores
-- 20GB free disk space
-- Docker and Docker Compose installed
-- Ports 3000, 5000, 5672, 5432 available
+This separation keeps expensive, untrusted code execution away from user-facing requests and lets operators add judge workers when submission volume grows. Read [Core components](/architecture/components/) for the service boundaries and [Judge service](/architecture/judge/) for execution details.
 
-**Recommended (Production)**
-- 8GB+ RAM
-- 4+ CPU cores
-- 100GB+ free disk space (for logs and database growth)
-- SSD storage for database
-- Dedicated network for inter-service communication
+## What you deploy
 
-**Network Requirements**
-- Internal network access between containers
-- External access to port 3000 (web interface)
-- Optional: External access to port 5000 (API)
+| Service | Responsibility |
+| ------- | -------------- |
+| **Web** | Authentication, problem browsing, code editor, contests, and standings |
+| **Data layer** | Go REST API, authorization, persistence, and submission enqueueing |
+| **Judge** | Compilation and sandboxed execution of submitted source code |
+| **RabbitMQ** | Durable work queue between the API and judge workers |
+| **PostgreSQL** | Users, problems, test cases, submissions, and contest data |
 
-## Platform Comparison
+The web UI runs on `http://localhost:8080` in the standard local setup. The data layer listens on port `5000`; Postgres and RabbitMQ remain supporting infrastructure.
 
-When evaluating competitive programming platforms, consider these factors:
+## Why self-host it
 
-**Self-Hosting and Data Ownership**
-NextJudge runs entirely on your infrastructure. You control all data, user information, and contest content. No vendor lock-in or third-party data sharing.
+NextJudge is useful when control matters more than a managed service:
 
-**Customization and Branding**
-The open-source nature allows complete customization. Modify the UI, add features, or integrate with existing systems. White-label the platform for your organization.
+- Run private classroom, club, hiring, or internal contests.
+- Keep participant data and proprietary problems on your infrastructure.
+- Customize the interface, authentication, languages, and integrations.
+- Scale judging independently by adding workers to the queue.
+- Use the REST API and CLI in your own workflows.
 
-**Cost Structure**
-No per-user fees or subscription costs. Expenses are limited to your infrastructure. Scale based on actual usage rather than artificial tier limits.
+The tradeoff is operational responsibility. You maintain the database, message queue, judge images, backups, monitoring, and network isolation. NextJudge provides the software rather than a managed hosting tier.
 
-**Community and Support**
-Active development with regular updates. Community-driven feature requests and bug fixes. Transparent roadmap and contribution process.
+## Start here
 
-**Performance and Reliability**
-Distributed architecture prevents single points of failure. Judge workers can be scaled independently. Database optimizations support high concurrent user loads.
-
-## Architecture Overview
-
-NextJudge uses a microservices architecture with clear separation of concerns. The web interface handles user interaction, the data layer manages persistence and business logic, and judge workers handle code execution. RabbitMQ provides reliable message passing between services.
-
-**Data Flow Example**
-When a user submits code, the web interface sends it to the data layer API. The data layer stores the submission and enqueues it for processing. An available judge worker picks up the submission, compiles the code in an isolated environment, runs it against test cases, and reports results back to the data layer. The web interface polls for status updates and displays results to the user.
-
-This architecture ensures that heavy code execution doesn't block the user interface, and multiple submissions can be processed concurrently across multiple judge instances.
-
-## Getting Started Journey
-
-New to NextJudge? Follow this learning path:
-
-1. **Quick Start** - Deploy using Docker Compose and explore the platform
-2. **Key Concepts** - Learn the terminology and core concepts
-3. **Development Setup** - Set up your local development environment
-4. **Architecture Deep Dive** - Understand how the components interact
-5. **API Reference** - Integrate NextJudge into your workflows
-
-Each step builds on the previous one, taking you from basic deployment to advanced customization and integration.
-
-## Community and Contributions
-
-NextJudge is actively developed by students and open-source contributors. We welcome bug reports, feature requests, documentation improvements, and code contributions. The modular architecture makes it easy to contribute to specific components without understanding the entire system.
-
-Whether you're fixing a bug in the judge isolation logic, adding a new language to the executor, improving the web interface, or writing documentation, your contributions help make NextJudge better for everyone.
+1. [Getting Started](/start/getting-started/) —> launch the stack and verify each service.
+2. [Key terms](/start/key-terms/) —> understand problems, test cases, submissions, and verdicts.
+3. [Design decisions](/start/principles/) —> learn why the system is split into services.
+4. [Development guide](/guides/development/) —> work on individual components.
+5. [API reference](/reference/api/) —> integrate with the data layer directly.

@@ -1,39 +1,38 @@
 ---
 title: NextJudge
-description: An open-source, extensible, and modular competitive programming code execution and judging framework.
+description: Self-hosted competitive programming platform for contests, sandboxed execution, and automated judging.
 template: splash
 hero:
-  tagline: The next generation of competitive programming tooling.
+  layout: centered
+  title: NextJudge
+  tagline: Host contests and judge code on your own machines. Postgres, RabbitMQ, nsjail, no vendor lock-in.
   actions:
-    - text: Get Started
-      link: /start/getting-started/
+    - text: Your first 15 minutes
+      link: /start/getting-started/#your-first-15-minutes
       icon: right-arrow
       variant: primary
-    - text: Introduction
-      link: /start/intro/
-      icon: open-book
+    - text: Authentication
+      link: /reference/authentication/
+      icon: document
+      variant: minimal
 ---
 
 import { Card, CardGrid } from "@astrojs/starlight/components";
-import Demo from "../../components/landing/demo";
+import { ContainerSection } from "lucode-starlight/components";
 
-<div className="hero-demo-container">
-  <Demo client:load />
-</div>
-
-## Next steps
-
-<CardGrid stagger>
-  <Card title="Learn the basics" icon="open-book">
-    Start with our [Introduction](/start/intro/) to understand what NextJudge is and why it was created.
+<ContainerSection>
+<CardGrid>
+  <Card title="Deploy" icon="setting">
+    `./deploy.sh web` from repo root. API on `:5000`, UI on `:8080`.
   </Card>
-  <Card title="Set up NextJudge" icon="setting">
-    Follow our [Getting Started](/start/getting-started/) guide to deploy NextJudge on your system.
+  <Card title="Architecture" icon="code">
+    [How the pieces connect](/architecture/components/) and [how judging works](/architecture/judge/).
   </Card>
-  <Card title="Explore architecture" icon="code">
-    Understand how NextJudge works by reading about [Core Components](/architecture/components/) and the [Judge Service](/architecture/judge/).
+  <Card title="CLI" icon="laptop">
+    [`nextjudge get / test / submit`](/guides/cli/) from the terminal.
   </Card>
-  <Card title="Development guide" icon="pencil">
-    Learn how to contribute and develop NextJudge with our [Development Guide](/guides/development/).
+  <Card title="API" icon="document">
+    [Auth](/reference/authentication/) then [REST endpoints](/reference/api/).
   </Card>
 </CardGrid>
+</ContainerSection>
