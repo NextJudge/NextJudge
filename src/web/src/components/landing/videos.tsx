@@ -1,5 +1,6 @@
 "use client";
 import { BorderBeam } from "@/components/ui/border-beam";
+import { SITE_COPY } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { Card } from "../ui/card";
 
@@ -19,7 +20,7 @@ export function PreviewVideo() {
           preload="auto"
           muted
           src="/demo/demo.mp4"
-          title="NextJudge Demo"
+          title={SITE_COPY.demoTitle}
           playsInline
           typeof="video/mp4"
           autoPlay
@@ -55,7 +56,7 @@ export function PreviewVideo() {
           muted
           src="/demo/demo.mp4"
           playsInline
-          title="NextJudge Demo"
+          title={SITE_COPY.demoTitle}
           autoPlay
           typeof="video/mp4"
           width="100%"

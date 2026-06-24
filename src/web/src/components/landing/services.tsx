@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { BRAND_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
@@ -33,23 +34,23 @@ interface ServiceProps {
 const serviceList: ServiceProps[] = [
   {
     id: 0,
-    title: "NextJudge Platform",
+    title: `${BRAND_NAME} Platform`,
     description:
       "All of our services packaged into this user-friendly, web-based platform.",
     icon: <PanelsLeftBottomIcon className="w-6 h-6 text-osu opacity-80" />,
   },
   {
     id: 1,
-    title: "NextJudge Framework",
+    title: `${BRAND_NAME} Framework`,
     description:
       "An extensible backend framework for building competitive programming platforms and organizing custom ICPC-style contests.",
     icon: <SettingsIcon className="w-6 h-6 text-osu opacity-80" />,
   },
   {
     id: 2,
-    title: "NextJudge CLI",
+    title: `${BRAND_NAME} CLI`,
     description:
-      "A simple command-line interface for interacting with the NextJudge framework through your terminal.",
+      `A simple command-line interface for interacting with the ${BRAND_NAME} framework through your terminal.`,
     icon: <TerminalSquareIcon className="w-6 h-6 text-osu opacity-80" />,
   },
 ];
@@ -181,7 +182,7 @@ const FrameworkExample = () => {
         src="/demo/framework.svg"
         width={1000}
         height={500}
-        alt="NextJudge Framework"
+        alt={`${BRAND_NAME} Framework`}
         className={cn(
           "hidden dark:flex",
           "rounded-lg",
@@ -193,7 +194,7 @@ const FrameworkExample = () => {
         src="/demo/framework-light.svg"
         width={600}
         height={500}
-        alt="NextJudge Framework"
+        alt={`${BRAND_NAME} Framework`}
         className={cn(
           "dark:hidden flex",
           "rounded-lg",

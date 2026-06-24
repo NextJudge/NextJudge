@@ -1,5 +1,6 @@
 'use client'
 
+import { SITE_COPY } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,8 +26,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { Session } from "next-auth";
 import Demo from "./demo";
 import HeroButtons from "./hero-buttons";
+
+type AltHeroProps = {
+  session: Session | null;
+};
 
 const languageLogos = [
   { icon: pythonSvg, alt: "Python programming language logo", size: "24" },
@@ -46,7 +52,7 @@ const languageLogos = [
   { icon: rubySvg, alt: "Ruby programming language logo", size: "24" },
 ];
 
-export function AltHero() {
+export function AltHero({ session }: AltHeroProps) {
   return (
     <main className="w-full overflow-hidden">
       <div
@@ -62,52 +68,54 @@ export function AltHero() {
         <div className="relative z-10 py-24 md:pb-32 lg:pb-36 lg:pt-44">
           <div className="mx-auto flex w-full max-w-screen-2xl flex-col px-6 lg:flex-row lg:items-center lg:gap-8 lg:px-12">
             <div className="mx-auto max-w-lg text-center lg:mx-0 lg:max-w-2xl lg:flex-1 lg:text-left">
-              <TooltipProvider>
-                <a href="#early-access" className="inline-block mx-auto lg:mx-0" aria-hidden>
-                  <Tooltip delayDuration={0}>
-                    <TooltipContent
-                      side="right"
-                      className="text-sm scale-90"
-                      sideOffset={5}
-                    >
-                      <p className="text-sm">
-                        <span className="font-semibold">Click here</span> to join
-                        the waitlist for the public launch.
-                      </p>
-                    </TooltipContent>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="ring-1 ring-white/30 dark:ring-neutral-300/60 no-underline group cursor-pointer relative shadow-2xl shadow-orange-600/50 rounded-full p-px text-xs font-semibold leading-6 text-white dark:text-white inline-block"
+              {!session?.user && (
+                <TooltipProvider>
+                  <a href="#early-access" className="inline-block mx-auto lg:mx-0" aria-hidden>
+                    <Tooltip delayDuration={0}>
+                      <TooltipContent
+                        side="right"
+                        className="text-sm scale-90"
+                        sideOffset={5}
                       >
-                        <span className="absolute inset-0 overflow-hidden rounded-full">
-                          <span className="absolute inset-0 rounded-full shadow-lg bg-white/20 dark:bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(220,68,5,0.3)_0%,rgba(0,0,0,0.5)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                        </span>
-                        <div className="relative flex space-x-2 items-center z-10 rounded-full py-0.5 px-4 ring-1 ring-white/20 dark:ring-white/10">
-                          <span>Reserve Your Spot</span>
-                          <svg
-                            fill="none"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            width="16"
-                            xmlns="http://www.w3.org/2000/svg"
-                            aria-hidden="true"
-                          >
-                            <path
-                              d="M10.75 8.75L14.25 12L10.75 15.25"
-                              stroke="#dc4405"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.5"
-                            />
-                          </svg>
-                        </div>
-                        <span className="absolute -bottom-0 left-[1.125rem] h-px w-[calc(100%-2.25rem)] bg-gradient-to-r from-orange-600/0 via-orange-600/90 to-orange-600/0 transition-opacity duration-500 group-hover:opacity-40" />
-                      </button>
-                    </TooltipTrigger>
-                  </Tooltip>
-                </a>
-              </TooltipProvider>
+                        <p className="text-sm">
+                          <span className="font-semibold">Click here</span> to join
+                          the waitlist for the public launch.
+                        </p>
+                      </TooltipContent>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="ring-1 ring-white/30 dark:ring-neutral-300/60 no-underline group cursor-pointer relative shadow-2xl shadow-orange-600/50 rounded-full p-px text-xs font-semibold leading-6 text-white dark:text-white inline-block"
+                        >
+                          <span className="absolute inset-0 overflow-hidden rounded-full">
+                            <span className="absolute inset-0 rounded-full shadow-lg bg-white/20 dark:bg-[image:radial-gradient(75%_100%_at_50%_0%,rgba(220,68,5,0.3)_0%,rgba(0,0,0,0.5)_75%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                          </span>
+                          <div className="relative flex space-x-2 items-center z-10 rounded-full py-0.5 px-4 ring-1 ring-white/20 dark:ring-white/10">
+                            <span>Reserve Your Spot</span>
+                            <svg
+                              fill="none"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              width="16"
+                              xmlns="http://www.w3.org/2000/svg"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M10.75 8.75L14.25 12L10.75 15.25"
+                                stroke="#dc4405"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="1.5"
+                              />
+                            </svg>
+                          </div>
+                          <span className="absolute -bottom-0 left-[1.125rem] h-px w-[calc(100%-2.25rem)] bg-gradient-to-r from-orange-600/0 via-orange-600/90 to-orange-600/0 transition-opacity duration-500 group-hover:opacity-40" />
+                        </button>
+                      </TooltipTrigger>
+                    </Tooltip>
+                  </a>
+                </TooltipProvider>
+              )}
 
               <h1 className="mt-8 max-w-2xl text-balance text-3xl font-medium text-white dark:text-white sm:text-3xl md:text-4xl lg:mt-6 lg:text-4xl">
                 Host and participate in online coding contests
@@ -121,7 +129,7 @@ export function AltHero() {
               </p>
 
               <div className="mt-8 flex flex-col items-center justify-center gap-2 sm:mt-12 sm:flex-row lg:justify-start">
-                <HeroButtons />
+                <HeroButtons session={session} />
               </div>
             </div>
             <div className="hidden lg:flex lg:flex-1 lg:justify-end">
@@ -138,7 +146,7 @@ export function AltHero() {
             playsInline
             className="h-full w-full object-cover opacity-50 invert dark:opacity-35 dark:invert-0 dark:lg:opacity-75"
             src="/demo/demo.mp4"
-            title="NextJudge Demo"
+            title={SITE_COPY.demoTitle}
           >
             <source src="/demo/demo.mp4" type="video/mp4" />
             Your browser does not support the video tag.

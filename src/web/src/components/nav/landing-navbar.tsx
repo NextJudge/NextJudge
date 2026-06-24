@@ -12,6 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { routeList } from "@/lib/constants";
+import { BRAND_NAME, SITE_COPY, SITE_URLS } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Menu } from "lucide-react";
@@ -32,9 +33,9 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
       >
         <div className="flex justify-start align-middle items-center w-full">
           <Icons.logo className="text-orange-600 translate-y-[0.8px]" />
-          <Link href="/" passHref className="ml-3 text-xl text-white dark:text-white" aria-label="NextJudge">
-            <span className="sr-only">NextJudge</span>
-            NextJudge
+          <Link href="/" passHref className="ml-3 text-xl text-white dark:text-white" aria-label={SITE_COPY.navbarAriaLabel}>
+            <span className="sr-only">{BRAND_NAME}</span>
+            {BRAND_NAME}
           </Link>
         </div>
         {/* mobile */}
@@ -50,7 +51,7 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
               <SheetHeader className="text-left px-1 border-b pb-4">
                 <div className="flex items-center gap-2">
                   <Icons.logo className="size-8" />
-                  <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
+                  <SheetTitle className="font-bold text-xl">{BRAND_NAME}</SheetTitle>
                 </div>
               </SheetHeader>
 
@@ -76,36 +77,45 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
               <div className="flex flex-col gap-4 py-4 mt-auto border-t">
                 <div className="flex flex-col gap-2">
                   {session?.user ? (
-                    <div className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/50">
-                      <UserAvatar session={session} />
-                      <div className="flex flex-col text-sm">
-                        <span className="font-medium">{session.user.name}</span>
-                        <span className="text-muted-foreground truncate max-w-[150px]">{session.user.email}</span>
+                    <>
+                      <div className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/50">
+                        <UserAvatar session={session} />
+                        <div className="flex flex-col text-sm">
+                          <span className="font-medium">{session.user.name}</span>
+                          <span className="text-muted-foreground truncate max-w-[150px]">{session.user.email}</span>
+                        </div>
                       </div>
-                    </div>
+                      <Link
+                        href="/platform"
+                        className={cn(buttonVariants({ variant: "default" }), "w-full bg-orange-600 hover:bg-orange-700 text-white")}
+                        aria-label="Go to Platform"
+                      >
+                        Go to Platform
+                      </Link>
+                    </>
                   ) : (
-                      <div className="grid grid-cols-2 gap-2">
-                        <Link
-                          href="/auth/login"
-                          className={cn(buttonVariants({ variant: "outline" }), "w-full pointer-events-none opacity-50 cursor-not-allowed")}
-                          aria-disabled="true"
-                        >
-                          Login
-                        </Link>
-                        <Link
-                          href="/auth/signup"
-                          className={cn(buttonVariants({ variant: "default" }), "w-full bg-orange-600 hover:bg-orange-700 text-white pointer-events-none opacity-50 cursor-not-allowed")}
-                          aria-disabled="true"
-                        >
-                          Sign Up
-                        </Link>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href="/auth/login"
+                        className={cn(buttonVariants({ variant: "outline" }), "w-full pointer-events-none opacity-50 cursor-not-allowed")}
+                        aria-disabled="true"
+                      >
+                        Login
+                      </Link>
+                      <Link
+                        href="/auth/signup"
+                        className={cn(buttonVariants({ variant: "default" }), "w-full bg-orange-600 hover:bg-orange-700 text-white pointer-events-none opacity-50 cursor-not-allowed")}
+                        aria-disabled="true"
+                      >
+                        Sign Up
+                      </Link>
                     </div>
                   )}
                 </div>
 
                 <div className="flex items-center justify-between gap-2 mt-1">
                   <a
-                    href="https://github.com/nextjudge/nextjudge"
+                    href={SITE_URLS.production.github}
                     target="_blank"
                     className={cn(buttonVariants({ variant: "ghost" }), "flex items-center gap-2 px-2")}
                   >
@@ -141,11 +151,23 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
         <div className="hidden md:flex justify-end w-full">
           <NavigationMenuItem className="flex items-center justify-end gap-4">
             {session?.user ? (
-              <UserAvatar session={session} />
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/platform"
+                  className={cn(
+                    buttonVariants({ variant: "default" }),
+                    "bg-orange-600 hover:bg-orange-700 text-white"
+                  )}
+                  aria-label="Go to Platform"
+                >
+                  Go to Platform
+                </Link>
+                <UserAvatar session={session} />
+              </div>
             ) : (
               <div className="flex items-center gap-2">
-                  <Link
-                    aria-label="Login"
+                <Link
+                  aria-label="Login"
                   href="/auth/login"
                   className={cn(
                     buttonVariants({ variant: "link" }),

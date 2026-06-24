@@ -1,4 +1,5 @@
 import { Button, buttonVariants } from "@/components/ui/button";
+import { SITE_COPY, SITE_URLS } from "@/lib/site";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 export const Hero = () => {
@@ -22,9 +23,7 @@ export const Hero = () => {
         </main>
 
         <p className="text-xl text-muted-foreground md:w-10/12 mx-auto lg:mx-0">
-          NextJudge is a modern, open-source platform for hosting and partaking
-          in competitive programming. It is designed to be easy to use, fast,
-          and extensible.
+          {SITE_COPY.descriptionShort}
         </p>
 
         <div className="space-y-4 md:space-y-0 md:space-x-4">
@@ -32,7 +31,7 @@ export const Hero = () => {
             <a href="/platform">Get Started</a>
           </Button>
           <a
-            href="https://github.com/nextjudge/nextjudge"
+            href={SITE_URLS.production.github}
             target="_blank"
             className={`w-full md:w-1/3 ${buttonVariants({
               variant: "outline",
