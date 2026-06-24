@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -39,44 +38,51 @@ type UpdateCustomInputSubmissionStatusPatchBody struct {
 	Runtime float64 `json:"runtime"`
 }
 
-var customSubmissionMap = make(map[string]*CustomInputSubmissionResult)
-
-// These API endpoints don't touch the database
 func addInputSubmissionRoutes(mux *goji.Mux) {
-	// public endpoints for landing page demo (rate-limited, no auth required)
-	// register these first so they match before the regular routes
 	mux.HandleFunc(pat.Post("/v1/public/input_submissions"), RateLimitMiddleware(postPublicInputSubmission, publicInputLimiter))
-	mux.HandleFunc(pat.Get("/v1/public/input_submissions/:submission_id"), getInputSubmission)
-	// dedicated benchmark endpoints (no rate limiting, header-free)
+	mux.HandleFunc(pat.Get("/v1/public/input_submissions/:submission_id"), getPublicInputSubmission)
+
 	mux.HandleFunc(pat.Post("/v1/bench/input_submissions"), postPublicInputSubmission)
-	mux.HandleFunc(pat.Get("/v1/bench/input_submissions/:submission_id"), getInputSubmission)
+	mux.HandleFunc(pat.Get("/v1/bench/input_submissions/:submission_id"), getPublicInputSubmission)
 
 	mux.HandleFunc(pat.Post("/v1/input_submissions"), AuthRequired(postInputSubmission))
-	mux.HandleFunc(pat.Get("/v1/input_submissions/:submission_id"), AuthRequired(getInputSubmission))
+	mux.HandleFunc(pat.Get("/v1/input_submissions/:submission_id"), AuthRequired(getAuthenticatedInputSubmission))
 	mux.HandleFunc(pat.Patch("/v1/input_submissions/:submission_id"), AtLeastJudgeRequired(updateCustomInputSubmissionStatus))
 }
 
+func createInputSubmissionRecord(reqData *CustomInputSubmissionStatusPostBody) (uuid.UUID, error) {
+	var userID *uuid.UUID
+	if reqData.UserID != uuid.Nil {
+		userID = &reqData.UserID
+	}
+
+	record := &InputSubmission{
+		UserID:     userID,
+		LanguageID: reqData.LanguageID,
+		SourceCode: reqData.SourceCode,
+		Stdin:      reqData.Stdin,
+		Status:     Pending,
+		Finished:   false,
+	}
+
+	created, err := db.CreateInputSubmission(record)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	tryEnqueueInputSubmission(created.ID)
+	return created.ID, nil
+}
+
 func postInputSubmission(w http.ResponseWriter, r *http.Request) {
-	reqData := new(CustomInputSubmissionStatusPostBody)
-	reqBodyBytes, err := io.ReadAll(r.Body)
+	reqData, err := parseInputSubmissionPostBody(r)
 	if err != nil {
-		logrus.WithError(err).Error("error reading request body")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
+		writeInputSubmissionError(w, err)
 		return
 	}
 
-	err = json.Unmarshal(reqBodyBytes, reqData)
-	if err != nil {
-		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
-		return
-	}
-
-	// User ID boilerplate
-	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-	if token == nil {
+	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if !ok || token == nil {
 		logrus.Error("Error in token")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"message":"Error in token"}`)
@@ -84,9 +90,7 @@ func postInputSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userId := token.Id
-
 	if reqData.UserID != userId && reqData.UserID != uuid.Nil {
-		// Admins can access all users
 		if token.Role == AdminRoleEnum {
 			userId = reqData.UserID
 		} else {
@@ -96,111 +100,168 @@ func postInputSubmission(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	reqData.UserID = userId
 
-	new_uuid := uuid.New()
-
-	status_object := CustomInputSubmissionResult{
-		Finished: false,
+	submissionID, err := createInputSubmissionRecord(reqData)
+	if err != nil {
+		logrus.WithError(err).Error("error creating input submission")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error creating input submission"}`)
+		return
 	}
 
-	customSubmissionMap[new_uuid.String()] = &status_object
-
-	RabbitMQPublishCustomInputSubmission(new_uuid.String(), reqData)
-
-	fmt.Fprint(w, new_uuid.String())
+	fmt.Fprint(w, submissionID.String())
 }
 
-// postPublicInputSubmission handles public (unauthenticated) code execution for landing page demo
 func postPublicInputSubmission(w http.ResponseWriter, r *http.Request) {
+	reqData, err := parseInputSubmissionPostBody(r)
+	if err != nil {
+		writeInputSubmissionError(w, err)
+		return
+	}
+
+	reqData.UserID = uuid.Nil
+
+	submissionID, err := createInputSubmissionRecord(reqData)
+	if err != nil {
+		logrus.WithError(err).Error("error creating public input submission")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error creating input submission"}`)
+		return
+	}
+
+	fmt.Fprint(w, submissionID.String())
+}
+
+func parseInputSubmissionPostBody(r *http.Request) (*CustomInputSubmissionStatusPostBody, error) {
 	reqData := new(CustomInputSubmissionStatusPostBody)
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		logrus.WithError(err).Error("error reading request body")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
-		return
+		return nil, err
 	}
-
-	err = json.Unmarshal(reqBodyBytes, reqData)
-	if err != nil {
-		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
-		return
+	if err := json.Unmarshal(reqBodyBytes, reqData); err != nil {
+		return nil, err
 	}
-
-	// use a nil UUID for anonymous submissions
-	reqData.UserID = uuid.Nil
-
-	new_uuid := uuid.New()
-
-	status_object := CustomInputSubmissionResult{
-		Finished: false,
-	}
-
-	customSubmissionMap[new_uuid.String()] = &status_object
-
-	RabbitMQPublishCustomInputSubmission(new_uuid.String(), reqData)
-
-	fmt.Fprint(w, new_uuid.String())
+	return reqData, nil
 }
 
-func getInputSubmission(w http.ResponseWriter, r *http.Request) {
+func writeInputSubmissionError(w http.ResponseWriter, err error) {
+	logrus.WithError(err).Error("input submission request error")
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprint(w, `{"code":"500", "message":"error processing request"}`)
+}
+
+func getPublicInputSubmission(w http.ResponseWriter, r *http.Request) {
+	submission, ok := loadInputSubmissionFromRequest(w, r)
+	if !ok {
+		return
+	}
+	writeInputSubmissionPollResponse(w, submission, false)
+}
+
+func getAuthenticatedInputSubmission(w http.ResponseWriter, r *http.Request) {
+	submission, ok := loadInputSubmissionFromRequest(w, r)
+	if !ok {
+		return
+	}
+
+	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if !ok || token == nil {
+		logrus.Error("Error in token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"message":"Error in token"}`)
+		return
+	}
+
+	if token.Role >= JudgeRoleEnum {
+		writeInputSubmissionPollResponse(w, submission, true)
+		return
+	}
+
+	if submission.UserID != nil && *submission.UserID != token.Id {
+		logrus.Error("Unauthorized get input submission")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, `{"message":"Unauthorized"}`)
+		return
+	}
+
+	writeInputSubmissionPollResponse(w, submission, false)
+}
+
+func loadInputSubmissionFromRequest(w http.ResponseWriter, r *http.Request) (*InputSubmission, bool) {
 	submissionIdParam := pat.Param(r, "submission_id")
 	submissionId, err := uuid.Parse(submissionIdParam)
 	if err != nil {
 		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
-		return
+		return nil, false
 	}
 
-	result, ok := customSubmissionMap[submissionId.String()]
-	if !ok {
+	submission, err := db.GetInputSubmission(submissionId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving input submission")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving input submission"}`)
+		return nil, false
+	}
+	if submission == nil {
 		logrus.Warn("submission not found")
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprint(w, `{"code":"404", "message":"submission not found"}`)
-		return
-	} else {
-		if !result.Finished {
-
-			return_data := CustomInputSubmissionResultStatus{
-				Status: "PENDING",
-			}
-
-			json_data, err := json.Marshal(return_data)
-			if err != nil {
-				log.Fatal(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
-				return
-			}
-
-			fmt.Fprint(w, string(json_data))
-		} else {
-			logrus.WithFields(logrus.Fields{
-				"submission_id": submissionId.String(),
-				"status":        result.Status,
-				"runtime":       result.Runtime,
-				"finished":      result.Finished,
-			}).Info("returning custom input submission result")
-
-			json_data, err := json.Marshal(result)
-			if err != nil {
-				log.Fatal(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
-				return
-			}
-
-			// Remove the entry from the map
-			delete(customSubmissionMap, submissionId.String())
-
-			fmt.Fprint(w, string(json_data))
-		}
+		return nil, false
 	}
+	return submission, true
+}
+
+func writeInputSubmissionPollResponse(w http.ResponseWriter, submission *InputSubmission, includeJudgeFields bool) {
+	if includeJudgeFields {
+		respJSON, err := json.Marshal(submission)
+		if err != nil {
+			logrus.WithError(err).Error("JSON parse error")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+			return
+		}
+		fmt.Fprint(w, string(respJSON))
+		return
+	}
+
+	if !submission.Finished {
+		returnData := CustomInputSubmissionResultStatus{Status: "PENDING"}
+		respJSON, err := json.Marshal(returnData)
+		if err != nil {
+			logrus.WithError(err).Error("JSON parse error")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+			return
+		}
+		fmt.Fprint(w, string(respJSON))
+		return
+	}
+
+	result := CustomInputSubmissionResult{
+		Status:   submission.Status,
+		Stdout:   submission.Stdout,
+		Stderr:   submission.Stderr,
+		Finished: true,
+		Runtime:  submission.Runtime,
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"submission_id": submission.ID,
+		"status":        result.Status,
+		"runtime":       result.Runtime,
+	}).Info("returning custom input submission result")
+
+	respJSON, err := json.Marshal(result)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
 }
 
 func updateCustomInputSubmissionStatus(w http.ResponseWriter, r *http.Request) {
@@ -227,41 +288,50 @@ func updateCustomInputSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		"raw_body":      string(reqBodyBytes),
 	}).Info("received custom input submission update request")
 
-	err = json.Unmarshal(reqBodyBytes, reqData)
-	if err != nil {
+	if err := json.Unmarshal(reqBodyBytes, reqData); err != nil {
 		logrus.WithError(err).Error("JSON parse error")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
 		return
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"submission_id": submissionId.String(),
-		"status":        reqData.Status,
-		"runtime":       reqData.Runtime,
-		"stdout_length": len(reqData.Stdout),
-		"stderr_length": len(reqData.Stderr),
-	}).Info("parsed custom input submission update data")
-
-	result, ok := customSubmissionMap[submissionId.String()]
-	if !ok {
+	submission, err := db.GetInputSubmission(submissionId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving input submission")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving input submission"}`)
+		return
+	}
+	if submission == nil {
 		logrus.WithField("submission_id", submissionId.String()).Warn("submission not found")
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprint(w, `{"code":"404", "message":"submission not found"}`)
 		return
-	} else {
-		result.Finished = true
-		result.Status = reqData.Status
-		result.Stdout = reqData.Stdout
-		result.Stderr = reqData.Stderr
-		result.Runtime = reqData.Runtime
-
-		logrus.WithFields(logrus.Fields{
-			"submission_id": submissionId.String(),
-			"status":        result.Status,
-			"runtime":       result.Runtime,
-			"finished":      result.Finished,
-		}).Info("updated custom input submission result")
 	}
 
+	if submission.Finished {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	submission.Finished = true
+	submission.Status = reqData.Status
+	submission.Stdout = reqData.Stdout
+	submission.Stderr = reqData.Stderr
+	submission.Runtime = reqData.Runtime
+
+	if err := db.UpdateInputSubmissionResult(submission); err != nil {
+		logrus.WithError(err).Error("error updating input submission")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error updating input submission"}`)
+		return
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"submission_id": submissionId.String(),
+		"status":        submission.Status,
+		"runtime":       submission.Runtime,
+	}).Info("updated custom input submission result")
+
+	w.WriteHeader(http.StatusNoContent)
 }
