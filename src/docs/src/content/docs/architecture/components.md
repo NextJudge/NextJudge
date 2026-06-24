@@ -62,18 +62,27 @@ Terminal workflow for people who live in `vim`. [CLI guide](/guides/cli/).
 
 ## Submission path (the whole story)
 
-```
-Browser                    Data layer              RabbitMQ           Judge
-   | POST /submissions         |                      |                |
-   | ------------------------> | store PENDING        |                |
-   | <------------------------ | 201 + id             |                |
-   |                           | publish message -----> |                |
-   |                           |                      | deliver -------> |
-   |                           |                      |                | compile + run tests
-   |                           | <----- PATCH result ------------------- |
-   | GET /submissions/id       |                      |                |
-   | ------------------------> | status: ACCEPTED     |                |
-   | (repeat until !PENDING)   |                      |                |
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant DataLayer as Data layer
+    participant RabbitMQ
+    participant Judge
+
+    Browser->>DataLayer: POST /submissions
+    DataLayer->>DataLayer: store PENDING
+    DataLayer-->>Browser: 201 + id
+
+    DataLayer->>RabbitMQ: publish message
+    RabbitMQ->>Judge: deliver
+
+    Note over Judge: compile + run tests
+    Judge->>DataLayer: PATCH result
+
+    loop until status != PENDING
+        Browser->>DataLayer: GET /submissions/id
+        DataLayer-->>Browser: status (e.g. ACCEPTED)
+    end
 ```
 
 Custom input runs (`/v1/input_submissions`) skip test comparison but follow the same queue + judge path.

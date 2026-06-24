@@ -1,6 +1,6 @@
 ---
 title: NextJudge
-description: Self-hosted competitive programming platform for contests, sandboxed execution, and automated judging.
+description: Self-hosted competitive programming platform for organizers and participants.
 template: splash
 hero:
   layout: centered
@@ -22,17 +22,17 @@ import { ContainerSection } from "lucode-starlight/components";
 
 <ContainerSection>
 <CardGrid>
-  <Card title="Deploy" icon="setting">
-    `./deploy.sh web` from repo root. API on `:5000`, UI on `:8080`.
+  <Card title="Deploy" icon="cloud-download">
+    Get NextJudge [deployed](/start/getting-started/#deploy) on your own machine in a few minutes.
   </Card>
-  <Card title="Architecture" icon="code">
-    [How the pieces connect](/architecture/components/) and [how judging works](/architecture/judge/).
+  <Card title="Architecture" icon="code-branch">
+    How [we're built](/architecture/components/) and how an nsjail sandbox [judges](/architecture/judge/) your code in real time.
   </Card>
   <Card title="CLI" icon="laptop">
-    [`nextjudge get / test / submit`](/guides/cli/) from the terminal.
+    [Install our CLI](/guides/cli/) and run NextJudge without leaving the terminal.
   </Card>
   <Card title="API" icon="document">
-    [Auth](/reference/authentication/) then [REST endpoints](/reference/api/).
+    [Authenticate](/reference/authentication/) then [interact](/reference/api/) with the data layer directly.
   </Card>
 </CardGrid>
 </ContainerSection>
