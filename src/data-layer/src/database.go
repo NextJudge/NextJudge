@@ -380,6 +380,7 @@ func (d *Database) DeleteProblem(problem *ProblemDescriptionExt) error {
 
 func (d *Database) CreateSubmission(submission *Submission) (*Submission, error) {
 	submission.SubmitTime = time.Now()
+	submission.EnqueueState = EnqueuePending
 	err := d.NextJudgeDB.Create(submission).Error
 	if err != nil {
 		return nil, err

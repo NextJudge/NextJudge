@@ -6,6 +6,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type EnqueueState string
+
+const (
+	EnqueuePending EnqueueState = "pending"
+	EnqueueQueued  EnqueueState = "queued"
+	EnqueueFailed  EnqueueState = "failed"
+)
+
 type Status string
 
 const (
@@ -148,6 +156,30 @@ type Submission struct {
 	Stderr           string     `json:"stderr"`
 	// per-test-case results stored in separate table
 	TestCaseResults []SubmissionTestCaseResult `json:"test_case_results,omitempty" gorm:"foreignKey:SubmissionID"`
+	EnqueueState    EnqueueState               `json:"enqueue_state" gorm:"type:enqueue_state;not null;default:pending"`
+	EnqueuedAt      *time.Time                 `json:"enqueued_at,omitempty"`
+	EnqueueAttempts int                        `json:"enqueue_attempts" gorm:"not null;default:0"`
+}
+
+type InputSubmission struct {
+	ID              uuid.UUID    `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	UserID          *uuid.UUID   `json:"user_id,omitempty"`
+	LanguageID      uuid.UUID    `json:"language_id"`
+	SourceCode      string       `json:"source_code"`
+	Stdin           string       `json:"stdin"`
+	Status          Status       `json:"status"`
+	Stdout          string       `json:"stdout"`
+	Stderr          string       `json:"stderr"`
+	Runtime         float64      `json:"runtime"`
+	Finished        bool         `json:"finished"`
+	CreatedAt       time.Time    `json:"created_at"`
+	EnqueueState    EnqueueState `json:"enqueue_state" gorm:"type:enqueue_state;not null;default:pending"`
+	EnqueuedAt      *time.Time   `json:"enqueued_at,omitempty"`
+	EnqueueAttempts int          `json:"enqueue_attempts" gorm:"not null;default:0"`
+}
+
+func (InputSubmission) TableName() string {
+	return "input_submissions"
 }
 
 type Language struct {

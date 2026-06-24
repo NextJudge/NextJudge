@@ -5,6 +5,7 @@ from pathlib import Path
 @pytest.fixture
 def setup():
     parse_languages()
+    init_go_cache_directories()
     yield
 
 @pytest.mark.parametrize("input_file_name", os.listdir(os.path.join(os.path.dirname(__file__), "test_hello_world")))

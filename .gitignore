@@ -11,5 +11,5 @@ src/data-layer/Pipfile.lock
 .vercel
 .env.coolify
 coolify.env
-
+tsconfig.tsbuildinfo
 presentation/

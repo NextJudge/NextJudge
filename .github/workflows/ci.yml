@@ -136,7 +136,7 @@ jobs:
         working-directory: src/judge
         run: |
           docker build -f Dockerfile.newbase --target prod -t basejudge:prod .
-          docker build -f Dockerfile.monolith --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge-test .
+          docker build -f Dockerfile.monolith --target test --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge-test .
           docker compose -f docker-compose.test.yml run --rm pytest
 
   ci-success:
@@ -148,7 +148,11 @@ jobs:
 
   preview-deploy:
     needs: [changes, ci-success]
+    # always() is required when ci-success ran via always() with skipped jobs
+    # (e.g. docs-build). Otherwise preview-deploy is skipped even when web changed.
     if: |
+      always() &&
+      needs.ci-success.result == 'success' &&
       github.event_name == 'pull_request' &&
       (
         needs.changes.outputs.web == 'true' ||

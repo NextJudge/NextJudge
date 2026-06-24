@@ -24,6 +24,12 @@ CREATE TYPE FEEDBACK_POLICY as ENUM(
   'FIRST_ERROR'
 );
 
+CREATE TYPE enqueue_state AS ENUM(
+  'pending',
+  'queued',
+  'failed'
+);
+
 CREATE TABLE "users" (
   "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   "account_identifier" varchar(255) NOT NULL UNIQUE,
@@ -71,7 +77,27 @@ CREATE TABLE "submissions" (
   "submit_time" timestamp NOT NULL,
   "source_code" varchar NOT NULL,
   "stdout" varchar,
-  "stderr" varchar
+  "stderr" varchar,
+  "enqueue_state" enqueue_state NOT NULL DEFAULT 'pending',
+  "enqueued_at" TIMESTAMPTZ,
+  "enqueue_attempts" integer NOT NULL DEFAULT 0
+);
+
+CREATE TABLE "input_submissions" (
+  "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "user_id" UUID,
+  "language_id" UUID NOT NULL,
+  "source_code" TEXT NOT NULL,
+  "stdin" TEXT NOT NULL DEFAULT '',
+  "status" status NOT NULL DEFAULT 'PENDING',
+  "stdout" TEXT,
+  "stderr" TEXT,
+  "runtime" FLOAT NOT NULL DEFAULT 0,
+  "finished" BOOLEAN NOT NULL DEFAULT false,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "enqueue_state" enqueue_state NOT NULL DEFAULT 'pending',
+  "enqueued_at" TIMESTAMPTZ,
+  "enqueue_attempts" integer NOT NULL DEFAULT 0
 );
 
 CREATE TABLE "submission_test_case_results" (
@@ -205,6 +231,8 @@ ALTER TABLE "submissions" ADD FOREIGN KEY ("event_id") REFERENCES "events" ("id"
 ALTER TABLE "submissions" ADD FOREIGN KEY ("event_problem_id") REFERENCES "event_problems" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "submissions" ADD FOREIGN KEY ("language_id") REFERENCES "languages" ("id") ON DELETE CASCADE;
+
+ALTER TABLE "input_submissions" ADD FOREIGN KEY ("language_id") REFERENCES "languages" ("id") ON DELETE CASCADE;
 
 ALTER TABLE "submissions" ADD FOREIGN KEY ("failed_test_case_id") REFERENCES "test_cases" ("id") ON DELETE CASCADE;
 

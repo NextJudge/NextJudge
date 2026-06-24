@@ -1,3 +1,5 @@
+# Deprecated: build the monolith test target instead.
+#   docker build -f Dockerfile.monolith --target test --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge-test .
 FROM nextjudge-judge-test
 
 WORKDIR /app

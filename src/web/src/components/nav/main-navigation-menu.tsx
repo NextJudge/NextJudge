@@ -22,11 +22,11 @@ export function MainNavigationMenu({ session }: { session: Session | undefined }
   });
 
   return (
-    <NavigationMenu>
+    <NavigationMenu viewport={false}>
       <NavigationMenuList>
-        <NavigationMenuItem>
+        <NavigationMenuItem className="relative">
           <NavigationMenuTrigger>{infos.title}</NavigationMenuTrigger>
-          <NavigationMenuContent>
+          <NavigationMenuContent className="left-auto right-0 top-full mt-1.5 rounded-md border bg-popover text-popover-foreground shadow">
             <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
               <li className="row-span-3">
                 <a

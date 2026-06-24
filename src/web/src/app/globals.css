@@ -52,6 +52,32 @@
 		--success-foreground: 144.9 80.4% 10%;
 		--ring: 23.11 59.8% 40%;
 	}
+
+	.editor-workspace {
+		-webkit-user-select: none;
+		user-select: none;
+		--success-green: #28c244;
+		--color-section-splitter: #1a90ff;
+		--background: 0 0% 3.9%;
+		--foreground: 0 0% 98%;
+		--card: 0 0% 3.9%;
+		--card-foreground: 0 0% 98%;
+		--popover: 0 0% 3.9%;
+		--popover-foreground: 0 0% 98%;
+		--primary: 0 0% 98%;
+		--primary-foreground: 0 0% 9%;
+		--secondary: 0 0% 14.9%;
+		--secondary-foreground: 0 0% 98%;
+		--muted: 0 0% 14.9%;
+		--muted-foreground: 0 0% 63.9%;
+		--accent: 0 0% 14.9%;
+		--accent-foreground: 0 0% 98%;
+		--destructive: 0 62.8% 30.6%;
+		--destructive-foreground: 0 0% 98%;
+		--border: 0 0% 14.9%;
+		--input: 0 0% 14.9%;
+		--ring: 0 0% 83.1%;
+	}
 }
 
 @layer base {
@@ -123,4 +149,24 @@
 
 .ProseMirror:focus {
 	outline: none;
+}
+
+.editor-workspace :is(.monaco-editor, textarea, input, [contenteditable="true"], .select-all),
+.editor-workspace :is(.monaco-editor, textarea, input, [contenteditable="true"], .select-all) * {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+.editor-workspace code {
+	background-color: #353535;
+	border: 1px solid gray;
+	border-radius: 4px;
+	padding: 2px;
+}
+
+.editor-prose code {
+	background-color: #353535;
+	border: 1px solid gray;
+	border-radius: 4px;
+	padding: 2px;
 }

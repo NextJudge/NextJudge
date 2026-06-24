@@ -34,3 +34,20 @@ export function convertToMonacoLanguageName(language: Language | undefined) {
 
     return language.name.toLowerCase();
 }
+
+export function compareOutput(expected: string, actual: string): boolean {
+    const expectedLines = expected.trim().split("\n").map((line) => line.trim());
+    const actualLines = actual.trim().split("\n").map((line) => line.trim());
+
+    if (expectedLines.length !== actualLines.length) {
+        return false;
+    }
+
+    for (let i = 0; i < expectedLines.length; i++) {
+        if (expectedLines[i] !== actualLines[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}

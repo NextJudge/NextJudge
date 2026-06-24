@@ -59,6 +59,8 @@ func main() {
 		}
 	}
 
+	StartEnqueueReaper()
+
 	if cfg.ElasticEnabled {
 		es, err = NewElasticSearch()
 		if err != nil {

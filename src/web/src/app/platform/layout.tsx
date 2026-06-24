@@ -22,7 +22,7 @@ export default function PlatformLayout({ children }: PlatformLayoutProps) {
 
   return (
     <SessionProvider>
-      <main className="flex flex-col items-center justify-center overflow-x-hidden">
+      <main className={isEditorPage ? "h-screen overflow-hidden" : "flex flex-col items-center justify-center overflow-x-hidden"}>
         {children}
       </main>
       {!isEditorPage && <Footer />}

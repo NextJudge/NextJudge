@@ -2,8 +2,8 @@
 
 import { Icons } from "@/components/icons";
 import { MainNavigationMenu } from "@/components/nav/navbar";
-import { ModeToggle } from "@/components/theme";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -11,76 +11,91 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { routeList } from "@/lib/constants";
-import { Menu } from "lucide-react";
+import { ChevronLeft, Menu } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function EditorNavbar({
   children,
   notificationSlot,
+  backHref = "/platform/problems",
 }: {
   children: React.ReactNode;
-    notificationSlot: React.ReactNode;
+  notificationSlot: React.ReactNode;
+  backHref?: string;
 }) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+
   return (
-    <header className="border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-neutral-500/40 dark:bg-background">
-      <div className="container h-14 px-4 w-full flex justify-between">
-        <div className="font-bold flex items-center mx-6 gap-2">
-          <Icons.logo className="text-orange-600 w-6 h-6" />
-          <a href="/" className="text-xl">
-            NextJudge
-          </a>
-        </div>
-
-        {/* <EditorThemeSelector
-          onSelect={onSelect}
-          themes={themes}
-          selectedTheme={selectedTheme}
-        /> */}
-
-        {/* mobile */}
-        <div className="flex md:hidden items-center justify-center gap-8 mx-4">
-          <ModeToggle />
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger className="px-2" asChild>
-              <Button variant="ghost">
-                <Menu className="h-5 w-5" onClick={() => setIsOpen(true)} />
+    <TooltipProvider delayDuration={100}>
+      <nav className="flex w-full justify-between items-center h-12 shrink-0">
+        <div className="flex items-center h-8 space-x-1 min-w-0">
+          <Link href="/" className="flex items-center gap-2 mx-2">
+            <Icons.logo className="text-orange-600 w-7 h-7 shrink-0" />
+            <span className="text-lg font-bold hidden sm:inline">NextJudge</span>
+          </Link>
+          <Separator orientation="vertical" className="h-5" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                <Link href={backHref}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Link>
               </Button>
-            </SheetTrigger>
-
-            <SheetContent side={"left"}>
-              <SheetHeader>
-                <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
-              </SheetHeader>
-              <nav className="flex flex-col justify-center items-center gap-2 mt-4">
-                {routeList.map(({ href, label }) => {
-                  const isExternal = href.startsWith("http");
-                  return (
-                    <a
-                      key={label}
-                      href={href}
-                      target={isExternal ? "_blank" : undefined}
-                      rel={isExternal ? "noopener noreferrer" : undefined}
-                      onClick={() => setIsOpen(false)}
-                      className={buttonVariants({ variant: "ghost" })}
-                    >
-                      {label}
-                    </a>
-                  );
-                })}
-              </nav>
-            </SheetContent>
-          </Sheet>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Back to problems</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
-        <div className="hidden md:flex flex-row gap-4 justify-center items-center mx-12 ">
-          <MainNavigationMenu />
-          {notificationSlot}
-          {children}
-          <ModeToggle />
+        <div className="flex items-center h-8 space-x-1">
+          <div className="hidden md:flex items-center gap-2">
+            <MainNavigationMenu />
+            {notificationSlot}
+            {children}
+          </div>
+
+          <div className="flex md:hidden items-center gap-1">
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <SheetHeader>
+                  <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col justify-center items-center gap-2 mt-4">
+                  {routeList.map(({ href, label }) => {
+                    const isExternal = href.startsWith("http");
+                    return (
+                      <a
+                        key={label}
+                        href={href}
+                        target={isExternal ? "_blank" : undefined}
+                        rel={isExternal ? "noopener noreferrer" : undefined}
+                        onClick={() => setIsOpen(false)}
+                        className={buttonVariants({ variant: "ghost" })}
+                      >
+                        {label}
+                      </a>
+                    );
+                  })}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
-      </div>
-    </header>
+      </nav>
+    </TooltipProvider>
   );
 }

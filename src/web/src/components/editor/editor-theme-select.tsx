@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+import { Palette } from "lucide-react";
 import * as React from "react";
 
 export type Theme = {
@@ -23,7 +24,13 @@ export type Theme = {
   fetch: string;
 };
 
-export function EditorThemeSelector({ themes }: { themes: Theme[] }) {
+export function EditorThemeSelector({
+  themes,
+  variant = "default",
+}: {
+  themes: Theme[];
+  variant?: "default" | "compact";
+}) {
   const { theme: currentTheme, setTheme } = React.useContext(ThemeContext);
   const [open, setOpen] = React.useState(false);
   const builtInThemes: Theme[] = [
@@ -33,24 +40,38 @@ export function EditorThemeSelector({ themes }: { themes: Theme[] }) {
 
   const allThemes = [...builtInThemes, ...themes];
 
+  const isCompact = variant === "compact";
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant={isCompact ? "ghost" : "outline"}
           role="combobox"
           aria-expanded={open}
-          className="w-[200px] justify-between"
+          className={cn(
+            isCompact
+              ? "h-6 w-6 p-1"
+              : "w-[200px] justify-between"
+          )}
+          title="Editor theme"
+          aria-label="Editor theme"
         >
-          {currentTheme?.name ? (
-            currentTheme.name === "vs-dark" ? "VS Code Dark" :
-              currentTheme.name === "light" ? "VS Code Light" :
-                currentTheme.name
-          ) : "Select theme..."}
-          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          {isCompact ? (
+            <Palette className="!w-3.5 !h-3.5" />
+          ) : (
+            <>
+              {currentTheme?.name ? (
+                currentTheme.name === "vs-dark" ? "VS Code Dark" :
+                  currentTheme.name === "light" ? "VS Code Light" :
+                    currentTheme.name
+              ) : "Select theme..."}
+              <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </>
+          )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0">
+      <PopoverContent className={cn(isCompact ? "w-[220px] p-0" : "w-[200px] p-0")}>
         <Command>
           <CommandInput placeholder="Search our themes..." className="h-9" />
           <CommandEmpty>No theme found.</CommandEmpty>
