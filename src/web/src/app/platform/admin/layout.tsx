@@ -11,14 +11,14 @@ import { links, sidebarNavItems } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Admin",
-  description: "Manage your various contests, problems, and submissions.",
+  description: "Organizer tools for managing NextJudge contests and problems.",
 };
 
-interface SettingsLayoutProps {
+interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-export default async function AdminLayout({ children }: SettingsLayoutProps) {
+export default async function AdminLayout({ children }: AdminLayoutProps) {
   const session = await auth();
 
   if (!session) {
@@ -35,20 +35,20 @@ export default async function AdminLayout({ children }: SettingsLayoutProps) {
       <PlatformNavbar session={session}>
         <UserAvatar session={session} />
       </PlatformNavbar>
-      <div className="hidden space-y-6 px-10 max-w-7xl md:block w-full py-10">
+      <div className="space-y-6 px-4 sm:px-6 md:px-10 max-w-7xl w-full py-6 md:py-10">
         <BreadcrumbWithDropdown crumbs={links} />
         <div className="space-y-0.5">
-          <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Admin</h2>
           <p className="text-muted-foreground">
-            Manage your various contests, problems, and submissions.
+            Organizer tools for managing contests and the official problem set.
           </p>
         </div>
         <Separator className="my-6" />
-        <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-          <aside className="-mx-4 lg:w-1/5">
+        <div className="flex flex-col space-y-6 lg:flex-row lg:space-x-12 lg:space-y-0">
+          <aside className="lg:w-1/5">
             <SidebarNav items={sidebarNavItems} />
           </aside>
-          <div className="flex-1 lg:max-w-4xl">{children}</div>
+          <div className="flex-1 min-w-0 lg:max-w-4xl">{children}</div>
         </div>
       </div>
     </>

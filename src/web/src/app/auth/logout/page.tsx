@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { BRAND_NAME, getCopyrightNotice, SITE_COPY } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -34,7 +35,7 @@ export default function SignOutPage() {
                 <CardHeader className="space-y-1">
                   <CardTitle className="text-2xl">Sign out</CardTitle>
                   <CardDescription>
-                    Terminate your session with NextJudge
+                    {SITE_COPY.logoutCardDescription}
                   </CardDescription>
                 </CardHeader>
                 <CardFooter>
@@ -58,14 +59,14 @@ export default function SignOutPage() {
           </Link>
           <div className="relative z-20 flex items-center text-lg font-medium">
             <Icons.logo className="mr-2 h-6 w-6" />
-            NextJudge
+            {BRAND_NAME}
           </div>
           <div id="lottie-panel" className="relative z-20 mt-auto">
             <Code />
           </div>
           <div className="relative z-20 mt-auto">
             <p className="text-xs text-muted-foreground">
-              © 2024 NextJudge. All rights reserved.
+              {getCopyrightNotice()}
             </p>
           </div>
         </div>

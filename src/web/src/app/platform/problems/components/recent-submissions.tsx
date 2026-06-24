@@ -2,6 +2,7 @@
 
 import { DummyCodeEditor } from "@/components/landing/bento";
 import { SubmissionStatusBadge } from "@/components/submissions/submission-status-config";
+import { SubmissionMeta } from "@/components/submissions/submission-meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,8 +18,9 @@ import {
 import { Submission, SubmissionStatus, statusMap } from "@/lib/types";
 import { cn, convertToMonacoLanguageName } from "@/lib/utils";
 import { format } from "date-fns";
-import { CircleDot } from "lucide-react";
+import { CircleDot, Copy } from "lucide-react";
 import moment from "moment";
+import { toast } from "sonner";
 
 const languageColors: Record<string, string> = {
   python: "text-python fill-python",
@@ -39,29 +41,40 @@ const getColorClass = (language: string) => {
   return languageColors[language.toLowerCase()];
 };
 
+const getStatusColor = (status: SubmissionStatus) => {
+  if (status === "ACCEPTED") return "text-green-500";
+  if (
+    status === "WRONG_ANSWER" ||
+    status === "TIME_LIMIT_EXCEEDED" ||
+    status === "MEMORY_LIMIT_EXCEEDED" ||
+    status === "RUNTIME_ERROR" ||
+    status === "COMPILE_TIME_ERROR"
+  ) {
+    return "text-red-500";
+  }
+  if (status === "PENDING") return "text-yellow-500";
+  return "text-primary-foreground";
+};
+
+const handleCopyCode = async (sourceCode: string) => {
+  try {
+    await navigator.clipboard.writeText(sourceCode);
+    toast.success("Code copied to clipboard.");
+  } catch {
+    toast.error("Could not copy code to clipboard.");
+  }
+};
+
 export function RecentSubmissionCard({
   submission,
+  onUseCode,
 }: {
   submission: Submission;
+  onUseCode?: (code: string, languageId: string) => void;
 }) {
   if (!submission) return null;
 
   const submissionStatus = submission.status as SubmissionStatus;
-
-  const getStatusColor = (status: SubmissionStatus) => {
-    if (status === "ACCEPTED") return "text-green-500";
-    if (
-      status === "WRONG_ANSWER" ||
-      status === "TIME_LIMIT_EXCEEDED" ||
-      status === "MEMORY_LIMIT_EXCEEDED" ||
-      status === "RUNTIME_ERROR" ||
-      status === "COMPILE_TIME_ERROR"
-    ) {
-      return "text-red-500";
-    }
-    if (status === "PENDING") return "text-yellow-500";
-    return "text-primary-foreground";
-  };
 
   return (
     <Dialog>
@@ -99,17 +112,36 @@ export function RecentSubmissionCard({
             {format(submission.submit_time, "PPP 'at' p")}
           </DialogDescription>
         </DialogHeader>
-        <div>
-          <h1 className={cn("text-lg font-bold", getStatusColor(submissionStatus))}>
+        <div className="space-y-3">
+          <h2 className={cn("text-lg font-bold", getStatusColor(submissionStatus))}>
             {statusMap[submission.status] || submission.status}
-          </h1>
+          </h2>
+          <SubmissionMeta submission={submission} />
         </div>
         <DummyCodeEditor
           sourceCode={submission.source_code}
           language={convertToMonacoLanguageName(submission.language)}
           readOnly={true}
         />
-        <DialogFooter className="sm:justify-start">
+        <DialogFooter className="gap-2 sm:justify-start">
+          {onUseCode ? (
+            <Button
+              type="button"
+              onClick={() => onUseCode(submission.source_code, submission.language_id)}
+            >
+              Use this code
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              onClick={() => void handleCopyCode(submission.source_code)}
+            >
+              <Copy className="h-4 w-4" />
+              Copy code
+            </Button>
+          )}
           <DialogClose asChild>
             <Button type="button" variant="secondary">
               Close

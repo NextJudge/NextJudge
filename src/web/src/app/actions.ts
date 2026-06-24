@@ -1,15 +1,16 @@
 "use server";
 
 import { EmailTemplate } from "@/components/email/template";
-import { apiCreateProblem, apiDeleteProblem, apiUpdateProblem } from "@/lib/api";
+import { apiCreateProblem, apiDeleteProblem, apiDeleteUser, apiUpdateProblem } from "@/lib/api";
 import { ProblemRequest } from "@/lib/types";
 import { LoginFormValues, SignUpFormValues } from "@/types";
 import { pretty, render, toPlainText } from "@react-email/components";
 import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { ZodError } from "zod";
-import { auth, signIn } from "./auth";
+import { auth, signIn, signOut } from "./auth";
 import { newsletterFormSchema } from "./validation";
+import { getEmailFrom } from "@/lib/site";
 import { getAppUrl } from "@/lib/utils";
 
 export interface ReturnType {
@@ -32,7 +33,7 @@ export async function sendEmail(formData: FormData): Promise<ReturnType> {
     const html = await pretty(await render(EmailTemplate({ firstName: nameWithCapital })))
 
     await resend.emails.send({
-      from: process.env.NODE_ENV === "production" ? "NextJudge <hello@nextjudge.net>" : "NextJudge <dev@nextjudge.net>",
+      from: getEmailFrom(),
       to: process.env.NODE_ENV === "production" ? [email.toString()] : ["delivered+welcome@resend.dev"],
       react: EmailTemplate({ firstName: nameWithCapital }),
       subject: "Welcome to the NextJudge community! 🚀",
@@ -153,12 +154,15 @@ interface FormProblemData {
 
 export async function createProblem(data: FormProblemData, categoryIds: string[] = []) {
   const session = await auth();
-  if (!session || !session.user) {
+  if (!session?.user || !session.nextjudge_token || !session.nextjudge_id) {
     return {
       status: "error",
       message: "Invalid session",
     };
   }
+
+  const token = session.nextjudge_token;
+  const userId = session.nextjudge_id;
 
   try {
     const problemData: ProblemRequest = {
@@ -171,7 +175,7 @@ export async function createProblem(data: FormProblemData, categoryIds: string[]
       accept_timeout: data.accept_timeout,
       execution_timeout: data.execution_timeout,
       memory_limit: data.memory_limit,
-      user_id: session.nextjudge_id,
+      user_id: userId,
       test_cases: data.test_cases.map((tc) => ({
         input: tc.input,
         expected_output: tc.expected_output,
@@ -181,7 +185,7 @@ export async function createProblem(data: FormProblemData, categoryIds: string[]
       public: data.public
     };
 
-    const result = await apiCreateProblem(session.nextjudge_token, problemData);
+    const result = await apiCreateProblem(token, problemData);
 
     revalidatePath("/platform/admin/problems");
 
@@ -201,12 +205,15 @@ export async function createProblem(data: FormProblemData, categoryIds: string[]
 
 export async function updateProblem(problemId: number, data: FormProblemData, categoryIds: string[] = []) {
   const session = await auth();
-  if (!session || !session.user) {
+  if (!session?.user || !session.nextjudge_token || !session.nextjudge_id) {
     return {
       status: "error",
       message: "Invalid session",
     };
   }
+
+  const token = session.nextjudge_token;
+  const userId = session.nextjudge_id;
 
   try {
     const problemData: ProblemRequest = {
@@ -219,7 +226,7 @@ export async function updateProblem(problemId: number, data: FormProblemData, ca
       accept_timeout: data.accept_timeout,
       execution_timeout: data.execution_timeout,
       memory_limit: data.memory_limit,
-      user_id: session.nextjudge_id,
+      user_id: userId,
       test_cases: data.test_cases.map((tc) => ({
         input: tc.input,
         expected_output: tc.expected_output,
@@ -229,7 +236,7 @@ export async function updateProblem(problemId: number, data: FormProblemData, ca
       public: data.public
     };
 
-    const result = await apiUpdateProblem(session.nextjudge_token, problemId, problemData);
+    const result = await apiUpdateProblem(token, problemId, problemData);
 
     revalidatePath("/platform/admin/problems");
 
@@ -278,7 +285,7 @@ export async function createTestCase(data: TestCaseData) {
 
 export async function deleteProblem(id: number): Promise<ReturnType> {
   const session = await auth();
-  if (!session || !session.user) {
+  if (!session?.user || !session.nextjudge_token) {
     return {
       status: "error",
       message: "Invalid session",
@@ -299,6 +306,27 @@ export async function deleteProblem(id: number): Promise<ReturnType> {
     return {
       status: "error",
       message: error instanceof Error ? error.message : "Failed to delete problem",
+    };
+  }
+}
+
+export async function deleteAccount(): Promise<ReturnType | void> {
+  const session = await auth();
+  if (!session?.nextjudge_token || !session?.nextjudge_id) {
+    return {
+      status: "error",
+      message: "You must be signed in to delete your account",
+    };
+  }
+
+  try {
+    await apiDeleteUser(session.nextjudge_token, session.nextjudge_id);
+    await signOut({ redirectTo: "/auth/login", redirect: true });
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Failed to delete account",
     };
   }
 }

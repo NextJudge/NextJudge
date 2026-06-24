@@ -18,6 +18,7 @@ import { Icons } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { BRAND_NAME } from "@/lib/site";
 import {
     Table,
     TableBody,
@@ -336,7 +337,7 @@ export default function BenchmarkPage() {
                             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
                                 <div>
                                     <span className="text-osu text-sm font-medium uppercase tracking-wider">
-                                        NextJudge
+                                        {BRAND_NAME}
                                     </span>
                                     <h1 className="mt-2 text-3xl md:text-4xl font-bold tracking-tight text-white">
                                         Sandbox Execution Benchmark

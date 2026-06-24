@@ -1,271 +1,120 @@
 ---
 title: Development Guide
-description: Guide for developing and contributing to NextJudge.
+description: Day-to-day hacking on NextJudge.
 ---
 
-This guide covers how to set up a development environment for NextJudge and contribute to the project.
+You've run [`./dev-deploy.sh web`](/start/getting-started/). This page is for the second hour onward.
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- Go 1.21+ (for data-layer development)
-- Node.js 18+ and npm/bun (for web development)
-- Python 3.10+ (for judge development)
-- Git
+| Tool | Version | For |
+| ---- | ------- | --- |
+| Docker | 20.10+ | Compose stacks |
+| Go | 1.21+ | Data layer |
+| Node / Bun | 18+ | Web |
+| Python | 3.10+ | Judge + Tavern tests |
+| Git | any | PRs |
 
-## Development Setup
-
-### Using Docker Compose (Recommended)
-
-The easiest way to develop is using the development Docker Compose setup with hot reload:
-
-```sh
-./dev-deploy.sh
-```
-
-This starts all services with:
-- Source code mounted as volumes
-- Hot reload enabled
-- Development-friendly configurations
-
-### Individual Service Development
-
-You can also run services individually for faster iteration:
-
-#### Data Layer
-
-```sh
-cd src/data-layer
-go mod download
-go run src/main.go -d -p 5000
-```
-
-Make sure PostgreSQL and RabbitMQ are running (via Docker Compose).
-
-#### Web Application
-
-```sh
-cd src/web
-npm install  # or bun install
-npm run dev  # or bun dev
-```
-
-The web app will run on `http://localhost:3000`.
-
-#### Judge Service
-
-```sh
-cd src/judge
-pip install -r requirements.txt
-python src/app.py
-```
-
-Make sure RabbitMQ and the data layer are running.
-
-## Project Structure
+## Layout
 
 ```
 NextJudge/
+├── compose/              # docker-compose.*.yml
 ├── src/
-│   ├── cli/              # Command-line interface
-│   │   ├── bin/          # Executable scripts
-│   │   └── dev/           # Development utilities
-│   ├── data-layer/        # Go REST API service
-│   │   ├── src/           # Go source code
-│   │   ├── tests/         # API tests (Tavern)
-│   │   └── docker-compose.*.yml
-│   ├── judge/             # Python judge service
-│   │   ├── src/           # Python source code
-│   │   ├── tests/         # Judge tests
-│   │   └── languages.toml # Language configurations
-│   ├── web/               # Next.js web application
-│   │   ├── src/           # React/Next.js source
-│   │   │   ├── app/        # Next.js app router pages
-│   │   │   ├── components/ # React components
-│   │   │   └── lib/        # Utilities
-│   │   └── public/         # Static assets
-│   └── docs/              # Documentation site
-└── compose/               # Docker Compose files
+│   ├── data-layer/src/ # Go handlers (users.go, problems.go, …)
+│   ├── judge/          # languages.toml, nsjail, app.py
+│   ├── web/src/app/    # Next.js routes
+│   ├── cli/            # nextjudge command
+│   └── docs/           # you're here
+├── deploy.sh           # prod-ish local stack
+├── dev-deploy.sh       # hot reload + SEED_DATA
+└── fully-reset.sh      # scorched earth
 ```
 
-## Code Style
+## Files you'll actually edit
 
-### Go (Data Layer)
+| Task | Start here |
+| ---- | ---------- |
+| API bug / new endpoint | `src/data-layer/src/*.go`, then `tests/test_data_layer.tavern.yaml` |
+| Wrong verdict / TLE | `src/judge/src/`, `languages.toml` |
+| UI / editor | `src/web/src/app/`, `src/web/src/components/` |
+| Types shared with API | `src/web/src/lib/types.ts` |
+| Schema change | `src/data-layer/src/models.go`, maybe `schema_updates.sql` |
 
-- Follow standard Go formatting (`gofmt`)
-- Use `golangci-lint` for linting
-- Follow Go naming conventions
-- Use early returns for error handling
+## Tests
 
-### TypeScript/React (Web)
+**Data layer** (must be running on `:5000`):
 
-- Use TypeScript strict mode
-- Follow React best practices
-- Use functional components with hooks
-- Prefer `const` over `function` for components
-- Use TailwindCSS for styling
-- No `any` types - always specify types
-
-### Python (Judge)
-
-- Follow PEP 8 style guide
-- Use type hints where possible
-- Use descriptive variable names
-- Handle errors explicitly
-
-## Database Migrations
-
-The data layer uses GORM's AutoMigrate feature. When modifying models:
-
-1. Update the model struct in `src/data-layer/src/models.go`
-2. Run the service - migrations run automatically on startup
-3. For production, consider using explicit migration scripts
-
-## Testing
-
-### Data Layer API Tests
-
-API tests use Tavern (Python testing framework):
-
-```sh
+```bash
 cd src/data-layer
 pip install -r tests/requirements.txt
 pytest tests/ -p no:warnings
 ```
 
-Make sure the data layer is running before running tests.
+Tavern tests hit real HTTP. They assume auth is relaxed or configured like CI. Failures print the stage name; search that in `test_data_layer.tavern.yaml`.
 
-### Judge Tests
+**Judge:**
 
-Judge tests verify compilation and execution:
-
-```sh
-cd src/judge
-python -m pytest tests/
+```bash
+cd src/judge && python -m pytest tests/
+# or ./tests.sh
 ```
 
-Or use the test script:
+**Web:**
 
-```sh
-./tests.sh
+```bash
+cd src/web && npm run lint && npm test
 ```
 
-### Web Application
+## CI (what runs on your PR)
 
-```sh
-cd src/web
-npm test  # or bun test
-```
+Path-filtered jobs in `.github/workflows/ci.yml`:
 
-## Adding New Features
+| Change in | Runs |
+| --------- | ---- |
+| `src/web/**` | lint, Docker build |
+| `src/data-layer/**` | Go tests, API Tavern tests |
+| `src/judge/**` | Judge tests, image build |
+| `src/docs/**` | Docs build |
 
-### Adding a New API Endpoint
+Touch one service, you usually only wait on that job. Nice when judge Python and web TypeScript aren't coupled.
 
-1. Define the route in the appropriate file (`users.go`, `problems.go`, etc.)
-2. Implement the handler function
-3. Add authentication middleware if needed
-4. Update API documentation
-5. Add tests
+## Common tasks
 
-### Adding a New Language
+### New API endpoint
 
-1. Install compiler/runtime in judge Docker image
-2. Add entry to `src/judge/languages.toml`
-3. Test compilation and execution
-4. Register language in database (via API or migration)
+1. Handler in the right `*.go` file
+2. Route registration in the same file's `add*Routes`
+3. `AuthRequired`, `AdminRequired`, or `AtLeastJudgeRequired`
+4. Tavern stage in `tests/`
+5. [API reference](/reference/api/) update
 
-### Adding a New Web Feature
+### New language
 
-1. Create components in `src/web/src/components/`
-2. Add pages/routes in `src/web/src/app/`
-3. Update navigation if needed
-4. Add TypeScript types
-5. Style with TailwindCSS
+See [Judge service: Add a language](/architecture/judge/#add-a-language). Rebuild `basejudge:dev` or prod target after Dockerfile changes.
 
-## Debugging
+### Database migration
 
-### Data Layer
+Edit `models.go`. AutoMigrate on next data layer start. Destructive change? Add SQL to `schema_updates.sql`, test with `./fully-reset.sh` locally before prod.
 
-Enable debug logging:
+## Debugging cheatsheet
 
-```sh
-go run src/main.go -d
-```
+| Service | Try |
+| ------- | --- |
+| Data layer | `go run src/main.go -d -p 5000` |
+| Judge | `docker logs $(docker ps -qf name=judge)` |
+| Web | DevTools + terminal running `npm run dev` |
+| Postgres | `docker exec -it $(docker ps -qf name=postgres) psql -U postgres nextjudge` |
+| RabbitMQ | http://localhost:15672 (creds from `.env.dev`) |
 
-Or set log level in code:
+Env sources: `config.go`, judge `app.py`, web `.env.example`.
 
-```go
-logrus.SetLevel(logrus.DebugLevel)
-```
+## Style
 
-### Judge Service
+Go: `gofmt`, early returns. TS: strict, no `any`. Python: PEP 8, type hints on new code.
 
-The judge logs to stdout. Check Docker logs:
+## Ship it
 
-```sh
-docker logs <judge-container-name>
-```
+Branch from `main`, test locally, PR. [CONTRIBUTING.md](https://github.com/nextjudge/nextjudge/blob/main/CONTRIBUTING.md) for the social stuff.
 
-### Web Application
-
-Use browser DevTools and Next.js debugging. Check terminal output for server-side errors.
-
-### Database
-
-Connect to PostgreSQL:
-
-```sh
-docker exec -it <postgres-container> psql -U postgres nextjudge
-```
-
-## Environment Variables
-
-Each service uses environment variables for configuration. See:
-
-- `src/data-layer/src/config.go` - Data layer config
-- `src/judge/src/app.py` - Judge config
-- `src/web/.env.example` - Web app config (if exists)
-
-## Git Workflow
-
-1. Create a feature branch from `main`
-2. Make changes with descriptive commits
-3. Test your changes
-4. Submit a pull request
-5. Address review feedback
-
-## Common Tasks
-
-### Resetting the Database
-
-```sh
-./fully-reset.sh
-```
-
-This removes all containers and volumes, giving you a fresh start.
-
-### Building Docker Images
-
-```sh
-docker build -f src/data-layer/Dockerfile -t nextjudge/data-layer .
-docker build -f src/judge/Dockerfile -t nextjudge/judge .
-docker build -f src/web/Dockerfile -t nextjudge/web .
-```
-
-### Running Migrations Manually
-
-```sh
-cd src/data-layer
-go run src/main.go -migrate-only
-```
-
-## Getting Help
-
-- Check existing issues on GitHub
-- Review the codebase for similar implementations
-- Ask questions in discussions
-- Read the API documentation
-
-## Contributing
-
-See [CONTRIBUTING.md](https://github.com/nextjudge/nextjudge/blob/main/CONTRIBUTING.md) for detailed contribution guidelines.
+Build all images: `docker buildx bake -f docker-bake.hcl`

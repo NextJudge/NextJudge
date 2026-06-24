@@ -107,7 +107,6 @@ export default function AdminContestsPage() {
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            {/* TODO: add a button to create a new contest here */}
             <Button variant="outline" className="flex items-center space-x-4">
               <PlusIcon /> <span>Create contest</span>
             </Button>

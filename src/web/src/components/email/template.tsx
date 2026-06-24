@@ -1,6 +1,13 @@
 // eslint-disable-next-line @next/next/no-page-custom-font
 // eslint-disable-next-line @next/next/no-img-element
 
+import {
+  BRAND_NAME,
+  EMAIL,
+  SITE_COPY,
+  SITE_URLS,
+  getMailto,
+} from "@/lib/site";
 import { Head, Tailwind } from "@react-email/components";
 import * as React from "react";
 
@@ -12,7 +19,10 @@ interface EmailTemplateProps {
 export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
   firstName,
   dev = false,
-}) => (
+}) => {
+  const contactEmail = dev ? EMAIL.dev : EMAIL.hello;
+
+  return (
   <>
     <Head>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -37,12 +47,12 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
           {/* Header: Logo top-right and Title */}
           <div className="flex flex-row items-start mb-6 w-full">
             <h2 className="text-2xl font-bold font-geist m-0 flex-1">
-              Welcome to the NextJudge Community
+              {SITE_COPY.emailWelcomeTitle}
             </h2>
             <span className="inline-block ml-5 flex-none self-start">
               <img
-                src="https://nextjudge.net/nextjudge.png"
-                alt="NextJudge Logo"
+                src={SITE_URLS.production.logo}
+                alt={SITE_COPY.logoAlt}
                 width={48}
                 height={48}
                 className="rounded-xl block"
@@ -51,7 +61,7 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
           </div>
           <p className="mb-4">{firstName},</p>
           <p className="mb-4">
-            Thank you for signing up. We’re glad you’re here. NextJudge is being
+            Thank you for signing up. We’re glad you’re here. {BRAND_NAME} is being
             built to make competitive programming more intuitive, more social, and
             simply more fun. By joining the newsletter you’ve secured a front-row
             seat as we polish the last pieces.
@@ -71,10 +81,10 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
               <strong>Admin stuff:</strong> want to run your own contests or
               help write problems on our site? We'd love to have you! Reply to this e-mail or write to{" "}
               <a
-                href="mailto:hello@nextjudge.net"
+                href={getMailto(EMAIL.hello)}
                 className="text-orange-600 underline font-geist"
               >
-                hello@nextjudge.net
+                {EMAIL.hello}
               </a>{" "}
               with “Admin Request” in the subject and we’ll walk you through the
               short approval process.
@@ -86,43 +96,43 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
           <p className="mb-4">
             Questions, ideas, or just want to say hi? We read every message sent to{" "}
             <a
-              href="mailto:hello@nextjudge.net"
+              href={getMailto(EMAIL.hello)}
               className="text-orange-600 underline font-geist"
             >
-              hello@nextjudge.net
+              {EMAIL.hello}
             </a>
             .
           </p>
           <p className="mb-1">Looking forward to building together,</p>
           <p className="mb-4">
-            <strong>The NextJudge Team</strong>
+            <strong>{SITE_COPY.emailTeamSignature}</strong>
           </p>
           {/* Footer with logo and support/info links */}
           <div className="mt-8 border-t pt-5 text-center text-gray-600 text-sm bg-transparent" style={{letterSpacing: "0.01em"}}>
             <div className="flex items-center justify-center gap-2 mb-1">
               <img
-                src="https://nextjudge.net/nextjudge.png"
-                alt="NextJudge Footer Icon"
+                src={SITE_URLS.production.logo}
+                alt={SITE_COPY.footerIconAlt}
                 width={32}
                 height={32}
                 className="rounded-lg mr-2"
               />
               <a
-                href="https://nextjudge.net"
+                href={SITE_URLS.production.app}
                 className="underline text-orange-600 font-geist font-semibold text-base"
               >
-                NextJudge
+                {BRAND_NAME}
               </a>
               <span className="text-gray-300 mx-1">|</span>
-              <span className="ml-1">Competitive Programming Platform</span>
+              <span className="ml-1">{SITE_COPY.platformTagline}</span>
             </div>
             <p className="m-0">
               Support:{" "}
               <a
-                href={`mailto:${dev ? "dev@nextjudge.net" : "hello@nextjudge.net"}`}
+                href={getMailto(contactEmail)}
                 className="text-orange-600 underline font-geist"
               >
-                {dev ? "dev@nextjudge.net" : "hello@nextjudge.net"}
+                {contactEmail}
               </a>
             </p>
           </div>
@@ -130,4 +140,5 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
       </div>
     </Tailwind>
   </>
-);
+  );
+};

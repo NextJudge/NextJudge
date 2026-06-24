@@ -21,6 +21,7 @@ export interface Language {
 	name: string;
 	extension: string;
 	version: string;
+	template?: string;
 }
 
 export interface Problem {
@@ -157,6 +158,7 @@ export interface Submission {
 	problem_id: number;
 	problem: Problem;
 	time_elapsed: number;
+	memory_used?: number;
 	language_id: string;
 	language: Language;
 	status: SubmissionStatus;

@@ -1,10 +1,11 @@
 import { auth } from "@/app/auth";
+import { PAGE_DESCRIPTIONS, PAGE_TITLES } from "@/lib/site";
 import { Metadata } from "next";
 import AdminProblemsClient from "./admin-problems-client";
 
 export const metadata: Metadata = {
-  title: "NextJudge Admin - Problem Management",
-  description: "Manage the problems in the official NextJudge problem set.",
+  title: PAGE_TITLES.adminProblems,
+  description: PAGE_DESCRIPTIONS.adminProblems,
 };
 
 export default async function AdminProblemsPage() {

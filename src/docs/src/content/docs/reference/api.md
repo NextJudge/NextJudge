@@ -1,513 +1,354 @@
 ---
 title: API Reference
-description: Complete API reference for the NextJudge Data Layer.
+description: REST API for the NextJudge data layer.
 ---
 
-The NextJudge Data Layer exposes a REST API for managing users, problems, submissions, contests, and languages. All endpoints are prefixed with `/v1/`.
+Base URL: `http://localhost:5000` (dev). Routes under `/v1/` unless noted.
 
-## Authentication
+**Auth first:** [Authentication](/reference/authentication/). TL;DR: raw JWT in `Authorization` header, no `Bearer`.
 
-Most endpoints require authentication via a JWT token passed in the `Authorization` header. The token is obtained through the authentication handler (typically OAuth2) which calls `/v1/create_login` to create the user and return a JWT.
+## Quick flow
 
-For admin-only endpoints, the user must have `is_admin: true` in their user record.
+```bash
+# 1. Register
+RESP=$(curl -s -X POST http://localhost:5000/v1/basic_register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"ada","email":"ada@example.com","password":"example-password"}')
+TOKEN=$(echo $RESP | jq -r .token)
+USER_ID=$(echo $RESP | jq -r .id)
 
-## Base URL
+# 2. Languages (no auth)
+LANG_ID=$(curl -s http://localhost:5000/v1/languages | jq -r '.[] | select(.name=="python") | .id')
 
-The data layer API runs on port 5000 by default. In development, this is typically `http://localhost:5000`.
+# 3. Submit
+SUB_ID=$(curl -s -X POST http://localhost:5000/v1/submissions \
+  -H "Authorization: $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"user_id\":\"$USER_ID\",\"problem_id\":1,\"language_id\":\"$LANG_ID\",\"source_code\":\"print(1)\"}" \
+  | jq -r .id)
+
+# 4. Poll
+curl -s http://localhost:5000/v1/submissions/$SUB_ID -H "Authorization: $TOKEN" | jq .status
+```
+
+---
+
+## Auth endpoints
+
+| Method | Path | Auth header | Purpose |
+| ------ | ---- | ----------- | ------- |
+| POST | `/v1/basic_register` | none | Create account + JWT |
+| POST | `/v1/basic_login` | none | Login + JWT |
+| POST | `/v1/create_or_login_user` | `AUTH_PROVIDER_PASSWORD` | OAuth bridge (web app) |
+| POST | `/v1/login_judge` | `JUDGE_PASSWORD` | Judge worker JWT |
+| POST | `/v1/basic_request_password_reset` | none | Request reset |
+| POST | `/v1/basic_reset_password` | none | Set new password |
+
+See [Authentication](/reference/authentication/) for bodies and responses.
+
+---
 
 ## Users
 
 ### GET /v1/users
 
-Retrieve a list of users. Can pass `username` query parameter to filter by username.
+List users. Query: `?username=` (filter by name).
 
-**Authentication:** Required
+**Auth:** admin
 
-**Query Parameters:**
-- `username` (optional): Filter by username
-
-**Response:**
 ```json
-[
-  {
-    "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
-    "name": "joe",
-    "is_admin": true,
-    "email": "joe@example.com",
-    "join_date": "2024-02-14T06:26:55.12794Z"
-  }
-]
+[{ "id": "uuid", "name": "ada", "email": "ada@example.com", "is_admin": false, "join_date": "..." }]
 ```
 
 ### GET /v1/users/{user_id}
 
-Retrieve a specific user by ID.
+**Auth:** any authenticated user
 
-**Authentication:** Required
-
-**Response:**
 ```json
-{
-  "id": "72ca26bb-15e9-4acd-a56c-f1b44fb9519d",
-  "name": "joe",
-  "is_admin": true,
-  "email": "joe@example.com",
-  "join_date": "2024-02-14T06:26:55.12794Z"
-}
+{ "id": "uuid", "name": "ada", "email": "ada@example.com", "is_admin": false, "join_date": "..." }
 ```
 
 ### POST /v1/users
 
-Create a new user.
+**Auth:** admin
 
-**Authentication:** Admin only
-
-**Request Body:**
 ```json
-{
-  "name": "joe",
-  "password_hash": "hashed_password",
-  "image": "https://example.com/avatar.png",
-  "email": "joe@example.com",
-  "is_admin": false
-}
+{ "name": "ada", "email": "ada@example.com", "image": "", "is_admin": false }
 ```
+
+`201` with user object. Duplicate name/email → `400`.
+
+### PUT /v1/users/{user_id}
+
+**Auth:** admin. Update name, admin flag. `204` on success.
+
+### DELETE /v1/users/{user_id}
+
+Soft-delete. Self or admin (not last admin). `204`. Historical leaderboard rows show **Deleted user**.
+
+---
 
 ## Problems
 
 ### GET /v1/problems
 
-Retrieve a list of problems. Public problems are visible to all authenticated users; admins can see all problems.
+**Auth:** required. Public problems for everyone; admins see all.
 
-**Authentication:** Required
-
-**Query Parameters:**
-- `query` (optional): Search query for Elasticsearch (if enabled)
-
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "title": "Reverse String",
-    "identifier": "reverse-string",
-    "prompt": "Given a string, return its reverse...",
-    "difficulty": "EASY",
-    "public": true,
-    "upload_date": "2024-02-14T06:26:55.12794Z",
-    "test_cases": [
-      {
-        "id": "uuid",
-        "input": "hello",
-        "expected_output": "olleh",
-        "hidden": false
-      }
-    ],
-    "categories": [
-      {
-        "id": "uuid",
-        "name": "Strings"
-      }
-    ]
-  }
-]
-```
+Query: `?query=` (Elasticsearch when enabled).
 
 ### GET /v1/problems/{problem_id}
 
-Retrieve a specific problem by ID.
+**Auth:** required
 
-**Authentication:** Required
+Query: `?type=private` includes hidden tests (admin only).
 
-**Query Parameters:**
-- `type=private` (optional): Include private test cases (admin only)
-
-**Response:**
 ```json
 {
   "id": 1,
   "title": "Reverse String",
   "identifier": "reverse-string",
-  "prompt": "Given a string, return its reverse...",
+  "prompt": "...",
   "difficulty": "EASY",
   "public": true,
-  "test_cases": [...],
-  "categories": [...]
+  "test_cases": [{ "id": "uuid", "input": "hi", "expected_output": "ih", "hidden": false }],
+  "categories": [{ "id": "uuid", "name": "Strings" }]
 }
 ```
 
 ### POST /v1/problems
 
-Create a new problem.
+**Auth:** admin
 
-**Authentication:** Admin only
-
-**Request Body:**
 ```json
 {
   "title": "Reverse String",
   "identifier": "reverse-string",
-  "prompt": "Given a string, return its reverse...",
+  "prompt": "Reverse the input string.",
   "source": "NextJudge",
   "difficulty": "EASY",
   "timeout": 5.0,
   "accept_timeout": 5.0,
   "execution_timeout": 5.0,
   "memory_limit": 256,
-  "user_id": "uuid",
-  "test_cases": [
-    {
-      "input": "hello",
-      "expected_output": "olleh",
-      "hidden": false
-    }
-  ],
-  "category_ids": ["uuid1", "uuid2"],
+  "user_id": "admin-uuid",
+  "test_cases": [{ "input": "hello", "expected_output": "olleh", "hidden": false }],
+  "category_ids": ["uuid"],
   "public": true
 }
 ```
 
-### GET /v1/problem_description/{problem_id}/tests
+### PUT /v1/problems/{problem_id}
 
-Retrieve all test cases for a problem. Used by the judge service.
+**Auth:** admin. Partial updates to problem metadata and tests.
 
-**Authentication:** Judge service or admin
+### DELETE /v1/problems/{problem_description_id}
 
-**Response:**
+**Auth:** admin. `204`.
+
+### GET /v1/problem_description/{id}/tests
+
+All test cases for judging. **Auth:** judge or admin.
+
+### GET /v1/categories
+
+**Auth:** required
+
 ```json
-{
-  "test_cases": [
-    {
-      "id": "uuid",
-      "input": "hello",
-      "expected_output": "olleh",
-      "hidden": true
-    }
-  ]
-}
+[{ "id": "uuid", "name": "DP" }]
 ```
+
+---
 
 ## Submissions
 
 ### POST /v1/submissions
 
-Create a new submission. This will enqueue the submission to RabbitMQ for processing by the judge service.
+Enqueue for grading. **Auth:** required
 
-**Authentication:** Required
-
-**Request Body:**
 ```json
 {
   "user_id": "uuid",
   "problem_id": 1,
   "language_id": "uuid",
-  "source_code": "def solve():\n    return 'hello'"
+  "source_code": "..."
 }
 ```
 
-**Response:**
+`201`:
+
 ```json
-{
-  "id": "uuid",
-  "user_id": "uuid",
-  "problem_id": 1,
-  "language_id": "uuid",
-  "status": "PENDING",
-  "submit_time": "2024-03-02T02:39:19.564713178Z",
-  "source_code": "def solve():\n    return 'hello'"
-}
+{ "id": "uuid", "status": "PENDING", "submit_time": "...", "source_code": "..." }
 ```
+
+Judge PATCHes status later. You poll GET until `status != PENDING`.
 
 ### GET /v1/submissions/{submission_id}
 
-Retrieve a specific submission by ID.
+**Auth:** owner or admin
 
-**Authentication:** Required (must be submission owner or admin)
+Full submission including `test_case_results` after grading.
 
-**Response:**
-```json
-{
-  "id": "uuid",
-  "user_id": "uuid",
-  "problem_id": 1,
-  "language_id": "uuid",
-  "status": "ACCEPTED",
-  "time_elapsed": 0.123,
-  "submit_time": "2024-03-02T02:39:19.564713178Z",
-  "source_code": "def solve():\n    return 'hello'",
-  "test_case_results": [
-    {
-      "id": "uuid",
-      "test_case_id": "uuid",
-      "stdout": "hello",
-      "stderr": "",
-      "passed": true
-    }
-  ]
-}
-```
+### GET /v1/submissions/{submission_id}/status
+
+**Auth:** owner or admin. Lightweight status-only poll.
 
 ### PATCH /v1/submissions/{submission_id}
 
-Update a submission status. Typically called by the judge service after processing.
+**Auth:** judge or admin
 
-**Authentication:** Judge service or admin
-
-**Request Body:**
 ```json
 {
   "status": "ACCEPTED",
-  "stdout": "output",
-  "stderr": "errors",
-  "time_elapsed": 0.123,
-  "failed_test_case_id": "uuid",
-  "test_case_results": [
-    {
-      "test_case_id": "uuid",
-      "stdout": "output",
-      "stderr": "",
-      "passed": true
-    }
-  ]
+  "stdout": "",
+  "stderr": "",
+  "time_elapsed": 0.042,
+  "failed_test_case_id": null,
+  "test_case_results": [{ "test_case_id": "uuid", "stdout": "...", "stderr": "", "passed": true }]
 }
 ```
 
 ### GET /v1/user_submissions/{user_id}
 
-Retrieve all submissions for a specific user.
+**Auth:** self or admin
 
-**Authentication:** Required (must be the user or admin)
+### GET /v1/user_problem_submissions/{user_id}/{problem_id}
 
-**Response:**
-```json
-[
-  {
-    "id": "uuid",
-    "problem_id": 1,
-    "status": "ACCEPTED",
-    "submit_time": "2024-03-02T02:39:19.564713178Z"
-  }
-]
-```
+**Auth:** self or admin. All attempts on one problem.
 
-## Custom Input Submissions
+---
+
+## Custom input ("Run")
 
 ### POST /v1/input_submissions
 
-Execute code with custom input (for testing/debugging). Does not run against test cases.
+**Auth:** required. No test cases, arbitrary stdin.
 
-**Authentication:** Required
-
-**Request Body:**
 ```json
-{
-  "user_id": "uuid",
-  "source_code": "print(input())",
-  "language_id": "uuid",
-  "stdin": "test input"
-}
+{ "user_id": "uuid", "language_id": "uuid", "source_code": "print(input())", "stdin": "test" }
 ```
 
-**Response:**
-```json
-{
-  "id": "uuid",
-  "status": "PENDING",
-  "finished": false
-}
-```
+Also available unauthenticated on public/bench routes for demos (`/v1/public/input_submissions`, `/v1/bench/input_submissions`) with rate limits.
 
-### GET /v1/input_submissions/{submission_id}
+### GET /v1/input_submissions/{id}
 
-Get the result of a custom input submission.
+Poll until `finished: true`. Returns `stdout`, `stderr`, `runtime`.
 
-**Authentication:** Required
-
-**Response:**
-```json
-{
-  "id": "uuid",
-  "status": "ACCEPTED",
-  "stdout": "test input",
-  "stderr": "",
-  "runtime": 0.045,
-  "finished": true
-}
-```
+---
 
 ## Languages
 
 ### GET /v1/languages
 
-Retrieve all supported programming languages.
+No auth.
 
-**Authentication:** Not required
-
-**Response:**
 ```json
-[
-  {
-    "id": "uuid",
-    "name": "python",
-    "extension": "py",
-    "version": "3.12"
-  },
-  {
-    "id": "uuid",
-    "name": "c++",
-    "extension": "cpp",
-    "version": "13.2.0"
-  }
-]
+[{ "id": "uuid", "name": "python", "extension": "py", "version": "3.12" }]
 ```
 
 ### POST /v1/languages
 
-Create a new language configuration.
+**Auth:** admin. Language must exist in judge `languages.toml`.
 
-**Authentication:** Admin only
+### DELETE /v1/languages/{language_id}
 
-**Request Body:**
-```json
-{
-  "name": "python",
-  "extension": "py",
-  "version": "3.12"
-}
-```
+**Auth:** admin. `204`.
 
-## Events (Contests)
+---
 
-### GET /v1/events
+## Events (contests)
 
-Retrieve all events (contests).
-
-**Authentication:** Admin only
-
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "title": "Spring Contest 2024",
-    "description": "Annual spring programming contest",
-    "start_time": "2024-04-19T08:00:00Z",
-    "end_time": "2024-04-19T11:00:00Z",
-    "teams": false
-  }
-]
-```
+The API says **events**. The UI says **contests**. Same thing.
 
 ### GET /v1/public/events
 
-Retrieve public events visible to authenticated users.
+**Auth:** required. Contests visible to logged-in users.
 
-**Authentication:** Required
+### GET /v1/public/events/{event_id}
 
-### GET /v1/events/{event_id}
-
-Retrieve a specific event with its problems and participants.
-
-**Authentication:** Required
-
-**Response:**
-```json
-{
-  "id": 1,
-  "title": "Spring Contest 2024",
-  "description": "Annual spring programming contest",
-  "start_time": "2024-04-19T08:00:00Z",
-  "end_time": "2024-04-19T11:00:00Z",
-  "teams": false,
-  "problems": [
-    {
-      "id": 1,
-      "problem_id": 1,
-      "hidden": false,
-      "problem": {
-        "id": 1,
-        "title": "Reverse String",
-        "difficulty": "EASY"
-      }
-    }
-  ]
-}
-```
-
-### POST /v1/events
-
-Create a new event.
-
-**Authentication:** Admin only
-
-**Request Body:**
-```json
-{
-  "title": "Spring Contest 2024",
-  "description": "Annual spring programming contest",
-  "start_time": "2024-04-19T08:00:00Z",
-  "end_time": "2024-04-19T11:00:00Z",
-  "teams": false,
-  "user_id": "uuid"
-}
-```
+**Auth:** required. Event + problems.
 
 ### POST /v1/public/events/{event_id}/register
 
-Register for a public event.
+**Auth:** required. Register current user for public contest.
 
-**Authentication:** Required
+### GET /v1/events
 
-## Categories
+**Auth:** admin. All events.
 
-### GET /v1/categories
+### GET /v1/events/{event_id}
 
-Retrieve all problem categories.
+**Auth:** admin
 
-**Authentication:** Required
+### POST /v1/events
 
-**Response:**
-```json
-[
-  {
-    "id": "uuid",
-    "name": "Sorting"
-  },
-  {
-    "id": "uuid",
-    "name": "Dynamic Programming"
-  }
-]
-```
-
-## Health Check
-
-### GET /healthy
-
-Check if the data layer service is running.
-
-**Authentication:** Not required
-
-**Response:** HTTP 200 OK
-
-## Status Codes
-
-The API uses standard HTTP status codes:
-
-- `200 OK` - Request succeeded
-- `201 Created` - Resource created successfully
-- `400 Bad Request` - Invalid request data
-- `401 Unauthorized` - Authentication required or invalid
-- `403 Forbidden` - Insufficient permissions
-- `404 Not Found` - Resource not found
-- `500 Internal Server Error` - Server error
-
-## Error Responses
-
-Error responses follow this format:
+**Auth:** admin
 
 ```json
 {
-  "error": "Error message describing what went wrong"
+  "title": "Spring 2026",
+  "description": "Internal practice",
+  "start_time": "2026-04-01T18:00:00Z",
+  "end_time": "2026-04-01T21:00:00Z",
+  "teams": false,
+  "user_id": "admin-uuid"
 }
 ```
+
+### PUT /v1/events/{event_id}
+
+**Auth:** admin
+
+### DELETE /v1/events/{event_id}
+
+**Auth:** admin
+
+### Event sub-resources
+
+| Method | Path | Auth | Purpose |
+| ------ | ---- | ---- | ------- |
+| GET | `/v1/events/{id}/problems` | user | Problems in contest |
+| POST | `/v1/events/{id}/problems` | user | Attach problem |
+| GET | `/v1/events/{id}/submissions` | user | Filtered submissions |
+| GET | `/v1/events/{id}/attempts` | user | ICPC-style solve times |
+| GET | `/v1/events/{id}/participants` | user/admin | Who registered |
+| POST | `/v1/events/{id}/participants` | admin | Add participant |
+| GET/POST | `/v1/events/{id}/questions` | user | Clarification questions |
+
+---
+
+## Notifications
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| GET | `/v1/user/notifications/count` | Unread count |
+| GET | `/v1/user/notifications` | List |
+| PUT | `/v1/user/notifications/mark-read` | Mark read |
+
+All require auth.
+
+---
+
+## Health
+
+### GET /healthy
+
+No auth. `200` = up.
+
+---
+
+## Errors
+
+```json
+{ "error": "Human-readable message", "code": "OPTIONAL_CODE" }
+```
+
+| HTTP | Meaning |
+| ---- | ------- |
+| 400 | Bad input |
+| 401 | Missing/invalid auth |
+| 403 | Wrong role |
+| 404 | Not found |
+| 409 | Conflict (e.g. user exists) |
+| 500 | Server blew up |
+
+Auth errors are worth memorizing: `Malformed JWT token` almost always means you prefixed `Bearer`.

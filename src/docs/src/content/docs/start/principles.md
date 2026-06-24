@@ -1,52 +1,39 @@
 ---
-title: Our Principles
-description: The core principles of the NextJudge framework.
+title: Design decisions
+description: Constraints that shaped NextJudge, not slogans.
 ---
 
-### Vision and Mission
+## Self-hosted first
 
-NextJudge envisions becoming the leading platform for hosting competitive programming contests, fostering collaboration and innovation in the developer community. Our mission is to provide a free, open-source, and scalable solution that empowers developers worldwide.
+Data in your Postgres. Auth you configure. No required third-party SaaS.
 
-### NextJudge Principles
+If ops isn't your problem, hosted platforms win on convenience. NextJudge is for when the data and the judge must stay yours.
 
-We're building NextJudge to be the best platform for hosting competitive programming contests. Due to this, we have a number of core principles that we follow when developing NextJudge.
+## Services, not a monolith
 
-- **Easy to use**: NextJudge is designed to be easy to use. It is a drop-in solution for hosting competitive programming contests.
+Web, API, and judge are separate processes over HTTP + RabbitMQ.
 
-- **Free and open source**: NextJudge is 100% free and open source. It is licensed under the MIT license.
+Code execution is slow and hungry. You don't want compile spikes taking down the login page. The queue absorbs contest submission bursts; you scale judges horizontally without redeploying the API.
 
-- **Fast**: NextJudge is fast. We employed a distributed architecture to ensure that the platform is fast and responsive.
+Cost: more containers at boot. Postgres and RabbitMQ must be healthy before anything else matters.
 
-- **Scalable**: NextJudge is scalable. It is designed to handle thousands of concurrent users.
+## Sandboxed execution
 
-- **Secure**: NextJudge is secure. We employed a number of security measures to ensure that the platform is secure.
+nsjail for every compile and run. No network, capped CPU/RAM, restricted filesystem.
 
-- **Customizable**: NextJudge is customizable. It is designed to be easily customizable and extensible to suit your needs.
+That's practical isolation, not a pentest pass. Patch judge images. Don't put the judge on the same trust boundary as your payroll DB without network segmentation.
 
-### How does NextJudge compare to other platforms?
+## Open source (MIT)
 
-| Feature                     | NextJudge | LeetCode | Codeforces |
-| --------------------------- | --------- | -------- | ---------- |
-| **Open-Source**             | ✅        | ❌       | ❌         |
-| **Extensible & Modular**    | ✅        | ❌       | ❌         |
-| **Competitive Programming** | ✅        | ✅       | ✅         |
-| **Code Execution**          | ✅        | ✅       | ❌         |
-| **Contest Hosting**         | ✅        | ❌       | ✅         |
-| **Customizability**         | ✅        | ❌       | ❌         |
-| **Speed**                   | ✅        | ✅       | ✅         |
-| **Scalability**             | ✅        | ✅       | ❌         |
-| **Security**                | ✅        | ✅       | ✅         |
+No seat limits. Rebrand it. Strip features. Ship it.
 
-Feel free to explore NextJudge's comprehensive features and join us in making it the go-to platform for competitive programming contests!
+## Where to extend
 
-### Core Values
+| Area | Location | You change |
+| ---- | -------- | ---------- |
+| Languages | `src/judge/languages.toml` + Docker image | Compiler, build script, API registration |
+| API | `src/data-layer/src/*.go` | Routes, models, migrations |
+| UI | `src/web/src/app/` | Pages, components |
+| CLI | `src/cli/` | Download, local test, submit |
 
-- **Community Collaboration**: Foster a collaborative and inclusive community where diverse perspectives are valued.
-- **Innovation**: Encourage innovation in coding practices and contest hosting methodologies.
-- **Open Source Spirit**: Embrace the principles of open source software, transparency, and community-driven development.
-
-### Design Principles
-
-- **Modularity**: Prioritize a modular architecture to ensure easy integration and extensibility.
-- **Performance Optimization**: Strive for optimal performance through efficient algorithms and distributed systems.
-- **Security First**: Implement robust security measures to protect user data and the integrity of the platform.
+We'd rather you touch one service than read all four to fix a bug in one.

@@ -13,7 +13,7 @@ interface EditProblemPageProps {
 export default async function EditProblemPage({ params }: EditProblemPageProps) {
     const session = await auth();
 
-    if (!session || !session.user) {
+    if (!session?.user || !session.nextjudge_token) {
         throw new Error("Unauthorized");
     }
 

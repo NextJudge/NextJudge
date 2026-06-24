@@ -1,191 +1,105 @@
 ---
 title: Judge Service
-description: How the judge service compiles and executes code submissions.
+description: Compile, sandbox, grade. Where user code actually runs.
 ---
 
-The judge service is responsible for securely compiling and executing code submissions in isolated environments. It processes submissions from a RabbitMQ queue and returns results to the data layer.
+Python process. RabbitMQ in, HTTP out, nsjail in the middle. User code never runs on the host OS.
 
-## Architecture
+Architecture context: [Core components](/architecture/components/).
 
-The judge service is a Python application that:
+## One submission, step by step
 
-1. Connects to RabbitMQ to receive submission messages
-2. Retrieves submission data and test cases from the data layer API
-3. Compiles code in an isolated environment using nsjail
-4. Executes the compiled code against test cases
-5. Compares output with expected results
-6. Reports results back to the data layer
-
-## Security: nsjail
-
-All code compilation and execution happens inside nsjail, a process isolation tool that provides:
-
-### Resource Limits
-
-- **CPU Time:** Configurable per problem (default 10 seconds for execution, 30 seconds for compilation)
-- **Memory:** Configurable per problem (default 6MB virtual memory for execution, 16MB for compilation)
-- **CPU Cores:** Limited to 1 core for execution, 2 cores for Go compilation
-- **File Descriptors:** Limited to 512 for compilation, 3 for execution
-
-### Isolation Features
-
-- **Chroot Environment:** Code runs in a minimal chroot filesystem
-- **User Namespace:** Runs as unprivileged user (UID 99999)
-- **Network Restrictions:** No network access during execution
-- **File System Restrictions:** Read-only access to most filesystem, writable only in specific directories
-- **System Call Filtering:** Restricted syscalls via seccomp
-
-## Submission Processing Flow
-
-### 1. Receive Submission
-
-The judge listens to the `submission_queue` RabbitMQ queue. When a message arrives:
-
-```python
-{
-  "type": "submission",
-  "id": "submission-uuid"
-}
+```
+Queue msg → GET submission + tests → compile in nsjail → run cases → PATCH verdict → delete temp dirs
 ```
 
-### 2. Fetch Submission Data
-
-The judge retrieves submission details from the data layer API:
-
-- Source code
-- Language ID
-- Problem ID
-
-### 3. Fetch Test Cases
-
-The judge retrieves all test cases for the problem from the data layer API.
-
-### 4. Compile Code
-
-Code is compiled in an isolated environment:
-
-1. Create a unique environment directory
-2. Write source code to build directory
-3. Execute language-specific build script inside nsjail
-4. Capture compilation output (stdout/stderr)
-
-If compilation fails, the submission is marked as `COMPILE_TIME_ERROR` and processing stops.
-
-### 5. Execute Test Cases
-
-For each test case:
-
-1. Execute the compiled program with test input via stdin
-2. Capture stdout and stderr
-3. Compare output with expected output (line-by-line, trimmed)
-4. Check for resource limit violations
-
-Execution stops at the first failing test case.
-
-### 6. Report Results
-
-Results are sent back to the data layer via HTTP PATCH request:
+### Queue message
 
 ```json
-{
-  "status": "ACCEPTED" | "WRONG_ANSWER" | "TIME_LIMIT_EXCEEDED" |
-            "MEMORY_LIMIT_EXCEEDED" | "RUNTIME_ERROR",
-  "stdout": "program output",
-  "stderr": "error output",
-  "time_elapsed": 0.123,
-  "failed_test_case_id": "uuid",
-  "test_case_results": [
-    {
-      "test_case_id": "uuid",
-      "stdout": "output",
-      "stderr": "",
-      "passed": true
-    }
-  ]
-}
+{ "type": "submission", "id": "uuid" }
 ```
 
-## Submission Statuses
+Custom input: `"type": "input_submission"`.
 
-- **PENDING:** Submission is queued, waiting for judge
-- **ACCEPTED:** All test cases passed
-- **WRONG_ANSWER:** Output doesn't match expected output
-- **TIME_LIMIT_EXCEEDED:** Program exceeded time limit
-- **MEMORY_LIMIT_EXCEEDED:** Program exceeded memory limit
-- **RUNTIME_ERROR:** Program crashed or threw an exception
-- **COMPILE_TIME_ERROR:** Code failed to compile
+### Fetch
 
-## Custom Input Execution
+From the data layer (judge JWT):
 
-The judge also handles custom input submissions (for testing code with arbitrary input):
+- Submission body: source, `language_id`, `problem_id`
+- Tests: `GET /v1/problem_description/{problem_id}/tests`
 
-1. Receives code and stdin input
-2. Compiles code
-3. Executes with provided stdin
-4. Returns stdout, stderr, and runtime
-
-This is used by the web interface's "Run Code" feature.
-
-## Environment Setup
-
-Each submission gets a unique execution environment:
+### Compile
 
 ```
 /program_files/{uuid}/
-  ├── build/          # Compilation directory
-  │   ├── input.{ext} # Source code
-  │   └── build.sh    # Build script
-  └── executable/      # Execution directory
-      └── main        # Executable script/binary
+  build/       ← source + build.sh from languages.toml
+  executable/  ← must end up with a runnable main
 ```
 
-The environment is cleaned up after processing completes.
+Failure here → `COMPILE_TIME_ERROR`, stderr saved, no tests run. Fix your `#include`, not your algorithm.
 
-## Horizontal Scaling
+### Run tests
 
-Multiple judge instances can run simultaneously, all consuming from the same RabbitMQ queue. This allows horizontal scaling:
+stdin = test input. Compare stdout to expected (line-by-line, trimmed whitespace). **Stop at first failure.** That's ICPC-style, not "show me all wrong cases."
 
-- Add more judge instances to handle increased load
-- Each judge processes one submission at a time (prefetch_count=1)
-- RabbitMQ distributes submissions across available judges
+Timeouts → `TIME_LIMIT_EXCEEDED`. OOM → `MEMORY_LIMIT_EXCEEDED`. Segfault → `RUNTIME_ERROR`.
 
-## Configuration
+### Report
 
-Judge configuration is controlled via environment variables:
+```json
+{
+  "status": "ACCEPTED",
+  "time_elapsed": 0.123,
+  "failed_test_case_id": null,
+  "test_case_results": [{ "test_case_id": "...", "passed": true, "stdout": "...", "stderr": "" }]
+}
+```
 
-- `RABBITMQ_HOST` - RabbitMQ server hostname
-- `RABBITMQ_PORT` - RabbitMQ server port
-- `RABBITMQ_USER` - RabbitMQ username
-- `RABBITMQ_PASSWORD` - RabbitMQ password
-- `NEXTJUDGE_HOST` - Data layer API hostname
-- `NEXTJUDGE_PORT` - Data layer API port
-- `JUDGE_PASSWORD` - Password for judge authentication
+## nsjail defaults
 
-## Language Mapping
+Per-problem limits from the API can override run-time bounds.
 
-The judge maintains a mapping between data layer language IDs and local language configurations. On startup, it:
+| Limit | Compile | Run |
+| ----- | ------- | --- |
+| CPU time | 30s | 10s default |
+| Virtual memory | 16 MB | 6 MB default |
+| CPU cores | 2 | 1 |
+| File descriptors | 512 | 3 |
 
-1. Fetches languages from data layer API
-2. Matches by name with local language configurations
-3. Creates bidirectional mapping for lookups
+Also: chroot, UID 99999, no network, seccomp, read-only FS except build/output dirs.
 
-## Error Handling
+**Reality check:** this stops casual mischief and runaway loops. A motivated attacker with a sandbox escape is why you isolate the judge network.
 
-The judge includes robust error handling:
+## Scaling
 
-- **Connection Failures:** Retries connecting to RabbitMQ and data layer
-- **Compilation Errors:** Captures and reports compilation output
-- **Execution Errors:** Detects timeouts, memory issues, and crashes
-- **Message Processing:** Uses requeue on failure, rejects redelivered messages
+More containers = more parallel submissions. RabbitMQ distributes. One worker = one active submission.
 
-## Monitoring
+Contest rule of thumb: if queue depth climbs through the first hour, add workers before bumping time limits. Users hate TLE inflation more than they hate waiting 30s in queue.
 
-The judge logs important events:
+## Config
 
-- Submission received
-- Compilation start/finish
-- Test case execution
-- Result submission
-- Errors and failures
+| Env | Purpose |
+| --- | ------- |
+| `RABBITMQ_*` | Queue |
+| `NEXTJUDGE_HOST`, `NEXTJUDGE_PORT` | API |
+| `JUDGE_PASSWORD` | Judge login ([auth](/reference/authentication/)) |
 
-Logs can be used to monitor judge performance and debug issues.
+Startup: fetch languages from API, match names to `languages.toml`, build ID map. Name mismatch = silent failure at submit time. Keep them in sync.
+
+## When things go wrong
+
+- **Redelivered poison message:** rejected after one retry (no infinite loop)
+- **API down during PATCH:** submission may stay PENDING until retry logic runs; check logs
+- **Compile works locally, fails on judge:** different compiler version or missing `{IN_FILE}` in build script
+
+Logs → stdout → `docker logs`. Grep for `submission_id` when debugging a specific stuck submit.
+
+## Add a language
+
+1. Toolchain in `Dockerfile.newbase`
+2. `[[language]]` in `languages.toml` → `/executable/main`
+3. Rebuild image
+4. `POST /v1/languages`
+5. Submit reference AC solution
+
+Quirks per language: [Supported languages](/reference/languages/).

@@ -10,9 +10,9 @@ import { ViewQuestionDialog } from "@/components/ui/view-question-dialog"
 import { apiGetEventQuestions } from "@/lib/api"
 import { EventQuestion, Problem } from "@/lib/types"
 import { format } from "date-fns"
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, MessageCircleQuestion } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 interface QuestionsSectionProps {
@@ -20,6 +20,65 @@ interface QuestionsSectionProps {
     problems: Problem[]
     isAdmin: boolean
 }
+
+const QuestionRow = ({
+    question,
+    showActions,
+    onView,
+    onAnswer,
+}: {
+    question: EventQuestion
+    showActions: boolean
+    onView: (question: EventQuestion) => void
+    onAnswer: (question: EventQuestion) => void
+}) => (
+    <div className={`grid gap-4 items-start py-3 border-b ${showActions ? "grid-cols-5" : "grid-cols-4"}`}>
+        <div className="text-sm">
+            <div className="font-medium">{question.user?.name || "Anonymous"}</div>
+            {question.problem && (
+                <Badge variant="secondary" className="mt-1 text-xs">
+                    {question.problem.title}
+                </Badge>
+            )}
+        </div>
+        <div className="text-sm text-muted-foreground">
+            {format(new Date(question.created_at), "MMM d, h:mm a")}
+        </div>
+        <div className="text-sm">
+            <p className="line-clamp-3">{question.question}</p>
+        </div>
+        <div className="text-sm">
+            {question.is_answered ? (
+                <Badge
+                    variant="default"
+                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => onView(question)}
+                >
+                    Answered <CheckCircle className="w-4 h-4 ml-1" />
+                </Badge>
+            ) : (
+                <Badge variant="outline">Pending</Badge>
+            )}
+        </div>
+        {showActions && (
+            <div className="text-sm">
+                <Button size="sm" variant="ghost" onClick={() => onAnswer(question)}>
+                    Answer
+                </Button>
+            </div>
+        )}
+    </div>
+)
+
+const QuestionTableHeader = ({ showActions }: { showActions: boolean }) => (
+    <div className={`grid gap-4 text-sm font-medium border-b pb-2 ${showActions ? "grid-cols-5" : "grid-cols-4"}`}>
+        <div>Party</div>
+        <div>Date & Time</div>
+        <div>Question</div>
+        <div>Status</div>
+        {showActions && <div>Actions</div>}
+    </div>
+)
 
 export function QuestionsSection({ eventId, problems, isAdmin }: QuestionsSectionProps) {
     const { data: session } = useSession()
@@ -29,6 +88,8 @@ export function QuestionsSection({ eventId, problems, isAdmin }: QuestionsSectio
     const [answerDialogOpen, setAnswerDialogOpen] = useState(false)
     const [viewDialogOpen, setViewDialogOpen] = useState(false)
     const [selectedQuestion, setSelectedQuestion] = useState<EventQuestion | null>(null)
+
+    const currentUserId = session?.nextjudge_id
 
     useEffect(() => {
         fetchQuestions()
@@ -49,6 +110,31 @@ export function QuestionsSection({ eventId, problems, isAdmin }: QuestionsSectio
         }
     }
 
+    const publicClarifications = useMemo(
+        () => questions.filter((question) => question.is_answered),
+        [questions],
+    )
+
+    const myPendingQuestions = useMemo(
+        () =>
+            questions.filter(
+                (question) => !question.is_answered && question.user_id === currentUserId,
+            ),
+        [questions, currentUserId],
+    )
+
+    const adminPendingQuestions = useMemo(
+        () => (isAdmin ? questions.filter((question) => !question.is_answered) : []),
+        [questions, isAdmin],
+    )
+
+    const visibleQuestions = useMemo(() => {
+        if (isAdmin) {
+            return questions
+        }
+        return [...publicClarifications, ...myPendingQuestions]
+    }, [isAdmin, questions, publicClarifications, myPendingQuestions])
+
     const handleQuestionCreated = () => {
         fetchQuestions()
     }
@@ -68,97 +154,140 @@ export function QuestionsSection({ eventId, problems, isAdmin }: QuestionsSectio
         setViewDialogOpen(true)
     }
 
+    const showAdminActions = isAdmin || questions.some((question) => question.user?.is_admin)
+
     return (
         <div className="space-y-4">
-            <div>
-                <Card>
-                    <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between gap-4">
-                            <div className="flex flex-col gap-1">
-                                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Questions</CardTitle>
-                                <p className="text-xs text-muted-foreground/70">
-                                    Ask a question about a problem
-                                </p>
+            <Card>
+                <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                                Questions
+                            </CardTitle>
+                            <p className="text-xs text-muted-foreground/70">
+                                Ask a question about a problem
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => setAskDialogOpen(true)}
+                            className="gap-2"
+                            variant="link"
+                            disabled={!session?.nextjudge_token}
+                            size="sm"
+                        >
+                            <Icons.help className="w-3 h-3" />
+                            <span className="hidden sm:inline">Ask</span>
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-10">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                        </div>
+                    ) : questions.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                            <div className="rounded-full bg-muted/50 p-3 mb-3">
+                                <MessageCircleQuestion className="w-6 h-6 text-muted-foreground" />
                             </div>
+                            <p className="text-sm font-medium text-foreground">No questions yet</p>
+                            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                                Need clarification on a problem? Ask a question and staff will respond
+                                with a public clarification when answered.
+                            </p>
                             <Button
                                 onClick={() => setAskDialogOpen(true)}
-                                className="gap-2"
-                                variant={"link"}
-                                disabled={!session?.nextjudge_token}
+                                className="mt-4 gap-2"
                                 size="sm"
+                                disabled={!session?.nextjudge_token}
                             >
                                 <Icons.help className="w-3 h-3" />
-                                <span className="hidden sm:inline">Ask</span>
+                                Ask the first question
                             </Button>
                         </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        {isLoading ? (
-                            <div className="text-center text-muted-foreground py-8">
-                                Loading questions...
-                            </div>
-                        ) : questions.length === 0 ? (
-                            <div className="text-center text-muted-foreground py-8">
-                                No questions yet
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <div className={`grid gap-4 text-sm font-medium border-b pb-2 ${(isAdmin || questions.some(q => q.user?.is_admin)) ? 'grid-cols-5' : 'grid-cols-4'}`}>
-                                    <div>Party</div>
-                                    <div>Date & Time</div>
-                                    <div>Question</div>
-                                    <div>Status</div>
-                                    {(isAdmin || questions.some(q => q.user?.is_admin)) && <div>Actions</div>}
-                                </div>
-                                {questions.map((question) => (
-                                    <div key={question.id} className={`grid gap-4 items-start py-3 border-b ${(isAdmin || questions.some(q => q.user?.is_admin)) ? 'grid-cols-5' : 'grid-cols-4'}`}>
-                                        <div className="text-sm">
-                                            <div className="font-medium">{question.user?.name || "Anonymous"}</div>
-                                            {question.problem && (
-                                                <Badge variant="secondary" className="mt-1 text-xs">
-                                                    {question.problem.title}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {format(new Date(question.created_at), "MMM d, h:mm a")}
-                                        </div>
-                                        <div className="text-sm">
-                                            <p className="line-clamp-3">{question.question}</p>
-                                        </div>
-                                        <div className="text-sm">
-                                            {question.is_answered ? (
-                                                <Badge
-                                                    variant="default"
-                                                    className="cursor-pointer hover:opacity-80 transition-opacity"
-                                                    onClick={() => handleViewClick(question)}
-                                                >
-                                                    Answered <CheckCircle className="w-4 h-4 ml-1" />
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline">
-                                                    Pending
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        {(isAdmin || (!isAdmin && question.user?.is_admin)) && (
-                                            <div className="text-sm">
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() => handleAnswerClick(question)}
-                                                >
-                                                    Answer
-                                                </Button>
-                                            </div>
-                                        )}
+                    ) : visibleQuestions.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                            <p className="text-sm font-medium text-foreground">No visible questions</p>
+                            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                                Pending questions from other participants are private until answered.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {publicClarifications.length > 0 && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <h3 className="text-sm font-medium">Public clarifications</h3>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            Answered questions visible to all participants
+                                        </p>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+                                    <QuestionTableHeader showActions={false} />
+                                    {publicClarifications.map((question) => (
+                                        <QuestionRow
+                                            key={question.id}
+                                            question={question}
+                                            showActions={false}
+                                            onView={handleViewClick}
+                                            onAnswer={handleAnswerClick}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {isAdmin && adminPendingQuestions.length > 0 && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <h3 className="text-sm font-medium">Pending review</h3>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            Questions waiting for a staff response
+                                        </p>
+                                    </div>
+                                    <QuestionTableHeader showActions={showAdminActions} />
+                                    {adminPendingQuestions.map((question) => (
+                                        <QuestionRow
+                                            key={question.id}
+                                            question={question}
+                                            showActions={showAdminActions}
+                                            onView={handleViewClick}
+                                            onAnswer={handleAnswerClick}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {!isAdmin && myPendingQuestions.length > 0 && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <h3 className="text-sm font-medium">Your pending questions</h3>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            Only you can see these until they are answered
+                                        </p>
+                                    </div>
+                                    <QuestionTableHeader showActions={false} />
+                                    {myPendingQuestions.map((question) => (
+                                        <QuestionRow
+                                            key={question.id}
+                                            question={question}
+                                            showActions={false}
+                                            onView={handleViewClick}
+                                            onAnswer={handleAnswerClick}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {publicClarifications.length === 0 &&
+                                (isAdmin ? adminPendingQuestions.length === 0 : myPendingQuestions.length === 0) && (
+                                    <div className="text-center text-muted-foreground py-6 text-sm">
+                                        No clarifications published yet.
+                                    </div>
+                                )}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <AskQuestionDialog
                 open={askDialogOpen}

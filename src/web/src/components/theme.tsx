@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { MoonIcon, SunIcon } from "@radix-ui/react-icons";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import { type ThemeProviderProps } from "next-themes/dist/types";
 import { useEffect } from "react";
 
@@ -24,18 +24,30 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
 }
 
 export function ModeToggle() {
+  const { setTheme, resolvedTheme } = useTheme();
+
+  const handleToggleTheme = () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  };
+
   return (
     <TooltipProvider>
       <Tooltip disableHoverableContent>
         <TooltipTrigger asChild>
-          <Button variant="link" size="icon" tabIndex={-1}>
+          <Button
+            variant="link"
+            size="icon"
+            tabIndex={-1}
+            onClick={handleToggleTheme}
+            aria-label="Toggle theme"
+          >
             <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom" sideOffset={5} tabIndex={-1}>
-          <p className="text-sm">Light mode coming soon!</p>
+          <p className="text-sm">Toggle theme</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

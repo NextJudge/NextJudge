@@ -81,6 +81,37 @@ func createToken(userId uuid.UUID, role RoleEnum) (string, error) {
 
 type AllowTokenFunc func(NextJudgeClaims *NextJudgeClaims) bool
 
+func isSelfOrAdmin(token *NextJudgeClaims, targetID uuid.UUID) bool {
+	return token != nil && (token.Id == targetID || token.Role == AdminRoleEnum)
+}
+
+func skipUserExistenceCheck(claims *NextJudgeClaims) bool {
+	return claims.Role == JudgeRoleEnum && claims.Id == uuid.Nil
+}
+
+func validateTokenUserExists(w http.ResponseWriter, claims *NextJudgeClaims) bool {
+	if skipUserExistenceCheck(claims) {
+		return true
+	}
+
+	user, err := db.GetUserByID(claims.Id)
+	if err != nil {
+		logrus.WithError(err).Error("error validating user for token")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"error":"Internal server error"}`)
+		return false
+	}
+
+	if user == nil {
+		logrus.Warn("JWT token references deleted or missing user")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, `{"error":"User account no longer exists"}`)
+		return false
+	}
+
+	return true
+}
+
 // Specify a call back to allow certain tokens through the auth middleware
 func AuthValidate(next http.HandlerFunc, validateFunc AllowTokenFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -97,13 +128,9 @@ func AuthValidate(next http.HandlerFunc, validateFunc AllowTokenFunc) http.Handl
 				if err == nil {
 					claims := token.Claims.(*NextJudgeClaims)
 
-					// TODO: revisit this
-					// if validateFunc != nil && !validateFunc(claims) {
-					// 	logrus.Warn(err)
-					// 	w.WriteHeader(http.StatusUnauthorized)
-					// 	fmt.Fprint(w, `{"error":"Unauthorized"}`)
-					// 	return
-					// }
+					if !validateTokenUserExists(w, claims) {
+						return
+					}
 
 					ctx := context.WithValue(r.Context(), ContextTokenKey, claims)
 					r = r.WithContext(ctx)
@@ -147,6 +174,10 @@ func AuthValidate(next http.HandlerFunc, validateFunc AllowTokenFunc) http.Handl
 			logrus.Warn(err)
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, `{"error":"Unauthorized"}`)
+			return
+		}
+
+		if !validateTokenUserExists(w, claims) {
 			return
 		}
 

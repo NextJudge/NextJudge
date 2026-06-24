@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { EventProblemAttemptDTO } from "@/lib/api";
 import { apiGetEventSubmissions } from "@/lib/api";
 import type { Problem, Submission } from "@/lib/types";
 import { useSession } from "next-auth/react";
@@ -17,19 +18,10 @@ import {
     YAxis
 } from "recharts";
 
-interface EventProblemAttemptDTO {
-    user_id: string;
-    problem_id: number;
-    attempts: number;
-    total_attempts: number;
-    first_accepted_time?: string;
-    minutes_to_solve?: number;
-}
-
 interface ContestProblemStatsChartProps {
     problems: Problem[];
     contestAttempts: EventProblemAttemptDTO[];
-    contestStatus: 'upcoming' | 'ongoing' | 'ended';
+    contestStatus: "upcoming" | "ongoing" | "ended";
     contestId: number;
 }
 
@@ -135,7 +127,7 @@ export function ContestProblemStatsChart({
         fetchSubmissions();
     }, [session?.nextjudge_token, contestId, contestStatus]);
 
-    if (contestStatus === 'upcoming' || problems.length === 0) {
+    if (contestStatus === "upcoming" || problems.length === 0) {
         return null;
     }
 
@@ -214,14 +206,12 @@ export function ContestProblemStatsChart({
         };
     });
 
-    if (chartData.length === 0 || chartData.every(d => d.attemptingUsers === 0)) {
-        return null;
-    }
+    const hasAttemptData = chartData.some((point) => point.attemptingUsers > 0 || point.totalSubmissions > 0);
 
-    const maxUsers = Math.max(...chartData.map(d => d.attemptingUsers), 1);
+    const maxUsers = Math.max(...chartData.map((d) => d.attemptingUsers), 1);
     const maxExecutionTime = Math.max(
-        ...chartData.map(d => d.avgExecutionTime || 0).filter(t => t > 0),
-        1
+        ...chartData.map((d) => d.avgExecutionTime || 0).filter((t) => t > 0),
+        1,
     );
 
     return (
@@ -235,6 +225,15 @@ export function ContestProblemStatsChart({
                 {loading ? (
                     <div className="h-[320px] w-full flex items-center justify-center">
                         <div className="w-6 h-6 border-2 border-muted border-t-primary rounded-full animate-spin" />
+                    </div>
+                ) : !hasAttemptData ? (
+                    <div className="h-[200px] w-full flex flex-col items-center justify-center text-center px-4">
+                        <p className="text-sm font-medium text-foreground">No submission data yet</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                            {contestStatus === "ended"
+                                ? "Statistics will appear here once participants submit solutions."
+                                : "Problem statistics will populate as submissions come in."}
+                        </p>
                     </div>
                 ) : (
                     <div className="h-[320px] w-full">

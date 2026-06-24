@@ -511,6 +511,27 @@ export async function apiGetUsers(token: string): Promise<User[]> {
 	}
 }
 
+export async function apiDeleteUser(token: string, userId: string): Promise<void> {
+	try {
+		const response = await fetch(`${getBridgeUrl()}/v1/users/${userId}`, {
+			method: "DELETE",
+			headers: {
+				Authorization: token,
+			},
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			throw new Error(
+				errorData.message || `HTTP error! status: ${response.status}`,
+			);
+		}
+	} catch (error) {
+		console.error("API Error deleting user:", error);
+		throw error;
+	}
+}
+
 export async function apiAddEventParticipant(
 	token: string,
 	eventId: number,

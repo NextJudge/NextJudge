@@ -15,16 +15,17 @@ export function RecentContests({ contests }: RecentContestsProps) {
   const safeContests = Array.isArray(contests) ? contests : [];
 
   return (
-    <section className="mb-12">
+    <section className="mb-12" aria-labelledby="recent-contests-heading">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Recent Contests</h2>
+        <h2 id="recent-contests-heading" className="text-2xl font-semibold tracking-tight">Recent Contests</h2>
         <Button
           variant="ghost"
           className="gap-2"
           onClick={() => router.push("/platform/contests")}
+          aria-label="View all contests"
         >
           View All
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
       {safeContests.length === 0 ? (

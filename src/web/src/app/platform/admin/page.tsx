@@ -9,18 +9,18 @@ export default async function SettingsProfilePage() {
 
   const session = await auth()
 
-  if (!session || !session.user) {
+  if (!session?.user || !session.nextjudge_token || !session.nextjudge_id) {
     throw new Error("Unauthorized");
   }
-  const details = await apiGetUser(session.nextjudge_token,session.nextjudge_id);
+  const details = await apiGetUser(session.nextjudge_token, session.nextjudge_id);
   return (
     <>
       <Toaster />
       <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-medium">Profile</h3>
+          <h3 className="text-lg font-medium">Overview</h3>
           <p className="text-sm text-muted-foreground">
-            Your admin profile details. You can edit the information below.
+            Your organizer account details. Profile editing is not available yet.
           </p>
         </div>
         <Separator />

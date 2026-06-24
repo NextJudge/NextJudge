@@ -1,9 +1,9 @@
+import { PAGE_TITLES, SITE_COPY } from "@/lib/site";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "NextJudge - Platform",
-  description:
-    "NextJudge is a platform for competitive programming, where you can solve problems and compete with others.",
+  title: PAGE_TITLES.platform,
+  description: SITE_COPY.platformDescription,
 };
 
 interface PlatformLayoutProps {
@@ -12,8 +12,6 @@ interface PlatformLayoutProps {
 
 export default function EditorLayout({ children }: PlatformLayoutProps) {
   return (
-    <>
-      <main className="flex-1 flex flex-col w-full min-w-0">{children}</main>
-    </>
+    <div className="flex-1 flex flex-col w-full min-w-0">{children}</div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Icons } from "@/components/icons";
+import { BRAND_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 import { useSession } from "next-auth/react";
@@ -291,7 +292,7 @@ export function ContestCelebration({
                 <div className="flex items-center space-x-3 text-lg font-bold z-10 relative">
                     <Icons.logo className="w-6 h-6" />
                     <span className="bg-gradient-to-r from-white to-orange-100 bg-clip-text text-transparent">
-                        NextJudge
+                        {BRAND_NAME}
                     </span>
                     <Icons.logo className="w-6 h-6" />
                 </div>

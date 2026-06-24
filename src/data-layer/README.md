@@ -75,7 +75,15 @@ Response Body:
 
 #### DELETE /v1/users/{user_id}
 
-There are no post or response bodies for this endpoint.
+Requires authentication. Users may delete their own account; admins may delete any user.
+
+Returns `204 No Content` on success. There is no request or response body.
+
+- `401` — missing or invalid JWT, or JWT for a deleted account
+- `403` — non-admin attempted to delete another user's account, or attempted to delete the last admin
+- `404` — user not found (including already deleted)
+
+Deleting a user soft-deletes the account: credentials and personal profile fields are cleared, but problems, events, submissions, and **contest standings** remain. Leaderboard rows stay frozen and display as **Deleted user** (same `user_id` and scores). `event_users` rows are not removed. Elasticsearch problem indexes are not removed. The same person may register again later as a new account; past standings do not transfer.
 
 #### PUT /v1/users/{user_id}
 

@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { SITE_URLS } from "./site";
 import { Language } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
@@ -8,14 +9,14 @@ export function cn(...inputs: ClassValue[]) {
 
 export function getBridgeUrl() {
     return process.env.NODE_ENV === "production"
-        ? "https://api.nextjudge.net"
-        : "http://localhost:5000";
+        ? SITE_URLS.production.api
+        : SITE_URLS.development.api;
 }
 
 export function getAppUrl() {
     return process.env.NODE_ENV === "production"
-        ? "https://nextjudge.net"
-        : "http://localhost:8080";
+        ? SITE_URLS.production.app
+        : SITE_URLS.development.app;
 }
 
 

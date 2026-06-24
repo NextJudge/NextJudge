@@ -33,14 +33,16 @@ const members = [
 export default function TeamSection() {
     return (
         <>
-        <div className="absolute top-4 left-4 z-50">
+        <header className="absolute top-4 left-4 z-50">
             <Link href="/" className={cn(buttonVariants({ variant: "link" }), "text-white text-sm tracking-wide")}>
-                <Icons.arrowLeft className="w-4 h-4" />
+                <Icons.arrowLeft className="w-4 h-4" aria-hidden="true" />
                 Home
             </Link>
-        </div>
+        </header>
+        <main id="main-content">
         <section
             className="relative py-16 md:py-32 text-white"
+            aria-labelledby="team-heading"
             style={{
                 backgroundImage: 'url(/footer-background.png)',
                 backgroundSize: 'cover',
@@ -50,7 +52,7 @@ export default function TeamSection() {
             >
                 <div className="absolute inset-0 bg-black/50" />
             <div className="relative mx-auto max-w-5xl border-t border-osu/60 px-6">
-                <span className="text-caption -ml-6 -mt-3.5 block w-max bg-black/80 backdrop-blur px-6 text-white">NextJudge Capstone Team</span>
+                <h1 id="team-heading" className="text-caption -ml-6 -mt-3.5 block w-max bg-black/80 backdrop-blur px-6 text-white">NextJudge Capstone Team</h1>
                 <div className="mt-4 gap-4 sm:grid sm:grid-cols-2 md:mt-12">
                     <div className="mt-2 sm:mt-0">
                             <p className="text-gray-300">NextJudge is a School of Electrical Engineering and Computer Science (EECS) capstone project developed at Oregon State University, under the supervision of Dr. Mike Bailey.</p>
@@ -76,13 +78,13 @@ export default function TeamSection() {
                                 <img
                                     className="h-96 w-full rounded-md object-cover object-top border border-osu/50"
                                     src={member.avatar}
-                                    alt="team member"
+                                    alt={`${member.name}, team member`}
                                     width="826"
                                     height="1239"
                                 />
                                 <div className="px-2 pt-2 sm:pb-0 sm:pt-4">
                                     <div className="flex justify-between">
-                                        <h3 className="text-base font-medium text-white">{member.name}</h3>
+                                        <h2 className="text-base font-medium text-white">{member.name}</h2>
                                         <span className="text-xs text-gray-300">_0{index + 1}</span>
                                     </div>
                                     <div className="mt-1 flex items-center justify-between">
@@ -101,6 +103,7 @@ export default function TeamSection() {
                 </div>
             </div>
         </section>
+        </main>
         </>
     )
 }

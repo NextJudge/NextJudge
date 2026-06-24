@@ -1,7 +1,8 @@
+import { SITE_URLS } from "@/lib/site";
 import { editor } from "monaco-editor";
 export const sidebarNavItems = [
   {
-    title: "Profile",
+    title: "Overview",
     href: "/platform/admin",
   },
   {
@@ -28,7 +29,7 @@ export const links = [
     dropdown: true,
     dropdownLinks: [
       {
-        label: "Profile",
+        label: "Overview",
         href: "/platform/admin",
       },
       {
@@ -70,7 +71,7 @@ export const directoryRoutes = {
         {
           title: "Editorials",
           href: "/platform/editorials",
-          description: "Read the editorials for the problems.",
+          description: "Editorials are coming soon. Browse problems in the meantime.",
         },
         {
           title: "Logout",
@@ -105,7 +106,7 @@ export const routeList: RouteProps[] = [
     label: "Early Access",
   },
   {
-    href: "https://docs.nextjudge.net",
+    href: SITE_URLS.production.docs,
     label: "Docs",
   },
 ];
