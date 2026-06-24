@@ -1,4 +1,5 @@
 import starlight from '@astrojs/starlight';
+import mermaid from 'astro-mermaid';
 import lucode from 'lucode-starlight';
 import { defineConfig } from 'astro/config';
 
@@ -18,6 +19,7 @@ const nextJudgeTheme = () => ({
 export default defineConfig({
   site: 'https://docs.nextjudge.net',
   integrations: [
+    mermaid({ autoTheme: true }),
     starlight({
       title: 'NextJudge',
       head: [
