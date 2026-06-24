@@ -137,7 +137,7 @@ jobs:
         run: |
           docker build -f Dockerfile.newbase --target prod -t basejudge:prod .
           docker build -f Dockerfile.monolith --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge-test .
-          docker compose -f docker-compose.test.yml run --rm pytest
+          docker compose -f docker-compose.test.yml run --rm --build pytest
 
   ci-success:
     needs: [changes, web-lint, web-build, docs-build, backend-build, judge-tests]
