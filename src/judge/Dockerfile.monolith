@@ -59,3 +59,20 @@ RUN mkdir -p /go_cache /go_mod_cache && chown 99999:99999 /go_cache /go_mod_cach
     mkdir -p /chroot/go_cache /chroot/go_mod_cache && chown 99999:99999 /chroot/go_cache /chroot/go_mod_cache
 
 COPY languages.toml /app/languages.toml
+
+FROM release AS test
+
+WORKDIR /app
+
+RUN mkdir -p /app/src/
+RUN mv /app/languages.toml /app/app.py /app/src/
+RUN touch /app/src/__init__.py
+
+COPY test-requirements.txt ./
+RUN pip install -r test-requirements.txt --break-system-packages
+
+COPY tests ./tests
+RUN touch /app/tests/__init__.py
+
+ENV PYTEST_ADDOPTS="--color=yes"
+ENTRYPOINT [ "pytest", "-v", "-l" ]

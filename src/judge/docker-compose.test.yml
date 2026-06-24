@@ -2,7 +2,4 @@ services:
   pytest:
     image: nextjudge-judge-test
     pull_policy: never
-    build:
-      dockerfile: ./Dockerfile.tests
-      context: .
     privileged: true
