@@ -2,8 +2,8 @@ import 'next-auth';
 
 declare module 'next-auth' {
   interface Session {
-    nextjudge_token: string;
-    nextjudge_id: string;
+    nextjudge_token?: string;
+    nextjudge_id?: string;
     user?: {
       id?: string;
       email?: string | null;
@@ -20,8 +20,12 @@ declare module 'next-auth' {
   }
 
   interface JWT {
-    nextjudge_token: string;
-    nextjudge_id: string;
+    nextjudge_token?: string;
+    nextjudge_id?: string;
+    nextjudge_email?: string;
+    nextjudge_name?: string;
+    nextjudge_image?: string;
+    nextjudge_is_admin?: boolean;
     is_admin?: boolean;
   }
 }

@@ -21,6 +21,57 @@ import GitHub from "next-auth/providers/github";
 
 const AUTH_PROVIDER_PASSWORD: string = process.env.AUTH_PROVIDER_PASSWORD as string
 
+interface NextJudgeUserResponse {
+    email: string;
+    name: string;
+    image: string;
+    is_admin: boolean;
+}
+
+interface BasicLoginResponse {
+    email?: string;
+    name?: string;
+    image?: string;
+    token: string;
+    id: string;
+}
+
+const clearNextJudgeSession = (token: Record<string, unknown>) => {
+    delete token.nextjudge_token
+    delete token.nextjudge_id
+    delete token.nextjudge_email
+    delete token.nextjudge_name
+    delete token.nextjudge_image
+    delete token.nextjudge_is_admin
+}
+
+const fetchNextJudgeUser = async (
+    userId: string,
+    authToken: string,
+): Promise<NextJudgeUserResponse | null | undefined> => {
+    try {
+        const response = await fetch(
+            `${getBridgeUrl()}/v1/users/${userId}`, {
+            headers: {
+                Authorization: authToken,
+            },
+        });
+
+        if (response.status === 404) {
+            return null;
+        }
+
+        if (!response.ok) {
+            return undefined;
+        }
+
+        return await response.json() as NextJudgeUserResponse;
+    } catch (error) {
+        console.error("Failed to fetch user data:", error);
+        return undefined;
+    }
+}
+
 const providers: Provider[] = [
     GitHub,
     Credentials({
@@ -50,14 +101,14 @@ const providers: Provider[] = [
                     return null
                 }
 
-                const jsonData: any = await response.json()
+                const jsonData = await response.json() as BasicLoginResponse
 
                 return {
-                    email: jsonData["email"] || email,
-                    name: jsonData["name"] || email.split("@")[0],
-                    image: jsonData["image"] || image,
-                    nextjudge_token: jsonData["token"],
-                    nextjudge_id: jsonData["id"]
+                    email: jsonData.email || email,
+                    name: jsonData.name || email.split("@")[0],
+                    image: jsonData.image || image,
+                    nextjudge_token: jsonData.token,
+                    nextjudge_id: jsonData.id
                 };
             } catch (error) {
                 return null;
@@ -86,39 +137,51 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     debug: process.env.NODE_ENV === "development" ? true : false,
     callbacks: {
-        async jwt({ token, user, trigger }) {
-            // This is only true during the initial sign-in
+        async jwt({ token, user }) {
             if (user) {
                 token.nextjudge_token = user.nextjudge_token
                 token.nextjudge_id = user.nextjudge_id
             }
 
+            if (typeof token.nextjudge_token === "string" && typeof token.nextjudge_id === "string") {
+                const userData = await fetchNextJudgeUser(
+                    token.nextjudge_id,
+                    token.nextjudge_token,
+                );
+
+                if (userData === null) {
+                    clearNextJudgeSession(token);
+                    return token;
+                }
+
+                if (userData) {
+                    token.nextjudge_email = userData.email;
+                    token.nextjudge_name = userData.name;
+                    token.nextjudge_image = userData.image;
+                    token.nextjudge_is_admin = userData.is_admin;
+                }
+            }
+
             return token;
         },
         async session({ session, token }) {
-            // @ts-expect-error
-            session.nextjudge_token = token.nextjudge_token
-            // @ts-expect-error
-            session.nextjudge_id = token.nextjudge_id
+            if (typeof token.nextjudge_token === "string" && typeof token.nextjudge_id === "string") {
+                session.nextjudge_token = token.nextjudge_token
+                session.nextjudge_id = token.nextjudge_id
 
-            if (session.user && token.nextjudge_token && token.nextjudge_id) {
-                try {
-                    const response = await fetch(
-                        `${getBridgeUrl()}/v1/users/${token.nextjudge_id}`, {
-                        headers: {
-                            "Authorization": token.nextjudge_token as string
-                        }
-                    });
-
-                    if (response.ok) {
-                        const userData = await response.json();
-                        session.user.email = userData.email;
-                        session.user.name = userData.name;
-                        session.user.image = userData.image;
-                        session.user.is_admin = userData.is_admin;
+                if (session.user) {
+                    if (typeof token.nextjudge_email === "string") {
+                        session.user.email = token.nextjudge_email;
                     }
-                } catch (error) {
-                    console.error("Failed to fetch user data:", error);
+                    if (typeof token.nextjudge_name === "string") {
+                        session.user.name = token.nextjudge_name;
+                    }
+                    if (typeof token.nextjudge_image === "string") {
+                        session.user.image = token.nextjudge_image;
+                    }
+                    if (typeof token.nextjudge_is_admin === "boolean") {
+                        session.user.is_admin = token.nextjudge_is_admin;
+                    }
                 }
             }
 

@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { DefaultLanguageSetting } from "@/components/settings/default-language-setting";
+import { DeleteAccountSetting } from "@/components/settings/delete-account-setting";
 import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
@@ -9,15 +10,18 @@ export const metadata: Metadata = {
 
 export default function SettingsPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">General Settings</h3>
+    <section aria-labelledby="general-settings-heading" className="space-y-6">
+      <header>
+        <h2 id="general-settings-heading" className="text-lg font-medium">
+          General Settings
+        </h2>
         <p className="text-sm text-muted-foreground">
           Manage your general preferences and settings.
         </p>
-      </div>
+      </header>
       <Separator />
       <DefaultLanguageSetting />
-    </div>
+      <DeleteAccountSetting />
+    </section>
   );
 }
