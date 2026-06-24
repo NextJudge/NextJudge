@@ -240,8 +240,8 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// send submission to judge
-	RabbitMQPublishSubmission(response.ID.String())
+	// send submission to judge (reaper retries if this fails)
+	tryEnqueueProblemSubmission(response.ID)
 
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, string(respJSON))

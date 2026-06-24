@@ -3,22 +3,28 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/url"
+	"sync"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sirupsen/logrus"
 )
 
-const SUBMISSION_KEY string = "submission_queue"
+const (
+	SUBMISSION_KEY    = "submission_queue"
+	submissionDLQKey  = "submission_queue.dlq"
+	publishMaxRetries = 3
+)
 
 type RabbitMQService struct {
-	Channel *amqp.Channel
-	Queue   *amqp.Queue
+	mu        sync.Mutex
+	conn      *amqp.Connection
+	channel   *amqp.Channel
+	queueName string
 }
 
-var rabbit_connection *RabbitMQService
+var rabbitService *RabbitMQService
 
 type RabbitMQSubmission struct {
 	Type string `json:"type"`
@@ -26,123 +32,175 @@ type RabbitMQSubmission struct {
 }
 
 type RabbitMQCustomInputSubmission struct {
-	Type       string `json:"type"`
-	Id         string `json:"id"`
-	Code       string `json:"code"`
-	LanguageID string `json:"language_id"`
-	Stdin      string `json:"stdin"`
+	Type string `json:"type"`
+	Id   string `json:"id"`
 }
 
 func SetupRabbitMQConnection() error {
+	rabbitService = &RabbitMQService{}
+	return rabbitService.connect()
+}
 
-	rabbitMQEndpoint := fmt.Sprintf("amqp://%s:%s@%s:5672", url.QueryEscape(cfg.RabbitUser), url.QueryEscape(cfg.RabbitPassword), cfg.RabbitMQHost)
+func (r *RabbitMQService) connect() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.channel != nil {
+		_ = r.channel.Close()
+		r.channel = nil
+	}
+	if r.conn != nil {
+		_ = r.conn.Close()
+		r.conn = nil
+	}
+
+	rabbitMQEndpoint := fmt.Sprintf(
+		"amqp://%s:%s@%s:5672/",
+		url.QueryEscape(cfg.RabbitUser),
+		url.QueryEscape(cfg.RabbitPassword),
+		cfg.RabbitMQHost,
+	)
 
 	var conn *amqp.Connection
 	var err error
-	const MAX_ATTEMPTS = 10
-	attempts := 0
-
-	for conn == nil {
-		conn, err = amqp.Dial(
-			rabbitMQEndpoint,
-		)
-
-		if err != nil {
-			if attempts < MAX_ATTEMPTS {
-				time.Sleep(2 * time.Second)
-			} else {
-				return err
-			}
+	const maxAttempts = 10
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		conn, err = amqp.Dial(rabbitMQEndpoint)
+		if err == nil {
+			break
 		}
-		attempts += 1
+		if attempt < maxAttempts-1 {
+			time.Sleep(2 * time.Second)
+		}
+	}
+	if err != nil {
+		return err
 	}
 
 	channel, err := conn.Channel()
 	if err != nil {
+		_ = conn.Close()
 		return err
 	}
 
-	submission_queue, err := channel.QueueDeclare(
-		SUBMISSION_KEY, // name
-		true,           // durable
-		false,          // delete when unused
-		false,          // exclusive
-		false,          // no-wait
-		nil,            // arguments
+	queue, err := channel.QueueDeclare(
+		SUBMISSION_KEY,
+		true,
+		false,
+		false,
+		false,
+		nil,
 	)
 	if err != nil {
+		_ = channel.Close()
+		_ = conn.Close()
 		return err
 	}
 
-	rabbit_connection = &RabbitMQService{
-		channel,
-		&submission_queue,
+	_, err = channel.QueueDeclare(
+		submissionDLQKey,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		_ = channel.Close()
+		_ = conn.Close()
+		return err
 	}
 
+	r.conn = conn
+	r.channel = channel
+	r.queueName = queue.Name
 	return nil
 }
 
-func RabbitMQPublishSubmission(id string) {
+func (r *RabbitMQService) reconnect() error {
+	logrus.Warn("Reconnecting to RabbitMQ...")
+	return r.connect()
+}
+
+func (r *RabbitMQService) publish(body []byte) error {
+	var lastErr error
+	for attempt := 0; attempt < publishMaxRetries; attempt++ {
+		r.mu.Lock()
+		channel := r.channel
+		queueName := r.queueName
+		r.mu.Unlock()
+
+		if channel == nil {
+			if err := r.reconnect(); err != nil {
+				lastErr = err
+				time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
+				continue
+			}
+			r.mu.Lock()
+			channel = r.channel
+			queueName = r.queueName
+			r.mu.Unlock()
+		}
+
+		err := channel.Publish(
+			"",
+			queueName,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType:  "application/json",
+				Body:         body,
+				DeliveryMode: amqp.Persistent,
+			},
+		)
+		if err == nil {
+			return nil
+		}
+
+		lastErr = err
+		logrus.WithError(err).Warn("RabbitMQ publish failed, reconnecting")
+		if reconnectErr := r.reconnect(); reconnectErr != nil {
+			lastErr = reconnectErr
+		}
+		time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
+	}
+	return lastErr
+}
+
+func publishSubmissionMessage(id string) error {
 	data := RabbitMQSubmission{
 		Type: "submission",
 		Id:   id,
 	}
-
-	json_data, err := json.Marshal(data)
+	jsonData, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-
-	err = rabbit_connection.Channel.Publish(
-		"",                           // exchange
-		rabbit_connection.Queue.Name, // routing key
-		false,                        // mandatory
-		false,                        // immediate
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(json_data),
-		},
-	)
-
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
-	log.Println("Published")
+	return rabbitService.publish(jsonData)
 }
 
-func RabbitMQPublishCustomInputSubmission(id string, body *CustomInputSubmissionStatusPostBody) {
+func publishInputSubmissionMessage(id string) error {
 	data := RabbitMQCustomInputSubmission{
-		Type:       "input",
-		Id:         id,
-		Code:       body.SourceCode,
-		LanguageID: body.LanguageID.String(),
-		Stdin:      body.Stdin,
+		Type: "input",
+		Id:   id,
 	}
-
-	json_data, err := json.Marshal(data)
+	jsonData, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-
-	err = rabbit_connection.Channel.Publish(
-		"",                           // exchange
-		rabbit_connection.Queue.Name, // routing key
-		false,                        // mandatory
-		false,                        // immediate
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(json_data),
-		},
-	)
-
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
-	log.Println("Published")
+	return rabbitService.publish(jsonData)
 }
 
 func CloseRabbitMQConnection() {
-	rabbit_connection.Channel.Close()
+	if rabbitService == nil {
+		return
+	}
+	rabbitService.mu.Lock()
+	defer rabbitService.mu.Unlock()
+	if rabbitService.channel != nil {
+		_ = rabbitService.channel.Close()
+	}
+	if rabbitService.conn != nil {
+		_ = rabbitService.conn.Close()
+	}
 }
