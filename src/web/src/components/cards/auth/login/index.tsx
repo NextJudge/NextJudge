@@ -6,7 +6,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Form,
@@ -17,10 +16,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { SITE_COPY } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { LoginFormSchema } from "@/lib/zod";
 import { LoginCardProps } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -56,7 +57,9 @@ export function LoginCard({ children }: LoginCardProps) {
   return (
     <Card className="mt-10">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Sign in to NextJudge</CardTitle>
+        <h1 className="text-2xl font-semibold leading-none tracking-tight">
+          {SITE_COPY.signInTitle}
+        </h1>
         <CardDescription>Enter your credentials to continue</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -120,6 +123,15 @@ export function LoginCard({ children }: LoginCardProps) {
             </Button>
           </form>
         </Form>
+        <p className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/auth/signup"
+            className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+          >
+            Sign up
+          </Link>
+        </p>
       </CardContent>
     </Card>
   );

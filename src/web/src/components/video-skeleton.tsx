@@ -1,4 +1,5 @@
 "use client";
+import { SITE_COPY } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -36,7 +37,7 @@ export default function VideoSkeleton({ loading, src }: VideoSkeletonProps) {
             autoPlay
             width="100%"
             height="100%"
-            title="NextJudge Demo"
+            title={SITE_COPY.demoTitle}
           >
             <source src={src} type="video/webm" />
             Your browser does not support the video tag.

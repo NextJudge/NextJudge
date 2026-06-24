@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { SITE_COPY } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { AuthorizeSchema, FormSchema } from "@/lib/zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -63,8 +64,7 @@ export function EmailForm() {
               of competitive programming
             </h2>
             <p className="text-center text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-              Join the waitlist to get early access to NextJudge. We&apos;ll notify
-              you when we&apos;re ready to onboard new users.
+              {SITE_COPY.waitlistDescription} you when we&apos;re ready to onboard new users.
             </p>
           </div>
 
@@ -150,7 +150,7 @@ export function UserAuthForm({ children }: { children?: React.ReactNode }) {
     <Card className="bg-black text-white border border-osu/60">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">Create an account</CardTitle>
-        <CardDescription>Sign up to get started with NextJudge</CardDescription>
+        <CardDescription>{SITE_COPY.signUpCardDescription}</CardDescription>
       </CardHeader>
 
       <CardContent className="grid gap-4">

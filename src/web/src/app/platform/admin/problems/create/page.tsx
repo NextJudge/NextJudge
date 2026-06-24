@@ -10,7 +10,7 @@ export default async function CreateProblemPage() {
 
   const session = await auth();
   
-  if (!session || !session.user) {
+  if (!session?.user || !session.nextjudge_token) {
       throw new Error("Unauthorized");
   }
 

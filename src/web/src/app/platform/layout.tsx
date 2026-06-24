@@ -1,12 +1,14 @@
 import { Footer } from "@/components/footer";
+import { PAGE_TITLES, SITE_COPY } from "@/lib/site";
+import { SEO_ROBOTS } from "@/lib/seo";
 import { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import { headers } from "next/headers";
 
 export const metadata: Metadata = {
-  title: "NextJudge - Platform",
-  description:
-    "NextJudge is a platform for competitive programming, where you can solve problems and compete with others.",
+  title: PAGE_TITLES.platform,
+  description: SITE_COPY.platformDescription,
+  robots: SEO_ROBOTS.noIndex,
 };
 
 interface PlatformLayoutProps {
@@ -17,15 +19,22 @@ export default function PlatformLayout({ children }: PlatformLayoutProps) {
   const headersList = headers();
   const pathname = headersList.get("x-pathname") || "";
 
-  // Hide footer on code editor pages (problem detail pages)
-  const isEditorPage = pathname.includes("/platform/problems/") && pathname.match(/\/platform\/problems\/\d+$/);
+  const isEditorPage =
+    pathname.includes("/platform/problems/") &&
+    pathname.match(/\/platform\/problems\/\d+$/);
 
   return (
     <SessionProvider>
-      <main className={isEditorPage ? "h-screen overflow-hidden" : "flex flex-col items-center justify-center overflow-x-hidden"}>
+      <main
+        className={
+          isEditorPage
+            ? "h-screen overflow-hidden"
+            : "flex flex-col items-center justify-center overflow-x-hidden"
+        }
+      >
         {children}
       </main>
-      {!isEditorPage && <Footer />}
+      <Footer variant="platform" />
     </SessionProvider>
   );
 }

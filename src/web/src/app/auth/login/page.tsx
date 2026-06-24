@@ -2,22 +2,25 @@ import { LoginForm } from "@/components/forms/login-form";
 import { Icons } from "@/components/icons";
 import { ModeToggle } from "@/components/theme";
 import { buttonVariants } from "@/components/ui/button";
+import { BRAND_NAME, getCopyrightNotice } from "@/lib/site";
+import { createPageMetadata, SEO_ROBOTS } from "@/lib/seo";
 import { cn } from "@/lib/utils";
-import { Metadata } from "next";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
 const Code = dynamic(() => import("@/components/code"), { ssr: false });
 
-export const metadata: Metadata = {
-  title: "Authentication",
-  description: "Authentication forms built using the components.",
-};
+export const metadata = createPageMetadata({
+  title: "Login",
+  description: "Sign in to your NextJudge account.",
+  path: "/auth/login",
+  robots: SEO_ROBOTS.noIndex,
+});
 
 export default function LoginPage() {
   return (
     <>
-      <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
+      <header className="absolute top-4 left-4 z-50 flex items-center gap-2">
         <Link
           href="/"
           className={cn(
@@ -28,11 +31,13 @@ export default function LoginPage() {
           ← Back to Home
         </Link>
         <ModeToggle />
-      </div>
-      <div className="container relative flex h-[800px] flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+      </header>
+      <main
+        id="main-content"
+        className="container relative flex h-[800px] flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0"
+      >
         <div className="lg:p-8">
           <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-            {/* Login Form */}
             <LoginForm />
           </div>
         </div>
@@ -48,18 +53,18 @@ export default function LoginPage() {
           </Link>
           <div className="relative z-20 flex items-center text-lg font-medium">
             <Icons.logo className="mr-2 h-6 w-6" />
-            NextJudge
+            {BRAND_NAME}
           </div>
           <div id="lottie-panel" className="relative z-20 mt-auto">
             <Code />
           </div>
           <div className="relative z-20 mt-auto">
             <p className="text-xs text-muted-foreground">
-              © 2024 NextJudge. All rights reserved.
+              {getCopyrightNotice()}
             </p>
           </div>
         </div>
-      </div>
+      </main>
     </>
   );
 }

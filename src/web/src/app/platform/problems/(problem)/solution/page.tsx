@@ -1,9 +1,5 @@
-import React from "react";
+import { redirect } from "next/navigation";
 
 export default function SolutionPage() {
-  return (
-    <div>
-      <h1 className="text-4xl font-bold">Solution</h1>
-    </div>
-  );
+  redirect("/platform/problems");
 }

@@ -7,7 +7,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Form,
@@ -18,10 +17,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { SITE_COPY } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { AuthorizeSchema } from "@/lib/zod";
 import { SignUpCardProps } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -56,8 +57,10 @@ export function SignUpCard({ children }: SignUpCardProps) {
   return (
     <Card className="mt-20">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Create an account</CardTitle>
-        <CardDescription>Sign up to get started with NextJudge</CardDescription>
+        <h1 className="text-2xl font-semibold leading-none tracking-tight">
+          Create an account
+        </h1>
+        <CardDescription>{SITE_COPY.signUpCardDescription}</CardDescription>
       </CardHeader>
 
       <CardContent className="grid gap-4">
@@ -141,6 +144,15 @@ export function SignUpCard({ children }: SignUpCardProps) {
             </Button>
           </form>
         </Form>
+        <p className="text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link
+            href="/auth/login"
+            className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+          >
+            Sign in
+          </Link>
+        </p>
       </CardContent>
     </Card>
   );

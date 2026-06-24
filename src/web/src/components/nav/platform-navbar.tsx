@@ -8,6 +8,7 @@ import {
 
 import { Icons } from "@/components/icons";
 import { platformRoutes } from "@/lib/constants";
+import { BRAND_NAME } from "@/lib/site";
 import { Menu } from "lucide-react";
 import { Session } from "next-auth";
 import { ModeToggle } from "../theme";
@@ -35,7 +36,7 @@ export default function PlatformNavbar({
                 <div className="font-bold flex items-center mx-2 md:mx-12 gap-4">
                     <Icons.logo className="text-orange-600 w-6 h-6" />
                     <a href="/" className=" font-bold text-xl">
-                        NextJudge
+                        {BRAND_NAME}
                     </a>
                     <span className="hidden md:block">
                         <ModeToggle />
@@ -54,7 +55,7 @@ export default function PlatformNavbar({
 
                         <SheetContent side={"left"}>
                             <SheetHeader>
-                                <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
+                                <SheetTitle className="font-bold text-xl">{BRAND_NAME}</SheetTitle>
                             </SheetHeader>
                             <nav className="flex flex-col justify-center items-center gap-2 mt-4">
                                 {children}

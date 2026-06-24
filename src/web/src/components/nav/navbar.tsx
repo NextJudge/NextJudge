@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { directoryRoutes, platformRoutes, routeList } from "@/lib/constants";
+import { BRAND_NAME, SITE_URLS } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { Menu, Pyramid } from "lucide-react";
@@ -50,7 +51,7 @@ export function Navbar() {
         <div className="flex justify-start align-middle items-center w-full">
           <Icons.logo className="text-orange-600 translate-y-[0.8px]" />
           <Link href="/" passHref className="ml-3 text-xl">
-            NextJudge
+            {BRAND_NAME}
           </Link>
         </div>
         {/* mobile */}
@@ -64,7 +65,7 @@ export function Navbar() {
 
             <SheetContent side={"left"}>
               <SheetHeader>
-                <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
+                <SheetTitle className="font-bold text-xl">{BRAND_NAME}</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col justify-center items-center gap-2 mt-4">
                 <ModeToggle />
@@ -84,7 +85,7 @@ export function Navbar() {
                   );
                 })}
                 <a
-                  href="https://github.com/nextjudge/nextjudge"
+                  href={SITE_URLS.production.github}
                   target="_blank"
                   className={`w-[110px] border ${buttonVariants({
                     variant: "secondary",
@@ -243,7 +244,7 @@ export function PlatformNavbar() {
         <div className="font-bold flex items-center">
           <Pyramid className="w-10 h-10" />
           <a href="/" className="ml-3 font-bold text-xl flex">
-            NextJudge
+            {BRAND_NAME}
           </a>
         </div>
         <div className="flex md:hidden">
@@ -260,7 +261,7 @@ export function PlatformNavbar() {
 
             <SheetContent side={"left"}>
               <SheetHeader>
-                <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
+                <SheetTitle className="font-bold text-xl">{BRAND_NAME}</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col justify-center items-center gap-2 mt-4">
                 {routeList.map(({ href, label }) => {

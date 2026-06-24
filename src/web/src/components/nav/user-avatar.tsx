@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getContactEmail, getMailto } from "@/lib/site";
 import { Session } from "next-auth";
 import Image from "next/image";
 import Link from "next/link";
@@ -43,7 +44,9 @@ export function UserAvatar({ session }: { session: Session | undefined }) {
           <Link href="/platform/settings">
             <DropdownMenuItem>Settings</DropdownMenuItem>
           </Link>
-          <DropdownMenuItem>Support</DropdownMenuItem>
+          <a href={getMailto(getContactEmail())}>
+            <DropdownMenuItem>Support</DropdownMenuItem>
+          </a>
           <DropdownMenuSeparator />
           <Link href="/auth/logout">
             <DropdownMenuItem>Logout</DropdownMenuItem>

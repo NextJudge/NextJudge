@@ -1,8 +1,57 @@
+import {
+  BRAND_NAME,
+  COPYRIGHT,
+  EMAIL,
+  SITE_URLS,
+  getMailto,
+} from "@/lib/site";
 import { Pyramid } from "lucide-react";
 import Link from "next/link";
 import { Separator } from "./ui/separator";
 
-export const Footer = () => {
+type FooterProps = {
+  variant?: "marketing" | "platform";
+};
+
+const platformLinkClassName =
+  "opacity-60 hover:opacity-100 transition-opacity";
+
+export const Footer = ({ variant = "marketing" }: FooterProps) => {
+  if (variant === "platform") {
+    return (
+      <footer id="footer">
+        <Separator className="w-11/12 mx-auto bg-neutral-900/50" />
+        <section className="container py-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
+          <a
+            href={SITE_URLS.production.docs}
+            className={platformLinkClassName}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Docs
+          </a>
+          <span className="opacity-40" aria-hidden="true">
+            |
+          </span>
+          <a
+            href={SITE_URLS.production.github}
+            className={platformLinkClassName}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>
+          <span className="opacity-40" aria-hidden="true">
+            |
+          </span>
+          <span className="opacity-60">
+            &copy; {COPYRIGHT.year} {BRAND_NAME}
+          </span>
+        </section>
+      </footer>
+    );
+  }
+
   return (
     <footer id="footer">
       <Separator className="w-11/12 mx-auto bg-neutral-900/50" />
@@ -10,7 +59,7 @@ export const Footer = () => {
         <div className="col-span-full xl:col-span-2 flex justify-center">
           <Link href="/" className="font-bold text-xl flex items-center">
             <Pyramid size={24} className="text-orange-600" />
-            <span className="ml-2">NextJudge</span>
+            <span className="ml-2">{BRAND_NAME}</span>
           </Link>
         </div>
 
@@ -18,7 +67,7 @@ export const Footer = () => {
           <h3 className="font-bold text-lg">Docs</h3>
           <div>
             <a
-              href="https://docs.nextjudge.net/start/getting-started/"
+              href={SITE_URLS.production.docsGettingStarted}
               className="opacity-60 hover:opacity-100"
               target="_blank"
               rel="noopener noreferrer"
@@ -29,7 +78,7 @@ export const Footer = () => {
 
           <div>
             <a
-              href="https://docs.nextjudge.net/reference/api/"
+              href={SITE_URLS.production.docsApiReference}
               className="opacity-60 hover:opacity-100"
               target="_blank"
               rel="noopener noreferrer"
@@ -40,7 +89,7 @@ export const Footer = () => {
 
           <div>
             <a
-              href="https://github.com/nextjudge"
+              href={SITE_URLS.production.github}
               rel="noopener noreferrer"
               target="_blank"
               className="opacity-60 hover:opacity-100"
@@ -51,7 +100,7 @@ export const Footer = () => {
         </div>
 
         <div className="flex flex-col gap-2 items-center">
-          <h3 className="font-bold text-lg">NextJudge</h3>
+          <h3 className="font-bold text-lg">{BRAND_NAME}</h3>
           <div>
             <Link href="/#try-it" className="opacity-60 hover:opacity-100">
               Services
@@ -74,15 +123,27 @@ export const Footer = () => {
         <div className="flex flex-col gap-2 items-center">
           <h3 className="font-bold text-lg">Platform</h3>
           <div>
-            <span className="opacity-40 cursor-not-allowed">Home</span>
+            <Link href="/platform" className="opacity-60 hover:opacity-100">
+              Home
+            </Link>
           </div>
 
           <div>
-            <span className="opacity-40 cursor-not-allowed">Problem Set</span>
+            <Link
+              href="/platform/problems"
+              className="opacity-60 hover:opacity-100"
+            >
+              Problem Set
+            </Link>
           </div>
 
           <div>
-            <span className="opacity-40 cursor-not-allowed">Contests</span>
+            <Link
+              href="/platform/contests"
+              className="opacity-60 hover:opacity-100"
+            >
+              Contests
+            </Link>
           </div>
         </div>
 
@@ -97,7 +158,7 @@ export const Footer = () => {
 
           <div>
             <a
-              href="mailto:hello@nextjudge.net"
+              href={getMailto(EMAIL.hello)}
               className="opacity-60 hover:opacity-100"
             >
               Contact
@@ -108,13 +169,13 @@ export const Footer = () => {
 
       <section className="container pb-14 text-center">
         <h3>
-          &copy; 2025{" "}
+          &copy; {COPYRIGHT.year}{" "}
           <a
             target="_blank"
-            href="https://nextjudge.net"
+            href={SITE_URLS.production.app}
             className="text-orange-600 transition-all border-primary hover:border-b-2"
           >
-            NextJudge
+            {BRAND_NAME}
           </a>
         </h3>
       </section>

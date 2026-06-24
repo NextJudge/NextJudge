@@ -5,7 +5,7 @@ import MarkdownRenderer from "@/components/markdown-renderer";
 import { UserAvatar } from "@/components/nav/user-avatar";
 import { NotificationBellServer } from "@/components/ui/notification-bell-server";
 import { apiGetLanguages, apiGetProblemCategories, apiGetRecentSubmissionsForProblem, fetchProblemID } from "@/lib/api";
-import { Problem } from "@/lib/types";
+import { Category, Problem } from "@/lib/types";
 import { EditorThemeProvider } from "@/providers/editor-theme";
 import { redirect } from "next/navigation";
 
@@ -41,17 +41,20 @@ export default async function Editor({
     const contestId = searchParams.contest ? parseInt(searchParams.contest) : undefined;
     const session = await auth();
 
-    if (!session || !session.user) {
+    if (!session?.user || !session.nextjudge_token || !session.nextjudge_id) {
         redirect(
             "/platform/"
         );
     }
 
+    const token = session.nextjudge_token;
+    const userId = session.nextjudge_id;
+
     const results = await Promise.allSettled(
         [
-            fetchProblemID(session.nextjudge_token, problem_id),
-            apiGetProblemCategories(session.nextjudge_token, problem_id),
-            apiGetRecentSubmissionsForProblem(session.nextjudge_token, problem_id, session.nextjudge_id),
+            fetchProblemID(token, problem_id),
+            apiGetProblemCategories(token, problem_id),
+            apiGetRecentSubmissionsForProblem(token, problem_id, userId),
             apiGetLanguages()
         ]
     )
@@ -62,8 +65,10 @@ export default async function Editor({
 
     const testCases = detailsResult.status === 'fulfilled' ? (detailsResult.value.test_cases || []) : []
 
-    let tags = tagsResult.status === 'fulfilled' ? tagsResult.value : []
-    tags = []
+    const tags =
+        tagsResult.status === "fulfilled" && Array.isArray(tagsResult.value)
+            ? (tagsResult.value as Category[]).map((category) => category.name)
+            : [];
 
     const recentSubmissions = recentSubmissionsResult.status === 'fulfilled' ? (recentSubmissionsResult.value || []) : []
     const languages = languagesResult.status === 'fulfilled' ? languagesResult.value : []
@@ -71,7 +76,7 @@ export default async function Editor({
     return (
         <div className="editor-workspace dark h-screen flex flex-col overflow-hidden bg-background text-foreground">
             <EditorThemeProvider>
-                    <main className="px-2 pb-2 flex flex-col flex-1 min-h-0">
+                    <div className="px-2 pb-2 flex flex-col flex-1 min-h-0">
                         <EditorNavbar
                             notificationSlot={<NotificationBellServer session={session} />}
                             backHref={contestId ? `/platform/contests/${contestId}` : "/platform/problems"}
@@ -89,7 +94,7 @@ export default async function Editor({
                                 slot={<MarkdownRenderer prompt={details.prompt} />}
                             />
                         </div>
-                    </main>
+                    </div>
             </EditorThemeProvider>
         </div>
     );

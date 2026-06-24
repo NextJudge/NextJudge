@@ -61,7 +61,11 @@ export function DefaultLanguageSetting() {
                             onValueChange={handleLanguageChange}
                             disabled={loading}
                         >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger
+                                id="default-language"
+                                className="w-full"
+                                aria-label="Default programming language"
+                            >
                                 <SelectValue placeholder={loading ? "Loading languages..." : "Select a language"} />
                             </SelectTrigger>
                             <SelectContent>

@@ -1,3 +1,4 @@
+import { SITE_COPY } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { EnterIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { IconBrandGithub, IconBrandGoogle } from "@tabler/icons-react";
@@ -23,7 +24,7 @@ import Image from "next/image";
 
 function LogoIcon({ className }: { className?: string }) {
   return (
-    <Image src="/nextjudge.png" alt="NextJudge Logo" width={48} height={48} className={cn("size-12 aspect-square", className)} />
+    <Image src="/nextjudge.png" alt={SITE_COPY.logoAlt} width={48} height={48} className={cn("size-12 aspect-square", className)} />
   )
 }
 

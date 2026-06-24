@@ -19,6 +19,7 @@ import * as React from "react";
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -70,7 +71,10 @@ export function DataTable<TData, TValue>({
     <div className="space-y-4 max-w-7xl">
       <DataTableToolbar table={table} />
       <div className="rounded-md border">
-        <Table>
+        <Table aria-label="Platform problems">
+          <TableCaption className="sr-only">
+            Browse and open coding problems on the platform
+          </TableCaption>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>

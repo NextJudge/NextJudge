@@ -30,13 +30,22 @@ import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-const contestFormSchema = z.object({
-  startTime: z.date({ required_error: "Start time is required" }),
-  endTime: z.date({ required_error: "End time is required" }),
-  description: z.string({ required_error: "Description is required" }),
-  title: z.string({ required_error: "Title is required" }),
-  teams: z.boolean().default(false),
-});
+const contestFormSchema = z
+  .object({
+    startTime: z.date({ required_error: "Start time is required" }),
+    endTime: z.date({ required_error: "End time is required" }),
+    description: z
+      .string({ required_error: "Description is required" })
+      .min(1, { message: "Description is required" }),
+    title: z
+      .string({ required_error: "Title is required" })
+      .min(1, { message: "Title is required" }),
+    teams: z.boolean().default(false),
+  })
+  .refine((data) => data.endTime > data.startTime, {
+    message: "End time must be after start time",
+    path: ["endTime"],
+  });
 
 type ContestFormValues = z.infer<typeof contestFormSchema>;
 
