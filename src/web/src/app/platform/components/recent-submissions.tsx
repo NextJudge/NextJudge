@@ -1,7 +1,11 @@
 "use client";
 
 import { DummyCodeEditor } from "@/components/landing/bento";
-import { SubmissionStatusBadge, submissionStatusConfig } from "@/components/submissions/submission-status-config";
+import {
+  SubmissionStatusBadge,
+  submissionStatusConfig,
+} from "@/components/submissions/submission-status-config";
+import { SubmissionMeta } from "@/components/submissions/submission-meta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,15 +27,31 @@ import {
 import { Submission, SubmissionStatus } from "@/lib/types";
 import { cn, convertToMonacoLanguageName } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface RecentSubmissionsProps {
   submissions: Submission[];
+  sectionId?: string;
+  viewAllHref?: string;
 }
 
-export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
+const handleCopyCode = async (sourceCode: string) => {
+  try {
+    await navigator.clipboard.writeText(sourceCode);
+    toast.success("Code copied to clipboard.");
+  } catch {
+    toast.error("Could not copy code to clipboard.");
+  }
+};
+
+export function RecentSubmissions({
+  submissions,
+  sectionId = "submissions",
+  viewAllHref = "/platform/problems#submissions",
+}: RecentSubmissionsProps) {
   const router = useRouter();
   const safeSubmissions = Array.isArray(submissions) ? submissions : [];
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
@@ -46,16 +66,21 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
   };
 
   return (
-    <section className="mb-12">
+    <section
+      id={sectionId}
+      className="mb-12 scroll-mt-24"
+      aria-labelledby="recent-submissions-heading"
+    >
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Recent Submissions</h2>
+        <h2 id="recent-submissions-heading" className="text-2xl font-semibold tracking-tight">Recent Submissions</h2>
         <Button
           variant="ghost"
           className="gap-2"
-          onClick={() => router.push("/platform/problems#submissions")}
+          onClick={() => router.push(viewAllHref)}
+          aria-label="View all submissions"
         >
           View All
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
       <div className="rounded-md border">
@@ -129,9 +154,9 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
                 Submitted on {format(selectedSubmission.submit_time, "PPP 'at' p")}
               </DialogDescription>
             </DialogHeader>
-            <div>
-              <h1
-                className={cn("text-lg font-bold", "text-primary-foreground", {
+            <div className="space-y-3">
+              <h2
+                className={cn("text-lg font-bold", {
                   "text-green-500": selectedSubmission.status === "ACCEPTED",
                   "text-red-500":
                     selectedSubmission.status === "WRONG_ANSWER" ||
@@ -142,15 +167,27 @@ export function RecentSubmissions({ submissions }: RecentSubmissionsProps) {
                   "text-yellow-500": selectedSubmission.status === "PENDING",
                 })}
               >
-                {submissionStatusConfig[selectedSubmission.status as keyof typeof submissionStatusConfig]?.label || selectedSubmission.status}
-              </h1>
+                {submissionStatusConfig[
+                  selectedSubmission.status as keyof typeof submissionStatusConfig
+                ]?.label || selectedSubmission.status}
+              </h2>
+              <SubmissionMeta submission={selectedSubmission} />
             </div>
             <DummyCodeEditor
-              sourceCode={selectedSubmission.source_code as any}
+              sourceCode={selectedSubmission.source_code}
               language={convertToMonacoLanguageName(selectedSubmission.language)}
               readOnly={true}
             />
-            <DialogFooter className="sm:justify-start">
+            <DialogFooter className="gap-2 sm:justify-start">
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={() => void handleCopyCode(selectedSubmission.source_code)}
+              >
+                <Copy className="h-4 w-4" />
+                Copy code
+              </Button>
               <Button
                 type="button"
                 variant="secondary"

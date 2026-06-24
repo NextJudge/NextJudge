@@ -1,55 +1,81 @@
 "use client";
+
+import {
+	getHeatMapDateRange,
+	submissionsToHeatMapValues,
+} from "@/lib/dashboard-utils";
+import { Submission } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import HeatMap, { HeatMapValue } from "@uiw/react-heat-map";
-import { useState } from "react";
+import HeatMap from "@uiw/react-heat-map";
+import { useMemo } from "react";
 
-const generateRandomData = (count: number) => {
-  const data: HeatMapValue[] = [];
-  for (let i = 0; i < count; i++) {
-    const month = Math.floor(Math.random() * 12);
-    const day = Math.floor(Math.random() * 30);
-    data.push({
-      date: new Date(2016, month, day).toDateString(),
-      content: `Count: ${Math.floor(Math.random() * 30)}`,
-      count: Math.floor(Math.random() * 30),
-    });
-  }
-  return data;
-};
+interface SubmissionGraphProps {
+	submissions: Submission[];
+	className?: string;
+}
 
-export default function SubmissionGraph() {
-  const [value] = useState(generateRandomData(130));
-  return (
-    <>
-      <HeatMap
-        value={value}
-        monthLabels={[
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ]}
-        width={700}
-        className={cn("mx-auto my-8 scale-125")}
-        startDate={new Date("2016/01/01")}
-        endDate={new Date("2016/12/31")}
-        panelColors={{
-          0: "#f4decd",
-          2: "#e4b293",
-          4: "#d48462",
-          10: "#c2533a",
-          20: "#ad001d",
-          30: "#000",
-        }}
-      />
-    </>
-  );
+export default function SubmissionGraph({
+	submissions,
+	className,
+}: SubmissionGraphProps) {
+	const safeSubmissions = Array.isArray(submissions) ? submissions : [];
+
+	const heatMapValues = useMemo(
+		() => submissionsToHeatMapValues(safeSubmissions),
+		[safeSubmissions],
+	);
+
+	const { startDate, endDate } = useMemo(
+		() => getHeatMapDateRange(safeSubmissions),
+		[safeSubmissions],
+	);
+
+	if (safeSubmissions.length === 0) {
+		return (
+			<div
+				className={cn(
+					"rounded-xl border bg-card px-6 py-10 text-center text-sm text-muted-foreground",
+					className,
+				)}
+			>
+				Submit solutions to see your activity heatmap
+			</div>
+		);
+	}
+
+	return (
+		<div className={cn("overflow-x-auto rounded-xl border bg-card p-4", className)}>
+			<h3 className="mb-4 text-sm font-medium text-muted-foreground">
+				Submission activity
+			</h3>
+			<HeatMap
+				value={heatMapValues}
+				monthLabels={[
+					"Jan",
+					"Feb",
+					"Mar",
+					"Apr",
+					"May",
+					"Jun",
+					"Jul",
+					"Aug",
+					"Sep",
+					"Oct",
+					"Nov",
+					"Dec",
+				]}
+				width="100%"
+				startDate={startDate}
+				endDate={endDate}
+				panelColors={{
+					0: "#f4decd",
+					2: "#e4b293",
+					4: "#d48462",
+					10: "#c2533a",
+					20: "#ad001d",
+					30: "#000",
+				}}
+			/>
+		</div>
+	);
 }
