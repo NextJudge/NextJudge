@@ -8,7 +8,7 @@ import { ContestLandingPage } from "./contest-landing-page";
 export default async function ContestsPage() {
   const session = await auth()
 
-  if (!session) {
+  if (!session?.nextjudge_token) {
     throw "You must be signed-in to view this page"
   }
 

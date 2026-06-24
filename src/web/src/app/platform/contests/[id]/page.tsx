@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import type { EventProblemAttemptDTO } from "@/lib/api";
 import type { NextJudgeEvent, Problem, User } from "@/lib/types";
 import { getBridgeUrl } from "@/lib/utils";
 import { ContestLeaderboard } from "../components/contest-leaderboard";
@@ -25,15 +26,6 @@ interface UserEventProblemStatus {
     problem_id: number;
     status: string;
     submit_time: string;
-}
-
-interface EventProblemAttemptDTO {
-    user_id: string;
-    problem_id: number;
-    attempts: number;
-    total_attempts: number;
-    first_accepted_time?: string;
-    minutes_to_solve?: number;
 }
 
 interface ContestDetailPageProps {
@@ -338,6 +330,7 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
                                     contestId={contestId}
                                     contestStatus={contestStatus}
                                     isAdmin={session?.user?.is_admin || false}
+                                    initialAttempts={contestAttempts}
                                 />
                             </CardContent>
                         </Card>
@@ -374,6 +367,7 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
                                 contestId={contestId}
                                 contestStatus={contestStatus}
                                 isAdmin={session?.user?.is_admin || false}
+                                initialAttempts={contestAttempts}
                             />
                         </CardContent>
                     </Card>

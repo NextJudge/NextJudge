@@ -12,6 +12,7 @@ import { ContestCard } from "@/components/contest-card";
 import { NextJudgeEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface ContestLandingPageProps {
@@ -51,8 +52,7 @@ function ContestTabContent({
 
     return (
         <>
-            <div className="min-h-[1000px]">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {paginatedContests.map((contest) => (
                         <ContestCard
                             key={contest.id}
@@ -60,11 +60,10 @@ function ContestTabContent({
                             onParticipantAdded={onParticipantAdded}
                         />
                     ))}
-                </div>
             </div>
             {totalPages > 1 && (
                 <div className="mt-8 flex justify-center">
-                    <Pagination>
+                    <Pagination aria-label="Contest list pagination">
                         <PaginationContent>
                             <PaginationItem>
                                 <Button
@@ -77,6 +76,7 @@ function ContestTabContent({
                                     }}
                                     disabled={currentPage === 1}
                                     className="gap-1 pl-2.5"
+                                    aria-label="Go to previous page"
                                 >
                                     <ChevronLeftIcon className="h-4 w-4" />
                                     <span>Previous</span>
@@ -91,6 +91,8 @@ function ContestTabContent({
                                         className={cn(
                                             currentPage === page && "bg-background"
                                         )}
+                                        aria-label={`Go to page ${page}`}
+                                        aria-current={currentPage === page ? "page" : undefined}
                                     >
                                         {page}
                                     </Button>
@@ -107,6 +109,7 @@ function ContestTabContent({
                                     }}
                                     disabled={currentPage === totalPages}
                                     className="gap-1 pr-2.5"
+                                    aria-label="Go to next page"
                                 >
                                     <span>Next</span>
                                     <ChevronRightIcon className="h-4 w-4" />
@@ -121,10 +124,11 @@ function ContestTabContent({
 }
 
 export function ContestLandingPage({ upcomingContests, ongoingContests, pastContests }: ContestLandingPageProps) {
+    const router = useRouter();
     const defaultTab = ongoingContests.length > 0 ? "ongoing" : upcomingContests.length > 0 ? "upcoming" : "past";
 
-    const handleParticipantAdded = (eventId: number) => {
-        console.log(`Participant added to event ${eventId}`);
+    const handleParticipantAdded = (_eventId: number) => {
+        router.refresh();
     };
 
     return (

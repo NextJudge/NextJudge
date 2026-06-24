@@ -1,120 +1,162 @@
 "use client";
 
+import type { EventProblemAttemptDTO } from "@/lib/api";
 import { apiGetEventAttempts } from "@/lib/api";
 import type { Problem, User } from "@/lib/types";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+    buildParticipantStandings,
+    hasAnySubmissions,
+    type ParticipantStanding,
+} from "./contest-standings";
 
 interface ContestPodiumProps {
     problems: Problem[];
     participants: User[];
     contestId: number;
-    contestStatus: 'upcoming' | 'ongoing' | 'ended';
+    contestStatus: "upcoming" | "ongoing" | "ended";
     isAdmin?: boolean;
+    initialAttempts?: EventProblemAttemptDTO[];
 }
 
-interface ParticipantData {
-    user: User;
-    totalAccepted: number;
-    penaltyTimeMinutes: number;
-    totalSubmissions: number;
-}
+const getAvatarUrl = (user: User) => {
+    if (user.image && user.image.trim() !== "") {
+        return user.image;
+    }
+    return `https://api.dicebear.com/8.x/pixel-art/svg?seed=${user.email ?? user.id}`;
+};
+
+const getEmptyStateMessage = (
+    contestStatus: "upcoming" | "ongoing" | "ended",
+    isAdmin: boolean,
+    participantCount: number,
+    submissionsExist: boolean,
+): { title: string; description?: string } => {
+    if (participantCount === 0) {
+        return { title: "No participants yet" };
+    }
+
+    if (contestStatus === "upcoming" && !isAdmin) {
+        return {
+            title: "Standings available when contest starts",
+            description: "Register now and check back when the contest goes live.",
+        };
+    }
+
+    if (!submissionsExist) {
+        return {
+            title: "No submissions yet",
+            description:
+                contestStatus === "ended"
+                    ? "Participants registered, but nobody submitted a solution."
+                    : "Be the first to submit a solution.",
+        };
+    }
+
+    if (contestStatus === "ended") {
+        return {
+            title: "Standings frozen",
+            description: "Final results are shown on the leaderboard below.",
+        };
+    }
+
+    return { title: "No standings yet" };
+};
 
 export function ContestPodium({
-    problems,
+    problems: _problems,
     participants,
     contestId,
     contestStatus,
-    isAdmin = false
+    isAdmin = false,
+    initialAttempts,
 }: ContestPodiumProps) {
     const { data: session } = useSession();
-    const [topThree, setTopThree] = useState<ParticipantData[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [attempts, setAttempts] = useState<EventProblemAttemptDTO[]>(initialAttempts ?? []);
+    const [loading, setLoading] = useState(initialAttempts === undefined);
 
     useEffect(() => {
+        if (initialAttempts !== undefined) {
+            setAttempts(initialAttempts);
+            setLoading(false);
+            return;
+        }
+
         const fetchPodiumData = async () => {
             if (participants.length === 0) {
-                setTopThree([]);
+                setAttempts([]);
+                setLoading(false);
                 return;
             }
 
-            if ((contestStatus === 'upcoming' && !isAdmin) || !session?.nextjudge_token) {
-                setTopThree([]);
+            if ((contestStatus === "upcoming" && !isAdmin) || !session?.nextjudge_token) {
+                setAttempts([]);
+                setLoading(false);
                 return;
             }
 
             setLoading(true);
             try {
-                const attempts = await apiGetEventAttempts(session.nextjudge_token, contestId);
-
-                const participantMap = new Map<string, ParticipantData>();
-
-                participants.forEach((participant) => {
-                    participantMap.set(participant.id, {
-                        user: participant,
-                        totalAccepted: 0,
-                        totalSubmissions: 0,
-                        penaltyTimeMinutes: 0,
-                    });
-                });
-
-                attempts.forEach((a) => {
-                    const pd = participantMap.get(a.user_id);
-                    if (!pd) return;
-
-                    if (a.first_accepted_time) {
-                        pd.totalAccepted += 1;
-                        const wrongBeforeAC = (a.attempts || 1) - 1;
-                        const minutesToSolve = a.minutes_to_solve ?? 0;
-                        pd.penaltyTimeMinutes += minutesToSolve + 20 * Math.max(0, wrongBeforeAC);
-                    }
-
-                    pd.totalSubmissions += a.total_attempts;
-                });
-
-                const sorted = Array.from(participantMap.values()).sort((a, b) => {
-                    if (a.totalAccepted !== b.totalAccepted) return b.totalAccepted - a.totalAccepted;
-                    if (a.penaltyTimeMinutes !== b.penaltyTimeMinutes) return a.penaltyTimeMinutes - b.penaltyTimeMinutes;
-                    return a.totalSubmissions - b.totalSubmissions;
-                });
-
-                setTopThree(sorted.slice(0, 3));
+                const fetchedAttempts = await apiGetEventAttempts(session.nextjudge_token, contestId);
+                setAttempts(fetchedAttempts);
             } catch (error) {
-                console.error('Failed to fetch podium data:', error);
-                setTopThree([]);
+                console.error("Failed to fetch podium data:", error);
+                setAttempts([]);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchPodiumData();
-    }, [session?.nextjudge_token, contestId, contestStatus, participants, problems, isAdmin]);
+    }, [
+        initialAttempts,
+        session?.nextjudge_token,
+        contestId,
+        contestStatus,
+        participants.length,
+        isAdmin,
+    ]);
+
+    const topThree = useMemo(
+        () => buildParticipantStandings(participants, attempts).slice(0, 3),
+        [participants, attempts],
+    );
+
+    const submissionsExist = hasAnySubmissions(attempts);
+    const canShowPodium =
+        topThree.length > 0 &&
+        (contestStatus !== "upcoming" || isAdmin) &&
+        (submissionsExist || topThree.some((entry) => entry.totalAccepted > 0));
 
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[200px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
         );
     }
 
-    if (topThree.length === 0) {
+    if (!canShowPodium) {
+        const emptyState = getEmptyStateMessage(
+            contestStatus,
+            isAdmin,
+            participants.length,
+            submissionsExist,
+        );
+
         return (
-            <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                <span>No standings yet</span>
+            <div className="flex flex-col items-center justify-center h-[200px] text-center px-4">
+                <p className="text-sm font-medium text-foreground">{emptyState.title}</p>
+                {emptyState.description && (
+                    <p className="text-xs text-muted-foreground mt-1 max-w-sm">{emptyState.description}</p>
+                )}
             </div>
         );
     }
 
-    const getAvatarUrl = (user: User) => {
-        if (user.image && user.image.trim() !== '') {
-            return user.image;
-        }
-        return `https://api.dicebear.com/8.x/pixel-art/svg?seed=${user.email ?? user.id}`;
-    };
-
-    const maxAccepted = Math.max(...topThree.map(p => p.totalAccepted), 1);
+    const maxAccepted = Math.max(...topThree.map((entry) => entry.totalAccepted), 1);
     const getBarHeight = (position: number, accepted: number) => {
         if (maxAccepted === 0) {
             return position === 1 ? 70 : position === 2 ? 55 : 40;
@@ -125,52 +167,69 @@ export function ContestPodium({
     };
 
     const podiumData = [
-        topThree[1] ? { ...topThree[1], position: 2, height: getBarHeight(2, topThree[1].totalAccepted) } : null,
-        topThree[0] ? { ...topThree[0], position: 1, height: getBarHeight(1, topThree[0].totalAccepted) } : null,
-        topThree[2] ? { ...topThree[2], position: 3, height: getBarHeight(3, topThree[2].totalAccepted) } : null,
-    ].filter(Boolean) as Array<ParticipantData & { position: number; height: number }>;
+        topThree[1]
+            ? { ...topThree[1], position: 2, height: getBarHeight(2, topThree[1].totalAccepted) }
+            : null,
+        topThree[0]
+            ? { ...topThree[0], position: 1, height: getBarHeight(1, topThree[0].totalAccepted) }
+            : null,
+        topThree[2]
+            ? { ...topThree[2], position: 3, height: getBarHeight(3, topThree[2].totalAccepted) }
+            : null,
+    ].filter(Boolean) as Array<ParticipantStanding & { position: number; height: number }>;
 
     return (
-        <div className="h-[200px] flex items-end justify-center gap-3 px-4">
-            {podiumData.map((participant) => (
-                <div
-                    key={participant.user.id}
-                    className="flex flex-col items-center flex-1 max-w-[110px] h-full"
-                >
-                    <div className="flex-1 flex flex-col items-center justify-end mb-2">
-                        <div className="relative w-10 h-10 mb-1.5 flex-shrink-0">
-                            <Image
-                                src={getAvatarUrl(participant.user)}
-                                alt={participant.user.name}
-                                className="rounded-full border-2 border-osu object-cover"
-                                width={40}
-                                height={40}
-                            />
-                            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-osu flex items-center justify-center text-white text-[10px] font-bold border-2 border-background">
-                                {participant.position}
+        <div className="space-y-2">
+            {contestStatus === "ended" && (
+                <p className="text-xs text-muted-foreground text-center">Final standings</p>
+            )}
+            <div className="h-[200px] flex items-end justify-center gap-3 px-4">
+                {podiumData.map((participant) => (
+                    <div
+                        key={participant.user.id}
+                        className="flex flex-col items-center flex-1 max-w-[110px] h-full"
+                    >
+                        <div className="flex-1 flex flex-col items-center justify-end mb-2">
+                            <div className="relative w-10 h-10 mb-1.5 flex-shrink-0">
+                                <Image
+                                    src={getAvatarUrl(participant.user)}
+                                    alt={participant.user.name}
+                                    className="rounded-full border-2 border-osu object-cover"
+                                    width={40}
+                                    height={40}
+                                />
+                                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-osu flex items-center justify-center text-white text-[10px] font-bold border-2 border-background">
+                                    {participant.position}
+                                </div>
+                            </div>
+                            <span className="text-[11px] font-medium text-foreground truncate w-full text-center px-1">
+                                {participant.user.name}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                                {participant.totalSubmissions}/{participant.totalAccepted}
+                            </span>
+                        </div>
+                        <div
+                            className="w-full bg-osu rounded-t-md flex items-end justify-center transition-all duration-300 shadow-sm relative"
+                            style={{
+                                height: `${participant.height}%`,
+                                minHeight: "35px",
+                                marginBottom: "-25px",
+                            }}
+                        >
+                            <div className="text-white text-xs font-bold mb-1.5">
+                                {participant.position === 1 ? (
+                                    <h2 className="text-2xl">1</h2>
+                                ) : participant.position === 2 ? (
+                                    <h2 className="text-2xl">2</h2>
+                                ) : (
+                                    <h2 className="text-2xl">3</h2>
+                                )}
                             </div>
                         </div>
-                        <span className="text-[11px] font-medium text-foreground truncate w-full text-center px-1">
-                            {participant.user.name}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                            {participant.totalSubmissions}/{participant.totalAccepted}
-                        </span>
                     </div>
-                    <div
-                        className="w-full bg-osu rounded-t-md flex items-end justify-center transition-all duration-300 shadow-sm relative"
-                        style={{
-                            height: `${participant.height}%`,
-                            minHeight: '35px',
-                            marginBottom: '-25px',
-                        }}
-                    >
-                        <div className="text-white text-xs font-bold mb-1.5">
-                            {participant.position === 1 ? <h2 className="text-2xl">1</h2> : participant.position === 2 ? <h2 className="text-2xl">2</h2> : <h2 className="text-2xl">3</h2>}
-                        </div>
-                    </div>
-                </div>
-            ))}
+                ))}
+            </div>
         </div>
     );
 }
