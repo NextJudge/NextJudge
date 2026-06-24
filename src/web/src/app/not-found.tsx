@@ -27,19 +27,33 @@ export default function NotFoundPage() {
           </p>
           <nav
             aria-label="Recovery links"
-            className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
+            className="flex flex-col items-center gap-4"
           >
-            <Link className={buttonVariants({ variant: "default" })} href="/">
-              Return to home
-            </Link>
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <Link
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "min-w-[168px] rounded-full bg-white font-semibold text-gray-900 shadow-lg hover:bg-white/90"
+                )}
+                href="/"
+              >
+                Return to home
+              </Link>
+              <Link
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "min-w-[168px] rounded-full border-white/40 bg-white/10 font-semibold text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
+                )}
+                href="/platform"
+              >
+                Go to platform
+              </Link>
+            </div>
             <Link
-              className={cn(buttonVariants({ variant: "outline" }), "text-white border-white/40 hover:bg-white/10")}
-              href="/platform"
-            >
-              Go to platform
-            </Link>
-            <Link
-              className={cn(buttonVariants({ variant: "link" }), "text-white")}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "lg" }),
+                "rounded-full text-white/80 hover:bg-white/10 hover:text-white"
+              )}
               href="/platform/problems"
             >
               Browse problems

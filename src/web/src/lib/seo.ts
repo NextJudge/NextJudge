@@ -35,7 +35,6 @@ export const ROBOTS_DISALLOW_PATHS = [
   "/error",
   "/bench",
   "/team",
-  "/home",
 ] as const;
 
 const openGraphImage = {
