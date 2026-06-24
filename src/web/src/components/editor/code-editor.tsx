@@ -9,12 +9,20 @@ import { ThemeContext } from "@/providers/editor-theme";
 import type { Theme } from "@/types";
 import Editor, { type Monaco, useMonaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
-import { Check, Play, RotateCcw } from "lucide-react";
+import { Check, HelpCircle, Play, RotateCcw } from "lucide-react";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useClickAway } from "react-use";
 import { toast } from "sonner";
 import { Icons } from "../icons";
 import { Button } from "../ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "../ui/dialog";
 import { Separator } from "../ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
@@ -74,6 +82,10 @@ fun main(args: Array<String>) {
 const CHEETCODE_EDITOR_THEME = "nextjudge-cheetcode";
 
 function getLanguageTemplateCode(language: Language): string {
+    if (language.template) {
+        return language.template;
+    }
+
     if (templates[language.name]) {
         return templates[language.name];
     } else if (language.name === "javascript") {
@@ -220,6 +232,24 @@ export default function CodeEditor({
     const actionsDisabled =
         isLanguagesUnavailable || runLoading || submissionLoading;
 
+    useEffect(() => {
+        const handleSubmitShortcut = (event: KeyboardEvent) => {
+            if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") {
+                return;
+            }
+
+            if (actionsDisabled) {
+                return;
+            }
+
+            event.preventDefault();
+            void handleSubmit();
+        };
+
+        window.addEventListener("keydown", handleSubmitShortcut);
+        return () => window.removeEventListener("keydown", handleSubmitShortcut);
+    }, [actionsDisabled, handleSubmit]);
+
     const handleEditorDidMount = (
         editor: editor.IStandaloneCodeEditor,
         monacoInstance: Monaco
@@ -286,9 +316,14 @@ export default function CodeEditor({
         setCurrentLanguage(language);
     };
 
-    const handleClearEditor = () => {
-        setCode("");
-        toast.success("Editor cleared successfully!");
+    const handleResetToStarterCode = () => {
+        if (!currentLanguage) {
+            return;
+        }
+
+        const templateCode = getLanguageTemplateCode(currentLanguage);
+        setCode(templateCode);
+        toast.success(`Reset to ${currentLanguage.name} starter code.`);
     };
 
     const editorOptions = useMemo(
@@ -347,6 +382,7 @@ export default function CodeEditor({
                                     className="h-7 gap-1.5 rounded-r-none border-r-0 px-2.5 shadow-none"
                                     onClick={() => void handleRun()}
                                     disabled={actionsDisabled}
+                                    aria-label="Run code against test cases"
                                 >
                                     {runLoading ? (
                                         <Icons.loader className="h-3.5 w-3.5 animate-spin" />
@@ -360,6 +396,7 @@ export default function CodeEditor({
                                     className="h-7 gap-1.5 rounded-l-none px-2.5 bg-[var(--success-green)] text-white hover:bg-[var(--success-green)]/90 shadow-none"
                                     onClick={() => void handleSubmit()}
                                     disabled={actionsDisabled}
+                                    aria-label="Submit solution"
                                 >
                                     {submissionLoading ? (
                                         <Icons.loader className="h-3.5 w-3.5 animate-spin" />
@@ -371,19 +408,64 @@ export default function CodeEditor({
                             </div>
                             <Separator orientation="vertical" className="h-4" />
                             <EditorThemeSelector themes={themes} variant="compact" />
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        className="h-6 p-1"
+                                        aria-label="Keyboard shortcuts"
+                                    >
+                                        <HelpCircle className="!w-3.5 !h-3.5" />
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-sm">
+                                    <DialogHeader>
+                                        <DialogTitle>Keyboard shortcuts</DialogTitle>
+                                        <DialogDescription>
+                                            Common editor actions
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <dl className="space-y-2 text-sm">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <dt>Submit solution</dt>
+                                            <dd className="font-mono text-xs text-muted-foreground">
+                                                Ctrl/Cmd + Enter
+                                            </dd>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <dt>Indent selection</dt>
+                                            <dd className="font-mono text-xs text-muted-foreground">
+                                                Tab
+                                            </dd>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <dt>Outdent selection</dt>
+                                            <dd className="font-mono text-xs text-muted-foreground">
+                                                Shift + Tab
+                                            </dd>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <dt>Select all in editor</dt>
+                                            <dd className="font-mono text-xs text-muted-foreground">
+                                                Ctrl/Cmd + A
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </DialogContent>
+                            </Dialog>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
                                         variant="ghost"
                                         className="h-6 p-1"
-                                        onClick={handleClearEditor}
-                                        aria-label="Clear editor"
+                                        onClick={handleResetToStarterCode}
+                                        aria-label="Reset to starter code"
                                     >
                                         <RotateCcw className="!w-3.5 !h-3.5" />
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Clear editor</p>
+                                    <p>Reset to starter code</p>
                                 </TooltipContent>
                             </Tooltip>
                         </div>

@@ -51,6 +51,11 @@ export function EditorLanguageSelect({
           variant={isCompact ? "ghost" : "outline"}
           role="combobox"
           aria-expanded={open}
+          aria-label={
+            currentLanguage
+              ? `Programming language: ${currentLanguage.name}`
+              : "Select programming language"
+          }
           className={cn(
             isCompact
               ? "h-6 w-fit px-2 text-sm font-normal hover:bg-accent"

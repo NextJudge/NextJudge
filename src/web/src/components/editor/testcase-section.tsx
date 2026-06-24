@@ -385,7 +385,10 @@ export function TestcaseSection({
           )}
 
           {showSubmissionResults && currentSubmissionDetails && (
-            <SubmissionState submission={currentSubmissionDetails} />
+            <SubmissionState
+              submission={currentSubmissionDetails}
+              publicTestCases={publicTestCases}
+            />
           )}
 
           <CaseTabs

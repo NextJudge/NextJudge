@@ -18,6 +18,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { routeList } from "@/lib/constants";
+import { BRAND_NAME } from "@/lib/site";
 import { ChevronLeft, Menu } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -39,14 +40,14 @@ export default function EditorNavbar({
         <div className="flex items-center h-8 space-x-1 min-w-0">
           <Link href="/" className="flex items-center gap-2 mx-2">
             <Icons.logo className="text-orange-600 w-7 h-7 shrink-0" />
-            <span className="text-lg font-bold hidden sm:inline">NextJudge</span>
+            <span className="text-lg font-bold hidden sm:inline">{BRAND_NAME}</span>
           </Link>
           <Separator orientation="vertical" className="h-5" />
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                <Link href={backHref}>
-                  <ChevronLeft className="h-4 w-4" />
+                <Link href={backHref} aria-label="Back to problems list">
+                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </Button>
             </TooltipTrigger>
@@ -66,13 +67,18 @@ export default function EditorNavbar({
           <div className="flex md:hidden items-center gap-1">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Menu className="h-5 w-5" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Open navigation menu"
+                >
+                  <Menu className="h-5 w-5" aria-hidden="true" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left">
                 <SheetHeader>
-                  <SheetTitle className="font-bold text-xl">NextJudge</SheetTitle>
+                  <SheetTitle className="font-bold text-xl">{BRAND_NAME}</SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col justify-center items-center gap-2 mt-4">
                   {routeList.map(({ href, label }) => {

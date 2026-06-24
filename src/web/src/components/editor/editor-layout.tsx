@@ -79,6 +79,8 @@ export default function EditorComponent({
   contestId?: number;
 }) {
   const { data: session } = useSession();
+  const authToken = session?.nextjudge_token;
+  const authUserId = session?.nextjudge_id;
   const { themes, loading } = useThemesLoader();
 
   const publicTestCases = testCases.filter((tc) => !tc.hidden);
@@ -142,15 +144,15 @@ export default function EditorComponent({
     setSubmissionError("");
     setRunResults(null);
     try {
-      if (!session) {
+      if (!authToken || !authUserId) {
         throw new Error("Need to be logged in");
       }
       const data = await postSolution(
-        session.nextjudge_token,
+        authToken,
         code,
         languageId,
         problemId,
-        session.nextjudge_id,
+        authUserId,
         contestId
       );
       await fetchSubmissionDetails(data.id);
@@ -166,17 +168,17 @@ export default function EditorComponent({
 
   const fetchSubmissionDetails = async (submissionId: string) => {
     try {
-      if (!session) {
+      if (!authToken) {
         throw new Error("Need to be logged in");
       }
       let data: Submission = await apiGetSubmissionsStatus(
-        session.nextjudge_token,
+        authToken,
         submissionId
       );
       while (data.status === "PENDING") {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         data = await apiGetSubmissionsStatus(
-          session.nextjudge_token,
+          authToken,
           submissionId
         );
       }
@@ -209,13 +211,13 @@ export default function EditorComponent({
     setCurrentSubmissionDetails(null);
 
     try {
-      if (!session) {
+      if (!authToken) {
         throw new Error("Need to be logged in");
       }
 
       if (activeCaseTab === "case-custom") {
         const result = await executeCodeWithInput(
-          session.nextjudge_token,
+          authToken,
           code,
           languageId,
           input
@@ -238,7 +240,7 @@ export default function EditorComponent({
         setRunningCaseIndex(i);
 
         const result = await executeCodeWithInput(
-          session.nextjudge_token,
+          authToken,
           code,
           languageId,
           testCase.input
@@ -285,6 +287,16 @@ export default function EditorComponent({
     }
   };
 
+  const handleRestoreSubmissionCode = (sourceCode: string, languageId: string) => {
+    const language = languages.find((lang) => lang.id === languageId);
+    setCode(sourceCode);
+    toast.success(
+      language
+        ? `Restored ${language.name} submission in the editor.`
+        : "Restored submission code in the editor."
+    );
+  };
+
   return (
     <TooltipProvider delayDuration={100}>
       <div className="h-full min-h-0">
@@ -302,6 +314,7 @@ export default function EditorComponent({
                     tags={tags}
                     slot={slot}
                     recentSubmissions={recentSubmissions}
+                    onUseSubmissionCode={handleRestoreSubmissionCode}
                   />
                 </div>
               </ResizablePanel>

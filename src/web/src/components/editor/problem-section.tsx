@@ -13,6 +13,7 @@ interface ProblemSectionProps {
   tags: string[];
   slot: React.ReactNode;
   recentSubmissions: Submission[];
+  onUseSubmissionCode?: (code: string, languageId: string) => void;
 }
 
 function formatDifficulty(difficulty?: string) {
@@ -25,6 +26,7 @@ export function ProblemSection({
   tags,
   slot,
   recentSubmissions,
+  onUseSubmissionCode,
 }: ProblemSectionProps) {
   const router = useRouter();
 
@@ -83,7 +85,11 @@ export function ProblemSection({
             {recentSubmissions.length > 0 ? (
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {recentSubmissions.map((submission) => (
-                  <RecentSubmissionCard submission={submission} key={submission.id} />
+                  <RecentSubmissionCard
+                    submission={submission}
+                    key={submission.id}
+                    onUseCode={onUseSubmissionCode}
+                  />
                 ))}
               </ul>
             ) : (
