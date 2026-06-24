@@ -39,6 +39,8 @@ NEXTJUDGE_USER_ID = 99999
 TARGET_TOP_LEVEL_DIRECTORY = "program_files"
 GO_CACHE_DIRECTORY = "/var/lib/nextjudge/go-cache"
 GO_MOD_CACHE_DIRECTORY = "/var/lib/nextjudge/go-mod"
+GO_JAIL_CACHE_DIRECTORY = "/home/NEXTJUDGE_USER/go-cache"
+GO_JAIL_MOD_CACHE_DIRECTORY = "/home/NEXTJUDGE_USER/go-mod-cache"
 GO_ROOT_DIRECTORY = "/home/NEXTJUDGE_USER/go"
 
 BUILD_DIRECTORY_NAME = "build"
@@ -629,16 +631,17 @@ def compile_in_jail(source_code: str, language: Language | None, environment: Pr
     ]
 
     if is_go:
+        init_go_cache_directories()
         # use persistent cache directories (initialized at startup)
         nsjail_args.extend([
-            "--bindmount", f"{GO_CACHE_DIRECTORY}:/go_cache",
-            "--bindmount", f"{GO_MOD_CACHE_DIRECTORY}:/go_mod_cache",
+            "--bindmount", f"{GO_CACHE_DIRECTORY}:{GO_JAIL_CACHE_DIRECTORY}",
+            "--bindmount", f"{GO_MOD_CACHE_DIRECTORY}:{GO_JAIL_MOD_CACHE_DIRECTORY}",
         ])
         if os.path.exists(GO_ROOT_DIRECTORY):
             nsjail_args.extend(["--bindmount_ro", f"{GO_ROOT_DIRECTORY}:{GO_ROOT_DIRECTORY}"])
         nsjail_args.extend([
-            "--env", "GOCACHE=/go_cache",
-            "--env", "GOMODCACHE=/go_mod_cache",
+            "--env", f"GOCACHE={GO_JAIL_CACHE_DIRECTORY}",
+            "--env", f"GOMODCACHE={GO_JAIL_MOD_CACHE_DIRECTORY}",
             "--env", "GOROOT=/home/NEXTJUDGE_USER/go",
             "--env", "CGO_ENABLED=0",
             "--env", "GOTOOLCHAIN=local",
