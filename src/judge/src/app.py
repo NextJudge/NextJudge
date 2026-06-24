@@ -137,6 +137,22 @@ def get_submission_data(submission_id: str):
     print(data)
     return data
 
+def get_input_submission_data(submission_id: str):
+    response = requests.get(
+        f"{NEXTJUDGE_ENDPOINT}/v1/input_submissions/{submission_id}",
+        headers={
+            "Authorization": JUDGE_JWT_TOKEN
+        }
+    )
+    if not response.ok:
+        raise RuntimeError(
+            f"Failed to fetch input submission {submission_id}: "
+            f"status_code={response.status_code}, response={response.text}"
+        )
+    data = response.json()
+    print(data)
+    return data
+
 def get_test_data(problem_id: str):
     """
     Get all tests for a given problem_id
@@ -160,8 +176,12 @@ def post_judgement(submission_id: str, data):
             "Authorization":JUDGE_JWT_TOKEN
         }
     )
-    # print(data)
-    return data
+    if not response.ok:
+        raise RuntimeError(
+            f"Failed to update submission {submission_id}: "
+            f"status_code={response.status_code}, response={response.text}"
+        )
+    return response
 
 def post_custom_input_result(submission_id: str, body):
     print(f"Sending custom input result for submission {submission_id}: status={body.get('status')}, runtime={body.get('runtime')}", flush=True)
@@ -176,9 +196,11 @@ def post_custom_input_result(submission_id: str, body):
     )
 
     if not response.ok:
-        print(f"ERROR: Failed to update custom input submission {submission_id}: status_code={response.status_code}, response={response.text}", flush=True)
-    else:
-        print(f"Successfully updated custom input submission {submission_id} with runtime: {body.get('runtime', 0)}", flush=True)
+        raise RuntimeError(
+            f"Failed to update custom input submission {submission_id}: "
+            f"status_code={response.status_code}, response={response.text}"
+        )
+    print(f"Successfully updated custom input submission {submission_id} with runtime: {body.get('runtime', 0)}", flush=True)
 
 @dataclass
 class Language:
@@ -411,6 +433,10 @@ async def handle_test_submission(submission_id: str):
 
     submission_data = get_submission_data(submission_id)
 
+    if submission_data.get("status") != "PENDING":
+        print(f"Submission {submission_id} already judged ({submission_data.get('status')}), skipping")
+        return
+
     # Get test data for this ID
     # raw_test_data = await rabbitmq.get_test_data(submission_data["problem_id"])
     # test_data = json.loads(raw_test_data)
@@ -431,6 +457,12 @@ async def handle_test_submission(submission_id: str):
     if local_language_id == None:
         print("No such language!")
         environment.remove_files()
+        await submit_judgement(
+            submission_data,
+            "COMPILE_TIME_ERROR",
+            b"",
+            b"unsupported language",
+        )
         return
 
     compile_result = compile_in_jail(submission_data["source_code"], LOCAL_LANGUAGES_MAP[local_language_id], environment)
@@ -481,10 +513,54 @@ async def handle_test_submission(submission_id: str):
     await submit_judgement(submission_data, "ACCEPTED", last_stdout, last_stderr, "-1", test_case_results, total_time_elapsed)
 
 
+async def handle_custom_input_submission(json_data: dict):
+    submission_id = json_data["id"]
+
+    if "code" in json_data:
+        source_code = json_data["code"]
+        language_id = json_data["language_id"]
+        stdin = json_data["stdin"]
+    else:
+        input_data = get_input_submission_data(submission_id)
+        if input_data.get("finished"):
+            print(f"Input submission {submission_id} already finished, skipping")
+            return
+        source_code = input_data["source_code"]
+        language_id = input_data["language_id"]
+        stdin = input_data["stdin"]
+
+    environment = create_program_environment()
+    environment.create_directories()
+
+    local_language_id = BRIDGE_LANG_ID_MAP.get(language_id)
+
+    if local_language_id == None:
+        print("No such language!")
+        environment.remove_files()
+        await submit_custom_input_judgement(submission_id, "RUNTIME_ERROR", b"", b"unsupported language")
+        return
+
+    if not compile_in_jail(source_code, LOCAL_LANGUAGES_MAP[local_language_id], environment).success:
+        environment.remove_files()
+        await submit_custom_input_judgement(submission_id, "COMPILE_TIME_ERROR", b"", b"")
+        return
+
+    language = LOCAL_LANGUAGES_MAP[local_language_id]
+    run_result = run_single(environment, bytes(stdin, "utf-8"), language=language)
+    environment.remove_files()
+
+    await submit_custom_input_judgement(
+        submission_id,
+        run_result.result,
+        run_result.stdout,
+        run_result.stderr,
+        run_result.runtime,
+    )
+
+
 async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
 
-    # Requeue the message if we fail, and reject attempts to redeliver it to us
-    async with message.process(requeue=True,reject_on_redelivered=True):
+    async with message.process(requeue=True):
         print(f"Judge received a submission")
         print(message.body)
 
@@ -495,31 +571,7 @@ async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage):
             submission_id = json_data["id"]
             await handle_test_submission(submission_id)
         elif work_item_type == "input":
-            source_code = json_data["code"]
-            language_id = json_data["language_id"]
-            stdin = json_data["stdin"]
-
-            environment = create_program_environment()
-            environment.create_directories()
-
-            local_language_id = BRIDGE_LANG_ID_MAP.get(language_id)
-
-            if local_language_id == None:
-                print("No such language!")
-                environment.remove_files()
-                return
-
-            if not compile_in_jail(source_code, LOCAL_LANGUAGES_MAP[local_language_id], environment).success:
-                # Compile time error
-                environment.remove_files()
-                await submit_custom_input_judgement(json_data["id"], "COMPILE_TIME_ERROR", b"", b"")
-                return
-
-            language = LOCAL_LANGUAGES_MAP[local_language_id]
-            run_result = run_single(environment, bytes(stdin,"utf-8"), language=language)
-            environment.remove_files()
-
-            await submit_custom_input_judgement(json_data["id"], run_result.result, run_result.stdout, run_result.stderr, run_result.runtime)
+            await handle_custom_input_submission(json_data)
 
 
 
