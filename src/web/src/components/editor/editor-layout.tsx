@@ -102,7 +102,7 @@ export default function EditorComponent({
     useState<CustomInputResultType | null>(null);
 
   useEffect(() => {
-    const workspace = document.querySelector(".editor-workspace");
+    const workspace = document.querySelector<HTMLElement>(".editor-workspace");
     if (!workspace) {
       return;
     }
