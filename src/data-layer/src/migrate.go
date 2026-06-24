@@ -10,6 +10,9 @@ import (
 //go:embed nextjudge.sql
 var schemaSQL string
 
+//go:embed schema_updates.sql
+var schemaUpdatesSQL string
+
 //go:embed init_prod_data.sql
 var seedSQL string
 
@@ -24,6 +27,7 @@ func RunMigrations(database *Database) error {
 		"problem_descriptions",
 		"submissions",
 		"submission_test_case_results",
+		"input_submissions",
 		"test_cases",
 		"languages",
 		"categories",
@@ -74,6 +78,10 @@ func RunMigrations(database *Database) error {
 		logrus.Info("All expected tables exist, skipping schema migration")
 	}
 
+	if err := applySchemaUpdates(database); err != nil {
+		return err
+	}
+
 	// check if languages are seeded
 	var langCount int64
 	err := database.NextJudgeDB.Raw("SELECT COUNT(*) FROM languages").Scan(&langCount).Error
@@ -99,5 +107,15 @@ func RunMigrations(database *Database) error {
 		logrus.Infof("Found %d languages, skipping essential data seeding", langCount)
 	}
 
+	return nil
+}
+
+func applySchemaUpdates(database *Database) error {
+	logrus.Info("Applying incremental schema updates...")
+	if err := database.NextJudgeDB.Exec(schemaUpdatesSQL).Error; err != nil {
+		logrus.WithError(err).Error("failed to apply schema updates")
+		return err
+	}
+	logrus.Info("Schema updates applied successfully")
 	return nil
 }
