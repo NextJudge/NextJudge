@@ -1,41 +1,42 @@
-import { auth } from "@/app/auth";
-import { JsonLd } from "@/components/seo/json-ld";
 import { Footer } from "@/components/footer";
 import { AltHero } from "@/components/landing/alt-hero";
 import { EarlyAccess } from "@/components/landing/early-access";
+import { FAQ } from "@/components/landing/faq";
 import Features from "@/components/landing/features";
 import { ScrollToTop } from "@/components/landing/scroll-up";
+import { SectionDivider } from "@/components/landing/section-divider";
 import { LandingNavbar } from "@/components/nav/landing-navbar";
 import { NavbarWithSession } from "@/components/nav/navbar-with-session";
-import { createPageMetadata, createWebsiteJsonLd } from "@/lib/seo";
-import { PAGE_TITLES, SITE_COPY } from "@/lib/site";
+import { Metadata } from "next";
 import Dynamic from "next/dynamic";
 import { Suspense } from "react";
 import { preload } from "react-dom";
-
+const WhyNextJudge = Dynamic(
+  () => import("@/components/landing/bento").then((mod) => mod.WhyNextJudge),
+  { ssr: false }
+);
 const LandingEditor = Dynamic(
   () => import("@/components/landing/landing-editor").then((mod) => mod.LandingEditor),
   { ssr: false }
 );
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
-export const metadata = createPageMetadata({
-  title: PAGE_TITLES.home,
-  description: SITE_COPY.descriptionShort,
-  path: "/",
-});
+export const metadata: Metadata = {
+  title: "NextJudge - Host competitive programming contests with ease",
+  description:
+    "NextJudge is a competitive programming platform built for the modern era. It is designed to be easy to use, fast, and extensible.",
+};
 
-export default async function Home() {
-  const session = await auth();
-
+export default function Home() {
   preload("/hero-background.png", { as: "image" });
   preload("/footer-background.png", { as: "image" });
   preload("/early-access-background.png", { as: "image" });
+  preload("/auth/signup", { as: "document" });
+  preload("/auth/login", { as: "document" });
 
   return (
     <div className="min-h-screen w-full text-white relative bg-black">
-      <JsonLd data={createWebsiteJsonLd()} />
       <Suspense fallback={<LandingNavbar session={undefined} />}>
         <NavbarWithSession />
       </Suspense>
@@ -53,15 +54,17 @@ export default async function Home() {
               ),
               url('/footer-background.png')
             `,
-            backgroundSize: "cover",
-            backgroundPosition: "center center",
-            backgroundRepeat: "no-repeat",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundRepeat: 'no-repeat'
           }}
         >
           <div className="relative z-10">
-            <AltHero session={session} />
+            <AltHero />
           </div>
         </div>
+
+        <SectionDivider className="translate-y-5 mt-2" />
 
         <div
           className="relative overflow-hidden w-full"
@@ -80,15 +83,17 @@ export default async function Home() {
               ),
               url('/hero-background.png')
             `,
-            backgroundSize: "cover",
-            backgroundPosition: "center center",
-            backgroundRepeat: "no-repeat",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundRepeat: 'no-repeat'
           }}
         >
           <div className="relative z-10 max-w-screen-2xl mx-auto">
             <LandingEditor />
           </div>
         </div>
+
+        <SectionDivider />
 
         <div
           className="relative overflow-hidden w-full"
@@ -107,15 +112,17 @@ export default async function Home() {
               ),
               url('/footer-background.png')
             `,
-            backgroundSize: "cover",
-            backgroundPosition: "center center",
-            backgroundRepeat: "no-repeat",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundRepeat: 'no-repeat'
           }}
         >
           <div className="relative z-10 max-w-screen-2xl mx-auto">
             <Features />
           </div>
         </div>
+
+        <SectionDivider />
 
         <div
           className="relative overflow-hidden w-full"
@@ -134,13 +141,21 @@ export default async function Home() {
               ),
               url('/early-access-background.png')
             `,
-            backgroundSize: "cover",
-            backgroundPosition: "center center",
-            backgroundRepeat: "no-repeat",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundRepeat: 'no-repeat'
           }}
         >
           <div className="relative z-10 max-w-screen-2xl mx-auto">
-            <EarlyAccess session={session} />
+            <EarlyAccess />
+          </div>
+        </div>
+
+        <SectionDivider />
+
+        <div className="relative overflow-hidden w-full">
+          <div className="max-w-screen-2xl mx-auto">
+            <FAQ />
           </div>
         </div>
 
@@ -158,9 +173,9 @@ export default async function Home() {
               ),
               url('/footer-background.png')
             `,
-            backgroundSize: "cover",
-            backgroundPosition: "bottom center",
-            backgroundRepeat: "no-repeat",
+            backgroundSize: 'cover',
+            backgroundPosition: 'bottom center',
+            backgroundRepeat: 'no-repeat'
           }}
         >
           <div className="relative z-10 max-w-screen-2xl mx-auto">
