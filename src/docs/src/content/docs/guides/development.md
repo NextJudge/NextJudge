@@ -1,6 +1,6 @@
 ---
 title: Development Guide
-description: Day-to-day hacking on NextJudge.
+description: Set up a local NextJudge development environment, run services with Docker, and iterate on the web app, data layer, and judge worker.
 ---
 
 You've run [`./dev-deploy.sh web`](/start/getting-started/). This page is for the second hour onward.

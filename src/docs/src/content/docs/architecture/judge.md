@@ -1,6 +1,6 @@
 ---
 title: Judge Service
-description: Compile, sandbox, grade. Where user code actually runs.
+description: How the NextJudge judge compiles, sandboxes, and grades submissions with nsjail, including runtime limits, verdicts, and queue flow.
 ---
 
 Python process. RabbitMQ in, HTTP out, nsjail in the middle. User code never runs on the host OS.

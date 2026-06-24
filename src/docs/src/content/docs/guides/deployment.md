@@ -1,6 +1,6 @@
 ---
 title: Deployment Guide
-description: Production deploy paths and when to pick each one.
+description: Choose a production deployment path for NextJudge, configure Postgres and RabbitMQ, and operate the platform reliably at scale.
 ---
 
 Local setup: [Getting started](/start/getting-started/). This is for servers.

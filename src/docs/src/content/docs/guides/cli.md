@@ -1,6 +1,6 @@
 ---
 title: CLI
-description: Download problems, test locally, and submit from the terminal.
+description: Install the NextJudge CLI to download problems, run tests locally, and submit solutions from your terminal during contests or practice.
 ---
 
 The CLI lives in `src/cli/`. It's Python under the hood, but you invoke it as `nextjudge`. Good for scripting problem sets, CI smoke tests, or avoiding the browser when you're already in a terminal anyway.

@@ -1,6 +1,6 @@
 ---
 title: Design decisions
-description: Constraints that shaped NextJudge, not slogans.
+description: Understand the architectural constraints and trade-offs behind NextJudge, from self-hosting and nsjail sandboxes to Postgres and RabbitMQ.
 ---
 
 ## Self-hosted first

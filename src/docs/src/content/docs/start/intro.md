@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: Meet NextJudge, a self-hosted platform for programming problems, contests, and sandboxed judging.
+description: Learn what NextJudge is, who it is for, and how the platform handles problems, contests, and sandboxed code judging on your own hardware.
 ---
 
 NextJudge is an open-source competitive programming platform for running coding contests and giving programmers a place to practice. You host the stack, control the problems and contests, and keep the data on your own infrastructure.

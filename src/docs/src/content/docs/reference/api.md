@@ -1,6 +1,6 @@
 ---
 title: API Reference
-description: REST API for the NextJudge data layer.
+description: REST endpoints for the NextJudge data layer, including contests, problems, submissions, users, and authentication flows.
 ---
 
 Base URL: `http://localhost:5000` (dev). Routes under `/v1/` unless noted.

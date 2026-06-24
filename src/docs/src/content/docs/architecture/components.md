@@ -1,6 +1,6 @@
 ---
 title: Core Components
-description: Services, data stores, and how a submission moves through them.
+description: Overview of NextJudge services, data stores, and how a submission moves from the web UI through the data layer to the judge worker.
 ---
 
 Four services, two data stores, one queue. That's the whole system.
