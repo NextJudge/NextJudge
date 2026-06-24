@@ -55,9 +55,6 @@ FROM ${BASEJUDGE} AS release
 COPY --from=build / /chroot
 RUN chown -R 99999:99999 /chroot/dev
 
-RUN mkdir -p /go_cache /go_mod_cache && chown 99999:99999 /go_cache /go_mod_cache && \
-    mkdir -p /chroot/go_cache /chroot/go_mod_cache && chown 99999:99999 /chroot/go_cache /chroot/go_mod_cache
-
 COPY languages.toml /app/languages.toml
 
 FROM release AS test
