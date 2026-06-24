@@ -218,6 +218,19 @@ export interface CustomInputResult {
 	runtime: number;
 }
 
+export interface PracticeRunTestCaseResult {
+	test_case_id: string;
+	stdout: string;
+	stderr: string;
+	passed: boolean;
+}
+
+export interface PracticeRunResult {
+	status: SubmissionStatus;
+	test_case_results: PracticeRunTestCaseResult[];
+	stderr?: string;
+}
+
 
 // export interface Competition {
 //     id: number;
