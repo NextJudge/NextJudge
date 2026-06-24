@@ -69,21 +69,28 @@ export default async function Editor({
     const languages = languagesResult.status === 'fulfilled' ? languagesResult.value : []
 
     return (
-        <>
+        <div className="editor-workspace dark h-screen flex flex-col overflow-hidden bg-background text-foreground">
             <EditorThemeProvider>
-                <EditorNavbar notificationSlot={<NotificationBellServer session={session} />}>
-                    <UserAvatar session={session} />
-                </EditorNavbar>
-                <EditorComponent
-                    details={details}
-                    testCases={testCases}
-                    recentSubmissions={recentSubmissions}
-                    languages={languages}
-                    tags={tags}
-                    contestId={contestId}
-                    slot={<MarkdownRenderer prompt={details.prompt} />}
-                />
+                    <main className="px-2 pb-2 flex flex-col flex-1 min-h-0">
+                        <EditorNavbar
+                            notificationSlot={<NotificationBellServer session={session} />}
+                            backHref={contestId ? `/platform/contests/${contestId}` : "/platform/problems"}
+                        >
+                            <UserAvatar session={session} />
+                        </EditorNavbar>
+                        <div className="flex-1 min-h-0">
+                            <EditorComponent
+                                details={details}
+                                testCases={testCases}
+                                recentSubmissions={recentSubmissions}
+                                languages={languages}
+                                tags={tags}
+                                contestId={contestId}
+                                slot={<MarkdownRenderer prompt={details.prompt} />}
+                            />
+                        </div>
+                    </main>
             </EditorThemeProvider>
-        </>
+        </div>
     );
 }

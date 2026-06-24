@@ -23,7 +23,7 @@ interface EditorLanguageSelectProps {
   languages: Language[],
   onLanguageSelect: (language: Language) => void;
   defaultLanguage?: Language;
-  variant?: "default" | "landing";
+  variant?: "default" | "landing" | "compact";
 }
 
 export function EditorLanguageSelect({
@@ -42,27 +42,35 @@ export function EditorLanguageSelect({
   }
 
   const isLanding = variant === "landing";
+  const isCompact = variant === "compact";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant={isCompact ? "ghost" : "outline"}
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "w-[200px] justify-between",
+            isCompact
+              ? "h-6 w-fit px-2 text-sm font-normal hover:bg-accent"
+              : "w-[200px] justify-between",
             isLanding && "bg-black/60 border-osu/50 text-white hover:bg-black/80 hover:text-white"
           )}
         >
           {currentLanguage
-            ? `${currentLanguage.name} (${currentLanguage.version})`
+            ? isCompact
+              ? currentLanguage.name.charAt(0).toUpperCase() + currentLanguage.name.slice(1)
+              : `${currentLanguage.name} (${currentLanguage.version})`
             : "Select a language"}
-          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <CaretSortIcon className={cn(
+            "shrink-0 opacity-50",
+            isCompact ? "ml-1 h-3.5 w-3.5" : "ml-2 h-4 w-4"
+          )} />
         </Button>
       </PopoverTrigger>
       <PopoverContent className={cn(
-        "w-[200px] p-0",
+        isCompact ? "w-[220px] p-0" : "w-[200px] p-0",
         isLanding && "bg-black/90 border-osu/50"
       )}>
         <Command className={isLanding ? "bg-black/90" : ""}>

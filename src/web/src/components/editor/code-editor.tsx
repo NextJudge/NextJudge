@@ -7,13 +7,21 @@ import type { Language } from "@/lib/types";
 import { convertToMonacoLanguageName } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
 import type { Theme } from "@/types";
-import Editor, { type Monaco } from "@monaco-editor/react";
+import Editor, { type Monaco, useMonaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Check, Play, RotateCcw } from "lucide-react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useClickAway } from "react-use";
 import { toast } from "sonner";
 import { Icons } from "../icons";
 import { Button } from "../ui/button";
+import { Separator } from "../ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../ui/tooltip";
 import { EditorLanguageSelect } from "./editor-language-select";
 import { EditorThemeSelector } from "./editor-theme-select";
 
@@ -63,6 +71,7 @@ fun main(args: Array<String>) {
     pypy: ``,
 };
 
+const CHEETCODE_EDITOR_THEME = "nextjudge-cheetcode";
 
 function getLanguageTemplateCode(language: Language): string {
     if (templates[language.name]) {
@@ -81,27 +90,25 @@ export default function CodeEditor({
     code,
     setCode,
     submissionLoading,
-    error,
     handleSubmitCode,
-    customInputLoading,
-    handleRunCustomInput,
+    runLoading,
+    onRun,
 }: {
     languages: Language[],
-        themes: Theme[];
-        problemId: number;
+    themes: Theme[];
+    problemId: number;
     code: string;
     setCode: (code: string) => void;
     submissionLoading: boolean;
-        error: string | null;
     handleSubmitCode: (languageId: string, problemId: number) => Promise<void>;
-        customInputLoading: boolean;
-        handleRunCustomInput: (languageId: string) => Promise<void>;
+    runLoading: boolean;
+    onRun: (languageId: string) => Promise<void>;
 }) {
     const { theme } = useContext(ThemeContext);
+    const monaco = useMonaco();
     const { defaultLanguage } = useSettingsStore();
     const isLanguagesUnavailable = languages.length === 1 && languages[0].id === FALLBACK_TYPESCRIPT.id;
     const [currentLanguage, setCurrentLanguage] = useState<Language>(() => {
-        // Use default language from settings if available, otherwise fall back to languages[3]
         if (defaultLanguage && languages.some(lang => lang.id === defaultLanguage.id)) {
             return defaultLanguage;
         }
@@ -111,7 +118,6 @@ export default function CodeEditor({
     const hasLoadedInitialTemplate = useRef(false);
     const previousLanguageRef = useRef<Language | null>(null);
 
-    // Load template code on initial mount if we have a default language and the editor is empty
     useEffect(() => {
         if (currentLanguage && !hasLoadedInitialTemplate.current && code.trim() === "") {
             const templateCode = getLanguageTemplateCode(currentLanguage);
@@ -123,7 +129,6 @@ export default function CodeEditor({
         }
     }, []);
 
-    // Load template when language changes (user switches language)
     useEffect(() => {
         if (currentLanguage && hasLoadedInitialTemplate.current && previousLanguageRef.current?.id !== currentLanguage.id) {
             const templateCode = getLanguageTemplateCode(currentLanguage);
@@ -133,31 +138,14 @@ export default function CodeEditor({
             previousLanguageRef.current = currentLanguage;
         }
     }, [currentLanguage, setCode]);
-    const [screenWidth, setScreenWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
-    useEffect(() => {
-        const handleResize = () => {
-            setScreenWidth(window.innerWidth);
-            if (editorRef.current) {
-                setTimeout(() => {
-                    editorRef.current?.layout();
-                }, 100);
-            }
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+    const editorContainerRef = useRef<HTMLDivElement | null>(null);
 
-    useEffect(() => {
-        if (editorRef.current) {
-            const timer = setTimeout(() => {
-                editorRef.current?.layout();
-            }, 50);
-            return () => clearTimeout(timer);
-        }
-    }, []);
+    useClickAway(editorContainerRef, () => {
+        // retained for potential future focus styling
+    });
 
-    // Update current language when default language changes
     useEffect(() => {
         if (defaultLanguage && languages.some(lang => lang.id === defaultLanguage.id)) {
             setCurrentLanguage(defaultLanguage);
@@ -168,9 +156,7 @@ export default function CodeEditor({
         if (editorRef.current) {
             const container = editorRef.current.getContainerDomNode();
             const resizeObserver = new ResizeObserver(() => {
-                if (editorRef.current) {
-                    editorRef.current.layout();
-                }
+                editorRef.current?.layout();
             });
 
             resizeObserver.observe(container);
@@ -181,20 +167,62 @@ export default function CodeEditor({
         }
     }, []);
 
-    // Need to wait to do this - it updates parent component otherwise causing a crash
-    // setCode(templates[normalizeLanguageKey(languages[0].name)]);
+    useEffect(() => {
+        if (!monaco || !theme?.name) {
+            return;
+        }
 
-    const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-    const editorContainerRef = useRef<HTMLDivElement | null>(null);
-    const [isEditorFocused, setIsEditorFocused] = useState(false);
+        const applyEditorTheme = async () => {
+            const isLightTheme = theme.name === "light" || theme.name.includes("light");
+            const editorBackground = isLightTheme ? "#ffffff" : "#0a0a0a";
+            const patchedThemeName = `${theme.name}-workspace`;
 
-    useClickAway(editorContainerRef, () => {
-        setIsEditorFocused(false);
-    });
+            if (theme.fetch) {
+                try {
+                    const response = await fetch(theme.fetch);
+                    const themeData = await response.json();
+                    monaco.editor.defineTheme(patchedThemeName, {
+                        ...themeData,
+                        colors: {
+                            ...themeData.colors,
+                            "editor.background": editorBackground,
+                        },
+                    });
+                    monaco.editor.setTheme(patchedThemeName);
+                    return;
+                } catch {
+                    // Fall through to built-in theme patch below.
+                }
+            }
+
+            monaco.editor.defineTheme(patchedThemeName, {
+                base: isLightTheme ? "vs" : "vs-dark",
+                inherit: true,
+                rules: [],
+                colors: {
+                    "editor.background": editorBackground,
+                },
+            });
+            monaco.editor.setTheme(patchedThemeName);
+        };
+
+        void applyEditorTheme();
+    }, [monaco, theme]);
+
+    const handleSubmit = useCallback(async () => {
+        await handleSubmitCode(currentLanguage?.id as string, problemId);
+    }, [currentLanguage?.id, handleSubmitCode, problemId]);
+
+    const handleRun = useCallback(async () => {
+        await onRun(currentLanguage?.id as string);
+    }, [currentLanguage?.id, onRun]);
+
+    const actionsDisabled =
+        isLanguagesUnavailable || runLoading || submissionLoading;
 
     const handleEditorDidMount = (
         editor: editor.IStandaloneCodeEditor,
-        monaco: Monaco
+        monacoInstance: Monaco
     ) => {
         editorRef.current = editor;
         editor.focus();
@@ -203,20 +231,20 @@ export default function CodeEditor({
             editor.layout();
         }, 0);
 
-        monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-            module: monaco.languages.typescript.ModuleKind.CommonJS,
+        monacoInstance.languages.typescript.typescriptDefaults.setCompilerOptions({
+            module: monacoInstance.languages.typescript.ModuleKind.CommonJS,
             allowJs: true,
             checkJs: true,
         });
 
-        monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
-        monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        monacoInstance.languages.typescript.javascriptDefaults.setEagerModelSync(true);
+        monacoInstance.languages.typescript.typescriptDefaults.addExtraLib(
             `declare var process: NodeJS.Process;`
         );
-        monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        monacoInstance.languages.typescript.typescriptDefaults.addExtraLib(
             "node:readline/promises"
         );
-        monaco.languages.typescript.typescriptDefaults.addExtraLib(
+        monacoInstance.languages.typescript.typescriptDefaults.addExtraLib(
             "node_modules/@types/node/index.d.ts"
         );
 
@@ -224,14 +252,6 @@ export default function CodeEditor({
         if (editorElement && editorContainerRef.current) {
             editorContainerRef.current = editorElement as HTMLDivElement;
         }
-
-        editor.onDidFocusEditorWidget(() => {
-            setIsEditorFocused(true);
-        });
-
-        editor.onDidBlurEditorWidget(() => {
-            setIsEditorFocused(false);
-        });
 
         if (editorElement) {
             const handleKeyDown = (e: KeyboardEvent) => {
@@ -261,144 +281,133 @@ export default function CodeEditor({
         }
     };
 
-
     const handleLanguageSelect = (language: Language) => {
-        // Always load template code when switching languages
         setCode(getLanguageTemplateCode(language));
         setCurrentLanguage(language);
+    };
+
+    const handleClearEditor = () => {
+        setCode("");
+        toast.success("Editor cleared successfully!");
     };
 
     const editorOptions = useMemo(
         () => ({
             ...defaultEditorOptions,
             automaticLayout: true,
+            minimap: { enabled: false },
+            quickSuggestions: false,
             scrollBeyondLastLine: false,
-            wordWrap: 'on' as const,
-            wrappingStrategy: 'advanced' as const,
-            fontSize: screenWidth < 640 ? 12 : screenWidth < 1024 ? 13 : 14,
-            lineHeight: screenWidth < 640 ? 18 : screenWidth < 1024 ? 19 : 20,
+            contextmenu: false,
+            wordWrap: "on" as const,
+            fontSize: 14,
+            lineHeight: 20,
             fontFamily: 'JetBrains Mono, Consolas, "Courier New", monospace',
-            minimap: {
-                enabled: screenWidth > 1024 // Only show minimap on larger screens
-            },
-            lineNumbers: screenWidth < 640 ? 'off' as const : 'on' as const,
-            glyphMargin: screenWidth > 768,
-            folding: screenWidth > 768,
-            lineDecorationsWidth: screenWidth < 640 ? 0 : 10,
-            lineNumbersMinChars: screenWidth < 640 ? 0 : 3,
-            renderLineHighlight: screenWidth < 640 ? 'none' as const : 'line' as const,
+            lineNumbers: "on" as const,
+            glyphMargin: false,
+            folding: true,
             guides: {
                 indentation: false,
             },
-            autoIndent: "full" as const,
-            // Ensure editor takes full width and height
             fixedOverflowWidgets: true,
             overviewRulerBorder: false,
             scrollbar: {
-                vertical: 'auto' as const,
-                horizontal: 'auto' as const,
-                verticalScrollbarSize: 14,
-                horizontalScrollbarSize: 14,
+                vertical: "auto" as const,
+                horizontal: "auto" as const,
+                verticalScrollbarSize: 10,
+                horizontalScrollbarSize: 10,
             },
         }),
-        [screenWidth]
+        []
     );
 
-    const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        await handleSubmitCode(currentLanguage?.id as string, problemId);
-    };
-
-    const handleRun = async (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        await handleRunCustomInput(currentLanguage?.id as string);
-    };
+    const monacoTheme = theme?.name ? `${theme.name}-workspace` : CHEETCODE_EDITOR_THEME;
 
     return (
-        <div className="h-full w-full overflow-hidden flex flex-col bg-card">
-            <div className="flex justify-between items-center flex-wrap gap-3 p-3 sm:p-4 border-b border-border bg-muted/30">
-                <div className="flex items-center gap-3 min-w-0">
-                    <EditorLanguageSelect
-                        languages={languages}
-                        onLanguageSelect={handleLanguageSelect}
-                        defaultLanguage={currentLanguage}
-                    />
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 sm:h-9 sm:w-9"
-                        onClick={handleRun}
-                        disabled={customInputLoading || submissionLoading || isLanguagesUnavailable}
-                        title="Run with custom input"
-                        aria-label="Run with custom input"
-                    >
-                        {customInputLoading ? (
-                            <Icons.loader className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <Icons.play className="w-4 h-4" />
-                        )}
-                    </Button>
-                    <Button
-                        className="text-xs sm:text-sm px-3 sm:px-4 py-2 font-medium"
-                        onClick={handleSubmit}
-                        disabled={submissionLoading || customInputLoading || isLanguagesUnavailable}
-                        variant={error ? "destructive" : "default"}
-                        size="sm"
-                    >
-                        {submissionLoading ? (
-                            <div className="flex items-center justify-center gap-2">
-                                <Icons.loader className="w-4 h-4 animate-spin" />
-                                <span className="hidden sm:inline">Submitting...</span>
+        <Tabs defaultValue="code" className="h-full flex flex-col">
+            <TabsList className="flex justify-start w-full h-9 shrink-0 rounded-none bg-muted/40 p-1">
+                <TabsTrigger value="code" className="px-2 py-1 h-7">
+                    Code
+                </TabsTrigger>
+            </TabsList>
+            <TabsContent value="code" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
+                <div className="flex flex-col h-full">
+                    <div className="flex items-center justify-between gap-2 h-8 px-2 py-1 shrink-0">
+                        <EditorLanguageSelect
+                            languages={languages}
+                            onLanguageSelect={handleLanguageSelect}
+                            defaultLanguage={currentLanguage}
+                            variant="compact"
+                        />
+                        <div className="flex items-center gap-1.5">
+                            <div className="flex items-center">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 gap-1.5 rounded-r-none border-r-0 px-2.5 shadow-none"
+                                    onClick={() => void handleRun()}
+                                    disabled={actionsDisabled}
+                                >
+                                    {runLoading ? (
+                                        <Icons.loader className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Play className="h-3.5 w-3.5" />
+                                    )}
+                                    Run
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    className="h-7 gap-1.5 rounded-l-none px-2.5 bg-[var(--success-green)] text-white hover:bg-[var(--success-green)]/90 shadow-none"
+                                    onClick={() => void handleSubmit()}
+                                    disabled={actionsDisabled}
+                                >
+                                    {submissionLoading ? (
+                                        <Icons.loader className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <Check className="h-3.5 w-3.5" />
+                                    )}
+                                    Submit
+                                </Button>
                             </div>
-                        ) : (
-                            <>
-                                {error ? (
-                                    <div className="text-xs sm:text-sm text-center truncate max-w-[120px] sm:max-w-none">{error}</div>
-                                ) : (
-                                    <>
-                                        <span className="hidden sm:inline">Submit Code</span>
-                                        <span className="sm:hidden">Submit</span>
-                                    </>
-                                )}
-                            </>
-                        )}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs sm:text-sm px-3 sm:px-4 py-2"
-                        onClick={() => {
-                            setCode("");
-                            toast.success("Editor cleared successfully!");
-                        }}
-                    >
-                        <span className="hidden sm:inline">Clear Editor</span>
-                        <span className="sm:hidden">Clear</span>
-                    </Button>
-                </div>
-                <div className="flex items-center min-w-0">
-                    <EditorThemeSelector themes={themes} />
-                </div>
-            </div>
-
-            <div ref={editorContainerRef} className="flex-1 min-h-0">
-                <Editor
-                    loading={
-                        <div className="flex items-center justify-center h-full bg-background">
-                            <Icons.loader className="w-8 h-8 animate-spin text-primary" />
+                            <Separator orientation="vertical" className="h-4" />
+                            <EditorThemeSelector themes={themes} variant="compact" />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        className="h-6 p-1"
+                                        onClick={handleClearEditor}
+                                        aria-label="Clear editor"
+                                    >
+                                        <RotateCcw className="!w-3.5 !h-3.5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Clear editor</p>
+                                </TooltipContent>
+                            </Tooltip>
                         </div>
-                    }
-                    language={convertToMonacoLanguageName(currentLanguage)}
-                    defaultLanguage={currentLanguage?.name}
-                    value={code}
-                    theme={theme?.name}
-                    options={editorOptions}
-                    onChange={(value) => setCode(value ?? "")}
-                    onMount={handleEditorDidMount}
-                />
-            </div>
-        </div>
+                    </div>
+                    <Separator />
+                    <div ref={editorContainerRef} className="flex-1 min-h-0">
+                        <Editor
+                            height="100%"
+                            loading={
+                                <div className="flex items-center justify-center h-full bg-[#0a0a0a]">
+                                    <Icons.loader className="w-8 h-8 animate-spin text-primary" />
+                                </div>
+                            }
+                            language={convertToMonacoLanguageName(currentLanguage)}
+                            defaultLanguage={currentLanguage?.name}
+                            value={code}
+                            theme={monacoTheme}
+                            options={editorOptions}
+                            onChange={(value) => setCode(value ?? "")}
+                            onMount={handleEditorDidMount}
+                        />
+                    </div>
+                </div>
+            </TabsContent>
+        </Tabs>
     );
 }
