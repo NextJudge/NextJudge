@@ -15,9 +15,24 @@ Calls the data layer over REST. After you submit, the UI **polls** submission st
 
 ### Why polling, not WebSockets?
 
-Honest answer: simpler to ship and good enough for contest scale today. Submission grading takes seconds to minutes; a poll interval of 1-2s feels live without maintaining WS infra, reconnect logic, and auth on a second channel.
+Honest answer: simpler to ship and good enough for contest scale today. Submission grading takes seconds to minutes; polling at 500ms–1s feels live without maintaining WS infra, reconnect logic, and auth on a second channel.
 
-Tradeoff: slightly higher API load during active editing sessions. If you're building real-time collaboration, you'd add WS or SSE yourself. The API already has the data; the transport is the missing piece.
+| Approach | Pros | Cons |
+| -------- | ---- | ---- |
+| **Polling (current)** | Works everywhere; no extra infra; easy to debug | More HTTP requests while waiting; latency bounded by poll interval |
+| **SSE (likely next step)** | Server push over one long-lived GET; near-instant updates when judge PATCHes | Proxy timeout tuning; reconnect handling; still one-way |
+| **WebSockets** | Bidirectional; lowest latency | Heavier ops (sticky sessions, auth channel); overkill for status-only updates |
+
+Current intervals:
+
+- Platform **Run** (custom input): 500ms poll on `/v1/input_submissions/:id`
+- Platform **Submit**: 1s poll on `/v1/submissions/:id/status`, then one full fetch when complete
+- Landing demo: 500ms poll, 30-attempt cap (~15s)
+- CLI: exponential backoff up to 3.5s
+
+Tradeoff: slightly higher API load during active editing sessions. Poll GETs are cheap reads; expensive POST/enqueue paths are rate-limited separately. If you need real-time collaboration or sub-100ms status, add SSE on top of the existing REST data — RabbitMQ stays internal to the judge pipeline.
+
+**Multi-instance note:** IP/user rate limiters are in-memory per data-layer process. Horizontal scaling needs a shared store (e.g. Redis) for consistent limits across replicas.
 
 ## Data layer (`src/data-layer`)
 

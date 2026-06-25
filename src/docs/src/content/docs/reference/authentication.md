@@ -67,7 +67,7 @@ Set `ADMIN_EMAILS` in your env (comma-separated). Any account registered with a 
 ADMIN_EMAILS=admin@example.com
 ```
 
-No separate "bootstrap admin" step. Register with that email and you're admin. In `./dev-deploy.sh`, seed data may also preload users; check the UI or query `/v1/users` if auth is disabled in tests.
+No separate "bootstrap admin" step. Register with that email and you're admin. In `./dev-deploy.sh`, seed data may also preload users; check the UI or query `/v1/users` as an authenticated admin.
 
 ## JWT contents
 
@@ -112,16 +112,6 @@ curl -X POST http://localhost:5000/v1/login_judge \
 Returns `{"token":"..."}`. That token has `role: 1` and can PATCH submissions and fetch test cases.
 
 `JUDGE_PASSWORD` must match on both the data layer and judge containers. Mismatch = submissions sit in `PENDING` forever while RabbitMQ happily delivers messages to a worker that can't write results back.
-
-## Dev shortcut: auth disabled
-
-When `AUTH_DISABLED=true`, most routes skip JWT validation. Tests use this. There's also:
-
-```bash
-curl -X POST http://localhost:5000/v1/auth_test/user_creds
-```
-
-Returns a throwaway user + token. Only available when auth is disabled. Do not enable that in production.
 
 ## Password reset
 

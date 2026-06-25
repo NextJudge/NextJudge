@@ -43,15 +43,36 @@ NextJudge/
 
 ## Tests
 
-**Data layer** (must be running on `:5000`):
+**Web (Playwright — isolated local docker stack, not production):**
 
 ```bash
+# Full suite (CI-style: start stack, run tests, tear down)
+./scripts/run-e2e-tests.sh
+
+# Local iteration — start once, rerun only what you changed
+./scripts/start-e2e-stack.sh
+./scripts/run-e2e-playwright.sh e2e/auth.spec.ts
+./scripts/run-e2e-playwright.sh e2e/auth.spec.ts -g "invalid credentials"
+./scripts/run-e2e-playwright.sh --ui
+./scripts/stop-e2e-stack.sh
+
+# Or from src/web when the stack is already up:
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:8080 npm run test:e2e -- e2e/auth.spec.ts
+```
+
+Constants and stack config live in `src/web/e2e/` (`constants.ts`, `test-stack.config.sh`, `docker-compose.yml`).
+
+**Data layer:**
+
+```bash
+./scripts/run-data-layer-tests.sh
+# or manually:
 cd src/data-layer
 pip install -r tests/requirements.txt
 pytest tests/ -p no:warnings
 ```
 
-Tavern tests hit real HTTP. They assume auth is relaxed or configured like CI. Failures print the stage name; search that in `test_data_layer.tavern.yaml`.
+Tavern API tests hit an isolated docker stack on port 5050 (`tests/constants.py`, `tests/test_data_layer.tavern.yaml`). Configure the host with `TAVERN_HOST` or the default in `constants.py`.
 
 **Judge:**
 
@@ -60,20 +81,14 @@ cd src/judge && python -m pytest tests/
 # or ./tests.sh
 ```
 
-**Web:**
-
-```bash
-cd src/web && npm run lint && npm test
-```
-
 ## CI (what runs on your PR)
 
 Path-filtered jobs in `.github/workflows/ci.yml`:
 
 | Change in | Runs |
 | --------- | ---- |
-| `src/web/**` | lint, Docker build |
-| `src/data-layer/**` | Go tests, API Tavern tests |
+| `src/web/**` | lint, Playwright smoke (local stack), Docker build |
+| `src/data-layer/**` | Go unit tests, Tavern API tests (local stack), Docker image build |
 | `src/judge/**` | Judge tests, image build |
 | `src/docs/**` | Docs build |
 
