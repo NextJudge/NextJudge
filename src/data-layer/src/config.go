@@ -31,7 +31,6 @@ type config struct {
 	ProblemsIndex        string
 	CompetitionsIndex    string
 	ElasticEnabled       bool
-	AuthDisabled         bool
 	AdminEmails          []string
 	SeedData             bool
 }
@@ -190,14 +189,6 @@ func init() {
 		cfg.ElasticEnabled = true
 	} else {
 		cfg.ElasticEnabled = false
-	}
-
-	authDisabled := os.Getenv("AUTH_DISABLED")
-	if authDisabled == "true" {
-		logrus.Warn(strings.Repeat("AUTHENTICATION DISABLED\n", 10))
-		cfg.AuthDisabled = true
-	} else {
-		cfg.AuthDisabled = false
 	}
 
 	adminEmails := os.Getenv("ADMIN_EMAILS")

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func userCanSubmitToEventId(user *User, event *Event, timeNow time.Time) (bool, error) {
@@ -16,6 +18,10 @@ func userCanSubmitToEventId(user *User, event *Event, timeNow time.Time) (bool, 
 	}
 	if eventUser == nil {
 		return false, fmt.Errorf("user is not part of event")
+	}
+
+	if event.Teams && eventUser.TeamID == uuid.Nil {
+		return false, fmt.Errorf("must join a team to submit")
 	}
 
 	// check if user has already completed all problems in the contest

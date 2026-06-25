@@ -19,21 +19,13 @@ import (
 	"goji.io/pat"
 )
 
-// var AUTH_ENABLED = false
-
 func addAuthRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/create_or_login_user"), createOrLoginUser)
 	mux.HandleFunc(pat.Post("/v1/login_judge"), loginJudge)
-	mux.HandleFunc(pat.Post("/v1/basic_register"), basicRegister)
-	mux.HandleFunc(pat.Post("/v1/basic_login"), basicLogin)
-    mux.HandleFunc(pat.Post("/v1/basic_request_password_reset"), basicRequestPasswordReset)
-    mux.HandleFunc(pat.Post("/v1/basic_reset_password"), basicResetPassword)
-
-	if cfg.AuthDisabled {
-		// Get (and create) dummy users for testing
-		mux.HandleFunc(pat.Post("/v1/auth_test/user_creds"), getUserCreds)
-		// mux.HandleFunc(pat.Get("/v1/auth_test/admin_creds"), getAdminCreds)
-	}
+	mux.HandleFunc(pat.Post("/v1/basic_register"), RateLimitMiddleware(basicRegister, authEndpointLimiter))
+	mux.HandleFunc(pat.Post("/v1/basic_login"), RateLimitMiddleware(basicLogin, authEndpointLimiter))
+    mux.HandleFunc(pat.Post("/v1/basic_request_password_reset"), RateLimitMiddleware(basicRequestPasswordReset, authEndpointLimiter))
+    mux.HandleFunc(pat.Post("/v1/basic_reset_password"), RateLimitMiddleware(basicResetPassword, authEndpointLimiter))
 }
 
 type CreateTokenResponse struct {
@@ -115,33 +107,6 @@ func validateTokenUserExists(w http.ResponseWriter, claims *NextJudgeClaims) boo
 // Specify a call back to allow certain tokens through the auth middleware
 func AuthValidate(next http.HandlerFunc, validateFunc AllowTokenFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// if !AUTH_ENABLED {
-		if cfg.AuthDisabled {
-			// If a header is included, add it to the context anyways
-			auth_header, ok := r.Header["Authorization"]
-
-			if ok && len(auth_header) == 1 {
-				token, err := jwt.ParseWithClaims(auth_header[0], &NextJudgeClaims{}, func(token *jwt.Token) (interface{}, error) {
-					return cfg.JwtSigningSecret, nil
-				}, jwt.WithValidMethods([]string{"HS256"}))
-
-				if err == nil {
-					claims := token.Claims.(*NextJudgeClaims)
-
-					if !validateTokenUserExists(w, claims) {
-						return
-					}
-
-					ctx := context.WithValue(r.Context(), ContextTokenKey, claims)
-					r = r.WithContext(ctx)
-				}
-			}
-
-			next(w, r)
-			return
-		}
-
-		// Read token from authorization header
 		auth_header, ok := r.Header["Authorization"]
 
 		if !ok {
@@ -601,57 +566,4 @@ func basicResetPassword(w http.ResponseWriter, r *http.Request) {
 
     w.Header().Set("Content-Type", "application/json")
     fmt.Fprint(w, `{"status":"ok"}`)
-}
-
-const AUTH_TEST_USER = "__nextjudge_auth_test_user"
-
-func getUserCreds(w http.ResponseWriter, r *http.Request) {
-	user, err := db.GetUserByName(AUTH_TEST_USER)
-	if err != nil {
-		logrus.WithError(err).Error("error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"error"}`)
-		return
-	}
-	if user == nil {
-		user, err = db.CreateUser(
-			&User{
-				Name: AUTH_TEST_USER,
-			},
-		)
-		if err != nil {
-			logrus.WithError(err).Error("error")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"message":"error"}`)
-			return
-		}
-	}
-
-	// Now, create a token with this new user and return it
-	newToken, err := createToken(user.ID, UserRoleEnum)
-	if err != nil {
-		logrus.WithError(err).Error("error creating JWT token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"error creating JWT token"}`)
-		return
-	}
-
-	respData := CreateTokenResponse{
-		Token: newToken,
-		Id:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
-		Image: user.Image,
-	}
-
-	respJSON, err := json.Marshal(respData)
-	if err != nil {
-		logrus.WithError(err).Error("JSON parse error")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"JSON parse error"}`)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, string(respJSON))
 }

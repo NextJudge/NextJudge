@@ -86,6 +86,10 @@ func postUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if reqData.AccountIdentifier == "" {
+		reqData.AccountIdentifier = fmt.Sprintf("admin-created-%s", reqData.Email)
+	}
+
 	newUser, err := db.CreateUser(reqData)
 	if err != nil {
 		logrus.WithError(err).Error("error inserting user")
@@ -157,16 +161,16 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Make sure the user has access to this
-	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-	if token == nil {
-		logrus.Error("Error in token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"Error in token"}`)
-		return
+	var token *NextJudgeClaims
+	if raw := r.Context().Value(ContextTokenKey); raw != nil {
+		token, _ = raw.(*NextJudgeClaims)
 	}
 
-	if !isSelfOrAdmin(token, userId) {
+	if token == nil || !isSelfOrAdmin(token, userId) {
+		if token == nil {
+			writeNotAuthenticated(w)
+			return
+		}
 		logrus.Warn("User attempting to get info on another user")
 		w.WriteHeader(http.StatusForbidden)
 		fmt.Fprint(w, `{"code":"403", "message":"forbidden"}`)
@@ -290,15 +294,12 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !cfg.AuthDisabled {
-		token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-		if token == nil || !isSelfOrAdmin(token, userId) {
-			logrus.Warn("user attempted to delete another account")
-			w.WriteHeader(http.StatusForbidden)
-			fmt.Fprint(w, `{"code":"403", "message":"forbidden"}`)
+	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if !ok || token == nil || !isSelfOrAdmin(token, userId) {
+		if token == nil {
+			writeNotAuthenticated(w)
 			return
 		}
-	} else if token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims); ok && token != nil && !isSelfOrAdmin(token, userId) {
 		logrus.Warn("user attempted to delete another account")
 		w.WriteHeader(http.StatusForbidden)
 		fmt.Fprint(w, `{"code":"403", "message":"forbidden"}`)
