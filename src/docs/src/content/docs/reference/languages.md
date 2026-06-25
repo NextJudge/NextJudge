@@ -1,6 +1,6 @@
 ---
 title: Supported Languages
-description: Runtimes in the judge image and how to add more.
+description: Programming languages and runtimes available in the NextJudge judge image, plus how to add or customize language support.
 ---
 
 Defined in `src/judge/languages.toml`, registered in Postgres via `/v1/languages`. On startup the judge maps DB IDs to local configs **by name**. Typo in either place = compile failures for everyone. Fun afternoon.

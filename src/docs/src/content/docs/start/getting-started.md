@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Deploy NextJudge and verify it works end to end.
+description: Deploy NextJudge locally or in production, create your first contest, and verify submissions end to end in about fifteen minutes.
 ---
 
 ## Requirements

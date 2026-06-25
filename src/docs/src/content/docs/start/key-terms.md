@@ -1,6 +1,6 @@
 ---
 title: Key terms
-description: Vocabulary for the API and UI.
+description: Definitions for contests, problems, submissions, judges, and other vocabulary used across the NextJudge docs, API, and web UI.
 ---
 
 | Term | Meaning |

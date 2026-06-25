@@ -1,6 +1,6 @@
 ---
 title: Authentication
-description: How to get a JWT and call the API.
+description: Obtain JWT access tokens for the NextJudge API using email, password, or OAuth, and authenticate requests to the data layer.
 ---
 
 The data layer uses HS256 JWTs. Every authenticated request sends the token in the `Authorization` header as the **raw token string**. No `Bearer` prefix. (That's how the web app does it too.)
