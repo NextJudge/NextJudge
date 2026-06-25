@@ -188,7 +188,7 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		ProblemID:   reqData.ProblemID,
 		LanguageID:  reqData.LanguageID,
 		SourceCode:  reqData.SourceCode,
-		TimeElapsed: reqData.TimeElapsed,
+		TimeElapsed: 0,
 		Status:      Pending,
 	}
 
@@ -402,7 +402,8 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if reqData.FailedTestCaseID == nil && (reqData.Stderr != "" || reqData.Stdout != "") {
+	if reqData.FailedTestCaseID == nil && (reqData.Stderr != "" || reqData.Stdout != "") &&
+		reqData.Status != Accepted && reqData.Status != CompileTimeError {
 		logrus.Warn("storing output for non failed test cases is not supported")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, `{"code":"400", "message":"storing output for non failed test cases is not supported"}`)

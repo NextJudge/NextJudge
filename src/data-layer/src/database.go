@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -948,6 +949,63 @@ func (d *Database) CreateTeam(eventID int, name string) (*EventTeam, error) {
 	}
 
 	return &team, nil
+}
+
+var (
+	ErrDuplicateTeamName   = errors.New("duplicate team name")
+	ErrUserAlreadyOnTeam   = errors.New("user already on a team for this event")
+)
+
+func (d *Database) CreateTeamWithCreator(eventID int, name string, userID uuid.UUID) (*EventTeam, error) {
+	var createdTeam *EventTeam
+	err := d.NextJudgeDB.Transaction(func(tx *gorm.DB) error {
+		var existingTeam EventTeam
+		lookupErr := tx.Where("event_id = ? AND name = ?", eventID, name).First(&existingTeam).Error
+		if lookupErr == nil {
+			return ErrDuplicateTeamName
+		}
+		if lookupErr != gorm.ErrRecordNotFound {
+			return lookupErr
+		}
+
+		var eventUser EventUser
+		userLookupErr := tx.Where("user_id = ? AND event_id = ?", userID, eventID).First(&eventUser).Error
+		if userLookupErr == nil && eventUser.TeamID != uuid.Nil {
+			return ErrUserAlreadyOnTeam
+		}
+		if userLookupErr != nil && userLookupErr != gorm.ErrRecordNotFound {
+			return userLookupErr
+		}
+
+		newTeam := EventTeam{
+			EventID: eventID,
+			Name:    name,
+		}
+		if err := tx.Create(&newTeam).Error; err != nil {
+			return err
+		}
+
+		if userLookupErr == gorm.ErrRecordNotFound {
+			if err := tx.Create(&EventUser{
+				UserID:  userID,
+				EventID: eventID,
+				TeamID:  newTeam.ID,
+			}).Error; err != nil {
+				return err
+			}
+		} else {
+			if err := tx.Model(&eventUser).Update("team_id", newTeam.ID).Error; err != nil {
+				return err
+			}
+		}
+
+		createdTeam = &newTeam
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return createdTeam, nil
 }
 
 func (d *Database) GetTeamByID(team_id uuid.UUID) (*EventTeam, error) {

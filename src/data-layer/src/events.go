@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -1075,52 +1076,33 @@ func createTeam(w http.ResponseWriter, r *http.Request) {
 	}
 	if existingTeam != nil {
 		logrus.Error("Team already exists with that name")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"duplicate team name"}`)
-		return
-	}
-
-	newTeam, err := db.CreateTeam(
-		eventId,
-		reqData.Name,
-	)
-	if err != nil {
-		logrus.WithError(err).Error("error inserting team into db")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error inserting team into db"}`)
+		w.WriteHeader(http.StatusConflict)
+		fmt.Fprint(w, `{"code":"409", "message":"duplicate team name"}`)
 		return
 	}
 
 	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-	if ok && token != nil {
-		existingEventUser, err := db.GetEventUser(token.Id, eventId)
-		if err != nil {
-			logrus.WithError(err).Error("error checking event user")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error checking event user"}`)
+	if !ok || token == nil {
+		writeNotAuthenticated(w)
+		return
+	}
+
+	newTeam, err := db.CreateTeamWithCreator(eventId, reqData.Name, token.Id)
+	if err != nil {
+		if errors.Is(err, ErrDuplicateTeamName) {
+			w.WriteHeader(http.StatusConflict)
+			fmt.Fprint(w, `{"code":"409", "message":"duplicate team name"}`)
 			return
 		}
-		if existingEventUser != nil {
-			if existingEventUser.TeamID != uuid.Nil && existingEventUser.TeamID != newTeam.ID {
-				logrus.Warn("user already on another team")
-				w.WriteHeader(http.StatusConflict)
-				fmt.Fprint(w, `{"code":"409", "message":"already on a team for this event"}`)
-				return
-			}
-			err = db.UpdateEventUserTeam(token.Id, eventId, newTeam.ID)
-		} else {
-			_, err = db.CreateEventUser(&EventUser{
-				UserID:  token.Id,
-				EventID: eventId,
-				TeamID:  newTeam.ID,
-			})
-		}
-		if err != nil {
-			logrus.WithError(err).Error("error assigning creator to team")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error assigning creator to team"}`)
+		if errors.Is(err, ErrUserAlreadyOnTeam) {
+			w.WriteHeader(http.StatusConflict)
+			fmt.Fprint(w, `{"code":"409", "message":"already on a team for this event"}`)
 			return
 		}
+		logrus.WithError(err).Error("error creating team")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error creating team"}`)
+		return
 	}
 
 	returnData := ReturnBodyCreateTeam{
@@ -1420,6 +1402,11 @@ func getEventSubmissions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	claims, ok := requireAuthenticatedClaims(w, r)
+	if !ok {
+		return
+	}
+
 	teamQuery := r.URL.Query().Get("team")
 	userQuery := r.URL.Query().Get("user")
 
@@ -1436,6 +1423,20 @@ func getEventSubmissions(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, `{"code":"400", "message":"bad team id"}`)
 			return
 		}
+		if claims.Role < JudgeRoleEnum {
+			eventUser, err := db.GetEventUser(claims.Id, eventId)
+			if err != nil {
+				logrus.WithError(err).Error("error checking event user")
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(w, `{"code":"500", "message":"error checking event user"}`)
+				return
+			}
+			if eventUser == nil || eventUser.TeamID != teamID {
+				w.WriteHeader(http.StatusForbidden)
+				fmt.Fprint(w, `{"code":"403", "message":"forbidden"}`)
+				return
+			}
+		}
 		submissions, err = db.GetAllEventSubmissionsByTeam(eventId, teamID)
 		if err != nil {
 			logrus.WithError(err).Error("error getting team submissions")
@@ -1448,6 +1449,11 @@ func getEventSubmissions(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(w, `{"code":"400", "message":"bad user id"}`)
+			return
+		}
+		if !canReadSubmissionForClaims(claims, userID) {
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(w, `{"code":"403", "message":"forbidden"}`)
 			return
 		}
 		submissions, err = db.GetSubmissionsByUserID(userID)
@@ -1465,6 +1471,11 @@ func getEventSubmissions(w http.ResponseWriter, r *http.Request) {
 		}
 		submissions = filtered
 	} else {
+		if !canViewAllEventSubmissions(claims, event) {
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(w, `{"code":"403", "message":"forbidden"}`)
+			return
+		}
 		submissions, err = db.GetAllEventSubmissions(eventId)
 		if err != nil {
 			logrus.WithError(err).Error("error getting event submissions")
@@ -1472,6 +1483,10 @@ func getEventSubmissions(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, `{"code":"500", "message":"error getting submissions"}`)
 			return
 		}
+	}
+
+	for i := range submissions {
+		submissions[i] = redactSubmissionForViewer(claims, submissions[i])
 	}
 
 	respJSON, err := json.Marshal(submissions)
