@@ -1,6 +1,7 @@
 import { ThemeProvider } from "@/components/theme";
 import { Toaster } from "@/components/ui/sonner";
 import { createRootMetadata } from "@/lib/seo";
+import { QueryProvider } from "@/providers/query-provider";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -33,7 +34,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <QueryProvider>
+            {children}
+          </QueryProvider>
           <Toaster />
         </ThemeProvider>
       </body>
