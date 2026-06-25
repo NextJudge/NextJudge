@@ -1163,14 +1163,14 @@ func (d *Database) GetAllEventSubmissionsByTeam(eventID int, teamID uuid.UUID) (
 	return submissions, nil
 }
 
-// func (d *Database) GetEventSubmissionsForUser(eventID int, query string) ([]Submission, error) {
-// 	submissions := []Submission{}
-// 	err := d.NextJudgeDB.Where("event_id = ?", eventID).Where(query).Find(&submissions).Error
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return submissions, nil
-// }
+func (d *Database) GetEventSubmissionsByUserID(eventID int, userID uuid.UUID) ([]Submission, error) {
+	submissions := []Submission{}
+	err := d.NextJudgeDB.Where("event_id = ? AND user_id = ?", eventID, userID).Find(&submissions).Error
+	if err != nil {
+		return nil, err
+	}
+	return submissions, nil
+}
 
 // Aggregated attempts per (user, problem) with first accepted time
 type EventProblemAttempt struct {
