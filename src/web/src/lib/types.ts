@@ -28,16 +28,16 @@ export interface Problem {
 	id: number;
 	prompt: string;
 	title: string;
-	timeout: number;
+	timeout?: number;
 	difficulty: Difficulty;
 	user_id: string;
 	upload_date: string;
 	updated_at: string;
-	test_cases: TestCase[];
-	categories: Category[];
+	test_cases?: TestCase[];
+	categories?: Category[];
 	public?: boolean;
-	identifier: string;
-	source: string;
+	identifier?: string;
+	source?: string;
 	accept_timeout: number;
 	execution_timeout: number;
 	memory_limit: number;
@@ -210,6 +210,18 @@ export interface Notification {
 	created_at: string;
 	updated_at: string;
 	question?: EventQuestion;
+}
+
+export interface EventTeam {
+	id: string;
+	event_id: number;
+	name: string;
+	members?: User[];
+}
+
+export interface CreateTeamResponse {
+	message: string;
+	team_id: string;
 }
 
 export interface CustomInputResult {

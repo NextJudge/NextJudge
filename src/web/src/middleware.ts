@@ -31,7 +31,7 @@ export default async function middleware(request: NextRequest) {
   const session = await auth();
 
   if (pathname.startsWith("/platform") && !session) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
   const isAdminRoute = adminRoutes.some(route => {

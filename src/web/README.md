@@ -72,17 +72,6 @@ Authorization callback URL
 http://localhost:8080/api/auth/callback/github
 ```
 
-### TODO
-
-- [ ] Support team infrastructure and registration
-- [ ] Complete / finalize the code editor UI/UX.
-- [ ] Refactor notification system
-- [ ] Extract a lot of state to `useReducer` and zustand stores
-- [ ] Re-do landing page and marketing materials
-- [ ] Allow contest organizers to prematurely end contests
-- [ ] Update `useEventMetadata` to use tanstack query
-  - really, all the api calls should be using tanstack query
-
 ### Things to note
 
 -   Admin emails are configured in the `../data-layer/docker-compose.dev.yml`. `ADMIN_EMAILS`. It's a comma separated list of emails.
