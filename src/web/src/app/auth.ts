@@ -19,7 +19,8 @@ import GitHub from "next-auth/providers/github";
 // }
 
 
-const AUTH_PROVIDER_PASSWORD: string = process.env.AUTH_PROVIDER_PASSWORD as string
+const webBridgeSecret =
+    process.env.WEB_BRIDGE_SECRET ?? process.env.AUTH_PROVIDER_PASSWORD ?? "";
 
 interface NextJudgeUserResponse {
     email: string;
@@ -200,7 +201,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
-                            "Authorization": AUTH_PROVIDER_PASSWORD,
+                            "Authorization": webBridgeSecret,
                         },
                         body: JSON.stringify({
                             id: user_id,
