@@ -32,6 +32,14 @@ npm start
 cp .env.example .env.local
 ```
 
+Required for OAuth: `AUTH_SECRET`, `WEB_BRIDGE_SECRET` (must match the data layer), and GitHub app credentials. `WEB_BRIDGE_SECRET` replaces deprecated `AUTH_PROVIDER_PASSWORD`.
+
+```bash
+# generate data-layer + web bridge secrets at repo root
+./.createenv.sh > .env
+# copy WEB_BRIDGE_SECRET from .env into src/web/.env.local
+```
+
 2. Install dependencies.
 
 ```bash
@@ -57,6 +65,22 @@ bun dev
 ```
 
 4. Open [http://localhost:8080](http://localhost:8080) with your browser to see the result.
+
+## E2E tests (Playwright)
+
+Runs against an isolated Docker stack — not production.
+
+```bash
+# from repo root (CI-style: start stack, test, tear down)
+./scripts/run-e2e-tests.sh
+
+# iterate locally
+./scripts/start-e2e-stack.sh
+./scripts/run-e2e-playwright.sh e2e/auth.spec.ts
+./scripts/stop-e2e-stack.sh
+```
+
+Specs and stack config: `e2e/`. See the [development guide](https://github.com/NextJudge/NextJudge/blob/main/src/docs/src/content/docs/guides/development.md#tests) for details.
 
 # GitHub OAuth2
 
