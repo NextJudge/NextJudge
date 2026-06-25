@@ -68,7 +68,8 @@ def setup_tests(tavern_global_vars: dict):
         r = requests.get(endpoint, params={"name": u}, headers=admin_headers, timeout=10)
 
         if r.status_code != 404 and len(safe_json_list(r)) > 0:
-            userId = r.json()[0]['id']
+            users = safe_json_list(r)
+            userId = users[0]['id']
             endpoint = endpoint + "/" + str(userId)
             r = requests.delete(endpoint, headers=admin_headers, timeout=10)
             if r.status_code != 204:
