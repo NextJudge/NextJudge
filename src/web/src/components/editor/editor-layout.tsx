@@ -105,6 +105,11 @@ export default function EditorComponent({
   const startRun = useEditorStore((s) => s.startRun);
   const setRunProgress = useEditorStore((s) => s.setRunProgress);
   const finishRun = useEditorStore((s) => s.finishRun);
+  const resetEditorState = useEditorStore((s) => s.resetEditorState);
+
+  useEffect(() => {
+    resetEditorState();
+  }, [details.id, resetEditorState]);
 
   useEffect(() => {
     setActiveCaseTab(publicTestCases.length > 0 ? "case-0" : "case-custom");

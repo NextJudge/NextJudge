@@ -37,7 +37,7 @@ export const problemListItemSchema = z.object({
   event_id: z.number().optional(),
   identifier: z.string().optional(),
   categories: z.array(categorySchema).optional(),
-  test_cases: z.array(testCaseSchema).optional(),
+  test_cases: z.array(testCaseSchema).nullish(),
   timeout: z.number().optional(),
 });
 
