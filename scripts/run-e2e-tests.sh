@@ -36,8 +36,23 @@ echo "Starting isolated E2E stack (local docker only)..."
 E2E_DATA_LAYER_PORT="$E2E_DATA_LAYER_PORT" E2E_JUDGE_IMAGE="$E2E_JUDGE_IMAGE" \
   docker compose -f "$E2E_DIR/docker-compose.yml" up -d --build --wait
 
+echo "Waiting for judge to finish connecting to the data layer..."
+for _ in $(seq 1 90); do
+  if docker compose -f "$E2E_DIR/docker-compose.yml" logs nextjudge-judge 2>&1 | grep -q "Can contact the core service"; then
+    echo "Judge is ready."
+    break
+  fi
+  sleep 2
+done
+if ! docker compose -f "$E2E_DIR/docker-compose.yml" logs nextjudge-judge 2>&1 | grep -q "Can contact the core service"; then
+  echo "Judge failed to become ready:"
+  docker compose -f "$E2E_DIR/docker-compose.yml" logs nextjudge-judge
+  exit 1
+fi
+
 cat > "$WEB_DIR/.env.local" <<EOF
 AUTH_SECRET=${E2E_AUTH_SECRET}
+AUTH_PROVIDER_PASSWORD=${E2E_AUTH_PROVIDER_PASSWORD}
 NEXTAUTH_URL=http://${E2E_WEB_HOST}:${E2E_WEB_PORT}
 NEXT_PUBLIC_API_URL=http://${E2E_WEB_HOST}:${E2E_DATA_LAYER_PORT}
 EOF

@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { E2E_ADMIN_USER } from "./constants";
-import { expectHomePage, login } from "./helpers";
+import { expectLoginPage, login } from "./helpers";
 
 test.describe("authentication", () => {
   test("redirects unauthenticated users away from platform routes", async ({
     page,
   }) => {
     await page.goto("/platform/problems");
-    await expectHomePage(page);
+    await expectLoginPage(page);
   });
 
   test("rejects invalid credentials without reaching the platform", async ({

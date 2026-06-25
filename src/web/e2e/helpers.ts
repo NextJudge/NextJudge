@@ -12,10 +12,10 @@ export const login = async (
   await page.waitForURL("**/platform**");
 };
 
-export const expectHomePage = async (page: Page): Promise<void> => {
+export const expectLoginPage = async (page: Page): Promise<void> => {
   await expect
     .poll(() => new URL(page.url()).pathname)
-    .toBe("/");
+    .toBe("/auth/login");
 };
 
 export const expectToast = async (
