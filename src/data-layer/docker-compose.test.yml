@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_DB=nextjudge
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=example
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./nextjudge.sql:/docker-entrypoint-initdb.d/0_nextjudge.sql
+      - ./init_prod_data.sql:/docker-entrypoint-initdb.d/1_init_prod_data.sql
+    healthcheck:
+      test: pg_isready -U $$POSTGRES_USER
+      interval: 1s
+      timeout: 1s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    expose:
+      - 5672
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+    environment:
+      - RABBITMQ_DEFAULT_USER=e2e-rabbit
+      - RABBITMQ_DEFAULT_PASS=e2e-rabbit-password
+
+  nextjudge-data-layer:
+    build: .
+    ports:
+      - "${DATA_LAYER_TEST_PORT:-5050}:5000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=example
+      - DB_NAME=nextjudge
+      - ADMIN_EMAILS=bootstrap-admin@nextjudge.test
+      - ELASTIC_ENABLED=false
+      - JUDGE_PASSWORD=e2e-judge-password
+      - JWT_SIGNING_SECRET=e2e-jwt-signing-secret-minimum-32-chars
+      - AUTH_PROVIDER_PASSWORD=e2e-auth-provider-password
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=e2e-rabbit
+      - RABBITMQ_PASSWORD=e2e-rabbit-password
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/main", "-healthcheck", "-p", "5000"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  postgres_data:

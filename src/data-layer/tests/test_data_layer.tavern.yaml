@@ -5,6 +5,7 @@ strict:
 
 marks:
   - usefixtures:
+    - tavern_global_vars
     - setup_tests
     - five_minutes_from_now
     - five_minutes_ago
@@ -21,6 +22,8 @@ stages:
     request: 
       url: "{host}/v1/users"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: "{test_username}"
         is_admin: false
@@ -33,6 +36,8 @@ stages:
     request: 
       url: "{host}/v1/users"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         email: "{test_email}"
         is_admin: false
@@ -45,6 +50,8 @@ stages:
     request: 
       url: "{host}/v1/users"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: "{test_username}"
         email: "{test_email}"
@@ -68,6 +75,8 @@ stages:
     request: 
       url: "{host}/v1/users"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: "{test_username}"
         email: "{test_email_2}"
@@ -81,6 +90,8 @@ stages:
     request: 
       url: "{host}/v1/users"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: "{test_username_2}"
         email: "{test_email}"
@@ -94,6 +105,8 @@ stages:
     request: 
       url: "{host}/v1/users"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: "{test_username_2}"
         email: "{test_email_2}"
@@ -110,6 +123,8 @@ stages:
     request: 
       url: "{host}/v1/users/00000000-0000-0000-0000-000000000000"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -119,6 +134,8 @@ stages:
     request: 
       url: "{host}/v1/users/badid"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -128,6 +145,8 @@ stages:
     request: 
       url: "{host}/v1/users/{user_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -141,6 +160,8 @@ stages:
     request: 
       url: "{host}/v1/users"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
       params:
         name: "{test_username}abc"
     response:
@@ -153,6 +174,8 @@ stages:
     request: 
       url: "{host}/v1/users"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
       params:
         name: "{test_username}"
     response:
@@ -168,6 +191,8 @@ stages:
     request: 
       url: "{host}/v1/users"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -181,6 +206,8 @@ stages:
     request: 
       url: "{host}/v1/users/00000000-0000-0000-0000-000000000000"
       method: PUT
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: "{test_username}"
         is_admin: false
@@ -193,6 +220,8 @@ stages:
     request: 
       url: "{host}/v1/users/{user_id}"
       method: PUT
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: "{test_username_2}"
         is_admin: false
@@ -205,6 +234,8 @@ stages:
     request: 
       url: "{host}/v1/users/{user_id}"
       method: PUT
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: "{test_username}"
         is_admin: true
@@ -217,6 +248,8 @@ stages:
     request: 
       url: "{host}/v1/users/{user_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -232,6 +265,8 @@ stages:
     request: 
       url: "{host}/v1/languages"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: "{test_language}"
         extension: ".gooby"
@@ -252,6 +287,8 @@ stages:
     request: 
       url: "{host}/v1/languages"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: "{test_language}"
         extension: ".gooby"
@@ -279,6 +316,8 @@ stages:
     request:
       url: "{host}/v1/categories"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -294,6 +333,8 @@ stages:
     request: 
       url: "{host}/v1/problems"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: "{user_id}"
         prompt: "solve the problem"
@@ -314,6 +355,8 @@ stages:
     request: 
       url: "{host}/v1/problems"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: 00000000-0000-0000-0000-000000000000
         prompt: "solve the problem"
@@ -333,6 +376,8 @@ stages:
     request: 
       url: "{host}/v1/problems"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: "{user_id}"
         prompt: "solve the problem"
@@ -366,6 +411,8 @@ stages:
     request: 
       url: "{host}/v1/problems"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: "{user_id}"
         difficulty: "EASY"
@@ -387,6 +434,8 @@ stages:
     request: 
       url: "{host}/v1/problems"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: "{user_id}"
         prompt: "solve the harder problem"
@@ -414,6 +463,8 @@ stages:
     request: 
       url: "{host}/v1/problems/999999"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -423,6 +474,8 @@ stages:
     request: 
       url: "{host}/v1/problems/{problem_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
       params:
         type: "private"
     response:
@@ -444,6 +497,8 @@ stages:
     request: 
       url: "{host}/v1/problems"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -459,6 +514,8 @@ stages:
     request: 
       url: "{host}/v1/submissions"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: "{user_id}"
         problem_id: !int 999999
@@ -474,6 +531,8 @@ stages:
     request: 
       url: "{host}/v1/submissions"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: 00000000-0000-0000-0000-000000000000
         problem_id: !int "{problem_id}"
@@ -489,6 +548,8 @@ stages:
     request: 
       url: "{host}/v1/submissions"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: "{user_id}"
         problem_id: !int "{problem_id}"
@@ -504,6 +565,8 @@ stages:
     request: 
       url: "{host}/v1/submissions"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: "{user_id}"
         problem_id: !int "{problem_id}"
@@ -529,6 +592,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -546,6 +611,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: PATCH
+      headers:
+        Authorization: "{admin_token}"
       json:
         status: "LOOOL"
     response:
@@ -557,6 +624,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: PATCH
+      headers:
+        Authorization: "{admin_token}"
       json:
         status: "ACCEPTED"
         failed_test_case_id: "{test_case_id}"
@@ -569,6 +638,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: PATCH
+      headers:
+        Authorization: "{admin_token}"
       json:
         status: "ACCEPTED"
         stderr: "123"
@@ -581,6 +652,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: PATCH
+      headers:
+        Authorization: "{admin_token}"
       json:
         status: "MEMORY_LIMIT_EXCEEDED"
     response:
@@ -592,6 +665,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: PATCH
+      headers:
+        Authorization: "{admin_token}"
       json:
         status: "PENDING"
     response:
@@ -603,6 +678,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: PATCH
+      headers:
+        Authorization: "{admin_token}"
       json:
         status: "WRONG_ANSWER"
         failed_test_case_id: "{test_case_id_2}"
@@ -615,6 +692,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: PATCH
+      headers:
+        Authorization: "{admin_token}"
       json:
         status: "WRONG_ANSWER"
         failed_test_case_id: 00000000-0000-0000-0000-000000000000
@@ -627,6 +706,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: PATCH
+      headers:
+        Authorization: "{admin_token}"
       json:
         status: "WRONG_ANSWER"
         failed_test_case_id: "{test_case_id}"
@@ -640,6 +721,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -659,6 +742,8 @@ stages:
     request: 
       url: "{host}/v1/user_submissions/00000000-0000-0000-0000-000000000000"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -668,6 +753,8 @@ stages:
     request: 
       url: "{host}/v1/user_submissions/{user_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -682,117 +769,129 @@ stages:
           source_code: "int main"
       status_code: 200
 
-  ### /v1/competitions
+  ### /v1/events
   
-  - name: create competition with non existent host
+  - name: create event without auth
     request: 
-      url: "{host}/v1/competitions"
+      url: "{host}/v1/events"
       method: POST
       json:
         title: "test competition"
         description: "this is a test competition"
-        user_id: 00000000-0000-0000-0000-000000000000
         start_time: "{five_minutes_from_now}"
         end_time: "{ten_minutes_from_now}"
-        problem_ids:
-          - !int "{problem_id}"
+        teams: false
+        problems:
+          - problem_id: !int "{problem_id}"
     response:
       headers:
         content-type: application/json
-      status_code: 404
+      status_code: 401
 
-  - name: create competition start time before now
+  - name: create event start time before now
     request: 
-      url: "{host}/v1/competitions"
+      url: "{host}/v1/events"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         title: "test competition"
         description: "this is a test competition"
-        user_id: "{user_id}"
         start_time: "{five_minutes_ago}"
         end_time: "{ten_minutes_from_now}"
-        problem_ids:
-          - !int "{problem_id}"
+        teams: false
+        problems:
+          - problem_id: !int "{problem_id}"
     response:
       headers:
         content-type: application/json
       status_code: 400
 
-  - name: create competition start time after end time
+  - name: create event start time after end time
     request:
-      url: "{host}/v1/competitions"
+      url: "{host}/v1/events"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         title: "test competition"
         description: "this is a test competition"
-        user_id: "{user_id}"
         start_time: "{ten_minutes_from_now}"
         end_time: "{five_minutes_from_now}"
-        problem_ids:
-          - !int "{problem_id}"
+        teams: false
+        problems:
+          - problem_id: !int "{problem_id}"
     response:
       headers:
         content-type: application/json
       status_code: 400
 
-  - name: create competition with no title
+  - name: create event with no title
     request:
-      url: "{host}/v1/competitions"
+      url: "{host}/v1/events"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         description: "this is a test competition"
-        user_id: "{user_id}"
         start_time: "{ten_minutes_from_now}"
         end_time: "{five_minutes_from_now}"
-        problem_ids:
-          - !int "{problem_id}"
+        teams: false
+        problems:
+          - problem_id: !int "{problem_id}"
     response:
       headers:
         content-type: application/json
       status_code: 400
 
-  - name: create competition with bad problem id
+  - name: create event with bad problem id
     request:
-      url: "{host}/v1/competitions"
+      url: "{host}/v1/events"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         title: "test competition"
         description: "this is a test competition"
-        user_id: "{user_id}"
         start_time: "{five_minutes_from_now}"
         end_time: "{ten_minutes_from_now}"
-        problem_ids:
-          - !int 9999999
+        teams: false
+        problems:
+          - problem_id: !int 9999999
     response:
       headers:
         content-type: application/json
       status_code: 404
 
-  - name: create competition
+  - name: create event
     request:
-      url: "{host}/v1/competitions"
+      url: "{host}/v1/events"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         title: "test competition"
         description: "this is a test competition"
-        user_id: "{user_id}"
         start_time: "{five_minutes_from_now}"
         end_time: "{ten_minutes_from_now}"
-        problem_ids:
-          - !int "{problem_id}"
-          - !int "{problem_id_2}"
+        teams: false
+        problems:
+          - problem_id: !int "{problem_id}"
+          - problem_id: !int "{problem_id_2}"
     response:
       headers:
         content-type: application/json
       status_code: 201
       save:
         json:
-          competition_id: id
+          event_id: id
 
-  - name: add user to non existent competition
+  - name: add user to non existent event
     request:
-      url: "{host}/v1/competitions/00000000-0000-0000-0000-000000000000/participants"
+      url: "{host}/v1/events/999999/participants"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: "{user_id_2}"
     response:
@@ -800,10 +899,12 @@ stages:
         content-type: application/json
       status_code: 404
 
-  - name: add non existent user to competition
+  - name: add non existent user to event
     request:
-      url: "{host}/v1/competitions/{competition_id}/participants"
+      url: "{host}/v1/events/{event_id}/participants"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: 00000000-0000-0000-0000-000000000000
     response:
@@ -811,10 +912,12 @@ stages:
         content-type: application/json
       status_code: 404
 
-  - name: add user to competition
+  - name: add user to event
     request:
-      url: "{host}/v1/competitions/{competition_id}/participants"
+      url: "{host}/v1/events/{event_id}/participants"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         user_id: "{user_id_2}"
     response:
@@ -822,25 +925,29 @@ stages:
         content-type: application/json
       status_code: 204
 
-  - name: get non existent competition
+  - name: get non existent event
     request:
-      url: "{host}/v1/competitions/00000000-0000-0000-0000-000000000000"
+      url: "{host}/v1/events/999999"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
       status_code: 404
 
-  - name: get competition
+  - name: get event
     request:
-      url: "{host}/v1/competitions/{competition_id}"
+      url: "{host}/v1/events/{event_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
       status_code: 200
       json:
-        id: "{competition_id}"
+        id: !int "{event_id}"
         title: "test competition"
         description: "this is a test competition"
         start_time: "{five_minutes_from_now}"
@@ -851,16 +958,18 @@ stages:
           - id: !int "{problem_id}"
           - id: !int "{problem_id_2}"
 
-  - name: get all competitions
+  - name: get all events
     request:
-      url: "{host}/v1/competitions"
+      url: "{host}/v1/events"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
       status_code: 200
       json:
-        - id: "{competition_id}"
+        - id: !int "{event_id}"
           title: "test competition"
           description: "this is a test competition"
           start_time: "{five_minutes_from_now}"
@@ -868,28 +977,34 @@ stages:
 
   ### cleanup
 
-  - name: delete non existent competition
+  - name: delete non existent event
     request: 
-      url: "{host}/v1/competitions/00000000-0000-0000-0000-000000000000"
+      url: "{host}/v1/events/999999"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
       status_code: 404
 
-  - name: delete competition
+  - name: delete event
     request: 
-      url: "{host}/v1/competitions/{competition_id}"
+      url: "{host}/v1/events/{event_id}"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
       status_code: 204
 
-  - name: try to delete competition again
+  - name: try to delete event again
     request: 
-      url: "{host}/v1/competitions/{competition_id}"
+      url: "{host}/v1/events/{event_id}"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -899,6 +1014,8 @@ stages:
     request: 
       url: "{host}/v1/problems/999999999"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -908,6 +1025,8 @@ stages:
     request: 
       url: "{host}/v1/problems/{problem_id}"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -917,6 +1036,8 @@ stages:
     request: 
       url: "{host}/v1/problems/{problem_id_2}"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -926,6 +1047,8 @@ stages:
     request: 
       url: "{host}/v1/submissions/{submission_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -935,6 +1058,8 @@ stages:
     request: 
       url: "{host}/v1/problems/{problem_id}"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -944,6 +1069,8 @@ stages:
     request: 
       url: "{host}/v1/problems/{problem_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -953,6 +1080,8 @@ stages:
     request: 
       url: "{host}/v1/languages/00000000-0000-0000-0000-000000000000"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -962,6 +1091,8 @@ stages:
     request: 
       url: "{host}/v1/languages/{language_id}"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -971,6 +1102,8 @@ stages:
     request: 
       url: "{host}/v1/languages/{language_id}"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -980,6 +1113,8 @@ stages:
     request: 
       url: "{host}/v1/users/00000000-0000-0000-0000-000000000000"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -989,6 +1124,8 @@ stages:
     request: 
       url: "{host}/v1/users/{user_id}"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -998,6 +1135,8 @@ stages:
     request: 
       url: "{host}/v1/users/{user_id}"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -1007,6 +1146,8 @@ stages:
     request: 
       url: "{host}/v1/users/{user_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
@@ -1016,15 +1157,21 @@ stages:
     request: 
       url: "{host}/v1/users/{user_id_2}"
       method: DELETE
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
       status_code: 204
 
-  - name: get user creds for delete authorization test
+  - name: register delete authorization test user
     request:
-      url: "{host}/v1/auth_test/user_creds"
+      url: "{host}/v1/basic_register"
       method: POST
+      json:
+        name: delete_auth_user
+        email: delete_auth_user@nextjudge.test
+        password: delete-auth-user-password
     response:
       status_code: 200
       save:
@@ -1032,10 +1179,27 @@ stages:
           auth_delete_user_id: id
           auth_delete_user_token: token
 
+  - name: register self delete test user
+    request:
+      url: "{host}/v1/basic_register"
+      method: POST
+      json:
+        name: self_delete_user
+        email: self_delete_user@nextjudge.test
+        password: self-delete-user-password
+    response:
+      status_code: 200
+      save:
+        json:
+          self_delete_user_id: id
+          self_delete_token: token
+
   - name: create other user for delete authorization test
     request:
       url: "{host}/v1/users"
       method: POST
+      headers:
+        Authorization: "{admin_token}"
       json:
         name: delete_auth_other_user
         email: delete_auth_other_user@nextjudge.test
@@ -1066,21 +1230,12 @@ stages:
     request:
       url: "{host}/v1/users/{auth_delete_other_user_id}"
       method: GET
+      headers:
+        Authorization: "{admin_token}"
     response:
       headers:
         content-type: application/json
       status_code: 200
-
-  - name: self delete with user token should succeed
-    request:
-      url: "{host}/v1/auth_test/user_creds"
-      method: POST
-    response:
-      status_code: 200
-      save:
-        json:
-          self_delete_user_id: id
-          self_delete_token: token
 
   - name: delete own account with token
     request:
