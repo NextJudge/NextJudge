@@ -616,6 +616,37 @@ func (d *Database) GetEventByID(id int) (*Event, error) {
 	return event, nil
 }
 
+func (d *Database) GetEventDetailByID(id int) (*EventDetail, error) {
+	event, err := d.GetEventByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if event == nil {
+		return nil, nil
+	}
+
+	participants, err := d.GetEventParticipants(id)
+	if err != nil {
+		return nil, err
+	}
+
+	eventProblems, err := d.GetEventProblems(id)
+	if err != nil {
+		return nil, err
+	}
+
+	problemRefs := make([]EventProblemRef, 0, len(eventProblems))
+	for _, ep := range eventProblems {
+		problemRefs = append(problemRefs, EventProblemRef{ID: ep.ProblemID})
+	}
+
+	return &EventDetail{
+		Event:        *event,
+		Participants: participants,
+		Problems:     problemRefs,
+	}, nil
+}
+
 func (d *Database) UpdateEvent(event *Event) error {
 	err := db.NextJudgeDB.Save(event).Error
 	if err != nil {
@@ -661,8 +692,21 @@ type GetEventProblemType struct {
 	ExecutionTimeout float64 `json:"execution_timeout"`
 	MemoryLimit      int     `json:"memory_limit"`
 
+	Identifier string     `json:"identifier,omitempty"`
+	Categories []Category `json:"categories,omitempty"`
+
 	// Tests []TestCase `json:"tests,omitempty"`
 	Tests []TestCase `json:"test_cases"`
+}
+
+type EventProblemRef struct {
+	ID int `json:"id"`
+}
+
+type EventDetail struct {
+	Event
+	Participants []User            `json:"participants,omitempty"`
+	Problems     []EventProblemRef `json:"problems,omitempty"`
 }
 
 func (d *Database) GetPublicProblems() ([]GetEventProblemType, error) {
@@ -928,6 +972,48 @@ func (d *Database) GetTeamByName(name string) (*EventTeam, error) {
 		return nil, err
 	}
 	return team, nil
+}
+
+func (d *Database) GetTeamByNameForEvent(eventID int, name string) (*EventTeam, error) {
+	team := &EventTeam{}
+	err := db.NextJudgeDB.Where("event_id = ? AND name = ?", eventID, name).First(team).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return team, nil
+}
+
+func (d *Database) UpdateEventUserTeam(userID uuid.UUID, eventID int, teamID uuid.UUID) error {
+	return d.NextJudgeDB.Model(&EventUser{}).
+		Where("user_id = ? AND event_id = ?", userID, eventID).
+		Update("team_id", teamID).Error
+}
+
+func (d *Database) GetTeamMembers(teamID uuid.UUID) ([]User, error) {
+	var users []User
+	err := d.NextJudgeDB.
+		Table("users").
+		Joins("JOIN event_users ON event_users.user_id = users.id").
+		Where("event_users.team_id = ?", teamID).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (d *Database) GetUserTeamForEvent(userID uuid.UUID, eventID int) (*EventTeam, error) {
+	eventUser, err := d.GetEventUser(userID, eventID)
+	if err != nil {
+		return nil, err
+	}
+	if eventUser == nil || eventUser.TeamID == uuid.Nil {
+		return nil, nil
+	}
+	return d.GetTeamByID(eventUser.TeamID)
 }
 
 func (d *Database) CreateEventUser(eventUser *EventUser) (*EventUser, error) {

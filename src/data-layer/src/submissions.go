@@ -15,7 +15,7 @@ import (
 )
 
 func addSubmissionRoutes(mux *goji.Mux) {
-	mux.HandleFunc(pat.Post("/v1/submissions"), AuthRequired(postSubmission))
+	mux.HandleFunc(pat.Post("/v1/submissions"), AuthRequired(AuthenticatedRateLimitMiddleware(submissionLimiter, postSubmission)))
 
 	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id"), AuthRequired(getSubmission))
 	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id/status"), AuthRequired(getSubmissionStatus))
@@ -38,22 +38,28 @@ type UpdateSubmissionStatusPatchBody struct {
 	Stdout           string                  `json:"stdout"`
 	Stderr           string                  `json:"stderr"`
 	TestCaseResults  []TestCaseResultRequest `json:"test_case_results,omitempty"`
-	TimeElapsed      float32                 `json:"time_elapsed,omitempty"`
+	TimeElapsed      *float32                `json:"time_elapsed,omitempty"`
 }
 
 type PostSubmissionBodyType struct {
-	UserID     uuid.UUID `json:"user_id"`
-	ProblemID  int       `json:"problem_id"`
-	LanguageID uuid.UUID `json:"language_id"`
-	SourceCode string    `json:"source_code"`
+	UserID      uuid.UUID `json:"user_id"`
+	ProblemID   int       `json:"problem_id"`
+	LanguageID  uuid.UUID `json:"language_id"`
+	SourceCode  string    `json:"source_code"`
+	TimeElapsed float32   `json:"time_elapsed"`
 	// only required if submitting to a contest
 	EventID *int `json:"event_id,omitempty"`
 }
 
 type PostSubmissionReturnBody struct {
-	Id         uuid.UUID `json:"id"`
-	Status     Status    `json:"status"`
-	SubmitTime time.Time `json:"submit_time"`
+	Id          uuid.UUID `json:"id"`
+	UserID      uuid.UUID `json:"user_id"`
+	ProblemID   int       `json:"problem_id"`
+	LanguageID  uuid.UUID `json:"language_id"`
+	SourceCode  string    `json:"source_code"`
+	TimeElapsed float32   `json:"time_elapsed"`
+	Status      Status    `json:"status"`
+	SubmitTime  time.Time `json:"submit_time"`
 }
 
 func postSubmission(w http.ResponseWriter, r *http.Request) {
@@ -75,35 +81,10 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// User ID boilerplate
-	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	userId, ok := resolveActingUserID(w, r, reqData.UserID)
 	if !ok {
-		logrus.Error("Error in token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Error in token"}`)
 		return
 	}
-	if token == nil {
-		logrus.Error("Token is nil")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Error in token"}`)
-		return
-	}
-
-	userId := token.Id
-
-	if reqData.UserID != userId && reqData.UserID != uuid.Nil {
-		// Admins can access all users
-		if token.Role == AdminRoleEnum {
-			userId = reqData.UserID
-		} else {
-			logrus.Error("Unauthorized post submission")
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, `{"message":"Unauthorized"}`)
-			return
-		}
-	}
-
 	reqData.UserID = userId
 
 	problemDesc, err := db.GetProblemDescriptionByID(reqData.ProblemID)
@@ -203,11 +184,12 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newSubmission := &Submission{
-		UserID:     reqData.UserID,
-		ProblemID:  reqData.ProblemID,
-		LanguageID: reqData.LanguageID,
-		SourceCode: reqData.SourceCode,
-		Status:     Pending,
+		UserID:      reqData.UserID,
+		ProblemID:   reqData.ProblemID,
+		LanguageID:  reqData.LanguageID,
+		SourceCode:  reqData.SourceCode,
+		TimeElapsed: reqData.TimeElapsed,
+		Status:      Pending,
 	}
 
 	// if contest submission, add event information
@@ -227,9 +209,14 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	returnData := PostSubmissionReturnBody{
-		Id:         response.ID,
-		Status:     response.Status,
-		SubmitTime: response.SubmitTime,
+		Id:          response.ID,
+		UserID:      response.UserID,
+		ProblemID:   response.ProblemID,
+		LanguageID:  response.LanguageID,
+		SourceCode:  response.SourceCode,
+		TimeElapsed: response.TimeElapsed,
+		Status:      response.Status,
+		SubmitTime:  response.SubmitTime,
 	}
 
 	respJSON, err := json.Marshal(returnData)
@@ -276,25 +263,14 @@ func getSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate that the submission belongs to this user
-	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-	if !ok {
-		logrus.Error("Error in token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Error in token"}`)
-		return
-	}
-	if token == nil {
-		logrus.Error("Unauthorized get submission")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Error in token"}`)
-		return
-	}
-
-	if submission.UserID != token.Id && !(token.Role >= JudgeRoleEnum) {
-		logrus.Error("Unauthorized get submission")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"message":"Unauthorized"}`)
+	if !canReadSubmission(r, submission.UserID) {
+		if _, ok := claimsFromContext(r); !ok {
+			writeNotAuthenticated(w)
+		} else {
+			logrus.Error("Unauthorized get submission")
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, `{"message":"Unauthorized"}`)
+		}
 		return
 	}
 
@@ -338,25 +314,14 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate that the submission belongs to this user
-	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-	if !ok {
-		logrus.Error("Error in token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Error in token"}`)
-		return
-	}
-	if token == nil {
-		logrus.Error("Unauthorized get submission")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Error in token"}`)
-		return
-	}
-
-	if submission.UserID != token.Id && !(token.Role >= JudgeRoleEnum) {
-		logrus.Error("Unauthorized get submission")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"message":"Unauthorized"}`)
+	if !canReadSubmission(r, submission.UserID) {
+		if _, ok := claimsFromContext(r); !ok {
+			writeNotAuthenticated(w)
+		} else {
+			logrus.Error("Unauthorized get submission")
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, `{"message":"Unauthorized"}`)
+		}
 		return
 	}
 
@@ -439,9 +404,9 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 
 	if reqData.FailedTestCaseID == nil && (reqData.Stderr != "" || reqData.Stdout != "") {
 		logrus.Warn("storing output for non failed test cases is not supported")
-		// w.WriteHeader(http.StatusBadRequest)
-		// fmt.Fprint(w, `{"code":"400", "message":"storing output for non failed test cases is not supported"}`)
-		// return
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"storing output for non failed test cases is not supported"}`)
+		return
 	}
 
 	if reqData.FailedTestCaseID != nil {
@@ -476,7 +441,9 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 	submission.Status = reqData.Status
 	submission.Stderr = reqData.Stderr
 	submission.Stdout = reqData.Stdout
-	submission.TimeElapsed = reqData.TimeElapsed
+	if reqData.TimeElapsed != nil {
+		submission.TimeElapsed = *reqData.TimeElapsed
+	}
 
 	// convert test case results from request to model
 	if len(reqData.TestCaseResults) > 0 {
@@ -514,7 +481,7 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 
 func getSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
 	userIdParam := pat.Param(r, "user_id")
-	_, err := uuid.Parse(userIdParam)
+	targetUserID, err := uuid.Parse(userIdParam)
 	if err != nil {
 		logrus.Warn("bad uuid")
 		w.WriteHeader(http.StatusBadRequest)
@@ -522,26 +489,19 @@ func getSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// make sure the user has access to this
-	token := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-	if token == nil {
-		logrus.Error("Error in token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"Error in token"}`)
+	if claims, ok := claimsFromContext(r); ok {
+		if targetUserID != claims.Id && claims.Role != AdminRoleEnum {
+			logrus.Error("User trying to get data for a different user")
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(w, `{"code":"403", "message":"forbidden"}`)
+			return
+		}
+	} else {
+		writeNotAuthenticated(w)
 		return
 	}
 
-	userId := token.Id
-
-	// only admins can get submissions for other users
-	if userId != token.Id && token.Role != AdminRoleEnum {
-		logrus.Error("User trying to get data for a different user")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Authentication error"}`)
-		return
-	}
-
-	user, err := db.GetUserByID(userId)
+	user, err := db.GetUserByID(targetUserID)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving user")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -555,7 +515,7 @@ func getSubmissionsForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	submissions, err := db.GetSubmissionsByUserID(userId)
+	submissions, err := db.GetSubmissionsByUserID(targetUserID)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving submissions")
 		w.WriteHeader(http.StatusInternalServerError)
