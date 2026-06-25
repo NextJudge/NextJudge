@@ -1,21 +1,21 @@
 ---
 title: Core Components
-description: Overview of NextJudge services, data stores, and how a submission moves from the web UI through the data layer to the judge worker.
+description: NextJudge services, data stores and the path a submission takes from the web UI through the data layer to the judge worker.
 ---
 
-Four services, two data stores, one queue. That's the whole system.
+The platform has four application services, two data stores and one work queue.
 
 ![Architecture](../../../assets/architecture.png)
 
 ## Web (`src/web`)
 
-Next.js on port **8080**. Auth, problem list, Monaco editor, contests, leaderboards.
+Next.js on port **8080**. Handles authentication, problem list, Monaco editor, contests (including team registration) and leaderboards.
 
-Calls the data layer over REST. After you submit, the UI **polls** submission status every few seconds.
+The web app calls the data layer over REST. Server state uses **TanStack React Query** (`src/web/src/hooks/queries/`) for contests, notifications, languages and submission status. After submit, the UI polls submission status on a fixed interval.
 
-### Why polling, not WebSockets?
+### Why polling instead of WebSockets
 
-Honest answer: simpler to ship and good enough for contest scale today. Submission grading takes seconds to minutes; polling at 500ms–1s feels live without maintaining WS infra, reconnect logic, and auth on a second channel.
+Submission grading takes seconds to minutes. Polling at 500ms–1s gives acceptable feedback without WebSocket infrastructure, reconnect handling or a separate auth channel. For contest scale today, that balance favors operational simplicity.
 
 | Approach | Pros | Cons |
 | -------- | ---- | ---- |
@@ -30,52 +30,52 @@ Current intervals:
 - Landing demo: 500ms poll, 30-attempt cap (~15s)
 - CLI: exponential backoff up to 3.5s
 
-Tradeoff: slightly higher API load during active editing sessions. Poll GETs are cheap reads; expensive POST/enqueue paths are rate-limited separately. If you need real-time collaboration or sub-100ms status, add SSE on top of the existing REST data — RabbitMQ stays internal to the judge pipeline.
+Poll GETs are cheap reads; POST and enqueue paths are rate-limited separately. If you need real-time collaboration or sub-100ms status, SSE on top of the existing REST endpoints is a natural next step. RabbitMQ remains internal to the judge pipeline.
 
-**Multi-instance note:** IP/user rate limiters are in-memory per data-layer process. Horizontal scaling needs a shared store (e.g. Redis) for consistent limits across replicas.
+**Multi-instance note:** IP and user rate limiters are in-memory per data-layer process. Horizontal scaling requires a shared store (for example Redis) for consistent limits across replicas.
 
 ## Data layer (`src/data-layer`)
 
-Go REST API on **5000**. Postgres schema, JWT auth, RabbitMQ enqueue.
+Go REST API on **5000**. Owns the Postgres schema, JWT auth and RabbitMQ enqueue.
 
 | Prefix | What |
 | ------ | ---- |
 | `/v1/users`, `/v1/problems`, `/v1/submissions` | Core CRUD |
-| `/v1/events` | Contests (yes, "events" in the API) |
+| `/v1/events` | Contests (the API uses "events") |
 | `/v1/input_submissions` | "Run" without grading |
 | `/v1/languages` | Runtime registry |
 | `/v1/basic_*`, `/v1/create_or_login_user` | Auth ([details](/reference/authentication/)) |
 | `/healthy` | Liveness |
 
-Optional Elasticsearch for problem search when `ELASTIC_ENABLED=true`. Most dev setups leave it off.
+Optional Elasticsearch powers problem search when `ELASTIC_ENABLED=true`. Most development setups leave it disabled.
 
 ## Judge (`src/judge`)
 
-Python worker. Pull from RabbitMQ, fetch tests from API, compile + run in nsjail, PATCH result.
+Python worker. Pulls from RabbitMQ, fetches tests from the API, compiles and runs in nsjail, PATCHes the result.
 
-`prefetch_count=1`: one submission per worker at a time. Contest with 200 participants submitting problem A at minute 59? Run more judge containers, not bigger CPUs on one.
+`prefetch_count=1` limits each worker to one submission at a time. Under heavy load, add judge containers rather than increasing CPU on a single worker.
 
-Deep dive: [Judge service](/architecture/judge/).
+Details: [Judge service](/architecture/judge/).
 
 ## RabbitMQ
 
-Buffer between "user clicked submit" and "judge finished running tests." API responds fast with `PENDING`; execution happens async.
+Buffers between "user clicked submit" and "judge finished running tests." The API responds with `PENDING` immediately; execution is asynchronous.
 
-Messages are durable. Restart a judge mid-contest and unacked work returns to the queue. Management UI on **15672** when exposed.
+Messages are durable. If a judge restarts mid-contest, unacked work returns to the queue. The management UI is on **15672** when exposed.
 
-Watch queue depth during load tests. Flat line at zero is healthy. Monotonic climb means add judges or fix broken workers.
+During load tests, watch queue depth. A flat line near zero is healthy. A steady climb means add judges or fix failing workers.
 
 ## PostgreSQL
 
-Users, problems, test cases, submissions, events, languages. Single source of truth.
+Stores users, problems, test cases, submissions, events and languages.
 
-GORM AutoMigrate on startup. Fine for dev; back up before prod upgrades.
+GORM AutoMigrate runs on startup. That suits development; take a backup before production upgrades.
 
 ## CLI (`src/cli`)
 
-Terminal workflow for people who live in `vim`. [CLI guide](/guides/cli/).
+Command-line download, local test and submit. See the [CLI guide](/guides/cli/).
 
-## Submission path (the whole story)
+## Submission path
 
 ```mermaid
 sequenceDiagram
@@ -95,14 +95,16 @@ sequenceDiagram
     Judge->>DataLayer: PATCH result
 
     loop until status != PENDING
-        Browser->>DataLayer: GET /submissions/id
-        DataLayer-->>Browser: status (e.g. ACCEPTED)
+        Browser->>DataLayer: GET /submissions/id/status
+        DataLayer-->>Browser: { id, status }
     end
+    Browser->>DataLayer: GET /submissions/id
+    DataLayer-->>Browser: full result (e.g. ACCEPTED)
 ```
 
-Custom input runs (`/v1/input_submissions`) skip test comparison but follow the same queue + judge path.
+Custom input runs (`/v1/input_submissions`) skip test comparison but follow the same queue and judge path.
 
-## Failure modes worth knowing
+## Common failure modes
 
 | Symptom | Likely cause |
 | ------- | ------------ |
@@ -111,4 +113,4 @@ Custom input runs (`/v1/input_submissions`) skip test comparison but follow the 
 | API 401 after working earlier | User deleted, token malformed, or `Bearer` prefix added by mistake |
 | Web shows data, curl doesn't | Missing or wrong `Authorization` header |
 
-Getting unstuck: [Getting started troubleshooting](/start/getting-started/#troubleshooting).
+Troubleshooting steps: [Getting started](/start/getting-started/#troubleshooting).

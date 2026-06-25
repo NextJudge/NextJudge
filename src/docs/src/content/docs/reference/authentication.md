@@ -1,16 +1,36 @@
 ---
 title: Authentication
-description: Obtain JWT access tokens for the NextJudge API using email, password, or OAuth, and authenticate requests to the data layer.
+description: JWT access tokens for the NextJudge API via email, password or OAuth and how to send them on data layer requests.
 ---
 
-The data layer uses HS256 JWTs. Every authenticated request sends the token in the `Authorization` header as the **raw token string**. No `Bearer` prefix. (That's how the web app does it too.)
+The data layer uses HS256 JWTs. Authenticated requests send the token in the `Authorization` header as the **raw token string**. No `Bearer` prefix. The web app follows the same convention.
 
 ```bash
 curl http://localhost:5000/v1/users/YOUR_USER_ID \
   -H "Authorization: eyJhbGciOiJIUzI1NiIs..."
 ```
 
-If you add `Bearer`, the server will try to parse that whole string as a JWT and you'll get `Malformed JWT token`.
+If you add `Bearer`, the server parses that entire string as a JWT and returns `Malformed JWT token`.
+
+## Required secrets
+
+The data layer **fails at startup** if these are missing (no auto-generated fallbacks):
+
+| Variable | Purpose |
+| -------- | ------- |
+| `JWT_SIGNING_SECRET` | Signs user and judge JWTs |
+| `JUDGE_PASSWORD` | Judge worker login (`POST /v1/login_judge`) |
+| `WEB_BRIDGE_SECRET` | Web → API OAuth bridge (`POST /v1/create_or_login_user`) |
+
+Generate a local `.env` from the repo root:
+
+```bash
+./.createenv.sh > .env
+```
+
+Set the same `WEB_BRIDGE_SECRET` on the web app (`src/web/.env.local`). The web still accepts deprecated `AUTH_PROVIDER_PASSWORD` as a fallback; prefer `WEB_BRIDGE_SECRET`.
+
+Auth is always enforced in production and in tests. There is no `AUTH_DISABLED` shortcut.
 
 ## Three ways in
 
@@ -20,7 +40,7 @@ If you add `Bearer`, the server will try to parse that whole string as a JWT and
 | OAuth (GitHub, etc.) | Web app via NextAuth | `POST /v1/create_or_login_user` |
 | Judge worker | Python judge service | `POST /v1/login_judge` |
 
-Most integrators want **basic_login**. The web app uses **create_or_login_user** after OAuth succeeds.
+Most integrators use **basic_login**. The web app uses **create_or_login_user** after OAuth succeeds.
 
 ## Register and log in (API)
 
@@ -34,7 +54,7 @@ curl -X POST http://localhost:5000/v1/basic_register \
   }'
 ```
 
-Success looks like:
+Success response:
 
 ```json
 {
@@ -46,9 +66,9 @@ Success looks like:
 }
 ```
 
-Save `token` and `id`. You'll need both for submissions (`user_id` in the body, token in the header).
+Save `token` and `id`. Submissions require `user_id` in the body and the token in the header.
 
-Login is the same shape:
+Login uses the same request shape:
 
 ```bash
 curl -X POST http://localhost:5000/v1/basic_login \
@@ -56,7 +76,7 @@ curl -X POST http://localhost:5000/v1/basic_login \
   -d '{"email": "ada@example.com", "password": "example-password"}'
 ```
 
-Wrong password → `401` with `{"error":"Invalid credentials","code":"INVALID_CREDENTIALS"}`. No hints about whether the email exists. Good.
+Wrong password returns `401` with `{"error":"Invalid credentials","code":"INVALID_CREDENTIALS"}`. The response does not indicate whether the email exists.
 
 ## Admin accounts
 
@@ -67,7 +87,7 @@ Set `ADMIN_EMAILS` in your env (comma-separated). Any account registered with a 
 ADMIN_EMAILS=admin@example.com
 ```
 
-No separate "bootstrap admin" step. Register with that email and you're admin. In `./dev-deploy.sh`, seed data may also preload users; check the UI or query `/v1/users` as an authenticated admin.
+There is no separate bootstrap step. Register with that email to receive admin access. In `./dev-deploy.sh`, seed data may preload users; check the UI or query `/v1/users` as an authenticated admin.
 
 ## JWT contents
 
@@ -78,7 +98,7 @@ Tokens are signed with `JWT_SIGNING_SECRET`. Claims:
 | `id` | UUID | User ID (nil UUID for judge tokens) |
 | `role` | int | `0` = user, `1` = judge, `2` = admin |
 
-The middleware checks that the user still exists. Delete your account and old tokens stop working immediately.
+The middleware checks that the user still exists. Deleting an account invalidates existing tokens immediately.
 
 ## OAuth flow (web app)
 
@@ -86,7 +106,7 @@ After GitHub (or credentials) login, NextAuth calls:
 
 ```bash
 curl -X POST http://localhost:5000/v1/create_or_login_user \
-  -H "Authorization: YOUR_AUTH_PROVIDER_PASSWORD" \
+  -H "Authorization: YOUR_WEB_BRIDGE_SECRET" \
   -H "Content-Type: application/json" \
   -d '{
     "id": "github-12345",
@@ -96,13 +116,13 @@ curl -X POST http://localhost:5000/v1/create_or_login_user \
   }'
 ```
 
-The `Authorization` value here is **`AUTH_PROVIDER_PASSWORD`**, not a JWT. Only your web server should hold this secret. It proves the request came from your auth layer, not a random client.
+The `Authorization` value here is **`WEB_BRIDGE_SECRET`**, not a JWT. Only your web server should hold this secret. It proves the request came from your auth layer.
 
 Response matches basic login: `token`, `id`, `name`, `email`.
 
 ## Judge authentication
 
-Workers authenticate once at startup (or per request internally):
+Workers authenticate at startup (or per request internally):
 
 ```bash
 curl -X POST http://localhost:5000/v1/login_judge \
@@ -111,7 +131,7 @@ curl -X POST http://localhost:5000/v1/login_judge \
 
 Returns `{"token":"..."}`. That token has `role: 1` and can PATCH submissions and fetch test cases.
 
-`JUDGE_PASSWORD` must match on both the data layer and judge containers. Mismatch = submissions sit in `PENDING` forever while RabbitMQ happily delivers messages to a worker that can't write results back.
+`JUDGE_PASSWORD` must match on both the data layer and judge containers. A mismatch leaves submissions in `PENDING` while RabbitMQ delivers messages to workers that cannot write results back.
 
 ## Password reset
 
@@ -120,14 +140,14 @@ POST /v1/basic_request_password_reset   # body: {"email":"..."}
 POST /v1/basic_reset_password           # body: {"email":"...","new_password":"..."}
 ```
 
-Both return `{"status":"ok"}` even if the email isn't found (anti-enumeration). Reset is direct email + new password for now, no magic link token.
+Both return `{"status":"ok"}` even if the email is not found (anti-enumeration). Reset accepts email and new password directly; there is no magic-link token yet.
 
 ## Common mistakes
 
-**`Bearer eyJ...`** → 401 Malformed JWT. Drop the prefix.
+**`Bearer eyJ...`** → 401 Malformed JWT. Omit the prefix.
 
-**Token works but POST /v1/problems returns 403** → you need admin role. Check `is_admin` on your user or use an `ADMIN_EMAILS` address.
+**Token works but POST /v1/problems returns 403** → admin role required. Check `is_admin` on your user or register with an `ADMIN_EMAILS` address.
 
-**401 User account no longer exists** → you deleted the account or an admin did. Register again (new UUID, fresh slate).
+**401 User account no longer exists** → account was deleted. Register again (new UUID).
 
 Next: [API reference](/reference/api/) for endpoints that consume these tokens.

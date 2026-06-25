@@ -1,9 +1,9 @@
 ---
 title: Development Guide
-description: Set up a local NextJudge development environment, run services with Docker, and iterate on the web app, data layer, and judge worker.
+description: Local development setup for the web app, data layer and judge worker with Docker, tests and CI.
 ---
 
-You've run [`./dev-deploy.sh web`](/start/getting-started/). This page is for the second hour onward.
+After [`./dev-deploy.sh web`](/start/getting-started/), use this page to work on individual services.
 
 ## Prerequisites
 
@@ -20,25 +20,29 @@ You've run [`./dev-deploy.sh web`](/start/getting-started/). This page is for th
 ```
 NextJudge/
 ├── compose/              # docker-compose.*.yml
+├── scripts/              # run-e2e-tests.sh, run-data-layer-tests.sh, start-e2e-stack.sh, …
 ├── src/
 │   ├── data-layer/src/ # Go handlers (users.go, problems.go, …)
 │   ├── judge/          # languages.toml, nsjail, app.py
 │   ├── web/src/app/    # Next.js routes
 │   ├── cli/            # nextjudge command
-│   └── docs/           # you're here
+│   └── docs/           # this site
 ├── deploy.sh           # prod-ish local stack
 ├── dev-deploy.sh       # hot reload + SEED_DATA
-└── fully-reset.sh      # scorched earth
+└── fully-reset.sh      # wipe local data and volumes
 ```
 
-## Files you'll actually edit
+## Files you'll edit
 
 | Task | Start here |
 | ---- | ---------- |
 | API bug / new endpoint | `src/data-layer/src/*.go`, then `tests/test_data_layer.tavern.yaml` |
 | Wrong verdict / TLE | `src/judge/src/`, `languages.toml` |
 | UI / editor | `src/web/src/app/`, `src/web/src/components/` |
-| Types shared with API | `src/web/src/lib/types.ts` |
+| Server state / polling | `src/web/src/hooks/queries/`, `src/web/src/providers/query-provider.tsx` |
+| Editor UI state | `src/web/src/lib/stores/editor-store.ts` |
+| Problem form validation | `src/web/src/lib/schemas/problem-form.ts` |
+| Types shared with API | `src/web/src/lib/types.ts`, `src/web/src/lib/api.ts` |
 | Schema change | `src/data-layer/src/models.go`, maybe `schema_updates.sql` |
 
 ## Tests
@@ -92,7 +96,7 @@ Path-filtered jobs in `.github/workflows/ci.yml`:
 | `src/judge/**` | Judge tests, image build |
 | `src/docs/**` | Docs build |
 
-Touch one service, you usually only wait on that job. Nice when judge Python and web TypeScript aren't coupled.
+Changes confined to one service usually trigger only that job.
 
 ## Common tasks
 
@@ -106,13 +110,13 @@ Touch one service, you usually only wait on that job. Nice when judge Python and
 
 ### New language
 
-See [Judge service: Add a language](/architecture/judge/#add-a-language). Rebuild `basejudge:dev` or prod target after Dockerfile changes.
+See [Judge service: Add a language](/architecture/judge/#add-a-language). Rebuild `basejudge:dev` or the production target after Dockerfile changes.
 
 ### Database migration
 
-Edit `models.go`. AutoMigrate on next data layer start. Destructive change? Add SQL to `schema_updates.sql`, test with `./fully-reset.sh` locally before prod.
+Edit `models.go`. AutoMigrate runs on the next data layer start. For destructive changes, add SQL to `schema_updates.sql` and test with `./fully-reset.sh` locally before production.
 
-## Debugging cheatsheet
+## Debugging
 
 | Service | Try |
 | ------- | --- |
@@ -126,10 +130,10 @@ Env sources: `config.go`, judge `app.py`, web `.env.example`.
 
 ## Style
 
-Go: `gofmt`, early returns. TS: strict, no `any`. Python: PEP 8, type hints on new code.
+Go: `gofmt`, early returns. TypeScript: strict, no `any`. Python: PEP 8, type hints on new code.
 
-## Ship it
+## Contributing
 
-Branch from `main`, test locally, PR. [CONTRIBUTING.md](https://github.com/nextjudge/nextjudge/blob/main/CONTRIBUTING.md) for the social stuff.
+Branch from `main`, test locally, open a PR. See [CONTRIBUTING.md](https://github.com/nextjudge/nextjudge/blob/main/CONTRIBUTING.md).
 
 Build all images: `docker buildx bake -f docker-bake.hcl`

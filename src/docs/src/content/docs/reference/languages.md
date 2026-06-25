@@ -1,9 +1,9 @@
 ---
 title: Supported Languages
-description: Programming languages and runtimes available in the NextJudge judge image, plus how to add or customize language support.
+description: Programming languages in the judge image and how to add or customize language support.
 ---
 
-Defined in `src/judge/languages.toml`, registered in Postgres via `/v1/languages`. On startup the judge maps DB IDs to local configs **by name**. Typo in either place = compile failures for everyone. Fun afternoon.
+Languages are defined in `src/judge/languages.toml` and registered in Postgres via `/v1/languages`. On startup the judge maps database IDs to local configs **by name**. A mismatch between the database and config file causes compile failures for all submissions in that language.
 
 ## Runtimes
 
@@ -23,32 +23,32 @@ Defined in `src/judge/languages.toml`, registered in Postgres via `/v1/languages
 | Kotlin | 1.9.24 | `.kt` | JVM, `InputKt.class` entry |
 | Haskell | 9.4.7 | `.hs` | GHC |
 
-Time/memory limits come from the **problem**, not this table. Defaults are usually 5 to 10s CPU and 256 to 512 MB unless you override on create.
+Time and memory limits come from the **problem**, not this table. Defaults are usually 5 to 10s CPU and 256 to 512 MB unless overridden on create.
 
 ## Execution
 
-Everything through nsjail. [Judge service](/architecture/judge/) for the gory details.
+All languages run through nsjail. See [Judge service](/architecture/judge/) for sandbox and grading details.
 
 ## languages.toml
 
-Each block needs `name`, `version`, `extension`, and `script`. The script runs at compile time and must produce `/executable/main`. `{IN_FILE}` is the source path placeholder.
+Each block needs `name`, `version`, `extension` and `script`. The script runs at compile time and must produce `/executable/main`. `{IN_FILE}` is the source path placeholder.
 
 ## Add a language
 
 1. Install toolchain in `Dockerfile.newbase`
-2. Write build script, test it in isolation if you can
+2. Write build script and test it in isolation if possible
 3. Rebuild judge image
 4. `POST /v1/languages`
-5. Submit a known AC solution. If step 5 fails, fix step 2 before blaming the algorithm.
+5. Submit a known AC solution. If step 5 fails, verify the build script before debugging the solution logic.
 
-## Gotchas (read before your first contest)
+## Language-specific notes
 
-**Java:** public class name must match filename, or the judge renames the file for you.
+**Java:** public class name must match filename, or the judge renames the file automatically.
 
-**Go:** first submission after cold start is slow (module download). Warm the cache or warn contestants.
+**Go:** first submission after cold start is slow due to module download. Warm the cache or warn contestants.
 
-**TypeScript / Kotlin:** compile errors show as `COMPILE_TIME_ERROR`, not runtime. Read stderr.
+**TypeScript / Kotlin:** compile errors appear as `COMPILE_TIME_ERROR`. Read stderr.
 
-**Python vs PyPy:** same `.py` extension, different language IDs. Pick deliberately.
+**Python vs PyPy:** same `.py` extension, different language IDs. Select the intended runtime explicitly.
 
-**Output comparison:** line-by-line, trimmed. `"42\n"` vs `"42"` can matter if you're not printing newlines. Classic.
+**Output comparison:** line-by-line with trimmed whitespace. `"42\n"` and `"42"` can differ if output omits the trailing newline.

@@ -1,9 +1,9 @@
 ---
 title: Judge Service
-description: How the NextJudge judge compiles, sandboxes, and grades submissions with nsjail, including runtime limits, verdicts, and queue flow.
+description: How the judge compiles, sandboxes and grades submissions with nsjail, including limits, verdicts and queue flow.
 ---
 
-Python process. RabbitMQ in, HTTP out, nsjail in the middle. User code never runs on the host OS.
+The judge is a Python process: RabbitMQ in, HTTP to the data layer, nsjail for execution. User code does not run on the host OS.
 
 Architecture context: [Core components](/architecture/components/).
 
@@ -19,11 +19,11 @@ Queue msg → GET submission + tests → compile in nsjail → run cases → PAT
 { "type": "submission", "id": "uuid" }
 ```
 
-Custom input: `"type": "input_submission"`.
+Custom input uses `"type": "input_submission"`.
 
 ### Fetch
 
-From the data layer (judge JWT):
+Using a judge JWT from the data layer:
 
 - Submission body: source, `language_id`, `problem_id`
 - Tests: `GET /v1/problem_description/{problem_id}/tests`
@@ -36,13 +36,13 @@ From the data layer (judge JWT):
   executable/  ← must end up with a runnable main
 ```
 
-Failure here → `COMPILE_TIME_ERROR`, stderr saved, no tests run. Fix your `#include`, not your algorithm.
+Compile failure yields `COMPILE_TIME_ERROR`, stderr is saved and no tests run.
 
 ### Run tests
 
-stdin = test input. Compare stdout to expected (line-by-line, trimmed whitespace). **Stop at first failure.** That's ICPC-style, not "show me all wrong cases."
+stdin receives test input. stdout is compared to expected output line by line with trimmed whitespace. The judge stops at the first failure (ICPC-style grading).
 
-Timeouts → `TIME_LIMIT_EXCEEDED`. OOM → `MEMORY_LIMIT_EXCEEDED`. Segfault → `RUNTIME_ERROR`.
+Timeouts map to `TIME_LIMIT_EXCEEDED`. OOM maps to `MEMORY_LIMIT_EXCEEDED`. Segfaults map to `RUNTIME_ERROR`.
 
 ### Report
 
@@ -66,15 +66,15 @@ Per-problem limits from the API can override run-time bounds.
 | CPU cores | 2 | 1 |
 | File descriptors | 512 | 3 |
 
-Also: chroot, UID 99999, no network, seccomp, read-only FS except build/output dirs.
+Also applied: chroot, UID 99999, no network, seccomp, read-only filesystem except build and output directories.
 
-**Reality check:** this stops casual mischief and runaway loops. A motivated attacker with a sandbox escape is why you isolate the judge network.
+This configuration targets untrusted contest submissions in an isolated worker network. Treat the judge as a dedicated security zone and keep images updated.
 
 ## Scaling
 
-More containers = more parallel submissions. RabbitMQ distributes. One worker = one active submission.
+More containers increase parallel throughput. RabbitMQ distributes work. Each worker handles one active submission.
 
-Contest rule of thumb: if queue depth climbs through the first hour, add workers before bumping time limits. Users hate TLE inflation more than they hate waiting 30s in queue.
+If queue depth rises during a contest, add workers before raising time limits on problems.
 
 ## Config
 
@@ -84,7 +84,7 @@ Contest rule of thumb: if queue depth climbs through the first hour, add workers
 | `NEXTJUDGE_HOST`, `NEXTJUDGE_PORT` | API |
 | `JUDGE_PASSWORD` | Judge login ([auth](/reference/authentication/)) |
 
-Startup: fetch languages from API, match names to `languages.toml`, build ID map. Name mismatch = silent failure at submit time. Keep them in sync.
+At startup the judge fetches languages from the API, matches names to `languages.toml` and builds an ID map. A name mismatch between the database and config file causes compile failures at submit time. Keep both in sync.
 
 ## When things go wrong
 
@@ -92,7 +92,7 @@ Startup: fetch languages from API, match names to `languages.toml`, build ID map
 - **API down during PATCH:** submission may stay PENDING until retry logic runs; check logs
 - **Compile works locally, fails on judge:** different compiler version or missing `{IN_FILE}` in build script
 
-Logs → stdout → `docker logs`. Grep for `submission_id` when debugging a specific stuck submit.
+Logs go to stdout. Use `docker logs` and grep for `submission_id` when debugging a specific submission.
 
 ## Add a language
 
@@ -102,4 +102,4 @@ Logs → stdout → `docker logs`. Grep for `submission_id` when debugging a spe
 4. `POST /v1/languages`
 5. Submit reference AC solution
 
-Quirks per language: [Supported languages](/reference/languages/).
+Per-language notes: [Supported languages](/reference/languages/).
