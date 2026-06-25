@@ -217,7 +217,7 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if subtle.ConstantTimeCompare([]byte(auth_header[0]), cfg.AuthProviderPassword) == 1 {
+	if subtle.ConstantTimeCompare([]byte(auth_header[0]), cfg.WebBridgeSecret) == 1 {
 
 		newUserData := User{
 			AccountIdentifier: reqData.Id,

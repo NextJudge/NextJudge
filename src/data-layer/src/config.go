@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/rand"
 	"log"
 	"net/url"
 	"os"
@@ -19,7 +18,7 @@ type config struct {
 	Port                 int64
 	Username             string
 	Password             string
-	AuthProviderPassword []byte
+	WebBridgeSecret      []byte
 	JudgePassword        []byte
 	JwtSigningSecret     []byte
 	DBName               string
@@ -107,44 +106,29 @@ func init() {
 		cfg.DBName = database
 	}
 
-	auth_provider_password := os.Getenv("AUTH_PROVIDER_PASSWORD")
-	if password == "" {
-		logrus.Warn("Generating random string for AUTH PROVIDER PASSWORD")
-		random := make([]byte, 64)
-		_, err := rand.Read(random)
-		if err != nil {
-			logrus.Fatal("Failed to create random password")
+	webBridgeSecret := os.Getenv("WEB_BRIDGE_SECRET")
+	if webBridgeSecret == "" {
+		webBridgeSecret = os.Getenv("AUTH_PROVIDER_PASSWORD")
+		if webBridgeSecret != "" {
+			logrus.Warn("AUTH_PROVIDER_PASSWORD is deprecated; use WEB_BRIDGE_SECRET")
 		}
-		cfg.AuthProviderPassword = random
-	} else {
-		cfg.AuthProviderPassword = []byte(auth_provider_password)
 	}
+	if webBridgeSecret == "" {
+		logrus.Fatal("Must specify WEB_BRIDGE_SECRET")
+	}
+	cfg.WebBridgeSecret = []byte(webBridgeSecret)
 
 	judge_password := os.Getenv("JUDGE_PASSWORD")
-	if password == "" {
-		logrus.Warn("Generating random string for JUDGE PASSWORD")
-		random := make([]byte, 64)
-		_, err := rand.Read(random)
-		if err != nil {
-			logrus.Fatal("Failed to create random password")
-		}
-		cfg.JudgePassword = random
-	} else {
-		cfg.JudgePassword = []byte(judge_password)
+	if judge_password == "" {
+		logrus.Fatal("Must specify JUDGE_PASSWORD")
 	}
+	cfg.JudgePassword = []byte(judge_password)
 
 	jwt_signing_secret := os.Getenv("JWT_SIGNING_SECRET")
-	if password == "" {
-		logrus.Warn("Generating random string for JWT SIGNING SECRET")
-		random := make([]byte, 64)
-		_, err := rand.Read(random)
-		if err != nil {
-			logrus.Fatal("Failed to create random password")
-		}
-		cfg.JwtSigningSecret = random
-	} else {
-		cfg.JwtSigningSecret = []byte(jwt_signing_secret)
+	if jwt_signing_secret == "" {
+		logrus.Fatal("Must specify JWT_SIGNING_SECRET")
 	}
+	cfg.JwtSigningSecret = []byte(jwt_signing_secret)
 
 	rabbitMQHost := os.Getenv("RABBITMQ_HOST")
 	if rabbitMQHost == "" {
@@ -159,7 +143,7 @@ func init() {
 	}
 
 	cfg.RabbitPassword = os.Getenv("RABBITMQ_PASSWORD")
-	if cfg.RabbitUser == "" {
+	if cfg.RabbitPassword == "" {
 		logrus.Fatal("Must specify a RABBITMQ_PASSWORD")
 	}
 

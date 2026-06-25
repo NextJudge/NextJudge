@@ -44,7 +44,7 @@ services:
       - ELASTIC_ENABLED=false
       - JUDGE_PASSWORD=e2e-judge-password
       - JWT_SIGNING_SECRET=e2e-jwt-signing-secret-minimum-32-chars
-      - AUTH_PROVIDER_PASSWORD=e2e-auth-provider-password
+      - WEB_BRIDGE_SECRET=e2e-auth-provider-password
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_USER=e2e-rabbit
       - RABBITMQ_PASSWORD=e2e-rabbit-password
