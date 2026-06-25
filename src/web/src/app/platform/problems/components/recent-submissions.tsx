@@ -74,7 +74,7 @@ export function RecentSubmissionCard({
 }) {
   if (!submission) return null;
 
-  const submissionStatus = submission.status as SubmissionStatus;
+  const submissionStatus = submission.status;
 
   return (
     <Dialog>

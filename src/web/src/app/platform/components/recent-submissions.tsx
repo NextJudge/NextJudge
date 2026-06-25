@@ -121,7 +121,7 @@ export function RecentSubmissions({
                     </TableCell>
                     <TableCell>
                       <SubmissionStatusBadge
-                        status={submission.status as SubmissionStatus | "PENDING"}
+                        status={submission.status}
                         showIcon
                         variant="detailed"
                       />

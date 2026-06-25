@@ -21,6 +21,11 @@ export const testCaseSchema = z.object({
   hidden: z.boolean(),
 });
 
+export const persistedTestCaseSchema = testCaseSchema.extend({
+  id: z.string(),
+  problem_id: z.number(),
+});
+
 export const problemListItemSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -43,10 +48,12 @@ export const problemListItemSchema = z.object({
 
 export const problemDetailSchema = problemListItemSchema.extend({
   identifier: z.string(),
-  test_cases: z.array(testCaseSchema),
+  test_cases: z.array(persistedTestCaseSchema),
   categories: z.array(categorySchema).optional(),
 });
 
+export type TestCase = z.infer<typeof testCaseSchema>;
+export type PersistedTestCase = z.infer<typeof persistedTestCaseSchema>;
 export type ProblemListItem = z.infer<typeof problemListItemSchema>;
 export type ProblemDetail = z.infer<typeof problemDetailSchema>;
 

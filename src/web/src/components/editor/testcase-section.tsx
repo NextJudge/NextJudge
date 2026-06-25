@@ -18,10 +18,10 @@ import {
 } from "@/components/ui/testcase-tabs";
 import type {
   CustomInputResult as CustomInputResultType,
+  PersistedTestCase,
   PracticeRunResult,
   Submission,
   SubmissionStatus,
-  TestCase,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Check, Loader2, Plus, X } from "lucide-react";
@@ -30,8 +30,8 @@ import { SubmissionState } from "./editor-submission-state";
 import { OutputComparison } from "./output-diff";
 
 interface TestcaseSectionProps {
-  publicTestCases: TestCase[];
-  hiddenTestCases: TestCase[];
+  publicTestCases: PersistedTestCase[];
+  hiddenTestCases: PersistedTestCase[];
   input: string;
   setInput: (value: string) => void;
   activeCaseTab: string;
@@ -69,7 +69,7 @@ function getCaseRunStatus(
   runningCaseIndex: number | null,
   runResults: PracticeRunResult | null,
   submission: Submission | null,
-  publicTestCases: TestCase[]
+  publicTestCases: PersistedTestCase[]
 ): CaseRunStatus {
   if (runLoading && runningCaseIndex === index) return "running";
 
