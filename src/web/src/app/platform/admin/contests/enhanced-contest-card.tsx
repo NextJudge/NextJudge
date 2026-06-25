@@ -29,6 +29,7 @@ type EnhancedContestCardProps = {
     deleteContest?: (id: number) => void;
     editContest?: (contest: NextJudgeEvent) => void;
     onParticipantAdded?: (eventId: number) => void;
+    onContestEnded?: () => void;
     showActions?: boolean;
 };
 
@@ -38,6 +39,7 @@ export function EnhancedContestCard({
     deleteContest,
     editContest,
     onParticipantAdded,
+    onContestEnded,
     showActions = true,
 }: EnhancedContestCardProps) {
     const { data: session } = useSession();
@@ -141,6 +143,7 @@ export function EnhancedContestCard({
                 editContest={editContest}
                 onAddParticipant={handleAddParticipantClick}
                 onParticipantAdded={onParticipantAdded}
+                onContestEnded={onContestEnded}
             />
             <Dialog open={showParticipantDialog} onOpenChange={setShowParticipantDialog}>
                 <DialogContent>
@@ -170,12 +173,14 @@ export function EnhancedContestGrid({
     onDelete,
     onEdit,
     onParticipantAdded,
+    onContestEnded,
     showActions = true
 }: {
     contests: NextJudgeEvent[];
     onDelete?: (id: number) => void;
     onEdit?: (contest: NextJudgeEvent) => void;
     onParticipantAdded?: (eventId: number) => void;
+    onContestEnded?: () => void;
     showActions?: boolean;
 }) {
     const [currentPage, setCurrentPage] = useState(1);
@@ -207,6 +212,7 @@ export function EnhancedContestGrid({
                             deleteContest={onDelete}
                             editContest={onEdit}
                             onParticipantAdded={onParticipantAdded}
+                            onContestEnded={onContestEnded}
                             showActions={showActions}
                         />
                     ))}
