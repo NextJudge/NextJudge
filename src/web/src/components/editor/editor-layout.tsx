@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/resizable";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useThemesLoader } from "@/hooks/useThemeLoader";
+import { useSubmissionStatus, isCompletedSubmission } from "@/hooks/queries/use-submission-status";
 import {
-  apiWaitForSubmissionResult,
-  getCustomInputSubmissionStatus,
   postCustomInputSubmission,
   postSolution,
+  waitForCustomInputResult,
 } from "@/lib/api";
 import { useEditorStore } from "@/lib/stores/editor-store";
 import {
@@ -27,11 +27,11 @@ import {
   Submission,
   SubmissionStatus,
   statusMap,
-  TestCase,
+  PersistedTestCase,
 } from "@/lib/types";
 import { compareOutput } from "@/lib/utils";
 import { useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import CodeEditor from "./code-editor";
 
@@ -52,14 +52,7 @@ async function executeCodeWithInput(
   stdin: string
 ): Promise<CustomInputResultType> {
   const runId = await postCustomInputSubmission(token, code, languageId, stdin);
-
-  let result = await getCustomInputSubmissionStatus(token, runId);
-  while (!result.finished && result.status === "PENDING") {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    result = await getCustomInputSubmissionStatus(token, runId);
-  }
-
-  return result;
+  return waitForCustomInputResult(token, runId);
 }
 
 export default function EditorComponent({
@@ -74,7 +67,7 @@ export default function EditorComponent({
   details: Problem;
   tags: string[];
   slot: React.ReactNode;
-  testCases: TestCase[];
+  testCases: PersistedTestCase[];
   recentSubmissions: Submission[];
   languages: Language[];
   contestId?: number;
@@ -106,6 +99,55 @@ export default function EditorComponent({
   const setRunProgress = useEditorStore((s) => s.setRunProgress);
   const finishRun = useEditorStore((s) => s.finishRun);
   const resetEditorState = useEditorStore((s) => s.resetEditorState);
+
+  const [pendingSubmissionId, setPendingSubmissionId] = useState<string | null>(
+    null,
+  );
+  const submissionStatusQuery = useSubmissionStatus(
+    authToken,
+    pendingSubmissionId,
+    Boolean(pendingSubmissionId),
+  );
+
+  useEffect(() => {
+    if (!pendingSubmissionId || !submissionStatusQuery.data) {
+      return;
+    }
+
+    if (!isCompletedSubmission(submissionStatusQuery.data)) {
+      return;
+    }
+
+    const data = submissionStatusQuery.data;
+    finishSubmission(data);
+    setPendingSubmissionId(null);
+
+    const statusMessage = statusMap[data.status];
+    if (data.status === "ACCEPTED") {
+      toast.success(`${statusMessage}!`);
+    } else {
+      toast.error(`${statusMessage}`);
+    }
+  }, [
+    pendingSubmissionId,
+    submissionStatusQuery.data,
+    finishSubmission,
+  ]);
+
+  useEffect(() => {
+    if (!pendingSubmissionId || !submissionStatusQuery.error) {
+      return;
+    }
+
+    console.error(submissionStatusQuery.error);
+    finishSubmission(null, "Failed to fetch submission results.");
+    setPendingSubmissionId(null);
+    toast.error("Failed to fetch submission results.");
+  }, [
+    pendingSubmissionId,
+    submissionStatusQuery.error,
+    finishSubmission,
+  ]);
 
   useEffect(() => {
     resetEditorState();
@@ -165,35 +207,13 @@ export default function EditorComponent({
         authUserId,
         contestId
       );
-      await fetchSubmissionDetails(data.id);
+      setPendingSubmissionId(data.id);
     } catch (error: unknown) {
       toast.error("There was an error submitting your code.");
       finishSubmission(
         null,
         error instanceof Error ? error.message : "An error occurred.",
       );
-    }
-  };
-
-  const fetchSubmissionDetails = async (submissionId: string) => {
-    try {
-      if (!authToken) {
-        throw new Error("Need to be logged in");
-      }
-      const data = await apiWaitForSubmissionResult(authToken, submissionId);
-
-      finishSubmission(data);
-
-      const statusMessage = statusMap[data.status];
-      if (data.status === "ACCEPTED") {
-        toast.success(`${statusMessage}!`);
-      } else {
-        toast.error(`${statusMessage}`);
-      }
-    } catch (error) {
-      console.error(error);
-      finishSubmission(null, "Failed to fetch submission results.");
-      toast.error("Failed to fetch submission results.");
     }
   };
 
