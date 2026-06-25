@@ -927,11 +927,31 @@ def event_handle(host, port) -> None:
 
     print(submit_problem.content)
 
+CLI_TEST_EMAIL = "nextjudge-cli@local.dev"
+CLI_TEST_PASSWORD = "nextjudge-cli-local-password"
+CLI_TEST_NAME = "NextJudge CLI User"
+
 def get_test_user_auth(host, port) -> dict:
-    get_data = requests.post(
-        f"http://{host}:{port}/v1/auth_test/user_creds",
+    base = f"http://{host}:{port}"
+    login = requests.post(
+        f"{base}/v1/basic_login",
+        json={"email": CLI_TEST_EMAIL, "password": CLI_TEST_PASSWORD},
     )
-    return get_data.json()
+    if login.ok:
+        return login.json()
+
+    register = requests.post(
+        f"{base}/v1/basic_register",
+        json={
+            "name": CLI_TEST_NAME,
+            "email": CLI_TEST_EMAIL,
+            "password": CLI_TEST_PASSWORD,
+        },
+    )
+    if not register.ok:
+        print(f"Failed to authenticate CLI user: {register.status_code} {register.text}")
+        sys.exit(1)
+    return register.json()
 
 def run_local_tests(file: str, tests_dir: str | None, local_image: bool) -> None:
     
