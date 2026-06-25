@@ -3,6 +3,8 @@ src/data-layer/main
 src/data-layer/tmp
 src/data-layer/query.sql
 src/data-layer/Pipfile.lock
+__pycache__/
+*.py[cod]
 .env
 .env.dev
 .env.actions
