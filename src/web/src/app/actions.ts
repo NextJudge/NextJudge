@@ -2,6 +2,7 @@
 
 import { EmailTemplate } from "@/components/email/template";
 import { apiCreateProblem, apiDeleteProblem, apiDeleteUser, apiUpdateProblem } from "@/lib/api";
+import { ProblemFormValues } from "@/lib/schemas/problem-form";
 import { ProblemRequest } from "@/lib/types";
 import { LoginFormValues, SignUpFormValues } from "@/types";
 import { pretty, render, toPlainText } from "@react-email/components";
@@ -135,24 +136,7 @@ export async function changeProfile(data: ProfileData) {
 }
 
 
-interface FormProblemData {
-  title: string;
-  identifier: string;
-  prompt: string;
-  source?: string;
-  difficulty: "VERY EASY" | "EASY" | "MEDIUM" | "HARD" | "VERY HARD";
-  accept_timeout: number;
-  execution_timeout: number;
-  memory_limit: number;
-  test_cases: Array<{
-    input: string;
-    expected_output: string;
-    hidden?: boolean;
-  }>;
-  public: boolean;
-}
-
-export async function createProblem(data: FormProblemData, categoryIds: string[] = []) {
+export async function createProblem(data: ProblemFormValues) {
   const session = await auth();
   if (!session?.user || !session.nextjudge_token || !session.nextjudge_id) {
     return {
@@ -181,7 +165,7 @@ export async function createProblem(data: FormProblemData, categoryIds: string[]
         expected_output: tc.expected_output,
         hidden: tc.hidden || false
       })),
-      category_ids: categoryIds,
+      category_ids: data.problem_categories,
       public: data.public
     };
 
@@ -203,7 +187,7 @@ export async function createProblem(data: FormProblemData, categoryIds: string[]
   }
 }
 
-export async function updateProblem(problemId: number, data: FormProblemData, categoryIds: string[] = []) {
+export async function updateProblem(problemId: number, data: ProblemFormValues) {
   const session = await auth();
   if (!session?.user || !session.nextjudge_token || !session.nextjudge_id) {
     return {
@@ -232,7 +216,7 @@ export async function updateProblem(problemId: number, data: FormProblemData, ca
         expected_output: tc.expected_output,
         hidden: tc.hidden || false
       })),
-      category_ids: categoryIds,
+      category_ids: data.problem_categories,
       public: data.public
     };
 
