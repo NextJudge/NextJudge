@@ -4,17 +4,16 @@ import EditorNavbar from "@/components/editor/editor-nav";
 import MarkdownRenderer from "@/components/markdown-renderer";
 import { UserAvatar } from "@/components/nav/user-avatar";
 import { NotificationBellServer } from "@/components/ui/notification-bell-server";
-import { apiGetLanguages, apiGetProblemCategories, apiGetRecentSubmissionsForProblem, fetchProblemID } from "@/lib/api";
-import { Category, Problem } from "@/lib/types";
+import { apiGetLanguages, apiGetProblem, apiGetProblemCategories, apiGetRecentSubmissionsForProblem } from "@/lib/api";
+import { Category, ProblemDetail, PersistedTestCase } from "@/lib/types";
 import { EditorThemeProvider } from "@/providers/editor-theme";
 import { redirect } from "next/navigation";
 
 // Used in the case of network failure
-const dummyProblem: Problem = {
+const emptyProblem: ProblemDetail = {
     id: -1,
     prompt: "",
     title: "",
-    timeout: 0,
     difficulty: "MEDIUM",
     user_id: "-1",
     upload_date: "",
@@ -24,6 +23,7 @@ const dummyProblem: Problem = {
     accept_timeout: 0,
     execution_timeout: 0,
     memory_limit: 0,
+    public: false,
     test_cases: [],
     categories: [],
 }
@@ -52,7 +52,7 @@ export default async function Editor({
 
     const results = await Promise.allSettled(
         [
-            fetchProblemID(token, problem_id),
+            apiGetProblem(token, problem_id),
             apiGetProblemCategories(token, problem_id),
             apiGetRecentSubmissionsForProblem(token, problem_id, userId),
             apiGetLanguages()
@@ -61,9 +61,10 @@ export default async function Editor({
 
     const [detailsResult, tagsResult, recentSubmissionsResult, languagesResult] = results
 
-    const details = detailsResult.status === 'fulfilled' ? detailsResult.value : dummyProblem
+    const details = detailsResult.status === 'fulfilled' ? detailsResult.value : emptyProblem
 
-    const testCases = detailsResult.status === 'fulfilled' ? (detailsResult.value.test_cases || []) : []
+    const testCases: PersistedTestCase[] =
+        detailsResult.status === 'fulfilled' ? detailsResult.value.test_cases : []
 
     const tags =
         tagsResult.status === "fulfilled" && Array.isArray(tagsResult.value)

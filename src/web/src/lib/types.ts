@@ -1,4 +1,4 @@
-
+import type { ProblemDetail, ProblemListItem } from "./schemas/problem";
 
 export interface User {
 	id: string;
@@ -24,24 +24,9 @@ export interface Language {
 	template?: string;
 }
 
-export interface Problem {
-	id: number;
-	prompt: string;
-	title: string;
-	timeout?: number;
-	difficulty: Difficulty;
-	user_id: string;
-	upload_date: string;
-	updated_at: string;
-	test_cases?: TestCase[];
-	categories?: Category[];
-	public?: boolean;
-	identifier?: string;
-	source?: string;
-	accept_timeout: number;
-	execution_timeout: number;
-	memory_limit: number;
-}
+export type Problem = ProblemListItem;
+export type { ProblemDetail };
+export type { PersistedTestCase, TestCase } from "./schemas/problem";
 
 export interface NextJudgeEvent {
 	id: number;
@@ -75,14 +60,6 @@ export interface EventProblemRequest {
 	languages?: number[];
 }
 
-export interface TestCase {
-	id: string;
-	problem_id: number;
-	input: string;
-	expected_output: string;
-	hidden: boolean;
-}
-
 export interface Category {
 	id: string;
 	name: string;
@@ -90,7 +67,6 @@ export interface Category {
 
 export type Difficulty = "VERY EASY" | "EASY" | "MEDIUM" | "HARD" | "VERY HARD";
 
-// For form/API consistency - matches Go PostProblemRequestBody
 export interface ProblemRequest {
 	title: string;
 	identifier: string;
@@ -244,15 +220,3 @@ export interface PracticeRunResult {
 	test_case_results: PracticeRunTestCaseResult[];
 	stderr?: string;
 }
-
-
-// export interface Competition {
-//     id: number;
-//     userId: number;
-//     startTime: Date;
-//     endTime: Date;
-//     description: string;
-//     title: string;
-//     problems: Problem[];
-//     participants: User[];
-// }
