@@ -32,7 +32,7 @@ import { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useAutoIdentifierFromTitle } from "@/hooks/use-auto-identifier-from-title";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import Editor from "../editor/rich-text/editor";
@@ -59,24 +59,9 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
   });
 
   const titleValue = form.watch("title");
-  const identifierValue = form.watch("identifier");
   const selectedCategoryIds = form.watch("problem_categories");
 
-  useEffect(() => {
-    if (titleValue && !identifierValue) {
-      const generatedIdentifier = titleValue
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
-
-      if (generatedIdentifier) {
-        form.setValue("identifier", generatedIdentifier);
-      }
-    }
-  }, [titleValue, identifierValue, form]);
+  useAutoIdentifierFromTitle(form);
 
   const onSubmit = async (data: ProblemFormValues) => {
     try {
