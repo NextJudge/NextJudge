@@ -19,9 +19,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEventMetadata } from "@/hooks/queries/use-event-metadata";
 import { useMyEventTeam } from "@/hooks/queries/use-event-teams";
-import { useRegisterForEvent } from "@/hooks/queries/use-event-queries";
-import { apiAddEventParticipant } from "@/lib/api";
+import {
+    useAddEventParticipant,
+    useRegisterForEvent,
+} from "@/hooks/queries/use-event-queries";
 import { getContestStatus, ContestStatus } from "@/lib/contest-utils";
 import { NextJudgeEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -63,6 +66,8 @@ export function ContestCard({
     const [teamDialogOpen, setTeamDialogOpen] = useState(false);
 
     const registerMutation = useRegisterForEvent(session?.nextjudge_token);
+    const addParticipantMutation = useAddEventParticipant(session?.nextjudge_token);
+    const { problemCount, participantCount } = useEventMetadata(contest);
     const status = getContestStatus(contest.start_time, contest.end_time);
 
     const userIsParticipant = contest.participants?.some(
@@ -137,11 +142,10 @@ export function ContestCard({
 
         try {
             if (session.user?.is_admin) {
-                await apiAddEventParticipant(
-                    session.nextjudge_token,
-                    contest.id,
-                    session.nextjudge_id.toString()
-                );
+                await addParticipantMutation.mutateAsync({
+                    eventId: contest.id,
+                    userId: session.nextjudge_id.toString(),
+                });
             } else {
                 await registerMutation.mutateAsync(contest.id);
             }
@@ -183,9 +187,6 @@ export function ContestCard({
         }
         return null;
     };
-
-    const problemCount = contest.problem_count ?? contest.problems?.length ?? 0;
-    const participantCount = contest.participant_count ?? contest.participants?.length ?? 0;
 
     const handleCardClick = (e: React.MouseEvent) => {
         if (showActions && isCreatorOrAdmin) {
