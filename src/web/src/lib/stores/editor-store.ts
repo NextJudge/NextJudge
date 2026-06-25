@@ -30,6 +30,7 @@ interface EditorState {
   finishRun: () => void;
   resetRunState: () => void;
   resetSubmissionState: () => void;
+  resetEditorState: () => void;
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -92,5 +93,18 @@ export const useEditorStore = create<EditorState>((set) => ({
       submissionLoading: false,
       submissionError: "",
       currentSubmission: null,
+    }),
+  resetEditorState: () =>
+    set({
+      code: "",
+      input: "",
+      submissionLoading: false,
+      submissionError: "",
+      currentSubmission: null,
+      runResults: null,
+      runLoading: false,
+      runningCaseIndex: null,
+      activeCaseTab: "case-custom",
+      customInputResult: null,
     }),
 }));

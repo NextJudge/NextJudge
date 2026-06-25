@@ -75,20 +75,16 @@ export async function apiGetProblemCategories(
 }
 
 export async function apiGetProblems(token: string): Promise<Problem[]> {
-	try {
-		const data = await fetch(`${getBridgeUrl()}/v1/problems`, {
-			headers: {
-				Authorization: token,
-			},
-		});
-		if (!data.ok) {
-			throw new Error(`Failed to fetch problems: ${data.status}`);
-		}
-		const json: unknown = await data.json();
-		return parseProblemList(json) as Problem[];
-	} catch (e) {
-		throw new Error("Failed to fetch problems");
+	const data = await fetch(`${getBridgeUrl()}/v1/problems`, {
+		headers: {
+			Authorization: token,
+		},
+	});
+	if (!data.ok) {
+		throw new Error(`Failed to fetch problems: ${data.status}`);
 	}
+	const json: unknown = await data.json();
+	return parseProblemList(json) as Problem[];
 }
 
 export async function apiGetProblem(
