@@ -2,7 +2,9 @@ name: globals
 description: variables used in tests
 
 variables:
-  host: "http://localhost:5000" # change this to test against a deployment (perhaps change to env var?)
+  host: "http://127.0.0.1:5050"
+  bootstrap_admin_email: bootstrap-admin@nextjudge.test
+  bootstrap_admin_password: test-bootstrap-admin-password
   test_username: brantnej
   test_username_2: danquayle
   test_email: brantnej@oregonstate.edu
