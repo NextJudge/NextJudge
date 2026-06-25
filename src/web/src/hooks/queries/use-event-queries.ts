@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  apiAddEventParticipant,
   apiEndEvent,
   apiGetEventAttempts,
   apiGetEventQuestions,
@@ -72,6 +73,27 @@ export function useUserEventProblemsStatus(
     queryKey: queryKeys.event.userStatus(token ?? "", eventId),
     queryFn: () => apiGetUserEventProblemsStatus(token!, eventId),
     enabled: Boolean(token && eventId),
+  });
+}
+
+export function useAddEventParticipant(token: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      userId,
+    }: {
+      eventId: number;
+      userId: string;
+    }) => apiAddEventParticipant(token!, eventId, userId),
+    onSuccess: (_data, { eventId }) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.events.public(token ?? ""),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.event.metadata(token ?? "", eventId),
+      });
+    },
   });
 }
 

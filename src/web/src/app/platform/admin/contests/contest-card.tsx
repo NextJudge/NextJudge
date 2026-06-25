@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEventMetadata } from "@/hooks/queries/use-event-metadata";
 import { NextJudgeEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow, isAfter, isBefore } from "date-fns";
@@ -89,8 +90,7 @@ export function ContestCard({
     return `${minutes}m`;
   };
 
-  const problemCount = contest.problem_count ?? contest.problems?.length ?? 0;
-  const participantCount = contest.participant_count ?? contest.participants?.length ?? 0;
+  const { problemCount, participantCount } = useEventMetadata(contest);
 
   return (
     <Card

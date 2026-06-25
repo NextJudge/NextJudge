@@ -13,21 +13,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { EventProblemAttemptDTO } from "@/lib/api";
+import type {
+    EventProblemAttemptDTO,
+    UserEventProblemStatus,
+} from "@/lib/api";
+import {
+    apiGetEventAttempts,
+    apiGetEventProblems,
+    apiGetEventParticipants,
+    apiGetEventWithDetails,
+    apiGetUserEventProblemsStatus,
+} from "@/lib/api";
 import type { NextJudgeEvent, Problem, User } from "@/lib/types";
-import { getBridgeUrl } from "@/lib/utils";
 import { ContestLeaderboard } from "../components/contest-leaderboard";
 import { ContestPodium } from "../components/contest-podium";
 import { ContestProblemStatsChart } from "../components/contest-problem-stats-chart";
 import { ContestProblemsTable } from "../components/contest-problems-table";
 import { ContestTimer } from "../components/contest-timer";
 import { QuestionsSection } from "./questions-section";
-
-interface UserEventProblemStatus {
-    problem_id: number;
-    status: string;
-    submit_time: string;
-}
 
 interface ContestDetailPageProps {
     params: Promise<{ id: string }>;
@@ -38,38 +41,21 @@ interface ContestDetailPageProps {
  */
 async function fetchContestData(token: string, contestId: number) {
     try {
-        const [contestData, problemsData, participantsData, userStatus, attemptsData] = await Promise.all([
-            fetch(`${getBridgeUrl()}/v1/public/events/${contestId}`, {
-                headers: { 'Authorization': token }
-            }),
-            fetch(`${getBridgeUrl()}/v1/events/${contestId}/problems`, {
-                headers: { 'Authorization': token }
-            }),
-            fetch(`${getBridgeUrl()}/v1/public/events/${contestId}/participants`, {
-                headers: { 'Authorization': token }
-            }),
-            fetch(`${getBridgeUrl()}/v1/events/${contestId}/user_problem_status`, {
-                headers: { 'Authorization': token }
-            }),
-            fetch(`${getBridgeUrl()}/v1/events/${contestId}/attempts`, {
-                headers: { 'Authorization': token }
-            })
-        ]);
-
-        const [contestJson, problemsJson, participantsJson, userStatusJson, attemptsJson] = await Promise.all([
-            contestData.ok ? contestData.json() : null,
-            problemsData.ok ? problemsData.json() : [],
-            participantsData.ok ? participantsData.json() : [],
-            userStatus.ok ? userStatus.json() : [],
-            attemptsData.ok ? attemptsData.json() : []
-        ]);
+        const [contest, problems, participants, userProblemStatus, contestAttempts] =
+            await Promise.all([
+                apiGetEventWithDetails(token, contestId),
+                apiGetEventProblems(token, contestId),
+                apiGetEventParticipants(token, contestId),
+                apiGetUserEventProblemsStatus(token, contestId),
+                apiGetEventAttempts(token, contestId),
+            ]);
 
         return {
-            contest: contestJson as NextJudgeEvent | null,
-            problems: problemsJson as Problem[] || [],
-            participants: participantsJson as User[] || [],
-            userProblemStatus: userStatusJson as UserEventProblemStatus[] || [],
-            contestAttempts: attemptsJson as EventProblemAttemptDTO[] || []
+            contest,
+            problems,
+            participants,
+            userProblemStatus,
+            contestAttempts,
         };
     } catch (error) {
         console.error('Failed to fetch contest data:', error);
