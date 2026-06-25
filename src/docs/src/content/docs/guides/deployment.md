@@ -42,9 +42,11 @@ Same RabbitMQ + `NEXTJUDGE_HOST`/`PORT` + matching `JUDGE_PASSWORD`.
 
 | Variable | Notes |
 | -------- | ----- |
-| `NEXT_PUBLIC_API_URL` | Browser-reachable API URL |
-| `NEXTAUTH_SECRET` | Session encryption |
-| `NEXTAUTH_URL` | Public HTTPS URL of the web app |
+| `NEXT_PUBLIC_API_URL` | Public API URL the browser and server use (e.g. `https://api.yourdomain.com`). Set at **build** time (`next build`). If unset on a deployed build, defaults to `https://api.nextjudge.net`. Local `next dev` ignores remote values and uses `http://localhost:5000`. |
+| `AUTH_SECRET` | Session encryption (Auth.js) |
+| `NEXTAUTH_URL` | Public HTTPS URL of the web app (also used to derive app links when self-hosting) |
+| `AUTH_PROVIDER_PASSWORD` | Must match the data layer — used for GitHub OAuth bridge |
+| `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub OAuth app credentials |
 
 Full lists: `config.go`, judge `app.py`, web `.env.example`.
 

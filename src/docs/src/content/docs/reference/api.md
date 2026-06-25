@@ -227,7 +227,17 @@ Full submission including `test_case_results` after grading.
 { "user_id": "uuid", "language_id": "uuid", "source_code": "print(input())", "stdin": "test" }
 ```
 
-Also available unauthenticated on public/bench routes for demos (`/v1/public/input_submissions`, `/v1/bench/input_submissions`) with rate limits.
+Also available unauthenticated on public/bench routes for demos (`/v1/public/input_submissions`, `/v1/bench/input_submissions`). Both POST routes are IP rate-limited (5/min, burst 2).
+
+Authenticated POST limits (per user, in-memory per data-layer instance):
+
+| Route | Limit |
+| ----- | ----- |
+| `POST /v1/input_submissions` | 30/min, burst 10 |
+| `POST /v1/submissions` | 20/min, burst 5 |
+| `POST /v1/basic_login`, `/v1/basic_register`, password reset | 10/min per IP, burst 5 |
+
+429 responses include `Retry-After: 60` and `{"code":"RATE_LIMIT_EXCEEDED",...}`.
 
 ### GET /v1/input_submissions/{id}
 
