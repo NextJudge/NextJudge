@@ -47,7 +47,25 @@ func canReadSubmission(r *http.Request, submissionUserID uuid.UUID) bool {
 	if !ok {
 		return false
 	}
+	return canReadSubmissionForClaims(claims, submissionUserID)
+}
+
+func canReadSubmissionForClaims(claims *NextJudgeClaims, submissionUserID uuid.UUID) bool {
 	return submissionUserID == claims.Id || claims.Role >= JudgeRoleEnum
+}
+
+func canViewAllEventSubmissions(claims *NextJudgeClaims, event *Event) bool {
+	return claims.Role >= JudgeRoleEnum || claims.Id == event.UserID
+}
+
+func redactSubmissionForViewer(claims *NextJudgeClaims, submission Submission) Submission {
+	if canReadSubmissionForClaims(claims, submission.UserID) {
+		return submission
+	}
+	submission.SourceCode = ""
+	submission.Stdout = ""
+	submission.Stderr = ""
+	return submission
 }
 
 func requireAuthenticatedClaims(w http.ResponseWriter, r *http.Request) (*NextJudgeClaims, bool) {
