@@ -3,8 +3,10 @@ import {
 	Category,
 	CreateEventRequest,
 	CreateQuestionRequest,
+	CreateTeamResponse,
 	CustomInputResult,
 	EventQuestion,
+	EventTeam,
 	Language,
 	NextJudgeEvent,
 	Notification,
@@ -12,8 +14,13 @@ import {
 	Problem,
 	ProblemRequest,
 	Submission,
+	SubmissionStatus,
 	User,
 } from "./types";
+import {
+	parseProblemDetail,
+	parseProblemList,
+} from "./schemas/problem";
 import { getBridgeUrl } from "./utils";
 
 export async function apiGetLanguages(): Promise<Language[]> {
@@ -74,7 +81,11 @@ export async function apiGetProblems(token: string): Promise<Problem[]> {
 				Authorization: token,
 			},
 		});
-		return data.json();
+		if (!data.ok) {
+			throw new Error(`Failed to fetch problems: ${data.status}`);
+		}
+		const json: unknown = await data.json();
+		return parseProblemList(json) as Problem[];
 	} catch (e) {
 		throw new Error("Failed to fetch problems");
 	}
@@ -95,7 +106,8 @@ export async function apiGetProblem(
 			throw new Error(`Failed to fetch problem: ${data.status}`);
 		}
 
-		return data.json();
+		const json: unknown = await data.json();
+		return parseProblemDetail(json) as Problem;
 	} catch (error) {
 		console.error("Error fetching problem:", error);
 		throw error;
@@ -209,6 +221,46 @@ export async function postSolution(
 	});
 
 	return response.json();
+}
+
+export type SubmissionStatusPoll = {
+	id: string;
+	status: SubmissionStatus;
+};
+
+export async function apiGetSubmissionStatusPoll(
+	token: string,
+	id: string,
+): Promise<SubmissionStatusPoll> {
+	const response = await fetch(`${getBridgeUrl()}/v1/submissions/${id}/status`, {
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: token,
+		},
+	});
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		throw new Error(
+			errorData.message || `HTTP error! status: ${response.status}`,
+		);
+	}
+
+	return response.json();
+}
+
+export async function apiWaitForSubmissionResult(
+	token: string,
+	id: string,
+	intervalMs = 1000,
+): Promise<Submission> {
+	let poll = await apiGetSubmissionStatusPoll(token, id);
+	while (poll.status === "PENDING") {
+		await new Promise((resolve) => setTimeout(resolve, intervalMs));
+		poll = await apiGetSubmissionStatusPoll(token, id);
+	}
+
+	return apiGetSubmissionsStatus(token, id);
 }
 
 export async function apiGetSubmissionsStatus(
@@ -419,6 +471,22 @@ export async function apiUpdateEvent(
 	}
 }
 
+export async function apiEndEvent(token: string, eventId: number): Promise<void> {
+	const response = await fetch(`${getBridgeUrl()}/v1/events/${eventId}/end`, {
+		method: "POST",
+		headers: {
+			Authorization: token,
+		},
+	});
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		throw new Error(
+			errorData.message || `HTTP error! status: ${response.status}`,
+		);
+	}
+}
+
 export async function apiDeleteEvent(token: string, id: number): Promise<void> {
 	try {
 		const response = await fetch(`${getBridgeUrl()}/v1/events/${id}`, {
@@ -586,6 +654,127 @@ export async function apiRegisterForEvent(
 	} catch (error) {
 		console.error("API Error registering for event:", error);
 		throw error;
+	}
+}
+
+export async function apiGetEventTeams(
+	token: string,
+	eventId: number,
+): Promise<EventTeam[]> {
+	const response = await fetch(
+		`${getBridgeUrl()}/v1/events/${eventId}/teams`,
+		{
+			headers: { Authorization: token },
+		},
+	);
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		throw new Error(
+			errorData.message || `HTTP error! status: ${response.status}`,
+		);
+	}
+
+	return response.json();
+}
+
+export async function apiGetMyEventTeam(
+	token: string,
+	eventId: number,
+): Promise<EventTeam | null> {
+	const response = await fetch(
+		`${getBridgeUrl()}/v1/events/${eventId}/teams/me`,
+		{
+			headers: { Authorization: token },
+		},
+	);
+
+	if (response.status === 404) {
+		return null;
+	}
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		throw new Error(
+			errorData.message || `HTTP error! status: ${response.status}`,
+		);
+	}
+
+	return response.json();
+}
+
+export async function apiGetEventTeam(
+	token: string,
+	eventId: number,
+	teamId: string,
+): Promise<EventTeam> {
+	const response = await fetch(
+		`${getBridgeUrl()}/v1/events/${eventId}/teams/${teamId}`,
+		{
+			headers: { Authorization: token },
+		},
+	);
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		throw new Error(
+			errorData.message || `HTTP error! status: ${response.status}`,
+		);
+	}
+
+	return response.json();
+}
+
+export async function apiCreateEventTeam(
+	token: string,
+	eventId: number,
+	name: string,
+): Promise<CreateTeamResponse> {
+	const response = await fetch(
+		`${getBridgeUrl()}/v1/events/${eventId}/teams`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: token,
+			},
+			body: JSON.stringify({ name }),
+		},
+	);
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		throw new Error(
+			errorData.message || `HTTP error! status: ${response.status}`,
+		);
+	}
+
+	return response.json();
+}
+
+export async function apiJoinEventTeam(
+	token: string,
+	eventId: number,
+	teamId: string,
+	userId?: string,
+): Promise<void> {
+	const response = await fetch(
+		`${getBridgeUrl()}/v1/events/${eventId}/teams/${teamId}/join`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: token,
+			},
+			body: JSON.stringify({ user_id: userId }),
+		},
+	);
+
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		throw new Error(
+			errorData.message || `HTTP error! status: ${response.status}`,
+		);
 	}
 }
 
