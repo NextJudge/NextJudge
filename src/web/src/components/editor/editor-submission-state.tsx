@@ -40,6 +40,7 @@ export function SubmissionState({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p
+          data-testid="submission-status"
           className={cn("text-lg font-semibold", {
             "text-green-500": isAccepted,
             "text-yellow-500": isPending,

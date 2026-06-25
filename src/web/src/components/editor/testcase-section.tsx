@@ -348,6 +348,7 @@ export function TestcaseSection({
         <span className="text-sm font-medium">Testcase</span>
         {hasRunResults && (
           <span
+            data-testid="run-summary"
             className={cn(
               "text-[10px] font-medium tabular-nums",
               runResults.status === "ACCEPTED"
@@ -355,7 +356,8 @@ export function TestcaseSection({
                 : "text-destructive"
             )}
           >
-            {passedCount}/{publicTestCases.length}
+            {runResults.status === "ACCEPTED" ? "Accepted" : runResults.status}{" "}
+            · {passedCount}/{publicTestCases.length}
           </span>
         )}
         {hasWrongAnswerOutput && (

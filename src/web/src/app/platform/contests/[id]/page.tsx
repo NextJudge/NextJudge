@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ContestCelebration } from "@/components/contest-celebration";
+import { ContestAdminActions } from "@/components/contests/contest-admin-actions";
+import { TeamSection } from "@/components/contests/team-section";
 import { Icons } from "@/components/icons";
 import PlatformNavbar from "@/components/nav/platform-navbar";
 import { UserAvatar } from "@/components/nav/user-avatar";
@@ -19,7 +21,6 @@ import { ContestPodium } from "../components/contest-podium";
 import { ContestProblemStatsChart } from "../components/contest-problem-stats-chart";
 import { ContestProblemsTable } from "../components/contest-problems-table";
 import { ContestTimer } from "../components/contest-timer";
-import { CloneContestDialog } from "./clone-contest-dialog";
 import { QuestionsSection } from "./questions-section";
 
 interface UserEventProblemStatus {
@@ -98,6 +99,10 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
     const contestStatus = now < startTime ? 'upcoming' :
         now >= startTime && now <= endTime ? 'ongoing' :
             'ended';
+
+    const isParticipant = participants.some(
+        (p: User) => p.id === session?.nextjudge_id,
+    );
 
     const getRunningTime = () => {
         if (contestStatus === 'upcoming') {
@@ -251,15 +256,10 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
                                 status={contestStatus}
                             />
                             {session?.user?.is_admin && (
-                                <CloneContestDialog
+                                <ContestAdminActions
                                     contest={contest}
                                     problems={problems}
-                                >
-                                    <Button className="gap-2 w-full">
-                                        <Icons.copy className="w-4 h-4" />
-                                        Clone contest
-                                    </Button>
-                                </CloneContestDialog>
+                                />
                             )}
                         </div>
                     </div>
@@ -335,7 +335,9 @@ export default async function ContestDetailPage({ params }: ContestDetailPagePro
                             </CardContent>
                         </Card>
                     </div>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col gap-4">
+                        <TeamSection contest={contest} isParticipant={isParticipant} />
+
                         <QuestionsSection
                             eventId={contestId}
                             problems={problems}

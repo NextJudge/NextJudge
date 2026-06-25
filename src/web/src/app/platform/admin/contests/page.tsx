@@ -10,11 +10,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { apiDeleteEvent, apiGetEvents } from "@/lib/api";
+import { useAdminEvents } from "@/hooks/queries/use-event-queries";
+import { apiDeleteEvent } from "@/lib/api";
 import { NextJudgeEvent } from "@/lib/types";
 import { PlusIcon } from "@radix-ui/react-icons";
 import { useSession } from "next-auth/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { ContestForm } from "./contest-form";
 import { EditContestForm } from "./edit-contest-form";
@@ -22,27 +23,15 @@ import { EnhancedContestGrid } from "./enhanced-contest-card";
 
 export default function AdminContestsPage() {
   const { data: session } = useSession();
-  const [contests, setContests] = useState<NextJudgeEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: contests = [],
+    isLoading: loading,
+    refetch: fetchContests,
+  } = useAdminEvents(session?.nextjudge_token);
   const [editingContest, setEditingContest] = useState<NextJudgeEvent | null>(null);
 
-  const fetchContests = useCallback(async () => {
-    if (!session?.nextjudge_token) return;
-
-    try {
-      const events = await apiGetEvents(session.nextjudge_token);
-      setContests(Array.isArray(events) ? events : []);
-    } catch (error) {
-      console.error('Failed to fetch contests:', error);
-      toast.error("Failed to load contests. Please try again.");
-      setContests([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [session?.nextjudge_token]);
-
-  useEffect(() => {
-    fetchContests();
+  const refreshContests = useCallback(async () => {
+    await fetchContests();
   }, [fetchContests]);
 
   const onDelete = useCallback(async (id: number) => {
@@ -50,32 +39,29 @@ export default function AdminContestsPage() {
 
     try {
       await apiDeleteEvent(session.nextjudge_token, id);
-      setContests((prev) => prev.filter((contest) => contest.id !== id));
+      await refreshContests();
       toast.success("Contest deleted successfully.");
     } catch (error) {
       console.error('Failed to delete contest:', error);
       toast.error("Failed to delete contest. Please try again.");
     }
-  }, [session?.nextjudge_token]);
+  }, [session?.nextjudge_token, refreshContests]);
 
-  const onAdd = useCallback((contest: NextJudgeEvent) => {
-    setContests((prev) => [...(Array.isArray(prev) ? prev : []), contest]);
-  }, []);
+  const onAdd = useCallback(async (_contest: NextJudgeEvent) => {
+    await refreshContests();
+  }, [refreshContests]);
 
   const onEdit = useCallback((contest: NextJudgeEvent) => {
     setEditingContest(contest);
   }, []);
 
-  const onUpdate = useCallback((updatedContest: NextJudgeEvent) => {
-    setContests((prev) => (Array.isArray(prev) ? prev : []).map(contest =>
-      contest.id === updatedContest.id ? updatedContest : contest
-    ));
-  }, []);
+  const onUpdate = useCallback(async (_updatedContest: NextJudgeEvent) => {
+    await refreshContests();
+  }, [refreshContests]);
 
-  const onParticipantAdded = useCallback(async (eventId: number) => {
-    // refresh the contests to get updated participant counts
-    fetchContests();
-  }, [fetchContests]);
+  const onParticipantAdded = useCallback(async () => {
+    await refreshContests();
+  }, [refreshContests]);
   if (loading) {
     return (
       <div className="space-y-6">
@@ -128,6 +114,7 @@ export default function AdminContestsPage() {
         onDelete={onDelete}
         onEdit={onEdit}
         onParticipantAdded={onParticipantAdded}
+        onContestEnded={refreshContests}
       />
 
       {/* Edit Contest Dialog */}

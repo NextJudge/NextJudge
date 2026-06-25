@@ -440,7 +440,7 @@ const LandingEditorContent = () => {
               </span>
             </h2>
             <p className="text-gray-300 text-lg mt-2">
-              We've prepared a simple problem for you to try out. No sign-up needed.
+              Try the demo below, then sign up to save progress and join contests.
             </p>
           </div>
 
@@ -601,34 +601,20 @@ const LandingEditorContent = () => {
               <div className="flex items-center justify-center gap-4 text-sm text-white">
                 <span className="text-gray-300">Ready for more challenges?</span>
             <div className="flex gap-2">
-                  <Link
-                    href="/auth/login"
-                    tabIndex={-1}
-                    aria-disabled="true"
-                    className="pointer-events-none"
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="border-osu/60 text-white hover:bg-osu/20"
                   >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-osu/60 text-white hover:bg-osu/20"
-                      disabled
-                    >
-                      Log In
-                    </Button>
-                  </Link>
-                  <Link
-                    href="/auth/signup"
-                    tabIndex={-1}
-                    aria-disabled="true"
-                    className="pointer-events-none"
+                    <Link href="/auth/login">Log In</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size="sm"
                   >
-                    <Button
-                      size="sm"
-                      disabled
-                    >
-                      Sign Up Free
-                    </Button>
-                  </Link>
+                    <Link href="/auth/signup">Sign Up Free</Link>
+                  </Button>
             </div>
           </div>
         </div>

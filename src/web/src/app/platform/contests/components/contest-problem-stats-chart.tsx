@@ -2,10 +2,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EventProblemAttemptDTO } from "@/lib/api";
-import { apiGetEventSubmissions } from "@/lib/api";
-import type { Problem, Submission } from "@/lib/types";
+import { useEventSubmissions } from "@/hooks/queries/use-event-queries";
+import type { Problem } from "@/lib/types";
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
 import {
     Bar,
     CartesianGrid,
@@ -103,29 +102,11 @@ export function ContestProblemStatsChart({
     contestId
 }: ContestProblemStatsChartProps) {
     const { data: session } = useSession();
-    const [submissions, setSubmissions] = useState<Submission[]>([]);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        const fetchSubmissions = async () => {
-            if (!session?.nextjudge_token || contestStatus === 'upcoming') {
-                return;
-            }
-
-            setLoading(true);
-            try {
-                const data = await apiGetEventSubmissions(session.nextjudge_token, contestId);
-                setSubmissions(data || []);
-            } catch (error) {
-                console.error('Failed to fetch submissions:', error);
-                setSubmissions([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSubmissions();
-    }, [session?.nextjudge_token, contestId, contestStatus]);
+    const { data: submissions = [], isLoading: loading } = useEventSubmissions(
+        session?.nextjudge_token,
+        contestId,
+        contestStatus !== "upcoming",
+    );
 
     if (contestStatus === "upcoming" || problems.length === 0) {
         return null;

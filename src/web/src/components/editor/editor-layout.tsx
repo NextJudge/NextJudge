@@ -13,11 +13,12 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useThemesLoader } from "@/hooks/useThemeLoader";
 import {
-  apiGetSubmissionsStatus,
+  apiWaitForSubmissionResult,
   getCustomInputSubmissionStatus,
   postCustomInputSubmission,
   postSolution,
 } from "@/lib/api";
+import { useEditorStore } from "@/lib/stores/editor-store";
 import {
   CustomInputResult as CustomInputResultType,
   Language,
@@ -30,7 +31,7 @@ import {
 } from "@/lib/types";
 import { compareOutput } from "@/lib/utils";
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import CodeEditor from "./code-editor";
 
@@ -86,22 +87,28 @@ export default function EditorComponent({
   const publicTestCases = testCases.filter((tc) => !tc.hidden);
   const hiddenTestCases = testCases.filter((tc) => tc.hidden);
 
-  const [input, setInput] = useState("");
-  const [code, setCode] = useState<string>("");
+  const code = useEditorStore((s) => s.code);
+  const input = useEditorStore((s) => s.input);
+  const submissionLoading = useEditorStore((s) => s.submissionLoading);
+  const submissionError = useEditorStore((s) => s.submissionError);
+  const currentSubmissionDetails = useEditorStore((s) => s.currentSubmission);
+  const runResults = useEditorStore((s) => s.runResults);
+  const runLoading = useEditorStore((s) => s.runLoading);
+  const runningCaseIndex = useEditorStore((s) => s.runningCaseIndex);
+  const activeCaseTab = useEditorStore((s) => s.activeCaseTab);
+  const customInputResult = useEditorStore((s) => s.customInputResult);
+  const setCode = useEditorStore((s) => s.setCode);
+  const setInput = useEditorStore((s) => s.setInput);
+  const setActiveCaseTab = useEditorStore((s) => s.setActiveCaseTab);
+  const startSubmission = useEditorStore((s) => s.startSubmission);
+  const finishSubmission = useEditorStore((s) => s.finishSubmission);
+  const startRun = useEditorStore((s) => s.startRun);
+  const setRunProgress = useEditorStore((s) => s.setRunProgress);
+  const finishRun = useEditorStore((s) => s.finishRun);
 
-  const [submissionLoading, setSubmissionLoading] = useState(false);
-  const [submissionError, setSubmissionError] = useState<string>("");
-  const [currentSubmissionDetails, setCurrentSubmissionDetails] =
-    useState<Submission | null>(null);
-
-  const [runResults, setRunResults] = useState<PracticeRunResult | null>(null);
-  const [runLoading, setRunLoading] = useState(false);
-  const [runningCaseIndex, setRunningCaseIndex] = useState<number | null>(null);
-  const [activeCaseTab, setActiveCaseTab] = useState(
-    publicTestCases.length > 0 ? "case-0" : "case-custom"
-  );
-  const [customInputResult, setCustomInputResult] =
-    useState<CustomInputResultType | null>(null);
+  useEffect(() => {
+    setActiveCaseTab(publicTestCases.length > 0 ? "case-0" : "case-custom");
+  }, [publicTestCases.length, setActiveCaseTab]);
 
   useEffect(() => {
     const workspace = document.querySelector<HTMLElement>(".editor-workspace");
@@ -140,9 +147,7 @@ export default function EditorComponent({
       return;
     }
 
-    setSubmissionLoading(true);
-    setSubmissionError("");
-    setRunResults(null);
+    startSubmission();
     try {
       if (!authToken || !authUserId) {
         throw new Error("Need to be logged in");
@@ -158,11 +163,10 @@ export default function EditorComponent({
       await fetchSubmissionDetails(data.id);
     } catch (error: unknown) {
       toast.error("There was an error submitting your code.");
-      setSubmissionError(
-        error instanceof Error ? error.message : "An error occurred."
+      finishSubmission(
+        null,
+        error instanceof Error ? error.message : "An error occurred.",
       );
-    } finally {
-      setSubmissionLoading(false);
     }
   };
 
@@ -171,20 +175,9 @@ export default function EditorComponent({
       if (!authToken) {
         throw new Error("Need to be logged in");
       }
-      let data: Submission = await apiGetSubmissionsStatus(
-        authToken,
-        submissionId
-      );
-      while (data.status === "PENDING") {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        data = await apiGetSubmissionsStatus(
-          authToken,
-          submissionId
-        );
-      }
+      const data = await apiWaitForSubmissionResult(authToken, submissionId);
 
-      setSubmissionLoading(false);
-      setCurrentSubmissionDetails(data);
+      finishSubmission(data);
 
       const statusMessage = statusMap[data.status];
       if (data.status === "ACCEPTED") {
@@ -194,6 +187,7 @@ export default function EditorComponent({
       }
     } catch (error) {
       console.error(error);
+      finishSubmission(null, "Failed to fetch submission results.");
       toast.error("Failed to fetch submission results.");
     }
   };
@@ -204,11 +198,7 @@ export default function EditorComponent({
       return;
     }
 
-    setRunLoading(true);
-    setRunResults(null);
-    setCustomInputResult(null);
-    setRunningCaseIndex(null);
-    setCurrentSubmissionDetails(null);
+    startRun();
 
     try {
       if (!authToken) {
@@ -222,12 +212,14 @@ export default function EditorComponent({
           languageId,
           input
         );
-        setCustomInputResult(result);
+        setRunProgress({ customInputResult: result });
+        finishRun();
         return;
       }
 
       if (publicTestCases.length === 0) {
         toast.error("No sample test cases available.");
+        finishRun();
         return;
       }
 
@@ -237,7 +229,7 @@ export default function EditorComponent({
 
       for (let i = 0; i < publicTestCases.length; i++) {
         const testCase = publicTestCases[i];
-        setRunningCaseIndex(i);
+        setRunProgress({ runningCaseIndex: i });
 
         const result = await executeCodeWithInput(
           authToken,
@@ -249,10 +241,12 @@ export default function EditorComponent({
         if (result.status === "COMPILE_TIME_ERROR") {
           overallStatus = "COMPILE_TIME_ERROR";
           compileStderr = result.stderr;
-          setRunResults({
-            status: overallStatus,
-            test_case_results: testCaseResults,
-            stderr: compileStderr || undefined,
+          setRunProgress({
+            runResults: {
+              status: overallStatus,
+              test_case_results: testCaseResults,
+              stderr: compileStderr || undefined,
+            },
           });
           break;
         }
@@ -273,17 +267,18 @@ export default function EditorComponent({
             result.status === "ACCEPTED" ? "WRONG_ANSWER" : result.status;
         }
 
-        setRunResults({
-          status: overallStatus,
-          test_case_results: [...testCaseResults],
+        setRunProgress({
+          runResults: {
+            status: overallStatus,
+            test_case_results: [...testCaseResults],
+          },
         });
       }
     } catch (error) {
       console.error(error);
       toast.error("Failed to run test cases.");
     } finally {
-      setRunLoading(false);
-      setRunningCaseIndex(null);
+      finishRun();
     }
   };
 

@@ -87,15 +87,13 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
                       <div className="grid grid-cols-2 gap-2">
                         <Link
                           href="/auth/login"
-                          className={cn(buttonVariants({ variant: "outline" }), "w-full pointer-events-none opacity-50 cursor-not-allowed")}
-                          aria-disabled="true"
+                          className={cn(buttonVariants({ variant: "outline" }), "w-full")}
                         >
                           Login
                         </Link>
                         <Link
                           href="/auth/signup"
-                          className={cn(buttonVariants({ variant: "default" }), "w-full bg-orange-600 hover:bg-orange-700 text-white pointer-events-none opacity-50 cursor-not-allowed")}
-                          aria-disabled="true"
+                          className={cn(buttonVariants({ variant: "default" }), "w-full bg-orange-600 hover:bg-orange-700 text-white")}
                         >
                           Sign Up
                         </Link>
@@ -149,9 +147,8 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
                   href="/auth/login"
                   className={cn(
                     buttonVariants({ variant: "link" }),
-                    "text-white/90 hover:text-white pointer-events-none opacity-50 cursor-not-allowed"
+                    "text-white/90 hover:text-white"
                   )}
-                  aria-disabled="true"
                 >
                   Login
                 </Link>
@@ -160,9 +157,8 @@ export function LandingNavbar({ session }: { session: Session | undefined }) {
                   href="/auth/signup"
                   className={cn(
                     buttonVariants({ variant: "link" }),
-                    "text-white/90 hover:text-white pointer-events-none opacity-50 cursor-not-allowed"
+                    "text-white/90 hover:text-white"
                   )}
-                  aria-disabled="true"
                 >
                   Sign Up
                 </Link>

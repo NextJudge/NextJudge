@@ -1,11 +1,11 @@
 "use client";
 
 import type { EventProblemAttemptDTO } from "@/lib/api";
-import { apiGetEventAttempts } from "@/lib/api";
+import { useEventAttempts } from "@/hooks/queries/use-event-queries";
 import type { Problem, User } from "@/lib/types";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
     buildParticipantStandings,
     hasAnySubmissions,
@@ -74,50 +74,19 @@ export function ContestPodium({
     initialAttempts,
 }: ContestPodiumProps) {
     const { data: session } = useSession();
-    const [attempts, setAttempts] = useState<EventProblemAttemptDTO[]>(initialAttempts ?? []);
-    const [loading, setLoading] = useState(initialAttempts === undefined);
+    const attemptsEnabled =
+        participants.length > 0 &&
+        (contestStatus !== "upcoming" || isAdmin) &&
+        initialAttempts === undefined;
 
-    useEffect(() => {
-        if (initialAttempts !== undefined) {
-            setAttempts(initialAttempts);
-            setLoading(false);
-            return;
-        }
-
-        const fetchPodiumData = async () => {
-            if (participants.length === 0) {
-                setAttempts([]);
-                setLoading(false);
-                return;
-            }
-
-            if ((contestStatus === "upcoming" && !isAdmin) || !session?.nextjudge_token) {
-                setAttempts([]);
-                setLoading(false);
-                return;
-            }
-
-            setLoading(true);
-            try {
-                const fetchedAttempts = await apiGetEventAttempts(session.nextjudge_token, contestId);
-                setAttempts(fetchedAttempts);
-            } catch (error) {
-                console.error("Failed to fetch podium data:", error);
-                setAttempts([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchPodiumData();
-    }, [
-        initialAttempts,
+    const { data: fetchedAttempts = [], isLoading: fetchLoading } = useEventAttempts(
         session?.nextjudge_token,
         contestId,
-        contestStatus,
-        participants.length,
-        isAdmin,
-    ]);
+        attemptsEnabled,
+    );
+
+    const attempts = initialAttempts ?? fetchedAttempts;
+    const loading = initialAttempts === undefined ? fetchLoading : false;
 
     const topThree = useMemo(
         () => buildParticipantStandings(participants, attempts).slice(0, 3),

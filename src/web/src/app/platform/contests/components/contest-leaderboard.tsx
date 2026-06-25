@@ -11,12 +11,12 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import type { EventProblemAttemptDTO } from "@/lib/api";
-import { apiGetEventAttempts } from "@/lib/api";
+import { useEventAttempts } from "@/hooks/queries/use-event-queries";
 import type { Problem, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
     buildLeaderboardRows,
     hasAnySubmissions,
@@ -42,50 +42,19 @@ export function ContestLeaderboard({
     initialAttempts,
 }: ContestLeaderboardProps) {
     const { data: session } = useSession();
-    const [attempts, setAttempts] = useState<EventProblemAttemptDTO[]>(initialAttempts ?? []);
-    const [loading, setLoading] = useState(initialAttempts === undefined);
+    const attemptsEnabled =
+        participants.length > 0 &&
+        (contestStatus !== "upcoming" || isAdmin) &&
+        initialAttempts === undefined;
 
-    useEffect(() => {
-        if (initialAttempts !== undefined) {
-            setAttempts(initialAttempts);
-            setLoading(false);
-            return;
-        }
-
-        const fetchLeaderboardData = async () => {
-            if (participants.length === 0) {
-                setAttempts([]);
-                setLoading(false);
-                return;
-            }
-
-            if ((contestStatus === "upcoming" && !isAdmin) || !session?.nextjudge_token) {
-                setAttempts([]);
-                setLoading(false);
-                return;
-            }
-
-            setLoading(true);
-            try {
-                const fetchedAttempts = await apiGetEventAttempts(session.nextjudge_token, contestId);
-                setAttempts(fetchedAttempts);
-            } catch (error) {
-                console.error("Failed to fetch leaderboard data:", error);
-                setAttempts([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchLeaderboardData();
-    }, [
-        initialAttempts,
+    const { data: fetchedAttempts = [], isLoading: fetchLoading } = useEventAttempts(
         session?.nextjudge_token,
         contestId,
-        contestStatus,
-        participants.length,
-        isAdmin,
-    ]);
+        attemptsEnabled,
+    );
+
+    const attempts = initialAttempts ?? fetchedAttempts;
+    const loading = initialAttempts === undefined ? fetchLoading : false;
 
     const participantData = useMemo<ParticipantLeaderboardRow[]>(
         () => buildLeaderboardRows(participants, problems, attempts, contestStatus, isAdmin),

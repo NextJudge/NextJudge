@@ -7,16 +7,74 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
+const isLocalHostname = (url: string): boolean => {
+    try {
+        const { hostname } = new URL(url);
+        return hostname === "localhost" || hostname === "127.0.0.1";
+    } catch {
+        return false;
+    }
+};
+
+const isRunningLocally = (): boolean => {
+    if (process.env.NODE_ENV === "development") {
+        return true;
+    }
+
+    const appUrl = process.env.NEXTAUTH_URL?.trim() ?? process.env.AUTH_URL?.trim();
+    if (appUrl && isLocalHostname(appUrl)) {
+        return true;
+    }
+
+    return false;
+};
+
+const getConfiguredApiUrl = (): string | undefined => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (apiUrl) {
+        return apiUrl;
+    }
+
+    const legacyBridgeUrl = process.env.NEXT_PUBLIC_VERCEL_BRIDGE_URL?.trim();
+    if (legacyBridgeUrl) {
+        return legacyBridgeUrl;
+    }
+
+    return undefined;
+};
+
 export function getBridgeUrl() {
-    return process.env.NODE_ENV === "production"
-        ? SITE_URLS.production.api
-        : SITE_URLS.development.api;
+    const apiOverride = getConfiguredApiUrl();
+
+    if (isRunningLocally()) {
+        if (apiOverride && isLocalHostname(apiOverride)) {
+            return apiOverride;
+        }
+        return SITE_URLS.development.api;
+    }
+
+    if (apiOverride) {
+        return apiOverride;
+    }
+
+    return SITE_URLS.production.api;
 }
 
 export function getAppUrl() {
-    return process.env.NODE_ENV === "production"
-        ? SITE_URLS.production.app
-        : SITE_URLS.development.app;
+    if (isRunningLocally()) {
+        return SITE_URLS.development.app;
+    }
+
+    const authUrl = process.env.NEXTAUTH_URL?.trim() ?? process.env.AUTH_URL?.trim();
+    if (authUrl) {
+        try {
+            return new URL(authUrl).origin;
+        } catch {
+            // fall through to default production URL
+        }
+    }
+
+    return SITE_URLS.production.app;
 }
 
 

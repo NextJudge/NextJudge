@@ -1,5 +1,7 @@
 "use client";
 
+import { EndContestButton } from "@/components/contests/end-contest-button";
+import { TeamRegistrationDialog } from "@/components/contests/team-registration-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,17 +19,20 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { apiAddEventParticipant, apiRegisterForEvent } from "@/lib/api";
+import { useMyEventTeam } from "@/hooks/queries/use-event-teams";
+import { useRegisterForEvent } from "@/hooks/queries/use-event-queries";
+import { apiAddEventParticipant } from "@/lib/api";
+import { getContestStatus, ContestStatus } from "@/lib/contest-utils";
 import { NextJudgeEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { format, formatDistanceToNow, isAfter, isBefore } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { CheckIcon, ClockIcon, Edit, FileCode, MoreVertical, Trash2, UsersIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export type ContestStatus = "upcoming" | "ongoing" | "ended";
+export type { ContestStatus };
 
 interface ContestCardProps {
     className?: string;
@@ -37,6 +42,7 @@ interface ContestCardProps {
     deleteContest?: (id: number) => void;
     editContest?: (contest: NextJudgeEvent) => void;
     onAddParticipant?: () => void;
+    onContestEnded?: () => void;
     variant?: "default" | "compact";
 }
 
@@ -48,28 +54,33 @@ export function ContestCard({
     deleteContest,
     editContest,
     onAddParticipant,
+    onContestEnded,
     variant = "default",
 }: ContestCardProps) {
     const { data: session } = useSession();
     const router = useRouter();
-    const [isRegistering, setIsRegistering] = useState(false);
     const [isRegistered, setIsRegistered] = useState(false);
+    const [teamDialogOpen, setTeamDialogOpen] = useState(false);
 
-    const startTime = new Date(contest.start_time);
-    const endTime = new Date(contest.end_time);
-    const now = new Date();
-
-    const status: ContestStatus = isBefore(now, startTime)
-        ? "upcoming"
-        : isAfter(now, endTime)
-            ? "ended"
-            : "ongoing";
+    const registerMutation = useRegisterForEvent(session?.nextjudge_token);
+    const status = getContestStatus(contest.start_time, contest.end_time);
 
     const userIsParticipant = contest.participants?.some(
         p => p.id === session?.nextjudge_id
     ) || isRegistered;
 
+    const { data: myTeam } = useMyEventTeam(
+        session?.nextjudge_token,
+        contest.id,
+        Boolean(contest.teams && userIsParticipant),
+    );
+
+    const needsTeam = contest.teams && userIsParticipant && !myTeam && status !== "ended";
+
     const isCreatorOrAdmin = session?.user?.is_admin || session?.nextjudge_id === contest.user_id;
+
+    const startTime = new Date(contest.start_time);
+    const endTime = new Date(contest.end_time);
 
     const getTimeDisplay = () => {
         switch (status) {
@@ -109,15 +120,21 @@ export function ContestCard({
         }
 
         if (userIsParticipant && status === "ongoing") {
+            if (needsTeam) {
+                setTeamDialogOpen(true);
+                return;
+            }
             handleNavigateToContest();
             return;
         }
 
         if (userIsParticipant) {
+            if (needsTeam) {
+                setTeamDialogOpen(true);
+            }
             return;
         }
 
-        setIsRegistering(true);
         try {
             if (session.user?.is_admin) {
                 await apiAddEventParticipant(
@@ -126,14 +143,14 @@ export function ContestCard({
                     session.nextjudge_id.toString()
                 );
             } else {
-                await apiRegisterForEvent(
-                    session.nextjudge_token,
-                    contest.id
-                );
+                await registerMutation.mutateAsync(contest.id);
             }
             setIsRegistered(true);
             toast.success("Successfully registered for the contest!");
             onParticipantAdded?.(contest.id);
+            if (contest.teams) {
+                setTeamDialogOpen(true);
+            }
         } catch (error) {
             console.error('Failed to register:', error);
             const errorMessage = error instanceof Error ? error.message : "Failed to register";
@@ -144,14 +161,18 @@ export function ContestCard({
             } else {
                 toast.error(errorMessage);
             }
-        } finally {
-            setIsRegistering(false);
         }
     };
 
     const getButtonText = () => {
+        if (needsTeam) {
+            return "Join Team";
+        }
         if (userIsParticipant) {
             return status === "upcoming" ? "Registered" : "Enter Contest";
+        }
+        if (contest.teams && status !== "ended") {
+            return status === "upcoming" ? "Register for Teams" : "Register & Join Team";
         }
         return status === "upcoming" ? "Register Now" : status === "ongoing" ? "Enter Contest" : "View Results";
     };
@@ -324,6 +345,22 @@ export function ContestCard({
                                             Add participant(s)
                                         </DropdownMenuItem>
                                     )}
+                                    <DropdownMenuItem
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                        }}
+                                        className="p-0"
+                                        asChild
+                                    >
+                                        <EndContestButton
+                                            contest={contest}
+                                            onEnded={onContestEnded}
+                                            variant="ghost"
+                                            size="sm"
+                                            showLabel
+                                            className="w-full justify-start px-2 py-1.5 h-auto font-normal"
+                                        />
+                                    </DropdownMenuItem>
                                     {deleteContest && (
                                         <>
                                             <DropdownMenuSeparator />
@@ -383,16 +420,23 @@ export function ContestCard({
                                 e.stopPropagation();
                                 handleRegister();
                             }}
-                            disabled={isRegistering || (userIsParticipant && status === "upcoming")}
+                            disabled={registerMutation.isPending || (userIsParticipant && status === "upcoming" && !needsTeam)}
                             className="min-w-[140px] font-semibold transition-all"
                         >
                             {getButtonIcon()}
                             <span className={cn(getButtonIcon() && "ml-2")}>
-                                {isRegistering ? "Processing..." : getButtonText()}
+                                {registerMutation.isPending ? "Processing..." : getButtonText()}
                             </span>
                         </Button>
                     </div>
                 )}
+
+                <TeamRegistrationDialog
+                    open={teamDialogOpen}
+                    onOpenChange={setTeamDialogOpen}
+                    eventId={contest.id}
+                    eventTitle={contest.title}
+                />
 
                 {showActions && (
                     <div className="flex flex-col gap-1 pt-4 border-t">
