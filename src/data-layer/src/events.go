@@ -43,9 +43,12 @@ func addEventsRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Get("/v1/events/:event_id/problems/:problem_id"), AuthRequired(getEventProblem))
 
 	mux.HandleFunc(pat.Get("/v1/events/:event_id/teams"), AuthRequired(getTeams))
+	mux.HandleFunc(pat.Get("/v1/events/:event_id/teams/me"), AuthRequired(getMyEventTeam))
 	mux.HandleFunc(pat.Post("/v1/events/:event_id/teams"), AuthRequired(createTeam))
 	mux.HandleFunc(pat.Get("/v1/events/:event_id/teams/:team_id"), AuthRequired(getTeam))
 	mux.HandleFunc(pat.Post("/v1/events/:event_id/teams/:team_id/join"), AuthRequired(joinTeam))
+
+	mux.HandleFunc(pat.Post("/v1/events/:event_id/end"), AdminRequired(endEventEarly))
 
 	// Submissions, query determined by query parameters
 	mux.HandleFunc(pat.Get("/v1/events/:event_id/submissions"), AuthRequired(getEventSubmissions))
@@ -245,17 +248,17 @@ func getEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event, err := db.GetEventByID(eventId)
+	event, err := db.GetEventDetailByID(eventId)
 	if err != nil {
-		logrus.WithError(err).Error("error retrieving competition")
+		logrus.WithError(err).Error("error retrieving event")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving competition"}`)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving event"}`)
 		return
 	}
 	if event == nil {
-		logrus.Warn("competition not found")
+		logrus.Warn("event not found")
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"competition not found"}`)
+		fmt.Fprint(w, `{"code":"404", "message":"event not found"}`)
 		return
 	}
 
@@ -306,18 +309,8 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	token, ok := requireAuthenticatedClaims(w, r)
 	if !ok {
-		logrus.Error("Error in token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"Error in token"}`)
-		return
-	}
-
-	if token == nil {
-		logrus.Error("Error in token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"Error in token"}`)
 		return
 	}
 	userId := token.Id
@@ -499,11 +492,7 @@ func putEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-	if !ok || token == nil {
-		logrus.Error("Error in token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"Error in token"}`)
+	if _, ok := requireAuthenticatedClaims(w, r); !ok {
 		return
 	}
 
@@ -583,9 +572,9 @@ func deleteEvent(w http.ResponseWriter, r *http.Request) {
 	eventIdParam := pat.Param(r, "event_id")
 	eventId, err := strconv.Atoi(eventIdParam)
 	if err != nil {
-		logrus.Warn("bad uuid")
+		logrus.Warn("bad event id")
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		fmt.Fprint(w, `{"code":"400", "message":"bad event id"}`)
 		return
 	}
 
@@ -697,8 +686,7 @@ func addParticipant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, `{"message":"participant added successfully"}`)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func registerForEvent(w http.ResponseWriter, r *http.Request) {
@@ -1078,7 +1066,7 @@ func createTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existingTeam, err := db.GetTeamByName(reqData.Name)
+	existingTeam, err := db.GetTeamByNameForEvent(eventId, reqData.Name)
 	if err != nil {
 		logrus.WithError(err).Error("error getting team from db")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1097,10 +1085,42 @@ func createTeam(w http.ResponseWriter, r *http.Request) {
 		reqData.Name,
 	)
 	if err != nil {
-		logrus.WithError(err).Error("error inserting problem into db")
+		logrus.WithError(err).Error("error inserting team into db")
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error inserting problem into db"}`)
+		fmt.Fprint(w, `{"code":"500", "message":"error inserting team into db"}`)
 		return
+	}
+
+	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if ok && token != nil {
+		existingEventUser, err := db.GetEventUser(token.Id, eventId)
+		if err != nil {
+			logrus.WithError(err).Error("error checking event user")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error checking event user"}`)
+			return
+		}
+		if existingEventUser != nil {
+			if existingEventUser.TeamID != uuid.Nil && existingEventUser.TeamID != newTeam.ID {
+				logrus.Warn("user already on another team")
+				w.WriteHeader(http.StatusConflict)
+				fmt.Fprint(w, `{"code":"409", "message":"already on a team for this event"}`)
+				return
+			}
+			err = db.UpdateEventUserTeam(token.Id, eventId, newTeam.ID)
+		} else {
+			_, err = db.CreateEventUser(&EventUser{
+				UserID:  token.Id,
+				EventID: eventId,
+				TeamID:  newTeam.ID,
+			})
+		}
+		if err != nil {
+			logrus.WithError(err).Error("error assigning creator to team")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error assigning creator to team"}`)
+			return
+		}
 	}
 
 	returnData := ReturnBodyCreateTeam{
@@ -1120,6 +1140,118 @@ func createTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func getTeam(w http.ResponseWriter, r *http.Request) {
+	eventIdParam := pat.Param(r, "event_id")
+	teamIdParam := pat.Param(r, "team_id")
+
+	eventId, err := strconv.Atoi(eventIdParam)
+	if err != nil {
+		logrus.Warn("bad event_id")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad event_id"}`)
+		return
+	}
+
+	teamId, err := uuid.Parse(teamIdParam)
+	if err != nil {
+		logrus.Warn("bad team_id")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad team_id"}`)
+		return
+	}
+
+	team, err := db.GetTeamByID(teamId)
+	if err != nil {
+		logrus.WithError(err).Error("error getting team from db")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error getting team from db"}`)
+		return
+	}
+	if team == nil || team.EventID != eventId {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"team not found"}`)
+		return
+	}
+
+	members, err := db.GetTeamMembers(teamId)
+	if err != nil {
+		logrus.WithError(err).Error("error getting team members")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error getting team members"}`)
+		return
+	}
+
+	type EventTeamDetail struct {
+		EventTeam
+		Members []User `json:"members"`
+	}
+
+	respJSON, err := json.Marshal(EventTeamDetail{
+		EventTeam: *team,
+		Members:   members,
+	})
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
+
+func getMyEventTeam(w http.ResponseWriter, r *http.Request) {
+	eventIdParam := pat.Param(r, "event_id")
+	eventId, err := strconv.Atoi(eventIdParam)
+	if err != nil {
+		logrus.Warn("bad event_id")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad event_id"}`)
+		return
+	}
+
+	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if !ok || token == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, `{"code":"401", "message":"unauthorized"}`)
+		return
+	}
+
+	team, err := db.GetUserTeamForEvent(token.Id, eventId)
+	if err != nil {
+		logrus.WithError(err).Error("error getting user team")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error getting user team"}`)
+		return
+	}
+	if team == nil {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"not on a team"}`)
+		return
+	}
+
+	members, err := db.GetTeamMembers(team.ID)
+	if err != nil {
+		logrus.WithError(err).Error("error getting team members")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error getting team members"}`)
+		return
+	}
+
+	type EventTeamDetail struct {
+		EventTeam
+		Members []User `json:"members"`
+	}
+
+	respJSON, err := json.Marshal(EventTeamDetail{
+		EventTeam: *team,
+		Members:   members,
+	})
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
 }
 
 type PostJoinTeam struct {
@@ -1200,11 +1332,13 @@ func joinTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only admins can modify users that are not themselves
-	if reqData.UserID != token.Id && token.Role != AdminRoleEnum {
-		logrus.Error("Authentication error in token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Authentication error"}`)
+	userId := reqData.UserID
+	if userId == uuid.Nil {
+		userId = token.Id
+	}
+	if userId != token.Id && token.Role != AdminRoleEnum {
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, `{"code":"403", "message":"cannot join team for another user"}`)
 		return
 	}
 
@@ -1216,21 +1350,40 @@ func joinTeam(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"code":"500", "message":"error getting event from db"}`)
 		return
 	}
-	if team == nil {
+	if team == nil || team.EventID != eventId {
 		logrus.WithError(err).Error("team does not exist")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"team does not exist"}`)
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"team does not exist"}`)
 		return
 	}
 
-	// TODO: Make sure user is part of only one team
-	_, err = db.CreateEventUser(
-		&EventUser{
-			UserID:  reqData.UserID,
-			EventID: event.ID,
-			TeamID:  team.ID,
-		},
-	)
+	existingEventUser, err := db.GetEventUser(userId, eventId)
+	if err != nil {
+		logrus.WithError(err).Error("error checking event user")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error checking event user"}`)
+		return
+	}
+
+	if existingEventUser != nil {
+		if existingEventUser.TeamID != uuid.Nil && existingEventUser.TeamID != teamId {
+			w.WriteHeader(http.StatusConflict)
+			fmt.Fprint(w, `{"code":"409", "message":"already on another team"}`)
+			return
+		}
+		if existingEventUser.TeamID == teamId {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, `{"message":"already on this team"}`)
+			return
+		}
+		err = db.UpdateEventUserTeam(userId, eventId, teamId)
+	} else {
+		_, err = db.CreateEventUser(&EventUser{
+			UserID:  userId,
+			EventID: eventId,
+			TeamID:  teamId,
+		})
+	}
 	if err != nil {
 		logrus.WithError(err).Error("error adding user to team")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1268,18 +1421,109 @@ func getEventSubmissions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamQuery := r.URL.Query().Get("team")
+	userQuery := r.URL.Query().Get("user")
+
+	var submissions []Submission
 	if teamQuery != "" {
-	} else if userQuery := r.URL.Query().Get("team"); userQuery != "" {
+		if !event.Teams {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"not a team event"}`)
+			return
+		}
+		teamID, err := uuid.Parse(teamQuery)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"bad team id"}`)
+			return
+		}
+		submissions, err = db.GetAllEventSubmissionsByTeam(eventId, teamID)
+		if err != nil {
+			logrus.WithError(err).Error("error getting team submissions")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error getting submissions"}`)
+			return
+		}
+	} else if userQuery != "" {
+		userID, err := uuid.Parse(userQuery)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"bad user id"}`)
+			return
+		}
+		submissions, err = db.GetSubmissionsByUserID(userID)
+		if err != nil {
+			logrus.WithError(err).Error("error getting user submissions")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error getting submissions"}`)
+			return
+		}
+		filtered := make([]Submission, 0)
+		for _, s := range submissions {
+			if s.EventID != nil && *s.EventID == eventId {
+				filtered = append(filtered, s)
+			}
+		}
+		submissions = filtered
+	} else {
+		submissions, err = db.GetAllEventSubmissions(eventId)
+		if err != nil {
+			logrus.WithError(err).Error("error getting event submissions")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error getting submissions"}`)
+			return
+		}
 	}
 
-	// ?team=
-	// 	Check if it's a team event. Error if not
-	// ?user=
-	// 	All submission by a user for this event
-	// ?type=accepted
-	//  Filter by submissions that have the status=Accepted
-	// ?duplicates=true
-	// 	If multiple correct submissions for the same problem, return all of them
+	respJSON, err := json.Marshal(submissions)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
+
+func endEventEarly(w http.ResponseWriter, r *http.Request) {
+	eventIdParam := pat.Param(r, "event_id")
+	eventId, err := strconv.Atoi(eventIdParam)
+	if err != nil {
+		logrus.Warn("bad event_id")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad event_id"}`)
+		return
+	}
+
+	event, err := db.GetEventByID(eventId)
+	if err != nil {
+		logrus.WithError(err).Error("error getting event from db")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error getting event from db"}`)
+		return
+	}
+	if event == nil {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"event not found"}`)
+		return
+	}
+
+	now := time.Now()
+	if event.EndTime.Before(now) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"message":"event already ended"}`)
+		return
+	}
+
+	event.EndTime = now
+	if err := db.UpdateEvent(event); err != nil {
+		logrus.WithError(err).Error("error ending event")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error ending event"}`)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, `{"message":"event ended successfully"}`)
 }
 
 type EventProblemStats struct {

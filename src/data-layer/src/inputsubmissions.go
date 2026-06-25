@@ -42,10 +42,10 @@ func addInputSubmissionRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/public/input_submissions"), RateLimitMiddleware(postPublicInputSubmission, publicInputLimiter))
 	mux.HandleFunc(pat.Get("/v1/public/input_submissions/:submission_id"), getPublicInputSubmission)
 
-	mux.HandleFunc(pat.Post("/v1/bench/input_submissions"), postPublicInputSubmission)
+	mux.HandleFunc(pat.Post("/v1/bench/input_submissions"), RateLimitMiddleware(postPublicInputSubmission, benchInputLimiter))
 	mux.HandleFunc(pat.Get("/v1/bench/input_submissions/:submission_id"), getPublicInputSubmission)
 
-	mux.HandleFunc(pat.Post("/v1/input_submissions"), AuthRequired(postInputSubmission))
+	mux.HandleFunc(pat.Post("/v1/input_submissions"), AuthRequired(AuthenticatedRateLimitMiddleware(authenticatedInputLimiter, postInputSubmission)))
 	mux.HandleFunc(pat.Get("/v1/input_submissions/:submission_id"), AuthRequired(getAuthenticatedInputSubmission))
 	mux.HandleFunc(pat.Patch("/v1/input_submissions/:submission_id"), AtLeastJudgeRequired(updateCustomInputSubmissionStatus))
 }

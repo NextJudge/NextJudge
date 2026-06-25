@@ -88,6 +88,12 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if statusCode, message := validateProblemRequestBody(reqData); statusCode != 0 {
+		logrus.WithField("message", message).Warn("invalid problem request")
+		writeProblemValidationError(w, statusCode, message)
+		return
+	}
+
 	// problem, err := db.GetProblemDescriptionByTitle(reqData.Title)
 	// if err != nil {
 	// 	logrus.WithError(err).Error("error checking for existing problem")
@@ -101,13 +107,6 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 	// 	fmt.Fprintf(w, `{"code":"409", "message":"problem already exists", "id":%d}`, problem.ID)
 	// 	return
 	// }
-
-	if reqData.Identifier == "" {
-		logrus.Warn("identifier is empty")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"identifier is empty"}`)
-		return
-	}
 
 	problem, err := db.GetProblemDescriptionByIdentifer(reqData.Identifier)
 	if err != nil {
@@ -262,10 +261,9 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if reqData.Identifier == "" {
-		logrus.Warn("identifier is empty")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"identifier is empty"}`)
+	if statusCode, message := validateProblemRequestBody(reqData); statusCode != 0 {
+		logrus.WithField("message", message).Warn("invalid problem request")
+		writeProblemValidationError(w, statusCode, message)
 		return
 	}
 
@@ -429,6 +427,7 @@ func getPublicProblemData(w http.ResponseWriter, r *http.Request) {
 		ID:               problemExt.ID,
 		EventID:          0, // Not tied to a specific event
 		Title:            problemExt.Title,
+		Identifier:       problemExt.Identifier,
 		Prompt:           problemExt.Prompt,
 		Source:           problemExt.Source,
 		Difficulty:       problemExt.Difficulty,
@@ -439,6 +438,7 @@ func getPublicProblemData(w http.ResponseWriter, r *http.Request) {
 		AcceptTimeout:    problemExt.DefaultAcceptTimeout,
 		ExecutionTimeout: problemExt.DefaultExecutionTimeout,
 		MemoryLimit:      problemExt.DefaultMemoryLimit,
+		Categories:       problemExt.Categories,
 		Tests:            sanitizedTests,
 	}
 
@@ -489,26 +489,15 @@ func getProblemTestData(w http.ResponseWriter, r *http.Request) {
 }
 
 func getGeneralProblems(w http.ResponseWriter, r *http.Request) {
-	// Get user role from token
-	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-	if !ok {
-		logrus.Error("Error in token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Error in token"}`)
-		return
-	}
-	if token == nil {
-		logrus.Error("Token is nil")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"message":"Error in token"}`)
-		return
-	}
+	claims, hasClaims := claimsFromContext(r)
 
 	var problems []GetEventProblemType
 	var err error
 
-	// Admins get all problems, regular users get only public problems
-	if token.Role == AdminRoleEnum {
+	if !hasClaims {
+		writeNotAuthenticated(w)
+		return
+	} else if claims.Role == AdminRoleEnum {
 		problems, err = db.GetAllProblems()
 		if err != nil {
 			logrus.WithError(err).Error("error retrieving admin problems")
@@ -524,6 +513,13 @@ func getGeneralProblems(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems"}`)
 			return
 		}
+	}
+
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving problems")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems"}`)
+		return
 	}
 
 	respJSON, err := json.Marshal(problems)
