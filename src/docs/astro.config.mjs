@@ -4,8 +4,12 @@ import mermaid from 'astro-mermaid';
 import lucode from 'lucode-starlight';
 import { defineConfig } from 'astro/config';
 
-const docsSiteDescription =
-  'Official NextJudge documentation for deploying self-hosted competitive programming contests, configuring judges, and integrating with the REST API.';
+import {
+  DOCS_BRAND,
+  DOCS_SITE_DESCRIPTION,
+  DOCS_SITE_URL,
+  DOCS_TITLE_DELIMITER,
+} from './src/lib/site.ts';
 
 /** Appends NextJudge CSS after Lucode so brand overrides win. */
 const nextJudgeTheme = () => ({
@@ -21,17 +25,17 @@ const nextJudgeTheme = () => ({
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://docs.nextjudge.net',
+  site: DOCS_SITE_URL,
   markdown: {
     processor: unified(),
   },
   integrations: [
     mermaid({ autoTheme: true }),
     starlight({
-      title: 'NextJudge Docs',
-      description: docsSiteDescription,
+      title: DOCS_BRAND,
+      description: DOCS_SITE_DESCRIPTION,
       favicon: '/favicon.png',
-      titleDelimiter: '|',
+      titleDelimiter: DOCS_TITLE_DELIMITER,
       routeMiddleware: './src/routeData.ts',
       head: [
         {
@@ -39,13 +43,6 @@ export default defineConfig({
           attrs: {
             rel: 'stylesheet',
             href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap',
-          },
-        },
-        {
-          tag: 'meta',
-          attrs: {
-            name: 'twitter:creator',
-            content: '@nextjudge',
           },
         },
       ],

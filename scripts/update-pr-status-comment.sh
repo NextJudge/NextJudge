@@ -11,13 +11,10 @@ PR_NUMBER="${PR_NUMBER:?PR_NUMBER is required}"
 SHA="${SHA:?SHA is required}"
 WEB_CHANGED="${WEB_CHANGED:-false}"
 DOCS_CHANGED="${DOCS_CHANGED:-false}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 preview_url() {
-  case "$1" in
-    web) echo "https://${PR_NUMBER}-web.preview.nextjudge.net" ;;
-    docs) echo "https://${PR_NUMBER}-docs.preview.nextjudge.net" ;;
-    *) return 1 ;;
-  esac
+  "${SCRIPT_DIR}/preview-url.sh" "$1" "$PR_NUMBER"
 }
 
 preview_status() {
