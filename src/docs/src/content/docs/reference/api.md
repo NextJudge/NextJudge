@@ -1,11 +1,11 @@
 ---
 title: API Reference
-description: REST endpoints for the NextJudge data layer, including contests, problems, submissions, users, and authentication flows.
+description: REST endpoints for the NextJudge data layer: contests, problems, submissions, users and authentication flows.
 ---
 
 Base URL: `http://localhost:5000` (dev). Routes under `/v1/` unless noted.
 
-**Auth first:** [Authentication](/reference/authentication/). TL;DR: raw JWT in `Authorization` header, no `Bearer`.
+**Auth:** [Authentication](/reference/authentication/). Send the raw JWT in the `Authorization` header with no `Bearer` prefix.
 
 ## Quick flow
 
@@ -39,7 +39,7 @@ curl -s http://localhost:5000/v1/submissions/$SUB_ID -H "Authorization: $TOKEN" 
 | ------ | ---- | ----------- | ------- |
 | POST | `/v1/basic_register` | none | Create account + JWT |
 | POST | `/v1/basic_login` | none | Login + JWT |
-| POST | `/v1/create_or_login_user` | `AUTH_PROVIDER_PASSWORD` | OAuth bridge (web app) |
+| POST | `/v1/create_or_login_user` | `WEB_BRIDGE_SECRET` | OAuth bridge (web app) |
 | POST | `/v1/login_judge` | `JUDGE_PASSWORD` | Judge worker JWT |
 | POST | `/v1/basic_request_password_reset` | none | Request reset |
 | POST | `/v1/basic_reset_password` | none | Set new password |
@@ -137,9 +137,15 @@ Query: `?type=private` includes hidden tests (admin only).
 }
 ```
 
+Validation (`400` with `{"code":"400","message":"..."}`):
+
+- `title`, `identifier` and `prompt` must be non-empty (after trim)
+- `difficulty` required — one of `VERY_EASY`, `EASY`, `MEDIUM`, `HARD`, `VERY_HARD`
+- At least one test case; each test case needs non-empty `input` and `expected_output`
+
 ### PUT /v1/problems/{problem_id}
 
-**Auth:** admin. Partial updates to problem metadata and tests.
+**Auth:** admin. Partial updates to problem metadata and tests. Same validation rules as POST when problem fields or test cases are included.
 
 ### DELETE /v1/problems/{problem_description_id}
 
@@ -184,13 +190,17 @@ Judge PATCHes status later. You poll GET until `status != PENDING`.
 
 ### GET /v1/submissions/{submission_id}
 
-**Auth:** owner or admin
+**Auth:** submission owner, judge, or admin
 
-Full submission including `test_case_results` after grading.
+Full submission including `source_code` and `test_case_results` after grading. Other authenticated users get `401 Unauthorized`.
 
 ### GET /v1/submissions/{submission_id}/status
 
-**Auth:** owner or admin. Lightweight status-only poll.
+**Auth:** submission owner, judge, or admin. Lightweight status-only poll (preferred by the web app while waiting).
+
+```json
+{ "id": "uuid", "status": "PENDING" }
+```
 
 ### PATCH /v1/submissions/{submission_id}
 
@@ -318,11 +328,52 @@ The API says **events**. The UI says **contests**. Same thing.
 | ------ | ---- | ---- | ------- |
 | GET | `/v1/events/{id}/problems` | user | Problems in contest |
 | POST | `/v1/events/{id}/problems` | user | Attach problem |
-| GET | `/v1/events/{id}/submissions` | user | Filtered submissions |
+| GET | `/v1/events/{id}/submissions` | user | Filtered submissions (see below) |
 | GET | `/v1/events/{id}/attempts` | user | ICPC-style solve times |
 | GET | `/v1/events/{id}/participants` | user/admin | Who registered |
 | POST | `/v1/events/{id}/participants` | admin | Add participant |
 | GET/POST | `/v1/events/{id}/questions` | user | Clarification questions |
+| POST | `/v1/events/{id}/end` | admin | End contest early (sets `end_time` to now) |
+
+### Team contests
+
+Create an event with `"teams": true`. Team endpoints only work when teams are enabled on that event.
+
+| Method | Path | Auth | Purpose |
+| ------ | ---- | ---- | ------- |
+| GET | `/v1/events/{id}/teams` | user | List teams (`[{ "id", "event_id", "name" }]`) |
+| POST | `/v1/events/{id}/teams` | user | Create a team (creator joins automatically) |
+| GET | `/v1/events/{id}/teams/me` | user | Current user's team + `members` |
+| GET | `/v1/events/{id}/teams/{team_id}` | user | Team detail + `members` |
+| POST | `/v1/events/{id}/teams/{team_id}/join` | user | Join a team |
+
+**POST** `/v1/events/{id}/teams` body:
+
+```json
+{ "name": "Team Ada" }
+```
+
+`201`: `{"message":"Success","team_id":"uuid"}`. Conflicts: `409` duplicate name or already on a team for this event.
+
+**POST** join body (optional — defaults to the authenticated user):
+
+```json
+{ "user_id": "uuid" }
+```
+
+`201` on success. One team per user per event.
+
+### GET /v1/events/{id}/submissions
+
+**Auth:** required. Query filters:
+
+| Query | Behavior |
+| ----- | -------- |
+| (none) | All contest submissions — event owner, judge, or admin only |
+| `?user={uuid}` | That user's contest submissions — self or admin |
+| `?team={uuid}` | Team submissions — team members (or judge/admin) on team events |
+
+**Redaction:** responses strip `source_code`, `stdout` and `stderr` for submissions you do not own. Status, timing and verdict fields remain visible. Owners, judges and admins see full payloads on their own submissions.
 
 ---
 
@@ -359,6 +410,6 @@ No auth. `200` = up.
 | 403 | Wrong role |
 | 404 | Not found |
 | 409 | Conflict (e.g. user exists) |
-| 500 | Server blew up |
+| 500 | Internal server error |
 
 Auth errors are worth memorizing: `Malformed JWT token` almost always means you prefixed `Bearer`.

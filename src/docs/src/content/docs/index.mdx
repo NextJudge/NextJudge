@@ -1,11 +1,11 @@
 ---
 title: NextJudge
-description: Deploy NextJudge on your infrastructure, run sandboxed judges with nsjail, and host programming contests without vendor lock-in.
+description: Self-hosted competitive programming: deploy judges with nsjail, run contests and keep data on your infrastructure.
 template: splash
 hero:
   layout: centered
   title: NextJudge
-  tagline: Host contests and judge code on your own machines. Just Postgres, RabbitMQ, nsjail, and no vendor lock-in.
+  tagline: Host contests and judge code on your own machines. Postgres, RabbitMQ, nsjail, no vendor lock-in.
   actions:
     - text: Your first 15 minutes
       link: /start/getting-started/#your-first-15-minutes
@@ -23,16 +23,16 @@ import { ContainerSection } from "lucode-starlight/components";
 <ContainerSection>
 <CardGrid>
   <Card title="Deploy" icon="cloud-download">
-    Get NextJudge [deployed](/start/getting-started/#deploy) on your own machine in a few minutes.
+    [Deploy](/start/getting-started/#deploy) NextJudge on your machine in a few minutes.
   </Card>
   <Card title="Architecture" icon="code-branch">
-    How [we're built](/architecture/components/) and how an nsjail sandbox [judges](/architecture/judge/) your code in real time.
+    [Service layout](/architecture/components/) and how the [judge](/architecture/judge/) sandboxes submitted code.
   </Card>
   <Card title="CLI" icon="laptop">
-    [Install our CLI](/guides/cli/) and run NextJudge without leaving the terminal.
+    [Install the CLI](/guides/cli/) to work from the terminal.
   </Card>
   <Card title="API" icon="document">
-    [Authenticate](/reference/authentication/) then [interact](/reference/api/) with the data layer directly.
+    [Authenticate](/reference/authentication/) then call the [data layer](/reference/api/) directly.
   </Card>
 </CardGrid>
 </ContainerSection>
