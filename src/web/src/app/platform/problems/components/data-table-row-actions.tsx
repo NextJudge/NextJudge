@@ -15,10 +15,10 @@ import {
 
 import { deleteProblem } from "@/app/actions";
 import { apiToggleProblemVisibility } from "@/lib/api";
-import { Problem } from "@/lib/types";
+import { problemListItemSchema } from "@/lib/schemas/problem";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 interface DataTableRowActionsProps<TData> {
@@ -34,11 +34,16 @@ export function DataTableRowActions<TData>({
   const { data: session } = useSession();
   const [isToggling, setIsToggling] = useState(false);
 
-  // TODO: Migrate this to the new schema
-  //   const problem = problemSchema.parse(row.original);
-  const problem = row.original as Problem;
+  const problem = useMemo(() => {
+    const result = problemListItemSchema.safeParse(row.original);
+    return result.success ? result.data : null;
+  }, [row.original]);
 
   const onDeleteProblem = useCallback(async () => {
+    if (!problem) {
+      return;
+    }
+
     try {
       const result = await deleteProblem(problem.id);
       if (result.status === "success") {
@@ -52,9 +57,13 @@ export function DataTableRowActions<TData>({
     } catch (error) {
       toast.error("Failed to delete problem");
     }
-  }, [problem.id, onUpdate]);
+  }, [problem, onUpdate]);
 
   const onToggleVisibility = useCallback(async () => {
+    if (!problem) {
+      return;
+    }
+
     if (!session?.nextjudge_token) {
       toast.error("Authentication required");
       return;
@@ -72,7 +81,11 @@ export function DataTableRowActions<TData>({
     } finally {
       setIsToggling(false);
     }
-  }, [session?.nextjudge_token, problem.id, problem.public, onUpdate]);
+  }, [session?.nextjudge_token, problem, onUpdate]);
+
+  if (!problem) {
+    return null;
+  }
 
   return (
     <DropdownMenu>

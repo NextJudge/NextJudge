@@ -1,16 +1,10 @@
 "use client";
 
 import { createProblem } from "@/app/actions";
+import { CategorySelector } from "@/components/forms/category-selector";
+import { TestCasesEditor } from "@/components/forms/test-cases-editor";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Form,
   FormControl,
@@ -28,110 +22,55 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  ProblemFormValues,
+  parseOptionalFloat,
+  parseOptionalInt,
+  problemFormSchema,
+} from "@/lib/schemas/problem-form";
 import { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu";
-import { useEffect, useReducer } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
 import Editor from "../editor/rich-text/editor";
-import { ScrollArea } from "../ui/scroll-area";
 
-const problemFormSchema = z.object({
-  title: z
-    .string()
-    .min(2, {
-      message: "Title must be at least 2 characters.",
-    })
-    .max(100, {
-      message: "Title must not be longer than 100 characters.",
-    }),
-  identifier: z
-    .string()
-    .min(2, {
-      message: "Identifier must be at least 2 characters.",
-    })
-    .max(50, {
-      message: "Identifier must not be longer than 50 characters.",
-    })
-    .regex(/^[a-z0-9-]+$/, {
-      message: "Identifier must only contain lowercase letters, numbers, and dashes.",
-    }),
-  prompt: z.string().min(8, {
-    message: "You must enter a problem statement.",
-  }),
-  source: z.string().optional(),
-  accept_timeout: z.number().positive().min(0.1, {
-    message: "Accept timeout must be at least 0.1 seconds.",
-  }),
-  execution_timeout: z.number().positive().min(0.1, {
-    message: "Execution timeout must be at least 0.1 seconds.",
-  }),
-  memory_limit: z.number().int().positive().min(1, {
-    message: "Memory limit must be at least 1 MB.",
-  }),
-  difficulty: z
-    .enum(["VERY EASY", "EASY", "MEDIUM", "HARD", "VERY HARD"])
-    .refine((value) => value !== undefined, {
-      message: "Difficulty must be selected.",
-    }),
-  problem_categories: z.array(z.string()).default([]),
-  test_cases: z.array(z.object({
-    input: z.string().min(1, { message: "Input is required." }),
-    expected_output: z.string().min(1, { message: "Expected output is required." }),
-    hidden: z.boolean().default(false),
-  })).min(1, { message: "At least one test case is required." }),
-  public: z.boolean().default(true),
-});
-
-type ProblemFormValues = z.infer<typeof problemFormSchema>;
-
-type Checked = DropdownMenuCheckboxItemProps["checked"];
-
-// TODO: Make the multi-select more UI/UX friendly
 export function CreateProblemForm({ categories }: { categories: Category[] }) {
-  const [selectedCategories, setSelectedCategories] = useReducer(
-    (state: Category[], action: Category[]) => action,
-    []
-  );
-
-  const defaultValues: Partial<ProblemFormValues> = {
-    title: "",
-    identifier: "",
-    prompt: "",
-    source: "",
-    accept_timeout: 10.0,
-    execution_timeout: 5.0,
-    memory_limit: 256,
-    difficulty: undefined,
-    problem_categories: [],
-    test_cases: [{ input: "", expected_output: "", hidden: false }],
-    public: true,
-  };
+  const router = useRouter();
 
   const form = useForm<ProblemFormValues>({
     resolver: zodResolver(problemFormSchema),
-    defaultValues,
-    mode: "onBlur",
+    defaultValues: {
+      title: "",
+      identifier: "",
+      prompt: "",
+      source: "",
+      accept_timeout: 10.0,
+      execution_timeout: 5.0,
+      memory_limit: 256,
+      difficulty: undefined,
+      problem_categories: [],
+      test_cases: [{ input: "", expected_output: "", hidden: false }],
+      public: true,
+    },
+    mode: "onChange",
   });
 
-  // auto-populate identifier from title
   const titleValue = form.watch("title");
   const identifierValue = form.watch("identifier");
+  const selectedCategoryIds = form.watch("problem_categories");
 
   useEffect(() => {
-    // only auto-populate if identifier is empty and title has content
     if (titleValue && !identifierValue) {
       const generatedIdentifier = titleValue
         .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "") // remove special chars
+        .replace(/[^a-z0-9\s-]/g, "")
         .trim()
-        .replace(/\s+/g, "-") // replace spaces with dashes
-        .replace(/-+/g, "-") // collapse multiple dashes
-        .replace(/^-|-$/g, ""); // remove leading/trailing dashes
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
 
       if (generatedIdentifier) {
         form.setValue("identifier", generatedIdentifier);
@@ -139,39 +78,20 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
     }
   }, [titleValue, identifierValue, form]);
 
-  async function onSubmit(data: z.infer<typeof problemFormSchema>) {
+  const onSubmit = async (data: ProblemFormValues) => {
     try {
-      const status = await createProblem(data, selectedCategories.map((c) => c.id));
+      const status = await createProblem(data);
 
       if (status.status === "success") {
         toast.success(status.message);
-        form.reset();
-        setSelectedCategories([]);
-      } else {
-        toast.error(status.message);
+        router.push("/platform/admin/problems");
+        return;
       }
+
+      toast.error(status.message);
     } catch (error) {
       console.error("Form submission error:", error);
       toast.error("Something went wrong.");
-    }
-  }
-
-  // Functions to manage test cases
-  const addTestCase = () => {
-    const currentTestCases = form.getValues("test_cases");
-    form.setValue("test_cases", [
-      ...currentTestCases,
-      { input: "", expected_output: "", hidden: false }
-    ]);
-  };
-
-  const removeTestCase = (index: number) => {
-    const currentTestCases = form.getValues("test_cases");
-    if (currentTestCases.length > 1) {
-      form.setValue(
-        "test_cases",
-        currentTestCases.filter((_, i) => i !== index)
-      );
     }
   };
 
@@ -179,7 +99,7 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn("grid md:grid-cols-2 gap-6 min-h-full p-2")}
+        className={cn("grid min-h-full gap-6 p-2 md:grid-cols-2")}
       >
         <FormField
           control={form.control}
@@ -226,7 +146,7 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
           name="source"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="source">Source (Optional)</FormLabel>
+              <FormLabel htmlFor="source">Source (optional)</FormLabel>
               <FormControl>
                 <Input
                   {...field}
@@ -245,19 +165,22 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
           name="accept_timeout"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="accept_timeout">Accept Timeout (seconds)</FormLabel>
+              <FormLabel htmlFor="accept_timeout">Accept timeout (seconds)</FormLabel>
               <FormControl>
                 <Input
-                  {...field}
                   id="accept_timeout"
                   type="number"
                   step="0.1"
-                  onChange={(event) =>
-                    field.onChange(parseFloat(event.target.value))
-                  }
+                  value={field.value}
+                  onChange={(event) => {
+                    const parsed = parseOptionalFloat(event.target.value);
+                    if (parsed !== undefined) {
+                      field.onChange(parsed);
+                    }
+                  }}
                 />
               </FormControl>
-              <FormDescription>Time limit for accepting the solution (seconds).</FormDescription>
+              <FormDescription>Time limit for accepting the solution.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -267,19 +190,22 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
           name="execution_timeout"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="execution_timeout">Execution Timeout (seconds)</FormLabel>
+              <FormLabel htmlFor="execution_timeout">Execution timeout (seconds)</FormLabel>
               <FormControl>
                 <Input
-                  {...field}
                   id="execution_timeout"
                   type="number"
                   step="0.1"
-                  onChange={(event) =>
-                    field.onChange(parseFloat(event.target.value))
-                  }
+                  value={field.value}
+                  onChange={(event) => {
+                    const parsed = parseOptionalFloat(event.target.value);
+                    if (parsed !== undefined) {
+                      field.onChange(parsed);
+                    }
+                  }}
                 />
               </FormControl>
-              <FormDescription>Time limit for code execution (seconds).</FormDescription>
+              <FormDescription>Time limit for code execution.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -289,18 +215,21 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
           name="memory_limit"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="memory_limit">Memory Limit (MB)</FormLabel>
+              <FormLabel htmlFor="memory_limit">Memory limit (MB)</FormLabel>
               <FormControl>
                 <Input
-                  {...field}
                   id="memory_limit"
                   type="number"
-                  onChange={(event) =>
-                    field.onChange(parseInt(event.target.value))
-                  }
+                  value={field.value}
+                  onChange={(event) => {
+                    const parsed = parseOptionalInt(event.target.value);
+                    if (parsed !== undefined) {
+                      field.onChange(parsed);
+                    }
+                  }}
                 />
               </FormControl>
-              <FormDescription>Memory limit in megabytes (MB).</FormDescription>
+              <FormDescription>Memory limit in megabytes.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -311,7 +240,7 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
           render={({ field }) => (
             <FormItem>
               <FormLabel htmlFor="difficulty">Difficulty</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a difficulty" />
@@ -330,54 +259,12 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          // TODO: Make this styling consistent
-          name="problem_categories"
-          render={({ field }) => (
-            <FormItem className="flex flex-col gap-0">
-              <FormLabel htmlFor="problem_categories" className="mb-1">
-                Tags
-              </FormLabel>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">Select tags</Button>
-                </DropdownMenuTrigger>
-                <ScrollArea>
-                  <DropdownMenuContent className="w-56 max-h-96">
-                    <DropdownMenuLabel>Select Tags</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {categories.map((category: Category) => (
-                      <DropdownMenuCheckboxItem
-                        key={category.id}
-                        checked={selectedCategories
-                          .map((c) => c.id)
-                          .includes(category.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedCategories([
-                              ...selectedCategories,
-                              category,
-                            ]);
-                          } else {
-                            setSelectedCategories(
-                              selectedCategories.filter(
-                                (c) => c.id !== category.id
-                              )
-                            );
-                          }
-                        }}
-                      >
-                        {category.name}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </DropdownMenuContent>
-                </ScrollArea>
-              </DropdownMenu>
-              <FormDescription>The problem categories.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+        <CategorySelector
+          categories={categories}
+          selectedIds={selectedCategoryIds}
+          onChange={(ids) =>
+            form.setValue("problem_categories", ids, { shouldValidate: true })
+          }
         />
         <FormField
           control={form.control}
@@ -391,7 +278,7 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel>Make Public</FormLabel>
+                <FormLabel>Make public</FormLabel>
                 <FormDescription>
                   Make this problem visible to all users.
                 </FormDescription>
@@ -400,95 +287,8 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
             </FormItem>
           )}
         />
-        <div className="col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">Test Cases</h3>
-            <Button type="button" onClick={addTestCase} variant="outline" size="sm">
-              Add Test Case
-            </Button>
-          </div>
-          <FormField
-            control={form.control}
-            name="test_cases"
-            render={() => (
-              <FormItem>
-                <div className="space-y-4">
-                  {form.watch("test_cases").map((testCase, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
-                      <div className="md:col-span-3 flex items-center justify-between mb-2">
-                        <h4 className="font-medium">Test Case {index + 1}</h4>
-                        {form.watch("test_cases").length > 1 && (
-                          <Button
-                            type="button"
-                            onClick={() => removeTestCase(index)}
-                            variant="destructive"
-                            size="sm"
-                          >
-                            Remove
-                          </Button>
-                        )}
-                      </div>
-                      <FormField
-                        control={form.control}
-                        name={`test_cases.${index}.input`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Input</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                {...field}
-                                placeholder="Input for this test case"
-                                className="min-h-[100px]"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`test_cases.${index}.expected_output`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Expected Output</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                {...field}
-                                placeholder="Expected output for this test case"
-                                className="min-h-[100px]"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`test_cases.${index}.hidden`}
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-6">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Hidden Test Case</FormLabel>
-                              <FormDescription>
-                                Hide this test case from users.
-                              </FormDescription>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="col-span-2">
+          <TestCasesEditor form={form} />
         </div>
         <FormField
           control={form.control}
@@ -497,25 +297,23 @@ export function CreateProblemForm({ categories }: { categories: Category[] }) {
             <FormItem className="col-span-2">
               <FormLabel htmlFor="prompt">Prompt</FormLabel>
               <FormControl>
-                {/* <Textarea
-                  className="max-h-[120px] lg:max-h-[180px]"
-                  {...field}
-                  id="prompt"
-                /> */}
                 <Editor
                   content={field.value}
-                  onChange={(value) => field.onChange(value)}
+                  onChange={field.onChange}
                   placeholder="Enter the prompt here..."
-                //   readOnly={false}
                 />
               </FormControl>
-              <FormDescription>Supports Latex and Markdown.</FormDescription>
+              <FormDescription>Supports LaTeX and Markdown.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-1/2 self-end mt-2">
-          Create Problem
+        <Button
+          type="submit"
+          className="mt-2 w-1/2 self-end"
+          disabled={form.formState.isSubmitting}
+        >
+          {form.formState.isSubmitting ? "Creating..." : "Create problem"}
         </Button>
       </form>
     </Form>
