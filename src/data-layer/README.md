@@ -547,7 +547,25 @@ make postgres
 
 ### Testing
 
-The `./tests/` directory contains API tests using Tavern. To run the tests, start the service in one terminal and then run `pipenv run pytest tests/ -p no:warnings` in another. Ensure an init script has been ran against the database beforehand.
+API tests use Tavern against an **isolated Docker stack** (Postgres 16, port **5050** by default). From the repo root:
+
+```sh
+./scripts/run-data-layer-tests.sh
+```
+
+Or manually:
+
+```sh
+cd src/data-layer
+pip install -r tests/requirements.txt
+docker compose -f docker-compose.test.yml up -d --build --wait
+TAVERN_HOST=http://127.0.0.1:5050 pytest tests/test_data_layer.tavern.yaml -p no:warnings
+docker compose -f docker-compose.test.yml down -v
+```
+
+Go unit tests run as part of the script above (`go test ./src/...`). Auth is always on — tests register users via `basic_register` / `basic_login`.
+
+Canonical API docs: [nextjudge.net docs](https://nextjudge.net) or `src/docs/src/content/docs/reference/api.md` in this repo.
 
 ### Debugging
 
