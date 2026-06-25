@@ -1,5 +1,4 @@
 import { Footer } from "@/components/footer";
-import { QueryProvider } from "@/providers/query-provider";
 import { PAGE_TITLES, SITE_COPY } from "@/lib/site";
 import { SEO_ROBOTS } from "@/lib/seo";
 import { Metadata } from "next";
@@ -26,18 +25,16 @@ export default function PlatformLayout({ children }: PlatformLayoutProps) {
 
   return (
     <SessionProvider>
-      <QueryProvider>
-        <main
-          className={
-            isEditorPage
-              ? "h-screen overflow-hidden"
-              : "flex flex-col items-center justify-center overflow-x-hidden"
-          }
-        >
-          {children}
-        </main>
-        <Footer variant="platform" />
-      </QueryProvider>
+      <main
+        className={
+          isEditorPage
+            ? "h-screen overflow-hidden"
+            : "flex flex-col items-center justify-center overflow-x-hidden"
+        }
+      >
+        {children}
+      </main>
+      <Footer variant="platform" />
     </SessionProvider>
   );
 }
