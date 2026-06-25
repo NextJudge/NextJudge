@@ -82,24 +82,24 @@ def setup_tests(host: str, admin_token: str):
     endpoint = host + "/v1/languages"
     r = requests.get(endpoint, timeout=10)
     for l in safe_json_list(r):
-            if l['name'] == globals_["test_language"]:
-                endpoint = endpoint + "/" + str(l['id'])
-                r = requests.delete(endpoint, headers=admin_headers, timeout=10)
-                if r.status_code != 204:
-                    raise RuntimeError("error deleting test language")
-                break
+        if l['name'] == globals_["test_language"]:
+            endpoint = endpoint + "/" + str(l['id'])
+            r = requests.delete(endpoint, headers=admin_headers, timeout=10)
+            if r.status_code != 204:
+                raise RuntimeError("error deleting test language")
+            break
 
 @pytest.fixture(scope="session", autouse=True)
 def five_minutes_from_now():
-  time = datetime.now(timezone.utc) + timedelta(minutes = 5)
-  return time.strftime('%Y-%m-%dT%H:%M:%SZ')
+    time = datetime.now(timezone.utc) + timedelta(minutes=5)
+    return time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 @pytest.fixture(scope="session", autouse=True)
 def five_minutes_ago():
-  time = datetime.now(timezone.utc) + timedelta(minutes = -5)
-  return time.strftime('%Y-%m-%dT%H:%M:%SZ')
+    time = datetime.now(timezone.utc) + timedelta(minutes=-5)
+    return time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 @pytest.fixture(scope="session", autouse=True)
 def ten_minutes_from_now():
-  time = datetime.now(timezone.utc) + timedelta(minutes = 10)
-  return time.strftime('%Y-%m-%dT%H:%M:%SZ')
+    time = datetime.now(timezone.utc) + timedelta(minutes=10)
+    return time.strftime('%Y-%m-%dT%H:%M:%SZ')
