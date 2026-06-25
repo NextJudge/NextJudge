@@ -15,7 +15,6 @@ services:
       - RABBITMQ_HOST=rabbitmq-dev
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-      - AUTH_DISABLED=false
       - SEED_DATA=true
     depends_on:
       db-dev:

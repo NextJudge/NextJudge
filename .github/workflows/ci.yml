@@ -29,12 +29,14 @@ jobs:
           filters: |
             web:
               - 'src/web/**'
+              - 'scripts/run-e2e-tests.sh'
               - '.github/workflows/ci.yml'
             docs:
               - 'src/docs/**'
               - '.github/workflows/ci.yml'
             backend:
               - 'src/data-layer/**'
+              - 'scripts/run-data-layer-tests.sh'
               - 'docker-bake.hcl'
               - '.github/workflows/ci.yml'
               - '.github/workflows/deploy-production.yml'
@@ -63,6 +65,38 @@ jobs:
             "${{ secrets.TIPTAP_NPM_TOKEN }}" > .npmrc
       - run: npm ci
       - run: npm run lint
+
+  web-e2e:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      - uses: docker/setup-buildx-action@v3
+      - name: Configure Tiptap registry
+        working-directory: src/web
+        run: |
+          printf '@tiptap-pro:registry=https://registry.tiptap.dev/\n//registry.tiptap.dev/:_authToken=%s\n' \
+            "${{ secrets.TIPTAP_NPM_TOKEN }}" > .npmrc
+      - name: Install web dependencies
+        working-directory: src/web
+        run: npm ci
+      - name: Install Playwright browser
+        working-directory: src/web
+        run: npx playwright install chromium --with-deps
+      - name: Build judge for E2E
+        working-directory: src/judge
+        run: |
+          docker build -f Dockerfile.newbase --target prod -t basejudge:prod .
+          docker build -f Dockerfile.monolith --target release --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge:e2e .
+      - name: Run Playwright E2E tests
+        run: ./scripts/run-e2e-tests.sh
 
   web-build:
     needs: changes
@@ -125,6 +159,20 @@ jobs:
             judge.cache-from=type=gha,scope=nextjudge-judge
             judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
 
+  backend-tests:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: src/data-layer/go.mod
+          cache-dependency-path: src/data-layer/go.sum
+      - uses: docker/setup-buildx-action@v3
+      - name: Run data layer tests
+        run: ./scripts/run-data-layer-tests.sh
+
   judge-tests:
     needs: changes
     if: needs.changes.outputs.judge == 'true'
@@ -140,7 +188,7 @@ jobs:
           docker compose -f docker-compose.test.yml run --rm pytest
 
   ci-success:
-    needs: [changes, web-lint, web-build, docs-build, backend-build, judge-tests]
+    needs: [changes, web-lint, web-e2e, web-build, docs-build, backend-build, backend-tests, judge-tests]
     if: always() && !cancelled() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     permissions:
