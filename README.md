@@ -29,24 +29,14 @@ NextJudge is a monorepo, which allows our services to share dependencies and cod
 
 ```
 .
-├── src
+├── compose/              # docker-compose.*.yml
+├── scripts/              # e2e and API test runners (run-e2e-tests.sh, run-data-layer-tests.sh, …)
+├── src/
 │   ├── cli - command-line interface for interacting with the platform
 │   ├── data-layer - HTTP wrapper over underlying database
 │   ├── judge - runs and judges code submissions
 │   ├── web - web application for the platform
-├── compose
-│   ├── docker-compose.backend.yml - Docker compose file for running all backend services
-│   ├── docker-compose.dev.yml - Docker compose file for running all services with hot reload
-│   ├── docker-compose.coolify.yml - Docker compose file for running all services on Coolify
-│   └── docker-compose.prebuilt.yml - Docker compose file using prebuilt images
-├── deploy.sh - script to deploy all services using Docker compose
-├── build-frontend.sh - script to build the frontend application
-├── dev-deploy.sh - script to deploy all services using Docker compose with hot reload
-├── fully-reset.sh - script to flush the database and remove all volumes
-├── docker-bake.hcl - Docker build configuration for our multi-stage builds
-├── CONTRIBUTING.md - guidelines for contributing to the project
-├── LICENSE - MIT License
-└── CODE_OF_CONDUCT.md - guidelines for community behavior
+│   └── docs - documentation site (Astro)
 ```
 
 > [!TIP]
@@ -57,6 +47,12 @@ NextJudge is a monorepo, which allows our services to share dependencies and cod
 ### Deployment 📦
 
 The top-level `./deploy.sh` will instantiate all modules using Docker compose internally.
+
+Generate secrets first if you don't have a `.env` yet:
+
+```sh
+./.createenv.sh > .env
+```
 
 ```sh
 ./deploy.sh

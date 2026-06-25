@@ -7,9 +7,9 @@ services:
     environment:
       - JUDGE_PASSWORD=${JUDGE_PASSWORD}
       - JWT_SIGNING_SECRET=${JWT_SIGNING_SECRET}
-      - AUTH_PROVIDER_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - WEB_BRIDGE_SECRET=${WEB_BRIDGE_SECRET}
       - DB_HOST=db
-      - DB_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - DB_PASSWORD=${DB_PASSWORD}
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
@@ -32,7 +32,7 @@ services:
     image: postgres:16
     platform: linux/amd64
     environment:
-      - POSTGRES_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=nextjudge
     volumes:
       - postgres_data:/var/lib/postgresql/data

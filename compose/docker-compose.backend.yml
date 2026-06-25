@@ -9,9 +9,9 @@ services:
       - ELASTIC_ENABLED="${ELASTIC_ENABLED:-false}"
       - JUDGE_PASSWORD=${JUDGE_PASSWORD}
       - JWT_SIGNING_SECRET=${JWT_SIGNING_SECRET}
-      - AUTH_PROVIDER_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - WEB_BRIDGE_SECRET=${WEB_BRIDGE_SECRET}
       - DB_HOST=db
-      - DB_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - DB_PASSWORD=${DB_PASSWORD}
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
@@ -29,7 +29,7 @@ services:
       file: ../src/data-layer/docker-compose.db.yml
       service: db
     environment:
-      - POSTGRES_PASSWORD=${AUTH_PROVIDER_PASSWORD}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
 
   nextjudge-judge:
     extends:
