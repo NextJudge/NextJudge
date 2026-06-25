@@ -1,0 +1,82 @@
+import { ProblemRequest } from "../types";
+import {
+	type ProblemDetail,
+	type ProblemListItem,
+	parseProblemDetail,
+	parseProblemList,
+} from "../schemas/problem";
+import { apiFetch, apiFetchJson, authHeaders, jsonAuthHeaders } from "./client";
+
+export async function apiGetProblems(
+	token: string,
+): Promise<ProblemListItem[]> {
+	const response = await apiFetch("/v1/problems", {
+		headers: authHeaders(token),
+	});
+	const json: unknown = await response.json();
+	return parseProblemList(json);
+}
+
+export async function apiGetProblem(
+	token: string,
+	problemId: number,
+): Promise<ProblemDetail> {
+	const response = await apiFetch(`/v1/problems/${problemId}`, {
+		headers: authHeaders(token),
+	});
+	const json: unknown = await response.json();
+	return parseProblemDetail(json);
+}
+
+/** @deprecated use apiGetProblem */
+export async function fetchProblemID(
+	token: string,
+	id: number,
+): Promise<ProblemDetail> {
+	return apiGetProblem(token, id);
+}
+
+export async function apiToggleProblemVisibility(
+	token: string,
+	problemId: number,
+): Promise<ProblemDetail> {
+	const response = await apiFetch(
+		`/v1/admin/problems/${problemId}/toggle-visibility`,
+		{
+			method: "PUT",
+			headers: authHeaders(token),
+		},
+	);
+	const json: unknown = await response.json();
+	return parseProblemDetail(json);
+}
+
+export async function apiCreateProblem(token: string, data: ProblemRequest) {
+	return apiFetchJson("/v1/problems", {
+		method: "POST",
+		headers: jsonAuthHeaders(token),
+		body: JSON.stringify(data),
+	});
+}
+
+export async function apiUpdateProblem(
+	token: string,
+	problemId: number,
+	data: ProblemRequest,
+) {
+	return apiFetchJson(`/v1/problems/${problemId}`, {
+		method: "PUT",
+		headers: jsonAuthHeaders(token),
+		body: JSON.stringify(data),
+	});
+}
+
+export async function apiDeleteProblem(
+	token: string,
+	problemId: number,
+): Promise<void> {
+	await apiFetch(`/v1/problems/${problemId}`, {
+		method: "DELETE",
+		headers: authHeaders(token),
+	});
+}
