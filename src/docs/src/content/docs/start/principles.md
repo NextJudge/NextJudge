@@ -1,6 +1,6 @@
 ---
 title: Design decisions
-description: Architectural choices behind NextJudge: self-hosting, service boundaries, nsjail sandboxes, Postgres and RabbitMQ.
+description: "Architectural choices behind NextJudge: self-hosting, service boundaries, nsjail sandboxes, Postgres and RabbitMQ."
 ---
 
 ## Self-hosted first
