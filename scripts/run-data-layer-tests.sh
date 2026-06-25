@@ -15,7 +15,7 @@ trap cleanup EXIT
 
 echo "Running Go unit tests..."
 DB_PASSWORD=test \
-AUTH_PROVIDER_PASSWORD=test \
+WEB_BRIDGE_SECRET=test \
 JUDGE_PASSWORD=test \
 JWT_SIGNING_SECRET=test-jwt-signing-secret-minimum-32-chars \
 RABBITMQ_USER=test \
