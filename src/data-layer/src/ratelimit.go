@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -91,8 +93,26 @@ var publicInputLimiter = newIPRateLimiter(rate.Limit(5.0/60.0), 2)
 // benchInputLimiter: unauthenticated bench route (same cost as public runs)
 var benchInputLimiter = newIPRateLimiter(rate.Limit(5.0/60.0), 2)
 
-// authEndpointLimiter: login/register brute-force protection
-var authEndpointLimiter = newIPRateLimiter(rate.Limit(10.0/60.0), 5)
+// authEndpointLimiter: login/register brute-force protection (configured in initAuthRateLimiter)
+var authEndpointLimiter *ipRateLimiter
+
+func initAuthRateLimiter() {
+	perMin := 10
+	if value := os.Getenv("AUTH_RATE_LIMIT_PER_MIN"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			perMin = parsed
+		}
+	}
+
+	burst := 5
+	if value := os.Getenv("AUTH_RATE_LIMIT_BURST"); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			burst = parsed
+		}
+	}
+
+	authEndpointLimiter = newIPRateLimiter(rate.Limit(float64(perMin)/60.0), burst)
+}
 
 // authenticatedInputLimiter: per-user custom input runs
 var authenticatedInputLimiter = newKeyedRateLimiter(rate.Limit(30.0/60.0), 10)
