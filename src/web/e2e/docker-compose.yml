@@ -81,7 +81,7 @@ services:
       nextjudge-data-layer:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'python3 app.py' > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "grep -qa app.py /proc/1/cmdline"]
       interval: 5s
       timeout: 5s
       retries: 24
