@@ -91,7 +91,7 @@ export const selectPythonLanguage = async (page: Page): Promise<void> => {
 
   const pythonOption = page.getByRole("option", { name: /^python\b/i });
   await expect(pythonOption).toBeVisible();
-  await searchInput.press("Enter");
+  await pythonOption.click();
 
   await expect(combobox).toContainText(/^python\b/i, { timeout: 15_000 });
 };
