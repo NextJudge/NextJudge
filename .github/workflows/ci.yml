@@ -94,8 +94,6 @@ jobs:
       - name: Install Playwright browser
         working-directory: src/web
         run: npx playwright install chromium --with-deps
-      - name: Run Playwright smoke tests (no judge)
-        run: E2E_WITH_JUDGE=0 ./scripts/run-e2e-tests.sh
       - name: Build judge image for E2E
         if: needs.changes.outputs.judge == 'true'
         uses: docker/bake-action@v6
@@ -114,8 +112,15 @@ jobs:
       - name: Pull prebuilt judge image for E2E
         if: needs.changes.outputs.judge != 'true'
         run: E2E_JUDGE_USE_PULL=1 ./scripts/prepare-e2e-judge-image.sh
+      - name: Start E2E stack
+        run: E2E_WITH_JUDGE=1 ./scripts/start-e2e-stack.sh
+      - name: Run Playwright smoke tests
+        run: ./scripts/run-e2e-playwright.sh --grep-invert @judge
       - name: Run Playwright judge E2E tests
-        run: E2E_WITH_JUDGE=1 ./scripts/run-e2e-tests.sh
+        run: ./scripts/run-e2e-playwright.sh --grep @judge
+      - name: Stop E2E stack
+        if: always()
+        run: ./scripts/stop-e2e-stack.sh
 
   web-build:
     needs: changes
