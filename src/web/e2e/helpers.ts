@@ -10,6 +10,18 @@ export const login = async (
   await page.locator('input[name="password"]').fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.waitForURL("**/platform**");
+  await expect
+    .poll(async () => {
+      const response = await page.request.get("/api/auth/session");
+      if (!response.ok()) {
+        return null;
+      }
+      const session = (await response.json()) as {
+        user?: { email?: string | null };
+      };
+      return session.user?.email ?? null;
+    })
+    .toBe(email);
 };
 
 export const expectLoginPage = async (page: Page): Promise<void> => {
@@ -55,8 +67,14 @@ export const setEditorCode = async (page: Page, code: string): Promise<void> => 
 };
 
 export const selectPythonLanguage = async (page: Page): Promise<void> => {
-  await page.getByRole("combobox", { name: /programming language/i }).click();
-  await page.getByRole("option", { name: /^python\b/i }).click();
+  const combobox = page.getByRole("combobox", { name: /programming language/i });
+  await expect(combobox).not.toHaveText(/select a language/i);
+  await combobox.click();
+  await page.getByPlaceholder("Search languages...").fill("python");
+  const pythonOption = page.getByRole("option", { name: /^python\b/i });
+  await expect(pythonOption).toBeVisible();
+  await pythonOption.click();
+  await expect(combobox).toContainText(/^python\b/i);
 };
 
 export const openFirstProblem = async (page: Page): Promise<void> => {
