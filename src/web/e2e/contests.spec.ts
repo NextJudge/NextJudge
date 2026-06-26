@@ -1,11 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { E2E_ADMIN_USER } from "./constants";
-import { login } from "./helpers";
+import { E2E_ADMIN_AUTH_STATE } from "./constants";
 
 test.describe("contests", () => {
-  test.beforeEach(async ({ page }) => {
-    await login(page, E2E_ADMIN_USER.email, E2E_ADMIN_USER.password);
-  });
+  test.use({ storageState: E2E_ADMIN_AUTH_STATE });
 
   test("contests page shows status tabs and contest cards", async ({ page }) => {
     await page.goto("/platform/contests");

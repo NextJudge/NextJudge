@@ -41,6 +41,7 @@ fi
 
 cat > "$WEB_DIR/.env.local" <<EOF
 AUTH_SECRET=${E2E_AUTH_SECRET}
+AUTH_URL=http://${E2E_WEB_HOST}:${E2E_WEB_PORT}
 WEB_BRIDGE_SECRET=${E2E_WEB_BRIDGE_SECRET}
 NEXTAUTH_URL=http://${E2E_WEB_HOST}:${E2E_WEB_PORT}
 NEXT_PUBLIC_API_URL=http://${E2E_WEB_HOST}:${E2E_DATA_LAYER_PORT}
@@ -53,6 +54,13 @@ if [ ! -d node_modules ]; then
 fi
 
 npx playwright install chromium
+
+if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+  echo "Stopping existing web dev server to apply E2E env (pid $(cat "$PID_FILE"))..."
+  kill "$(cat "$PID_FILE")" 2>/dev/null || true
+  wait "$(cat "$PID_FILE")" 2>/dev/null || true
+  rm -f "$PID_FILE"
+fi
 
 if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
   echo "Web dev server already running (pid $(cat "$PID_FILE"))."

@@ -50,7 +50,9 @@ services:
       RABBITMQ_USER: e2e-rabbit
       RABBITMQ_PASSWORD: e2e-rabbit-password
       SEED_DATA: "true"
-      CORS_ORIGIN: http://127.0.0.1:8080
+      AUTH_RATE_LIMIT_PER_MIN: "120"
+      AUTH_RATE_LIMIT_BURST: "30"
+      CORS_ORIGIN: http://localhost:8080
     depends_on:
       db:
         condition: service_healthy

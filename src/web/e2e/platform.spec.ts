@@ -1,15 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { E2E_ADMIN_USER, REVERSE_STRING_SOLUTION } from "./constants";
-import {
-  login,
-  openFirstProblem,
-  selectPythonLanguage,
-  setEditorCode,
-} from "./helpers";
+import { E2E_ADMIN_AUTH_STATE, REVERSE_STRING_SOLUTION } from "./constants";
+import { openFirstProblem, selectPythonLanguage, setEditorCode } from "./helpers";
 
 test.describe("problem solving", { tag: "@judge" }, () => {
+  test.use({ storageState: E2E_ADMIN_AUTH_STATE });
+
   test("authenticated user can run and submit a solution", async ({ page }) => {
-    await login(page, E2E_ADMIN_USER.email, E2E_ADMIN_USER.password);
     await openFirstProblem(page);
 
     await selectPythonLanguage(page);

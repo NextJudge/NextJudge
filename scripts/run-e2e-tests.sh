@@ -61,6 +61,7 @@ fi
 
 cat > "$WEB_DIR/.env.local" <<EOF
 AUTH_SECRET=${E2E_AUTH_SECRET}
+AUTH_URL=http://${E2E_WEB_HOST}:${E2E_WEB_PORT}
 WEB_BRIDGE_SECRET=${E2E_WEB_BRIDGE_SECRET}
 NEXTAUTH_URL=http://${E2E_WEB_HOST}:${E2E_WEB_PORT}
 NEXT_PUBLIC_API_URL=http://${E2E_WEB_HOST}:${E2E_DATA_LAYER_PORT}
@@ -102,6 +103,9 @@ if [ ${#PLAYWRIGHT_ARGS[@]} -eq 0 ]; then
 fi
 
 echo "Running Playwright E2E tests against ${BASE_URL}..."
-PLAYWRIGHT_BASE_URL="$BASE_URL" npx playwright test "${PLAYWRIGHT_ARGS[@]}"
+AUTH_URL="http://${E2E_WEB_HOST}:${E2E_WEB_PORT}" \
+NEXTAUTH_URL="http://${E2E_WEB_HOST}:${E2E_WEB_PORT}" \
+PLAYWRIGHT_BASE_URL="$BASE_URL" \
+npx playwright test "${PLAYWRIGHT_ARGS[@]}"
 
 echo "E2E tests passed."

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:8080";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:8080";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -21,9 +21,12 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   projects: [
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
+      testIgnore: /auth\.setup\.ts/,
     },
   ],
 });

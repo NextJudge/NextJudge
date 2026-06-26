@@ -1,11 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { E2E_ADMIN_USER, E2E_USER } from "./constants";
-import { login } from "./helpers";
+import { E2E_ADMIN_AUTH_STATE, E2E_ADMIN_USER, E2E_USER_AUTH_STATE } from "./constants";
 
 test.describe("platform navigation", () => {
-  test.beforeEach(async ({ page }) => {
-    await login(page, E2E_ADMIN_USER.email, E2E_ADMIN_USER.password);
-  });
+  test.use({ storageState: E2E_ADMIN_AUTH_STATE });
 
   test("dashboard shows welcome and stats", async ({ page }) => {
     await page.goto("/platform");
@@ -51,9 +48,12 @@ test.describe("platform navigation", () => {
 });
 
 test.describe("admin access control", () => {
+  test.use({ storageState: E2E_USER_AUTH_STATE });
+
   test("non-admin user is redirected from admin routes", async ({ page }) => {
-    await login(page, E2E_USER.email, E2E_USER.password);
-    await page.goto("/platform/admin");
-    await expect(page).toHaveURL(/\/platform\/?$/, { timeout: 30_000 });
+    await page.goto("/platform/admin", { waitUntil: "networkidle" });
+    await expect
+      .poll(() => new URL(page.url()).pathname)
+      .toMatch(/^\/platform\/?$/);
   });
 });
