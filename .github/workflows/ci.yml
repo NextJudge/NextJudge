@@ -19,7 +19,7 @@ jobs:
     outputs:
       web: ${{ steps.filter.outputs.web }}
       docs: ${{ steps.filter.outputs.docs }}
-      backend: ${{ steps.filter.outputs.backend }}
+      core: ${{ steps.filter.outputs.core }}
       judge: ${{ steps.filter.outputs.judge }}
     steps:
       - uses: actions/checkout@v4
@@ -38,16 +38,15 @@ jobs:
             docs:
               - 'src/docs/**'
               - '.github/workflows/ci.yml'
-            backend:
+            core:
               - 'src/data-layer/**'
               - 'scripts/run-data-layer-tests.sh'
               - 'docker-bake.hcl'
               - '.github/workflows/ci.yml'
-              - '.github/workflows/deploy-production.yml'
             judge:
               - 'src/judge/**'
+              - 'docker-bake.hcl'
               - '.github/workflows/ci.yml'
-              - '.github/workflows/deploy-production.yml'
 
   web-lint:
     needs: changes
@@ -72,7 +71,7 @@ jobs:
 
   web-e2e:
     needs: changes
-    if: needs.changes.outputs.web == 'true'
+    if: needs.changes.outputs.web == 'true' || needs.changes.outputs.judge == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -109,14 +108,15 @@ jobs:
             basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
             judge.cache-from=type=gha,scope=nextjudge-judge
             judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
-      - name: Pull prebuilt judge image for E2E
-        if: needs.changes.outputs.judge != 'true'
-        run: E2E_JUDGE_USE_PULL=1 ./scripts/prepare-e2e-judge-image.sh
       - name: Start E2E stack
-        run: E2E_WITH_JUDGE=1 ./scripts/start-e2e-stack.sh
+        env:
+          E2E_WITH_JUDGE: ${{ needs.changes.outputs.judge == 'true' && '1' || '0' }}
+        run: ./scripts/start-e2e-stack.sh
       - name: Run Playwright smoke tests
+        if: needs.changes.outputs.web == 'true'
         run: ./scripts/run-e2e-playwright.sh --grep-invert @judge
       - name: Run Playwright judge E2E tests
+        if: needs.changes.outputs.judge == 'true'
         run: ./scripts/run-e2e-playwright.sh --grep @judge
       - name: Stop E2E stack
         if: always()
@@ -160,32 +160,47 @@ jobs:
           cache-from: type=gha,scope=nextjudge-docs
           cache-to: type=gha,mode=max,scope=nextjudge-docs
 
-  backend-build:
+  core-build:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - name: Build backend images
+      - name: Build core image
         uses: docker/bake-action@v6
         with:
           files: docker-bake.hcl
-          targets: basejudge,core,judge
+          targets: core
           push: false
           set: |
             core.target=release
+            core.cache-from=type=gha,scope=nextjudge-core
+            core.cache-to=type=gha,mode=max,scope=nextjudge-core
+
+  judge-build:
+    needs: changes
+    if: needs.changes.outputs.judge == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build judge image
+        uses: docker/bake-action@v6
+        with:
+          files: docker-bake.hcl
+          targets: basejudge,judge
+          push: false
+          set: |
             judge.target=release
             basejudge.cache-from=type=gha,scope=nextjudge-basejudge
             basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
-            core.cache-from=type=gha,scope=nextjudge-core
-            core.cache-to=type=gha,mode=max,scope=nextjudge-core
             judge.cache-from=type=gha,scope=nextjudge-judge
             judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
 
   backend-tests:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -223,7 +238,7 @@ jobs:
         run: docker compose -f docker-compose.test.yml run --rm pytest
 
   ci-success:
-    needs: [changes, web-lint, web-e2e, web-build, docs-build, backend-build, backend-tests, judge-tests]
+    needs: [changes, web-lint, web-e2e, web-build, docs-build, core-build, judge-build, backend-tests, judge-tests]
     if: always() && !cancelled() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     permissions:

@@ -19,7 +19,9 @@ jobs:
     outputs:
       web: ${{ steps.filter.outputs.web }}
       docs: ${{ steps.filter.outputs.docs }}
-      backend: ${{ steps.filter.outputs.backend }}
+      core: ${{ steps.filter.outputs.core }}
+      judge: ${{ steps.filter.outputs.judge }}
+      backend: ${{ steps.filter.outputs.core == 'true' || steps.filter.outputs.judge == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -30,16 +32,18 @@ jobs:
               - 'src/web/**'
             docs:
               - 'src/docs/**'
-            backend:
+            core:
               - 'src/data-layer/**'
+              - 'docker-bake.hcl'
+            judge:
               - 'src/judge/**'
               - 'docker-bake.hcl'
 
-  build-and-push-backend:
+  build-and-push-core:
     needs: changes
     if: |
       github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.backend == 'true'
+      needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -50,38 +54,54 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Build and push basejudge
+      - name: Build and push core
         uses: docker/bake-action@v6
         with:
           files: docker-bake.hcl
-          targets: basejudge
-          push: true
-          set: |
-            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.IMAGE_TAG }}
-            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:latest
-            basejudge.cache-from=type=gha,scope=nextjudge-basejudge
-            basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
-      - name: Build and push core and judge
-        uses: docker/bake-action@v6
-        with:
-          files: docker-bake.hcl
-          targets: core,judge
+          targets: core
           push: true
           set: |
             core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:${{ env.IMAGE_TAG }}
             core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:latest
+            core.cache-from=type=gha,scope=nextjudge-core
+            core.cache-to=type=gha,mode=max,scope=nextjudge-core
+            core.target=release
+
+  build-and-push-judge:
+    needs: changes
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.judge == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build and push basejudge and judge
+        uses: docker/bake-action@v6
+        with:
+          files: docker-bake.hcl
+          targets: basejudge,judge
+          push: true
+          set: |
+            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.IMAGE_TAG }}
+            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:latest
             judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:${{ env.IMAGE_TAG }}
             judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:latest
             judge.args.BASEJUDGE=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.IMAGE_TAG }}
-            core.cache-from=type=gha,scope=nextjudge-core
-            core.cache-to=type=gha,mode=max,scope=nextjudge-core
+            basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+            basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
             judge.cache-from=type=gha,scope=nextjudge-judge
             judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
-            core.target=release
             judge.target=release
 
   deploy:
-    needs: [changes, build-and-push-backend]
+    needs: [changes, build-and-push-core, build-and-push-judge]
     if: always() && !cancelled() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     steps:
