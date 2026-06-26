@@ -37,16 +37,24 @@ E2E_DATA_LAYER_PORT="$E2E_DATA_LAYER_PORT" E2E_JUDGE_IMAGE="$E2E_JUDGE_IMAGE" \
   docker compose -f "$E2E_DIR/docker-compose.yml" up -d --build --wait
 
 echo "Waiting for judge to finish connecting to the data layer..."
+judge_ready=false
 for _ in $(seq 1 90); do
-  if docker compose -f "$E2E_DIR/docker-compose.yml" logs nextjudge-judge 2>&1 | grep -q "Can contact the core service"; then
+  # Do not grep judge logs for readiness: python3 app.py runs without -u, so
+  # "Can contact the core service" may stay block-buffered even after the judge
+  # is consuming. A RabbitMQ consumer on submission_queue is the real signal.
+  if docker compose -f "$E2E_DIR/docker-compose.yml" exec -T rabbitmq \
+    rabbitmqctl list_queues name consumers 2>/dev/null \
+    | awk '$1 == "submission_queue" && $2 == "1" { found=1 } END { exit !found }'; then
+    judge_ready=true
     echo "Judge is ready."
     break
   fi
   sleep 2
 done
-if ! docker compose -f "$E2E_DIR/docker-compose.yml" logs nextjudge-judge 2>&1 | grep -q "Can contact the core service"; then
+if [ "$judge_ready" != "true" ]; then
   echo "Judge failed to become ready:"
   docker compose -f "$E2E_DIR/docker-compose.yml" logs nextjudge-judge
+  docker compose -f "$E2E_DIR/docker-compose.yml" logs nextjudge-data-layer | tail -30
   exit 1
 fi
 

@@ -68,6 +68,7 @@ services:
     pull_policy: never
     privileged: true
     environment:
+      PYTHONUNBUFFERED: "1"
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       NEXTJUDGE_HOST: nextjudge-data-layer
