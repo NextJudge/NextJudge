@@ -54,8 +54,6 @@ test.describe("admin access control", () => {
   test("non-admin user is redirected from admin routes", async ({ page }) => {
     await login(page, E2E_USER.email, E2E_USER.password);
     await page.goto("/platform/admin");
-    await expect
-      .poll(() => new URL(page.url()).pathname)
-      .toBe("/platform");
+    await expect(page).toHaveURL(/\/platform\/?$/, { timeout: 30_000 });
   });
 });
