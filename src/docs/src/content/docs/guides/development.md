@@ -50,21 +50,28 @@ NextJudge/
 **Web (Playwright — isolated local docker stack, not production):**
 
 ```bash
-# Full suite (CI-style: start stack, run tests, tear down)
-./scripts/run-e2e-tests.sh
+# Smoke tests only (no judge build) — matches most CI web PRs
+E2E_WITH_JUDGE=0 ./scripts/run-e2e-tests.sh
+
+# Full suite including code run/submit (needs judge image)
+E2E_WITH_JUDGE=1 ./scripts/run-e2e-tests.sh
+
+# Pull a prebuilt judge image instead of building locally (~3 min saved)
+E2E_WITH_JUDGE=1 E2E_JUDGE_USE_PULL=1 ./scripts/run-e2e-tests.sh
 
 # Local iteration — start once, rerun only what you changed
 ./scripts/start-e2e-stack.sh
-./scripts/run-e2e-playwright.sh e2e/auth.spec.ts
-./scripts/run-e2e-playwright.sh e2e/auth.spec.ts -g "invalid credentials"
-./scripts/run-e2e-playwright.sh --ui
+./scripts/run-e2e-playwright.sh --grep-invert @judge
+E2E_WITH_JUDGE=1 ./scripts/start-e2e-stack.sh
+./scripts/run-e2e-playwright.sh --grep @judge
 ./scripts/stop-e2e-stack.sh
 
 # Or from src/web when the stack is already up:
-PLAYWRIGHT_BASE_URL=http://127.0.0.1:8080 npm run test:e2e -- e2e/auth.spec.ts
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:8080 npm run test:e2e:smoke
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:8080 npm run test:e2e:judge
 ```
 
-Constants and stack config live in `src/web/e2e/` (`constants.ts`, `test-stack.config.sh`, `docker-compose.yml`).
+Constants and stack config live in `src/web/e2e/` (`constants.ts`, `test-stack.config.sh`, `docker-compose.yml`). The `@judge` tag marks specs that need the judge worker (`platform.spec.ts`).
 
 **Data layer:**
 
@@ -91,9 +98,9 @@ Path-filtered jobs in `.github/workflows/ci.yml`:
 
 | Change in | Runs |
 | --------- | ---- |
-| `src/web/**` | lint, Playwright smoke (local stack), Docker build |
+| `src/web/**` | lint, Playwright smoke (no judge), Playwright judge E2E (pull prebuilt image), Docker build |
 | `src/data-layer/**` | Go unit tests, Tavern API tests (local stack), Docker image build |
-| `src/judge/**` | Judge tests, image build |
+| `src/judge/**` | Judge tests (cached image build), judge image build for Playwright `@judge` specs |
 | `src/docs/**` | Docs build |
 
 Changes confined to one service usually trigger only that job.
