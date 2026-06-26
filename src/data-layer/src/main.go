@@ -21,6 +21,8 @@ var es *ElasticSearch
 var previewOriginPattern = regexp.MustCompile(`^[0-9]+-(web|docs)\.preview\.nextjudge\.net$`)
 
 func main() {
+	initAuthRateLimiter()
+
 	var debug = flag.Bool("d", false, "enable debug logging")
 	var port = flag.String("p", "5000", "port")
 	var healthcheck = flag.Bool("healthcheck", false, "check HTTP health endpoint and exit")
