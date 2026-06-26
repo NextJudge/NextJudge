@@ -1,5 +1,10 @@
 import { expect, type Page } from "@playwright/test";
 
+const getBaseUrlHostname = (): string => {
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:8080";
+  return new URL(baseUrl).hostname;
+};
+
 export const login = async (
   page: Page,
   email: string,
@@ -9,7 +14,16 @@ export const login = async (
   await page.getByLabel("Email").fill(email);
   await page.locator('input[name="password"]').fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL("**/platform**");
+
+  const expectedHost = getBaseUrlHostname();
+  await expect
+    .poll(() => new URL(page.url()).pathname)
+    .toMatch(/^\/platform\/?$/);
+
+  await expect
+    .poll(() => new URL(page.url()).hostname)
+    .toBe(expectedHost);
+
   await expect
     .poll(async () => {
       const response = await page.request.get("/api/auth/session");
@@ -70,11 +84,16 @@ export const selectPythonLanguage = async (page: Page): Promise<void> => {
   const combobox = page.getByRole("combobox", { name: /programming language/i });
   await expect(combobox).not.toHaveText(/select a language/i);
   await combobox.click();
-  await page.getByPlaceholder("Search languages...").fill("python");
+
+  const searchInput = page.getByPlaceholder("Search languages...");
+  await expect(searchInput).toBeVisible();
+  await searchInput.fill("python");
+
   const pythonOption = page.getByRole("option", { name: /^python\b/i });
   await expect(pythonOption).toBeVisible();
-  await pythonOption.click();
-  await expect(combobox).toContainText(/^python\b/i);
+  await searchInput.press("Enter");
+
+  await expect(combobox).toContainText(/^python\b/i, { timeout: 15_000 });
 };
 
 export const openFirstProblem = async (page: Page): Promise<void> => {

@@ -1,7 +1,7 @@
 # Ephemeral local stack for Playwright E2E. Not used in production.
 # Sourced by scripts/run-e2e-tests.sh — keep values in sync with docker-compose.yml below.
 
-E2E_WEB_HOST="127.0.0.1"
+E2E_WEB_HOST="localhost"
 E2E_WEB_PORT="8080"
 E2E_DATA_LAYER_PORT="5051"
 E2E_JUDGE_IMAGE="nextjudge-judge:e2e"

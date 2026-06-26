@@ -21,6 +21,7 @@ dist-ssr
 *.sw?
 .npmrc
 test-results/
+e2e/.auth/
 playwright-report/
 blob-report/
 bun.lock

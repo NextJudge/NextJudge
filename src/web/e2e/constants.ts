@@ -12,6 +12,9 @@ export const E2E_USER = {
   name: "Frank Garcia",
 } as const;
 
+export const E2E_ADMIN_AUTH_STATE = "e2e/.auth/admin.json";
+export const E2E_USER_AUTH_STATE = "e2e/.auth/user.json";
+
 /** Python stdin/stdout solution for seeded reverse-string test cases. */
 export const REVERSE_STRING_SOLUTION = "print(input()[::-1])";
 

@@ -18,4 +18,7 @@ fi
 
 cd "$WEB_DIR"
 echo "Running Playwright against ${BASE_URL}..."
-PLAYWRIGHT_BASE_URL="$BASE_URL" npx playwright test "$@"
+AUTH_URL="http://${E2E_WEB_HOST}:${E2E_WEB_PORT}" \
+NEXTAUTH_URL="http://${E2E_WEB_HOST}:${E2E_WEB_PORT}" \
+PLAYWRIGHT_BASE_URL="$BASE_URL" \
+npx playwright test "$@"
