@@ -31,6 +31,7 @@ jobs:
               - 'src/web/**'
               - 'scripts/run-e2e-tests.sh'
               - 'scripts/run-e2e-playwright.sh'
+              - 'scripts/prepare-e2e-judge-image.sh'
               - 'scripts/start-e2e-stack.sh'
               - 'scripts/stop-e2e-stack.sh'
               - '.github/workflows/ci.yml'
@@ -93,13 +94,28 @@ jobs:
       - name: Install Playwright browser
         working-directory: src/web
         run: npx playwright install chromium --with-deps
-      - name: Build judge for E2E
-        working-directory: src/judge
-        run: |
-          docker build -f Dockerfile.newbase --target prod -t basejudge:prod .
-          docker build -f Dockerfile.monolith --target release --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge:e2e .
-      - name: Run Playwright E2E tests
-        run: ./scripts/run-e2e-tests.sh
+      - name: Run Playwright smoke tests (no judge)
+        run: E2E_WITH_JUDGE=0 ./scripts/run-e2e-tests.sh
+      - name: Build judge image for E2E
+        if: needs.changes.outputs.judge == 'true'
+        uses: docker/bake-action@v6
+        with:
+          files: docker-bake.hcl
+          targets: basejudge,judge
+          push: false
+          load: true
+          set: |
+            judge.tags=nextjudge-judge:e2e
+            judge.target=release
+            basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+            basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
+            judge.cache-from=type=gha,scope=nextjudge-judge
+            judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
+      - name: Pull prebuilt judge image for E2E
+        if: needs.changes.outputs.judge != 'true'
+        run: E2E_JUDGE_USE_PULL=1 ./scripts/prepare-e2e-judge-image.sh
+      - name: Run Playwright judge E2E tests
+        run: E2E_WITH_JUDGE=1 ./scripts/run-e2e-tests.sh
 
   web-build:
     needs: changes
@@ -183,12 +199,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
+      - name: Build judge test image
+        uses: docker/bake-action@v6
+        with:
+          files: docker-bake.hcl
+          targets: basejudge,judge
+          push: false
+          load: true
+          set: |
+            judge.tags=nextjudge-judge-test
+            judge.target=test
+            basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+            basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
+            judge.cache-from=type=gha,scope=nextjudge-judge
+            judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
       - name: Run judge integration tests
         working-directory: src/judge
-        run: |
-          docker build -f Dockerfile.newbase --target prod -t basejudge:prod .
-          docker build -f Dockerfile.monolith --target test --build-arg BASEJUDGE=basejudge:prod -t nextjudge-judge-test .
-          docker compose -f docker-compose.test.yml run --rm pytest
+        run: docker compose -f docker-compose.test.yml run --rm pytest
 
   ci-success:
     needs: [changes, web-lint, web-e2e, web-build, docs-build, backend-build, backend-tests, judge-tests]

@@ -14,5 +14,5 @@ if [ -f "$PID_FILE" ]; then
   rm -f "$PID_FILE"
 fi
 
-docker compose -f "$E2E_DIR/docker-compose.yml" down -v --remove-orphans 2>/dev/null || true
+docker compose --profile with-judge -f "$E2E_DIR/docker-compose.yml" down -v --remove-orphans 2>/dev/null || true
 echo "E2E stack stopped."
