@@ -61,17 +61,20 @@ export function getBridgeUrl() {
 }
 
 export function getAppUrl() {
-    if (isRunningLocally()) {
-        return SITE_URLS.development.app;
-    }
-
     const authUrl = process.env.NEXTAUTH_URL?.trim() ?? process.env.AUTH_URL?.trim();
     if (authUrl) {
         try {
-            return new URL(authUrl).origin;
+            const origin = new URL(authUrl).origin;
+            if (isLocalHostname(authUrl) || !isRunningLocally()) {
+                return origin;
+            }
         } catch {
-            // fall through to default production URL
+            // fall through to defaults
         }
+    }
+
+    if (isRunningLocally()) {
+        return SITE_URLS.development.app;
     }
 
     return SITE_URLS.production.app;
