@@ -11,51 +11,52 @@ fi
 E2E_DIR="$ROOT/src/web/e2e"
 WEB_DIR="$ROOT/src/web"
 WEB_PID=""
+E2E_WITH_JUDGE="${E2E_WITH_JUDGE:-0}"
 
 # shellcheck disable=SC1091
 source "$E2E_DIR/test-stack.config.sh"
+
+compose() {
+  if [ "$E2E_WITH_JUDGE" = "1" ]; then
+    docker compose --profile with-judge -f "$E2E_DIR/docker-compose.yml" "$@"
+  else
+    docker compose -f "$E2E_DIR/docker-compose.yml" "$@"
+  fi
+}
 
 cleanup() {
   if [ -n "$WEB_PID" ]; then
     kill "$WEB_PID" 2>/dev/null || true
     wait "$WEB_PID" 2>/dev/null || true
   fi
-  docker compose -f "$E2E_DIR/docker-compose.yml" down -v --remove-orphans 2>/dev/null || true
+  compose down -v --remove-orphans 2>/dev/null || true
 }
 trap cleanup EXIT
 
 cd "$ROOT"
 
-if ! docker image inspect "${E2E_JUDGE_IMAGE}" >/dev/null 2>&1; then
-  echo "Building judge image for E2E..."
-  docker build -f src/judge/Dockerfile.newbase --target prod -t basejudge:prod src/judge
-  docker build -f src/judge/Dockerfile.monolith --target release --build-arg BASEJUDGE=basejudge:prod -t "${E2E_JUDGE_IMAGE}" src/judge
+if [ "$E2E_WITH_JUDGE" = "1" ]; then
+  "$ROOT/scripts/prepare-e2e-judge-image.sh"
 fi
 
-echo "Starting isolated E2E stack (local docker only)..."
+echo "Starting isolated E2E stack (local docker only, with_judge=${E2E_WITH_JUDGE})..."
 E2E_DATA_LAYER_PORT="$E2E_DATA_LAYER_PORT" E2E_JUDGE_IMAGE="$E2E_JUDGE_IMAGE" \
-  docker compose -f "$E2E_DIR/docker-compose.yml" up -d --build --wait
+  compose up -d --build --wait
 
-echo "Waiting for judge to finish connecting to the data layer..."
-judge_ready=false
-for _ in $(seq 1 90); do
-  # Do not grep judge logs for readiness: python3 app.py runs without -u, so
-  # "Can contact the core service" may stay block-buffered even after the judge
-  # is consuming. A RabbitMQ consumer on submission_queue is the real signal.
-  if docker compose -f "$E2E_DIR/docker-compose.yml" exec -T rabbitmq \
-    rabbitmqctl list_queues name consumers 2>/dev/null \
-    | awk '$1 == "submission_queue" && $2 == "1" { found=1 } END { exit !found }'; then
-    judge_ready=true
-    echo "Judge is ready."
-    break
+if [ "$E2E_WITH_JUDGE" = "1" ]; then
+  echo "Waiting for judge to finish connecting to the data layer..."
+  for _ in $(seq 1 90); do
+    if compose logs nextjudge-judge 2>&1 | grep -q "Can contact the core service"; then
+      echo "Judge is ready."
+      break
+    fi
+    sleep 2
+  done
+  if ! compose logs nextjudge-judge 2>&1 | grep -q "Can contact the core service"; then
+    echo "Judge failed to become ready:"
+    compose logs nextjudge-judge
+    exit 1
   fi
-  sleep 2
-done
-if [ "$judge_ready" != "true" ]; then
-  echo "Judge failed to become ready:"
-  docker compose -f "$E2E_DIR/docker-compose.yml" logs nextjudge-judge
-  docker compose -f "$E2E_DIR/docker-compose.yml" logs nextjudge-data-layer | tail -30
-  exit 1
 fi
 
 cat > "$WEB_DIR/.env.local" <<EOF
@@ -91,7 +92,16 @@ if ! curl -sf "$BASE_URL" >/dev/null 2>&1; then
   exit 1
 fi
 
+PLAYWRIGHT_ARGS=("$@")
+if [ ${#PLAYWRIGHT_ARGS[@]} -eq 0 ]; then
+  if [ "$E2E_WITH_JUDGE" = "1" ]; then
+    PLAYWRIGHT_ARGS=(--grep "@judge")
+  else
+    PLAYWRIGHT_ARGS=(--grep-invert "@judge")
+  fi
+fi
+
 echo "Running Playwright E2E tests against ${BASE_URL}..."
-PLAYWRIGHT_BASE_URL="$BASE_URL" npx playwright test "$@"
+PLAYWRIGHT_BASE_URL="$BASE_URL" npx playwright test "${PLAYWRIGHT_ARGS[@]}"
 
 echo "E2E tests passed."

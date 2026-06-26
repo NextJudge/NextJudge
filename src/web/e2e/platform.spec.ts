@@ -7,7 +7,7 @@ import {
   setEditorCode,
 } from "./helpers";
 
-test.describe("problem solving", () => {
+test.describe("problem solving", { tag: "@judge" }, () => {
   test("authenticated user can run and submit a solution", async ({ page }) => {
     await login(page, E2E_ADMIN_USER.email, E2E_ADMIN_USER.password);
     await openFirstProblem(page);
