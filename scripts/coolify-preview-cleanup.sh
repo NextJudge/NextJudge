@@ -63,12 +63,16 @@ delete_preview_via_ssh() {
   ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$ssh_host" bash -s -- "$pr_number" <<'REMOTE'
 set -euo pipefail
 pr="$1"
-mapfile -t containers < <(docker ps -aq --filter "name=-pr-${pr}-" 2>/dev/null || true)
+mapfile -t containers < <(
+  while read -r id name; do
+    [[ "$name" =~ -pr-${pr}$ ]] && echo "$id"
+  done < <(docker ps -a --format '{{.ID}} {{.Names}}')
+)
 if ((${#containers[@]} == 0)); then
   echo "No preview containers found for PR #${pr}."
   exit 0
 fi
-docker ps -a --filter "name=-pr-${pr}-" --format '{{.Names}}'
+docker ps -a --format '{{.Names}}' | grep -E -- "-pr-${pr}$" || true
 docker rm -f "${containers[@]}"
 echo "Removed ${#containers[@]} container(s) for PR #${pr}."
 REMOTE
@@ -105,12 +109,16 @@ cleanup_all_via_ssh() {
   echo "Removing all preview containers over SSH..." >&2
   ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$ssh_host" bash <<'REMOTE'
 set -euo pipefail
-mapfile -t containers < <(docker ps -aq --filter "name=-pr-" 2>/dev/null || true)
+mapfile -t containers < <(
+  while read -r id name; do
+    [[ "$name" =~ -pr-[0-9]+$ ]] && echo "$id"
+  done < <(docker ps -a --format '{{.ID}} {{.Names}}')
+)
 if ((${#containers[@]} == 0)); then
   echo "No preview containers found."
   exit 0
 fi
-docker ps -a --filter "name=-pr-" --format '{{.Names}}'
+docker ps -a --format '{{.Names}}' | grep -E -- '-pr-[0-9]+$' || true
 docker rm -f "${containers[@]}"
 echo "Removed ${#containers[@]} preview container(s)."
 REMOTE
