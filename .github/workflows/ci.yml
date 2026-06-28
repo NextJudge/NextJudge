@@ -250,7 +250,6 @@ jobs:
         set: |
           basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ github.sha }}
           judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:ci-${{ github.sha }}
-          judge.args.BASEJUDGE=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ github.sha }}
           judge.target=release
           basejudge.cache-from=type=gha,scope=nextjudge-basejudge
           basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge

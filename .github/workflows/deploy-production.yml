@@ -93,7 +93,6 @@ jobs:
             basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:latest
             judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:${{ env.IMAGE_TAG }}
             judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:latest
-            judge.args.BASEJUDGE=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.IMAGE_TAG }}
             basejudge.cache-from=type=gha,scope=nextjudge-basejudge
             basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
             judge.cache-from=type=gha,scope=nextjudge-judge
