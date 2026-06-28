@@ -139,18 +139,48 @@ export function LoginCard({ children }: LoginCardProps) {
 
 const PasswordResetLink = () => {
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<"request" | "confirm">("request");
   const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const handleRequestToken = async () => {
+    if (!email) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Could not start password reset");
+        return;
+      }
+      if (typeof data.token === "string") {
+        setToken(data.token);
+        toast.message("dev reset token loaded from server debug mode");
+      } else {
+        toast.success("if that email exists, a reset token was issued");
+      }
+      setStep("confirm");
+    } catch {
+      toast.error("network error - try again later");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleReset = async () => {
-    if (!email || !newPassword) return;
+    if (!email || !newPassword || !token) return;
     setLoading(true);
     try {
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, new_password: newPassword }),
+        body: JSON.stringify({ email, new_password: newPassword, token }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -158,8 +188,11 @@ const PasswordResetLink = () => {
       } else {
         toast.success("password reset. you can log in now");
         setOpen(false);
+        setStep("request");
+        setToken("");
+        setNewPassword("");
       }
-    } catch (e) {
+    } catch {
       toast.error("network error - try again later");
     } finally {
       setLoading(false);
@@ -167,7 +200,17 @@ const PasswordResetLink = () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) {
+          setStep("request");
+          setToken("");
+          setNewPassword("");
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <button
           type="button"
@@ -190,26 +233,48 @@ const PasswordResetLink = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              disabled={step === "confirm"}
             />
           </div>
-          <div className="grid gap-1">
-            <label htmlFor="rp-pass" className="text-sm">new password</label>
-            <Input
-              id="rp-pass"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="enter new password"
-            />
-          </div>
+          {step === "confirm" ? (
+            <>
+              <div className="grid gap-1">
+                <label htmlFor="rp-token" className="text-sm">reset token</label>
+                <Input
+                  id="rp-token"
+                  type="text"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  placeholder="paste reset token"
+                  autoComplete="one-time-code"
+                />
+              </div>
+              <div className="grid gap-1">
+                <label htmlFor="rp-pass" className="text-sm">new password</label>
+                <Input
+                  id="rp-pass"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="enter new password"
+                />
+              </div>
+            </>
+          ) : null}
         </div>
         <DialogFooter>
           <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
             cancel
           </Button>
-          <Button type="button" onClick={handleReset} disabled={loading}>
-            {loading ? "saving..." : "reset"}
-          </Button>
+          {step === "request" ? (
+            <Button type="button" onClick={handleRequestToken} disabled={loading}>
+              {loading ? "sending..." : "send reset token"}
+            </Button>
+          ) : (
+            <Button type="button" onClick={handleReset} disabled={loading}>
+              {loading ? "saving..." : "reset password"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

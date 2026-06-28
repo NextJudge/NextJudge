@@ -34,11 +34,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: errorMessage }, { status: response.status })
         }
 
-        return NextResponse.json({
-            message: 'Login successful',
-            token: data.token,
-            id: data.id
-        })
+        return NextResponse.json({ message: "Login successful" });
 
     } catch (error) {
         if (error instanceof z.ZodError) {
