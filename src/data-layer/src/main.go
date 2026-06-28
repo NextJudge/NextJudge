@@ -85,6 +85,7 @@ func main() {
 	})
 
 	mux.Use(JSONMiddleware)
+	mux.Use(LimitRequestBodyMiddleware)
 	mux.Use(c.Handler)
 
 	addAuthRoutes(mux)

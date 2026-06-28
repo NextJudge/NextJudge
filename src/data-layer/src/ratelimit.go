@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -121,17 +122,19 @@ var authenticatedInputLimiter = newKeyedRateLimiter(rate.Limit(30.0/60.0), 10)
 var submissionLimiter = newKeyedRateLimiter(rate.Limit(20.0/60.0), 5)
 
 func getClientIP(r *http.Request) string {
-	xff := r.Header.Get("X-Forwarded-For")
-	if xff != "" {
-		if ip, _, err := net.SplitHostPort(xff); err == nil {
-			return ip
+	if cfg.TrustedProxy {
+		xff := r.Header.Get("X-Forwarded-For")
+		if xff != "" {
+			parts := strings.Split(xff, ",")
+			if len(parts) > 0 {
+				return strings.TrimSpace(parts[0])
+			}
 		}
-		return xff
-	}
 
-	xri := r.Header.Get("X-Real-IP")
-	if xri != "" {
-		return xri
+		xri := r.Header.Get("X-Real-IP")
+		if xri != "" {
+			return strings.TrimSpace(xri)
+		}
 	}
 
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)

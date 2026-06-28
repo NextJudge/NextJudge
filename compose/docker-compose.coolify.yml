@@ -15,6 +15,9 @@ services:
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
       - CORS_ORIGIN=${CORS_ORIGIN}
       - CORS_ALLOW_PREVIEW=${CORS_ALLOW_PREVIEW:-true}
+      - TRUSTED_PROXY=${TRUSTED_PROXY:-true}
+      - PASSWORD_RESET_DEBUG=${PASSWORD_RESET_DEBUG:-false}
+      - ALLOW_INSECURE_PASSWORD_RESET=${ALLOW_INSECURE_PASSWORD_RESET:-false}
       - ADMIN_EMAILS=${ADMIN_EMAILS}
     healthcheck:
       test: ["CMD", "/main", "-healthcheck", "-p", "5000"]

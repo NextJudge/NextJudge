@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"time"
 
 	"golang.org/x/crypto/argon2"
 
@@ -60,9 +61,14 @@ type ContextKeyType string
 const ContextTokenKey ContextKeyType = "token"
 
 func createToken(userId uuid.UUID, role RoleEnum) (string, error) {
+	now := time.Now()
 	claim := NextJudgeClaims{
 		Id:   userId,
 		Role: role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
@@ -492,78 +498,145 @@ type PasswordResetRequest struct {
 }
 
 type PasswordResetDirect struct {
-    Email       string `json:"email"`
-    NewPassword string `json:"new_password"`
+	Email       string `json:"email"`
+	NewPassword string `json:"new_password"`
+	Token       string `json:"token"`
 }
 
-// validates the email exists.
+type PasswordResetRequestResponse struct {
+	Status string `json:"status"`
+	Token  string `json:"token,omitempty"`
+}
+
+// validates the email exists and stores a single-use reset token.
 func basicRequestPasswordReset(w http.ResponseWriter, r *http.Request) {
-    req := new(PasswordResetRequest)
-    body, err := io.ReadAll(r.Body)
-    if err != nil {
-        writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
-        return
-    }
-    if err := json.Unmarshal(body, req); err != nil {
-        writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
-        return
-    }
+	req := new(PasswordResetRequest)
+	body, err := readLimitedBody(r)
+	if err != nil {
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
+		return
+	}
+	if err := json.Unmarshal(body, req); err != nil {
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
+		return
+	}
 
-    if req.Email == "" {
-        writeErrorResponse(w, http.StatusBadRequest, "Email required", "EMAIL_REQUIRED")
-        return
-    }
+	if req.Email == "" {
+		writeErrorResponse(w, http.StatusBadRequest, "Email required", "EMAIL_REQUIRED")
+		return
+	}
 
-    user, err := db.GetUserByEmail(req.Email)
-    if err != nil {
-        writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
-        return
-    }
-    // respond success even if user is not found to avoid email enumeration
-    _ = user
+	user, err := db.GetUserByEmail(req.Email)
+	if err != nil {
+		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		return
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    fmt.Fprint(w, `{"status":"ok"}`)
+	resp := PasswordResetRequestResponse{Status: "ok"}
+	if user != nil {
+		plainToken, tokenErr := generatePasswordResetPlainToken()
+		if tokenErr != nil {
+			writeErrorResponse(w, http.StatusInternalServerError, "Token generation failed", "TOKEN_GENERATION_ERROR")
+			return
+		}
+		if storeErr := db.CreatePasswordResetToken(user.ID, plainToken, time.Hour); storeErr != nil {
+			writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+			return
+		}
+		if cfg.PasswordResetDebug {
+			resp.Token = plainToken
+			logrus.WithField("email", req.Email).Warn("PASSWORD_RESET_DEBUG enabled: reset token issued")
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
-// resets password for a given email (no token for now).
 func basicResetPassword(w http.ResponseWriter, r *http.Request) {
-    req := new(PasswordResetDirect)
-    body, err := io.ReadAll(r.Body)
-    if err != nil {
-        writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
-        return
-    }
-    if err := json.Unmarshal(body, req); err != nil {
-        writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
-        return
-    }
+	req := new(PasswordResetDirect)
+	body, err := readLimitedBody(r)
+	if err != nil {
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
+		return
+	}
+	if err := json.Unmarshal(body, req); err != nil {
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
+		return
+	}
 
-    if req.Email == "" || req.NewPassword == "" {
-        writeErrorResponse(w, http.StatusBadRequest, "Email and new_password required", "INPUT_REQUIRED")
-        return
-    }
+	if req.Email == "" || req.NewPassword == "" {
+		writeErrorResponse(w, http.StatusBadRequest, "Email and new_password required", "INPUT_REQUIRED")
+		return
+	}
 
-    // create new salt and hash
-    salt := make([]byte, 16)
-    if _, err := rand.Read(salt); err != nil {
-        writeErrorResponse(w, http.StatusInternalServerError, "Salt generation failed", "SALT_GENERATION_ERROR")
-        return
-    }
-    passwordHash := argon2.IDKey([]byte(req.NewPassword), salt, 1, 64*1024, 4, 32)
+	if cfg.AllowInsecurePasswordReset && req.Token == "" {
+		basicResetPasswordInsecure(w, req)
+		return
+	}
 
-    updatedUser, err := db.UpdateUserPasswordByEmail(req.Email, salt, passwordHash)
-    if err != nil {
-        writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
-        return
-    }
-    if updatedUser == nil {
-        // do not reveal whether email exists
-        w.Header().Set("Content-Type", "application/json")
-        fmt.Fprint(w, `{"status":"ok"}`)
-        return
-    }
+	if req.Token == "" {
+		writeErrorResponse(w, http.StatusBadRequest, "Reset token required", "TOKEN_REQUIRED")
+		return
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    fmt.Fprint(w, `{"status":"ok"}`)
+	user, err := db.ValidatePasswordResetToken(req.Email, req.Token)
+	if err != nil {
+		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		return
+	}
+	if user == nil {
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid or expired reset token", "INVALID_TOKEN")
+		return
+	}
+
+	if err := applyPasswordReset(w, user, req.NewPassword); err != nil {
+		return
+	}
+
+	if err := db.ConsumePasswordResetToken(user.ID, req.Token); err != nil {
+		logrus.WithError(err).Warn("failed to consume password reset token")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, `{"status":"ok"}`)
+}
+
+func basicResetPasswordInsecure(w http.ResponseWriter, req *PasswordResetDirect) {
+	logrus.Warn("ALLOW_INSECURE_PASSWORD_RESET enabled: resetting password without token")
+	user, err := db.GetUserByEmail(req.Email)
+	if err != nil {
+		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		return
+	}
+	if user == nil {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"status":"ok"}`)
+		return
+	}
+	if err := applyPasswordReset(w, user, req.NewPassword); err != nil {
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, `{"status":"ok"}`)
+}
+
+func applyPasswordReset(w http.ResponseWriter, user *User, newPassword string) error {
+	salt := make([]byte, 16)
+	if _, err := rand.Read(salt); err != nil {
+		writeErrorResponse(w, http.StatusInternalServerError, "Salt generation failed", "SALT_GENERATION_ERROR")
+		return err
+	}
+	passwordHash := argon2.IDKey([]byte(newPassword), salt, 1, 64*1024, 4, 32)
+
+	updatedUser, err := db.UpdateUserPasswordByEmail(user.Email, salt, passwordHash)
+	if err != nil {
+		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		return err
+	}
+	if updatedUser == nil {
+		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		return fmt.Errorf("user not updated")
+	}
+	return nil
 }
