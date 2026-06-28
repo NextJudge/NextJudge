@@ -606,7 +606,7 @@ func (d *Database) GetUserEventProblemStatus(userID uuid.UUID, eventID int, prob
 		Order("submit_time ASC").
 		First(&submission).Error
 	if err != nil {
-		if err.Error() == "record not found" {
+		if err == gorm.ErrRecordNotFound {
 			return nil, nil // no accepted submission found
 		}
 		return nil, err
