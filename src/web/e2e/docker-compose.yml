@@ -53,6 +53,7 @@ services:
       AUTH_RATE_LIMIT_PER_MIN: "120"
       AUTH_RATE_LIMIT_BURST: "30"
       CORS_ORIGIN: http://localhost:8080
+      PASSWORD_RESET_DEBUG: "true"
     depends_on:
       db:
         condition: service_healthy
