@@ -4,8 +4,6 @@ import { MathJax, MathJaxContext } from "better-react-mathjax";
 import "katex/dist/katex.min.css";
 import Markdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
-import rehypeRaw from "rehype-raw";
-import rehypeStringify from "rehype-stringify";
 import remarkBreaks from "remark-breaks";
 import remarkMath from "remark-math";
 
@@ -34,7 +32,7 @@ export default function MarkdownRenderer({ prompt }: { prompt: string }) {
                        prose-ul:space-y-1 prose-ol:space-y-1
                        prose-li:text-muted-foreground"
             remarkPlugins={[remarkMath, remarkBreaks]}
-            rehypePlugins={[rehypeKatex, rehypeRaw, rehypeStringify]}
+            rehypePlugins={[rehypeKatex]}
           >
             {prompt}
           </Markdown>
