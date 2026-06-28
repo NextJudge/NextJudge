@@ -1,0 +1,223 @@
+name: Preview deploy (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        required: true
+        type: string
+      pr_head_sha:
+        required: true
+        type: string
+      pr_head_ref:
+        required: true
+        type: string
+      pr_html_url:
+        required: true
+        type: string
+      pr_title:
+        required: true
+        type: string
+      pr_base_ref:
+        required: true
+        type: string
+      web_changed:
+        required: true
+        type: string
+      docs_changed:
+        required: true
+        type: string
+      preview_backend_changed:
+        required: true
+        type: string
+      judge_changed:
+        required: true
+        type: string
+      build_images:
+        required: false
+        type: string
+        default: "true"
+      update_pr_comment:
+        required: false
+        type: string
+        default: "true"
+      e2e_ran:
+        required: false
+        type: string
+        default: "false"
+      e2e_result:
+        required: false
+        type: string
+        default: "skipped"
+      e2e_report_published:
+        required: false
+        type: string
+        default: "false"
+
+env:
+  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKER_USERNAME }}
+
+jobs:
+  preview-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    env:
+      PR_NUMBER: ${{ inputs.pr_number }}
+      PR_HEAD_SHA: ${{ inputs.pr_head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SSH key for preview backend deploy
+        if: ${{ inputs.preview_backend_changed == 'true' && vars.COOLIFY_SSH_HOST != '' }}
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.COOLIFY_SSH_PRIVATE_KEY }}
+
+      - name: Add VPS host key
+        if: ${{ inputs.preview_backend_changed == 'true' && vars.COOLIFY_SSH_HOST != '' }}
+        run: |
+          host="${COOLIFY_SSH_HOST#*@}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$host" >> ~/.ssh/known_hosts
+        env:
+          COOLIFY_SSH_HOST: ${{ vars.COOLIFY_SSH_HOST }}
+
+      - uses: docker/setup-buildx-action@v3
+        if: inputs.build_images == 'true' && inputs.preview_backend_changed == 'true'
+      - uses: docker/login-action@v3
+        if: inputs.build_images == 'true' && inputs.preview_backend_changed == 'true'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build and push core image for preview
+        if: inputs.build_images == 'true' && inputs.preview_backend_changed == 'true'
+        uses: docker/bake-action@v6
+        with:
+          files: docker-bake.hcl
+          targets: core
+          push: true
+          set: |
+            core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:ci-${{ env.PR_HEAD_SHA }}
+            core.target=release
+            core.cache-from=type=gha,scope=nextjudge-core
+            core.cache-to=type=gha,mode=max,scope=nextjudge-core
+      - name: Build and push judge image for preview
+        if: inputs.build_images == 'true' && inputs.preview_backend_changed == 'true' && inputs.judge_changed != 'true'
+        uses: docker/bake-action@v6
+        with:
+          files: docker-bake.hcl
+          targets: basejudge,judge
+          push: true
+          set: |
+            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ env.PR_HEAD_SHA }}
+            judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:ci-${{ env.PR_HEAD_SHA }}
+            judge.target=release
+            basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+            basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
+            judge.cache-from=type=gha,scope=nextjudge-judge
+            judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
+
+      - name: Deploy backend preview
+        if: inputs.preview_backend_changed == 'true'
+        env:
+          COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
+          COOLIFY_BACKEND_SERVICE_UUID: ${{ vars.COOLIFY_BACKEND_SERVICE_UUID }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
+          PR_HEAD_REF: ${{ inputs.pr_head_ref }}
+          PR_HTML_URL: ${{ inputs.pr_html_url }}
+          PR_TITLE: ${{ inputs.pr_title }}
+          PR_BASE_REF: ${{ inputs.pr_base_ref }}
+          REPO_FULL_NAME: ${{ github.repository }}
+          NEXTJUDGE_CORE_IMAGE_TAG: ci-${{ inputs.pr_head_sha }}
+          NEXTJUDGE_JUDGE_IMAGE_TAG: ci-${{ inputs.pr_head_sha }}
+          DOCKERHUB_NAMESPACE: ${{ env.DOCKERHUB_NAMESPACE }}
+          COOLIFY_RESOURCE_TYPE: service
+          COOLIFY_SSH_HOST: ${{ vars.COOLIFY_SSH_HOST }}
+        run: |
+          COOLIFY_APP_UUID="${COOLIFY_BACKEND_SERVICE_UUID}" \
+            ./scripts/coolify-preview-deploy.sh
+
+      - name: Deploy web preview
+        if: inputs.web_changed == 'true'
+        env:
+          COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
+          COOLIFY_WEB_APP_UUID: ${{ vars.COOLIFY_WEB_APP_UUID }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
+          PR_HEAD_REF: ${{ inputs.pr_head_ref }}
+          PR_HTML_URL: ${{ inputs.pr_html_url }}
+          PR_TITLE: ${{ inputs.pr_title }}
+          PR_BASE_REF: ${{ inputs.pr_base_ref }}
+          REPO_FULL_NAME: ${{ github.repository }}
+        run: |
+          COOLIFY_APP_UUID="${COOLIFY_WEB_APP_UUID}" \
+            ./scripts/coolify-preview-deploy.sh
+
+      - name: Deploy docs preview
+        if: inputs.docs_changed == 'true'
+        env:
+          COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
+          COOLIFY_DOCS_APP_UUID: ${{ vars.COOLIFY_DOCS_APP_UUID }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
+          PR_HEAD_REF: ${{ inputs.pr_head_ref }}
+          PR_HTML_URL: ${{ inputs.pr_html_url }}
+          PR_TITLE: ${{ inputs.pr_title }}
+          PR_BASE_REF: ${{ inputs.pr_base_ref }}
+          REPO_FULL_NAME: ${{ github.repository }}
+        run: |
+          COOLIFY_APP_UUID="${COOLIFY_DOCS_APP_UUID}" \
+            ./scripts/coolify-preview-deploy.sh
+
+      - name: Wait for preview URLs
+        env:
+          WEB_CHANGED: ${{ inputs.web_changed }}
+          DOCS_CHANGED: ${{ inputs.docs_changed }}
+          BACKEND_CHANGED: ${{ inputs.preview_backend_changed }}
+          PREVIEW_WAIT_TIMEOUT_SEC: "600"
+          PREVIEW_POLL_INTERVAL_SEC: "30"
+        run: |
+          urls=""
+          if [ "$BACKEND_CHANGED" = "true" ]; then
+            urls="${urls} $(./scripts/preview-url.sh api)/healthy"
+          fi
+          if [ "$WEB_CHANGED" = "true" ]; then
+            urls="${urls} $(./scripts/preview-url.sh web)"
+          fi
+          if [ "$DOCS_CHANGED" = "true" ]; then
+            urls="${urls} $(./scripts/preview-url.sh docs)"
+          fi
+          PREVIEW_URLS="${urls# }" ./scripts/wait-for-preview-urls.sh
+
+      - name: Update PR status comment
+        if: success() && inputs.update_pr_comment == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          SHA: ${{ inputs.pr_head_sha }}
+          WEB_CHANGED: ${{ inputs.web_changed }}
+          DOCS_CHANGED: ${{ inputs.docs_changed }}
+          BACKEND_CHANGED: ${{ inputs.preview_backend_changed }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          E2E_RAN: ${{ inputs.e2e_ran }}
+          E2E_RESULT: ${{ inputs.e2e_result }}
+          E2E_REPORT_PUBLISHED: ${{ inputs.e2e_report_published }}
+        run: ./scripts/update-pr-status-comment.sh preview-ready
+
+      - name: Update PR status comment on failure
+        if: failure() && inputs.update_pr_comment == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          SHA: ${{ inputs.pr_head_sha }}
+          WEB_CHANGED: ${{ inputs.web_changed }}
+          DOCS_CHANGED: ${{ inputs.docs_changed }}
+          BACKEND_CHANGED: ${{ inputs.preview_backend_changed }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          E2E_RAN: ${{ inputs.e2e_ran }}
+          E2E_RESULT: ${{ inputs.e2e_result }}
+          E2E_REPORT_PUBLISHED: ${{ inputs.e2e_report_published }}
+        run: ./scripts/update-pr-status-comment.sh preview-failed

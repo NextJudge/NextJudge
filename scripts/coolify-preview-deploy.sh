@@ -51,6 +51,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 set_preview_image_tags() {
   local resource_type="${COOLIFY_RESOURCE_TYPE:-application}"
+  if [[ -n "${DOCKERHUB_NAMESPACE:-}" ]]; then
+    KEY=DOCKERHUB_NAMESPACE VALUE="${DOCKERHUB_NAMESPACE}" \
+      COOLIFY_APP_UUID="${COOLIFY_APP_UUID}" \
+      COOLIFY_RESOURCE_TYPE="${resource_type}" \
+      "${SCRIPT_DIR}/coolify-set-preview-env.sh"
+  fi
   if [[ -n "${NEXTJUDGE_CORE_IMAGE_TAG:-}" ]]; then
     KEY=NEXTJUDGE_CORE_IMAGE_TAG VALUE="${NEXTJUDGE_CORE_IMAGE_TAG}" \
       COOLIFY_APP_UUID="${COOLIFY_APP_UUID}" \

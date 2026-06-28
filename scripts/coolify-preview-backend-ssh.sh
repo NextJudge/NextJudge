@@ -109,6 +109,15 @@ deploy_preview_backend() {
   write_traefik_override "$override_local"
   cp "$PREVIEW_BACKEND_ENV_FILE" "$env_local"
 
+  if [[ -n "${DOCKERHUB_NAMESPACE:-}" ]]; then
+    if grep -q '^DOCKERHUB_NAMESPACE=' "$env_local"; then
+      sed -i.bak "s|^DOCKERHUB_NAMESPACE=.*|DOCKERHUB_NAMESPACE=${DOCKERHUB_NAMESPACE}|" "$env_local"
+      rm -f "${env_local}.bak"
+    else
+      printf '\nDOCKERHUB_NAMESPACE=%s\n' "$DOCKERHUB_NAMESPACE" >> "$env_local"
+    fi
+  fi
+
   if [[ "${PREVIEW_BACKEND_ENV_TEMP:-0}" == "1" ]]; then
     rm -f "$PREVIEW_BACKEND_ENV_FILE"
   fi
@@ -130,17 +139,21 @@ deploy_preview_backend() {
   local judge_tag="${NEXTJUDGE_JUDGE_IMAGE_TAG:-latest}"
 
   ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$COOLIFY_SSH_HOST" bash -s -- \
-    "$PROJECT_NAME" "$PR_NUMBER" "$core_tag" "$judge_tag" <<'REMOTE'
+    "$PROJECT_NAME" "$PR_NUMBER" "$core_tag" "$judge_tag" "${DOCKERHUB_NAMESPACE:-}" <<'REMOTE'
 set -euo pipefail
 project="$1"
 pr="$2"
 core_tag="$3"
 judge_tag="$4"
+namespace="$5"
 dir="$HOME/nextjudge-previews/pr-${pr}"
 cd "$dir"
 
 export NEXTJUDGE_CORE_IMAGE_TAG="$core_tag"
 export NEXTJUDGE_JUDGE_IMAGE_TAG="$judge_tag"
+if [[ -n "$namespace" ]]; then
+  export DOCKERHUB_NAMESPACE="$namespace"
+fi
 set -a
 source .env
 set +a

@@ -347,8 +347,6 @@ jobs:
     concurrency:
       group: coolify-preview-deploy
       cancel-in-progress: false
-    # always() is required when ci-success ran via always() with skipped jobs
-    # (e.g. docs-build). Otherwise preview-deploy is skipped even when web changed.
     if: |
       always() &&
       needs.ci-success.result == 'success' &&
@@ -362,163 +360,21 @@ jobs:
         needs.web-e2e.result == 'success' ||
         needs.web-e2e.result == 'skipped'
       )
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    env:
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install SSH key for preview backend deploy
-      if: ${{ needs.changes.outputs.preview_backend == 'true' && vars.COOLIFY_SSH_HOST != '' }}
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.COOLIFY_SSH_PRIVATE_KEY }}
-
-    - name: Add VPS host key
-      if: ${{ needs.changes.outputs.preview_backend == 'true' && vars.COOLIFY_SSH_HOST != '' }}
-      run: |
-        host="${COOLIFY_SSH_HOST#*@}"
-        mkdir -p ~/.ssh
-        ssh-keyscan -H "$host" >> ~/.ssh/known_hosts
-      env:
-        COOLIFY_SSH_HOST: ${{ vars.COOLIFY_SSH_HOST }}
-
-    - uses: docker/setup-buildx-action@v3
-      if: needs.changes.outputs.preview_backend == 'true'
-    - uses: docker/login-action@v3
-      if: needs.changes.outputs.preview_backend == 'true'
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-    - name: Build and push core image for preview
-      if: needs.changes.outputs.preview_backend == 'true'
-      uses: docker/bake-action@v6
-      with:
-        files: docker-bake.hcl
-        targets: core
-        push: true
-        set: |
-          core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:ci-${{ env.PR_HEAD_SHA }}
-          core.target=release
-          core.cache-from=type=gha,scope=nextjudge-core
-          core.cache-to=type=gha,mode=max,scope=nextjudge-core
-    - name: Build and push judge image for preview
-      if: needs.changes.outputs.preview_backend == 'true' && needs.changes.outputs.judge != 'true'
-      uses: docker/bake-action@v6
-      with:
-        files: docker/bake.hcl
-        targets: basejudge,judge
-        push: true
-        set: |
-          basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ env.PR_HEAD_SHA }}
-          judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:ci-${{ env.PR_HEAD_SHA }}
-          judge.target=release
-          basejudge.cache-from=type=gha,scope=nextjudge-basejudge
-          basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
-          judge.cache-from=type=gha,scope=nextjudge-judge
-          judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
-
-    - name: Deploy backend preview
-      if: needs.changes.outputs.preview_backend == 'true'
-      env:
-        COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
-        COOLIFY_BACKEND_SERVICE_UUID: ${{ vars.COOLIFY_BACKEND_SERVICE_UUID }}
-        COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-        COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
-        PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        PR_HTML_URL: ${{ github.event.pull_request.html_url }}
-        PR_TITLE: ${{ github.event.pull_request.title }}
-        PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-        REPO_FULL_NAME: ${{ github.repository }}
-        NEXTJUDGE_CORE_IMAGE_TAG: ci-${{ github.event.pull_request.head.sha }}
-        NEXTJUDGE_JUDGE_IMAGE_TAG: ci-${{ github.event.pull_request.head.sha }}
-        COOLIFY_RESOURCE_TYPE: service
-        COOLIFY_SSH_HOST: ${{ vars.COOLIFY_SSH_HOST }}
-      run: |
-        COOLIFY_APP_UUID="${COOLIFY_BACKEND_SERVICE_UUID}" \
-          ./scripts/coolify-preview-deploy.sh
-
-    - name: Deploy web preview
-      if: needs.changes.outputs.web == 'true'
-      env:
-        COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
-        COOLIFY_WEB_APP_UUID: ${{ vars.COOLIFY_WEB_APP_UUID }}
-        COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-        COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
-        PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        PR_HTML_URL: ${{ github.event.pull_request.html_url }}
-        PR_TITLE: ${{ github.event.pull_request.title }}
-        PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-        REPO_FULL_NAME: ${{ github.repository }}
-      run: |
-        COOLIFY_APP_UUID="${COOLIFY_WEB_APP_UUID}" \
-          ./scripts/coolify-preview-deploy.sh
-
-    - name: Deploy docs preview
-      if: needs.changes.outputs.docs == 'true'
-      env:
-        COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
-        COOLIFY_DOCS_APP_UUID: ${{ vars.COOLIFY_DOCS_APP_UUID }}
-        COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-        COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
-        PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        PR_HTML_URL: ${{ github.event.pull_request.html_url }}
-        PR_TITLE: ${{ github.event.pull_request.title }}
-        PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-        REPO_FULL_NAME: ${{ github.repository }}
-      run: |
-        COOLIFY_APP_UUID="${COOLIFY_DOCS_APP_UUID}" \
-          ./scripts/coolify-preview-deploy.sh
-
-    - name: Wait for preview URLs
-      env:
-        WEB_CHANGED: ${{ needs.changes.outputs.web }}
-        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
-        BACKEND_CHANGED: ${{ needs.changes.outputs.preview_backend }}
-        PREVIEW_WAIT_TIMEOUT_SEC: "600"
-        PREVIEW_POLL_INTERVAL_SEC: "30"
-      run: |
-        urls=""
-        if [ "$BACKEND_CHANGED" = "true" ]; then
-          urls="${urls} $(./scripts/preview-url.sh api)/healthy"
-        fi
-        if [ "$WEB_CHANGED" = "true" ]; then
-          urls="${urls} $(./scripts/preview-url.sh web)"
-        fi
-        if [ "$DOCS_CHANGED" = "true" ]; then
-          urls="${urls} $(./scripts/preview-url.sh docs)"
-        fi
-        PREVIEW_URLS="${urls# }" ./scripts/wait-for-preview-urls.sh
-
-    - name: Update PR status comment
-      if: success()
-      env:
-        GH_TOKEN: ${{ github.token }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        SHA: ${{ github.event.pull_request.head.sha }}
-        WEB_CHANGED: ${{ needs.changes.outputs.web }}
-        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
-        BACKEND_CHANGED: ${{ needs.changes.outputs.preview_backend }}
-        GITHUB_RUN_ID: ${{ github.run_id }}
-        E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
-        E2E_RESULT: ${{ needs.web-e2e.result }}
-        E2E_REPORT_PUBLISHED: ${{ needs.web-e2e.outputs.playwright_report_published == 'true' && 'true' || 'false' }}
-      run: ./scripts/update-pr-status-comment.sh preview-ready
-
-    - name: Update PR status comment on failure
-      if: failure()
-      env:
-        GH_TOKEN: ${{ github.token }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        SHA: ${{ github.event.pull_request.head.sha }}
-        WEB_CHANGED: ${{ needs.changes.outputs.web }}
-        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
-        BACKEND_CHANGED: ${{ needs.changes.outputs.preview_backend }}
-        GITHUB_RUN_ID: ${{ github.run_id }}
-        E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
-        E2E_RESULT: ${{ needs.web-e2e.result }}
-        E2E_REPORT_PUBLISHED: ${{ needs.web-e2e.outputs.playwright_report_published == 'true' && 'true' || 'false' }}
-      run: ./scripts/update-pr-status-comment.sh preview-failed
+    uses: ./.github/workflows/preview-deploy-reusable.yml
+    secrets: inherit
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_head_sha: ${{ github.event.pull_request.head.sha }}
+      pr_head_ref: ${{ github.event.pull_request.head.ref }}
+      pr_html_url: ${{ github.event.pull_request.html_url }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_base_ref: ${{ github.event.pull_request.base.ref }}
+      web_changed: ${{ needs.changes.outputs.web }}
+      docs_changed: ${{ needs.changes.outputs.docs }}
+      preview_backend_changed: ${{ needs.changes.outputs.preview_backend }}
+      judge_changed: ${{ needs.changes.outputs.judge }}
+      build_images: "true"
+      update_pr_comment: "true"
+      e2e_ran: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
+      e2e_result: ${{ needs.web-e2e.result }}
+      e2e_report_published: ${{ needs.web-e2e.outputs.playwright_report_published == 'true' && 'true' || 'false' }}
