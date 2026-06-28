@@ -116,7 +116,7 @@ export function RecentSubmissions({
                       }}
                     >
                       <span className="font-medium text-sm">
-                        {submission.problem.title}
+                        {submission.problem?.title ?? "Unknown problem"}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -128,7 +128,7 @@ export function RecentSubmissions({
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-mono text-xs">
-                        {submission.language.name}
+                        {submission.language?.name ?? "Unknown language"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -148,7 +148,7 @@ export function RecentSubmissions({
           <DialogContent className="min-w-2xl max-w-3xl">
             <DialogHeader>
               <DialogTitle>
-                Submission to {selectedSubmission.problem.title}
+                Submission to {selectedSubmission.problem?.title ?? "Unknown problem"}
               </DialogTitle>
               <DialogDescription>
                 Submitted on {format(selectedSubmission.submit_time, "PPP 'at' p")}
@@ -175,7 +175,7 @@ export function RecentSubmissions({
             </div>
             <DummyCodeEditor
               sourceCode={selectedSubmission.source_code}
-              language={convertToMonacoLanguageName(selectedSubmission.language)}
+              language={convertToMonacoLanguageName(selectedSubmission.language ?? undefined)}
               readOnly={true}
             />
             <DialogFooter className="gap-2 sm:justify-start">

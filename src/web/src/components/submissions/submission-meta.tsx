@@ -57,7 +57,7 @@ export function SubmissionMeta({ submission, className }: SubmissionMetaProps) {
         <dt className="text-xs text-muted-foreground">Language</dt>
         <dd>
           <Badge variant="secondary" className="font-mono text-xs">
-            {submission.language.name}
+            {submission.language?.name ?? "Unknown language"}
           </Badge>
         </dd>
       </div>
