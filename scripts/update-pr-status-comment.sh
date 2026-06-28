@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # Updates (or creates) the single PR status comment for CI + preview deploys.
-# Usage: update-pr-status-comment.sh <ci-success|preview-ready|preview-failed>
+# Usage: update-pr-status-comment.sh <ci-success|ci-failed|preview-ready|preview-failed>
 
-PHASE="${1:?usage: update-pr-status-comment.sh <ci-success|preview-ready|preview-failed>}"
+PHASE="${1:?usage: update-pr-status-comment.sh <ci-success|ci-failed|preview-ready|preview-failed>}"
 MARKER="<!-- nextjudge-ci-status -->"
 REPO="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
 PR_NUMBER="${PR_NUMBER:?PR_NUMBER is required}"
@@ -34,13 +34,35 @@ append_preview_row() {
   printf '| %s | %s | [Link](%s) |\n' "$label" "$status" "$url"
 }
 
-body="${MARKER}
+run_url=""
+if [ -n "${GITHUB_RUN_ID:-}" ]; then
+  run_url="https://github.com/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+fi
+
+if [ "$PHASE" = "ci-failed" ]; then
+  if [ -z "$run_url" ]; then
+    echo "GITHUB_RUN_ID is required for ci-failed" >&2
+    exit 1
+  fi
+  artifacts_url="${run_url}#artifacts"
+  body="${MARKER}
+### CI failed
+
+Checks failed for commit \`${SHA:0:7}\`.
+
+[View workflow run](${run_url})
+
+#### Playwright E2E
+
+- See the **Playwright E2E** comment below for which specs failed.
+- [Download report, traces, and screenshots](${artifacts_url}) from the \`playwright-e2e-*\` artifact (kept 7 days).
+- To replay what the browser did: unzip the artifact, then drag \`test-results/**/trace.zip\` onto [trace.playwright.dev](https://trace.playwright.dev)."
+elif [ "$WEB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ]; then
+  body="${MARKER}
 ### CI passed
 
 Build succeeded for commit \`${SHA:0:7}\`.
 "
-
-if [ "$WEB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ]; then
   body="${body}
 ### Preview deployments
 
@@ -65,7 +87,10 @@ Preview deploy failed for commit \`${SHA:0:7}\`. Check the workflow logs for det
 Preview deploys are in progress. Links below will become available shortly."
   fi
 else
-  body="${body}
+  body="${MARKER}
+### CI passed
+
+Build succeeded for commit \`${SHA:0:7}\`.
 No preview deployments for this PR (web/docs unchanged)."
 fi
 
