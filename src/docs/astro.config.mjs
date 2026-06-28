@@ -80,6 +80,8 @@ export default defineConfig({
         {
           label: 'Guides',
           items: [
+            { label: 'Run a contest', link: '/guides/run-a-contest/' },
+            { label: 'Configuration', link: '/guides/configuration/' },
             { label: 'Development Guide', link: '/guides/development/' },
             { label: 'Deployment Guide', link: '/guides/deployment/' },
             { label: 'CLI', link: '/guides/cli/' },
