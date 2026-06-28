@@ -30,8 +30,11 @@ type config struct {
 	ProblemsIndex        string
 	CompetitionsIndex    string
 	ElasticEnabled       bool
-	AdminEmails          []string
-	SeedData             bool
+	AdminEmails                []string
+	SeedData                   bool
+	AllowInsecurePasswordReset bool
+	PasswordResetDebug         bool
+	TrustedProxy               bool
 }
 
 var cfg config
@@ -40,15 +43,16 @@ func init() {
 	_ = godotenv.Load()
 	var err error
 
-	// Parse and validate a comma-seperated list of URLs of allowed origins.
-	cfg.CORSOrigin = strings.Split(os.Getenv("CORS_ORIGIN"), ",")
-	for _, domain := range cfg.CORSOrigin {
-		// Defaults to "*" if no env set.
-		if domain == "" || domain == "*" {
-			// Any use of the wildcard means we don't care about other domains that
-			// were set.
-			cfg.CORSOrigin = []string{"*"}
-			break
+	// Parse and validate a comma-separated list of allowed origins.
+	rawOrigins := strings.Split(os.Getenv("CORS_ORIGIN"), ",")
+	cfg.CORSOrigin = make([]string, 0, len(rawOrigins))
+	for _, domain := range rawOrigins {
+		domain = strings.TrimSpace(domain)
+		if domain == "" {
+			continue
+		}
+		if domain == "*" {
+			log.Fatalln("CORS_ORIGIN must not be wildcard when AllowCredentials is enabled")
 		}
 		u, err := url.Parse(domain)
 		if err != nil {
@@ -57,6 +61,11 @@ func init() {
 		if !u.IsAbs() {
 			log.Fatalln("CORS_ORIGIN contains a non-absolute URL")
 		}
+		cfg.CORSOrigin = append(cfg.CORSOrigin, domain)
+	}
+	if len(cfg.CORSOrigin) == 0 {
+		cfg.CORSOrigin = []string{"http://localhost:8080"}
+		logrus.Warn("CORS_ORIGIN unset; defaulting to http://localhost:8080")
 	}
 
 	cfg.CORSAllowPreview = envBool("CORS_ALLOW_PREVIEW")
@@ -188,13 +197,10 @@ func init() {
 		logrus.Info("Configured admin emails: ", cfg.AdminEmails)
 	}
 
-	seedData := os.Getenv("SEED_DATA")
-	if seedData == "true" {
-		logrus.Info("Seed data enabled")
-		cfg.SeedData = true
-	} else {
-		cfg.SeedData = false
-	}
+	cfg.SeedData = envBool("SEED_DATA")
+	cfg.AllowInsecurePasswordReset = envBool("ALLOW_INSECURE_PASSWORD_RESET")
+	cfg.PasswordResetDebug = envBool("PASSWORD_RESET_DEBUG")
+	cfg.TrustedProxy = envBool("TRUSTED_PROXY")
 }
 
 func envBool(key string) bool {

@@ -3,12 +3,28 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
 	"github.com/sirupsen/logrus"
 	"goji.io/pat"
 )
+
+const maxRequestBodyBytes = 1 << 20 // 1 MiB
+
+func readLimitedBody(r *http.Request) ([]byte, error) {
+	return io.ReadAll(r.Body)
+}
+
+func LimitRequestBodyMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Body != nil && r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
+			r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+		}
+		h.ServeHTTP(w, r)
+	})
+}
 
 type ErrorResponse struct {
 	Code    string `json:"code"`
