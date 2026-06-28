@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
-      contents: read
+      contents: write
       checks: write
       pull-requests: write
     steps:
@@ -136,6 +136,25 @@ jobs:
           src/web/test-results/
           src/web/playwright-report/
         retention-days: 7
+    - name: Prepare Playwright report for GitHub Pages
+      if: failure() && github.event_name == 'pull_request'
+      run: ./scripts/prepare-playwright-pages-bundle.sh
+    - name: Publish Playwright report to GitHub Pages
+      if: failure() && github.event_name == 'pull_request'
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: src/web/playwright-pages-bundle
+        destination_dir: playwright/pr-${{ github.event.pull_request.number }}/${{ github.run_id }}
+        keep_files: true
+    - name: Comment Playwright report URL
+      if: failure() && github.event_name == 'pull_request'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+      run: ./scripts/post-playwright-report-comment.sh
     - name: Publish Playwright test results
       if: always() && github.event_name == 'pull_request'
       uses: EnricoMi/publish-unit-test-result-action@v2
@@ -299,6 +318,7 @@ jobs:
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
         GITHUB_RUN_ID: ${{ github.run_id }}
+        E2E_FAILED: ${{ needs.web-e2e.result == 'failure' && 'true' || 'false' }}
       run: ./scripts/update-pr-status-comment.sh ci-failed
 
   preview-deploy:
