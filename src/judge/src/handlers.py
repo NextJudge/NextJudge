@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 
@@ -5,7 +6,6 @@ import aio_pika
 import aio_pika.abc
 
 import config
-from mq.client import RabbitMQClient
 from pipeline import (
     get_input_submission_data,
     get_submission_data,
@@ -13,11 +13,9 @@ from pipeline import (
     judge_test_submission,
 )
 
-rabbitmq: RabbitMQClient | None = None
-
 
 async def handle_test_submission(submission_id: str) -> None:
-    submission_data = get_submission_data(submission_id)
+    submission_data = await asyncio.to_thread(get_submission_data, submission_id)
 
     if submission_data.get("status") != "PENDING":
         print(f"Submission {submission_id} already judged ({submission_data.get('status')}), skipping")
@@ -29,18 +27,14 @@ async def handle_test_submission(submission_id: str) -> None:
 async def handle_custom_input_submission(json_data: dict[str, object]) -> None:
     submission_id = str(json_data["id"])
 
-    if "code" in json_data:
-        source_code = str(json_data["code"])
-        language_id = str(json_data["language_id"])
-        stdin = str(json_data["stdin"])
-    else:
-        input_data = get_input_submission_data(submission_id)
-        if input_data.get("finished"):
-            print(f"Input submission {submission_id} already finished, skipping")
-            return
-        source_code = str(input_data["source_code"])
-        language_id = str(input_data["language_id"])
-        stdin = str(input_data["stdin"])
+    input_data = await asyncio.to_thread(get_input_submission_data, submission_id)
+    if input_data.get("finished"):
+        print(f"Input submission {submission_id} already finished, skipping")
+        return
+
+    source_code = str(input_data["source_code"])
+    language_id = str(input_data["language_id"])
+    stdin = str(input_data["stdin"])
 
     await judge_custom_input_submission(submission_id, source_code, language_id, stdin)
 

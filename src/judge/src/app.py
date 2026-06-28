@@ -10,9 +10,7 @@ from pathlib import Path
 import requests
 
 import config
-import handlers
 from handlers import connect_to_rabbitmq, handle_submission
-from mq.client import RabbitMQClient
 from pipeline import get_languages
 from sandbox.environment import (
     FullResult,
@@ -90,9 +88,6 @@ async def main() -> None:
     ensure_nextjudge_healthy_and_login(config.JUDGE_PASSWORD)
     print("Can contact the core service")
 
-    handlers.rabbitmq = RabbitMQClient(connection)
-    await handlers.rabbitmq.setup()
-
     languages = get_languages()
     for bridge_lang in languages:
         for supported_lang in LOCAL_LANGUAGES:
@@ -109,8 +104,9 @@ async def main() -> None:
 
     try:
         await asyncio.Future()
-    except:
+    except asyncio.CancelledError:
         await connection.close()
+        raise
 
 
 if __name__ == "__main__":
