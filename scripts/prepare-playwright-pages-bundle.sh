@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Copies the HTML report into a bundle for GitHub Pages (failures only in CI).
+# Copies the HTML report into a bundle for GitHub Pages.
 # Traces and videos stay in GitHub Actions artifacts — not published to Pages.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
