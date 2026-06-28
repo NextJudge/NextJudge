@@ -1,13 +1,37 @@
 import { z } from "zod";
-import { problemListItemSchema, type ProblemListItem } from "./problem";
+import {
+	optionalParsedProblemSchema,
+	parsedProblemSchema,
+	type ProblemListItem,
+} from "./problem";
 import { userSchema } from "./user";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null;
 
 const eventProblemRefSchema = z.object({
 	id: z.number(),
 });
 
+const normalizeEventProblemEntry = (data: unknown): unknown => {
+	if (!isRecord(data)) {
+		return data;
+	}
+
+	if (isRecord(data.problem)) {
+		return data.problem;
+	}
+
+	return data;
+};
+
+const eventProblemEntrySchema = z.preprocess(
+	normalizeEventProblemEntry,
+	z.union([parsedProblemSchema, eventProblemRefSchema]),
+);
+
 const parseEventProblems = (
-	entries: Array<ProblemListItem | z.infer<typeof eventProblemRefSchema>> | undefined,
+	entries: z.infer<typeof eventProblemEntrySchema>[] | undefined,
 ): ProblemListItem[] | undefined => {
 	if (!entries) {
 		return undefined;
@@ -29,7 +53,7 @@ export const nextJudgeEventSchema = z.object({
 	end_time: z.string(),
 	teams: z.boolean(),
 	problems: z
-		.array(z.union([problemListItemSchema, eventProblemRefSchema]))
+		.array(eventProblemEntrySchema)
 		.optional()
 		.transform(parseEventProblems),
 	participants: z.array(userSchema).optional(),
@@ -82,7 +106,7 @@ export const eventQuestionSchema = z.object({
 	answered_at: z.string().optional(),
 	answered_by: z.string().optional(),
 	user: userSchema.optional(),
-	problem: problemListItemSchema.optional(),
+	problem: optionalParsedProblemSchema,
 	answerer: userSchema.optional(),
 });
 

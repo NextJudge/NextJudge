@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { problemListItemSchema } from "./problem";
+import {
+	optionalParsedProblemSchema,
+	parsedProblemSchema,
+} from "./problem";
 import { userSchema } from "./user";
 
 export const submissionStatusSchema = z.enum([
@@ -29,23 +32,31 @@ export const testCaseResultSchema = z.object({
 	passed: z.boolean(),
 });
 
-export const submissionSchema = z.object({
+const submissionFieldsSchema = z.object({
 	id: z.string(),
 	user_id: z.string(),
-	user: userSchema.optional(),
+	user: userSchema.optional().nullable(),
 	problem_id: z.number(),
-	problem: problemListItemSchema,
 	time_elapsed: z.number(),
 	memory_used: z.number().optional(),
 	language_id: z.string(),
-	language: languageSchema,
 	status: submissionStatusSchema,
-	failed_test_case_id: z.string().optional(),
+	failed_test_case_id: z.string().optional().nullable(),
 	submit_time: z.string(),
-	source_code: z.string(),
-	stdout: z.string(),
-	stderr: z.string(),
+	source_code: z.string().optional().default(""),
+	stdout: z.string().optional().default(""),
+	stderr: z.string().optional().default(""),
 	test_case_results: z.array(testCaseResultSchema).optional(),
+});
+
+export const submissionSchema = submissionFieldsSchema.extend({
+	problem: parsedProblemSchema,
+	language: languageSchema,
+});
+
+export const submissionListItemSchema = submissionFieldsSchema.extend({
+	problem: optionalParsedProblemSchema,
+	language: languageSchema.optional().nullable(),
 });
 
 export const submissionStatusPollSchema = z.object({
@@ -56,13 +67,14 @@ export const submissionStatusPollSchema = z.object({
 export type SubmissionStatusSchema = z.infer<typeof submissionStatusSchema>;
 export type LanguageSchema = z.infer<typeof languageSchema>;
 export type SubmissionSchema = z.infer<typeof submissionSchema>;
+export type SubmissionListItemSchema = z.infer<typeof submissionListItemSchema>;
 export type SubmissionStatusPollSchema = z.infer<typeof submissionStatusPollSchema>;
 
 export const parseSubmission = (data: unknown): SubmissionSchema =>
 	submissionSchema.parse(data);
 
-export const parseSubmissionList = (data: unknown): SubmissionSchema[] =>
-	z.array(submissionSchema).parse(data);
+export const parseSubmissionList = (data: unknown): SubmissionListItemSchema[] =>
+	z.array(submissionListItemSchema).parse(data);
 
 export const parseSubmissionStatusPoll = (
 	data: unknown,

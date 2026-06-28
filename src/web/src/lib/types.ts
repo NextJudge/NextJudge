@@ -1,4 +1,8 @@
-import type { ProblemDetail, ProblemListItem } from "./schemas/problem";
+import type {
+	ProblemDetail,
+	ProblemListItem,
+	ProblemSummary,
+} from "./schemas/problem";
 
 export interface User {
 	id: string;
@@ -25,7 +29,7 @@ export interface Language {
 }
 
 export type Problem = ProblemListItem;
-export type { ProblemDetail };
+export type { ProblemDetail, ProblemSummary };
 export type { PersistedTestCase, TestCase } from "./schemas/problem";
 
 export interface NextJudgeEvent {
@@ -130,15 +134,15 @@ export interface TestCaseResult {
 export interface Submission {
 	id: string;
 	user_id: string;
-	user?: User;
+	user?: User | null;
 	problem_id: number;
-	problem: Problem;
+	problem?: Problem | ProblemSummary | null;
 	time_elapsed: number;
 	memory_used?: number;
 	language_id: string;
-	language: Language;
+	language?: Language | null;
 	status: SubmissionStatus;
-	failed_test_case_id?: string;
+	failed_test_case_id?: string | null;
 	submit_time: string;
 	source_code: string;
 	stdout: string;
@@ -159,7 +163,7 @@ export interface EventQuestion {
 	answered_at?: string;
 	answered_by?: string;
 	user?: User;
-	problem?: Problem;
+	problem?: Problem | ProblemSummary | null;
 	answerer?: User;
 }
 
