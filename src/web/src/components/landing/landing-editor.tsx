@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { FALLBACK_TYPESCRIPT, getLanguagesResource } from "@/hooks/use-languages-suspense";
 import { getPublicCustomInputSubmissionStatus, postPublicCustomInputSubmission } from "@/lib/api";
 import { defaultEditorOptions } from "@/lib/constants";
+import { isCustomInputPending } from "@/lib/schemas/custom-input";
 import type { CustomInputResult, Language, SubmissionStatus } from "@/lib/types";
 import { cn, convertToMonacoLanguageName } from "@/lib/utils";
 import { ThemeContext } from "@/providers/editor-theme";
@@ -364,10 +365,15 @@ const LandingEditorContent = () => {
       let attempts = 0;
       const maxAttempts = 30;
 
-      while (!result.finished && result.status === "PENDING" && attempts < maxAttempts) {
+      while (isCustomInputPending(result) && attempts < maxAttempts) {
         await new Promise((resolve) => setTimeout(resolve, 500));
         result = await getPublicCustomInputSubmissionStatus(runId);
         attempts++;
+      }
+
+      if (isCustomInputPending(result)) {
+        toast.error("Run timed out before finishing.");
+        return;
       }
 
       const matchingTestCase = DEMO_PROBLEM.testCases.find(tc => tc.input === customInput);
@@ -381,9 +387,9 @@ const LandingEditorContent = () => {
           finalStatus = "WRONG_ANSWER";
         }
       }
-      result = { ...result, status: finalStatus };
+      const finishedResult: CustomInputResult = { ...result, status: finalStatus };
 
-      setCustomInputResult(result);
+      setCustomInputResult(finishedResult);
     } catch (error) {
       console.error("Run failed:", error);
       if (error instanceof Error && error.message === "RATE_LIMIT_EXCEEDED") {

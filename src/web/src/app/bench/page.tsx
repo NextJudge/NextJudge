@@ -32,6 +32,7 @@ import {
     getPublicCustomInputSubmissionStatus,
     postPublicCustomInputSubmission,
 } from "@/lib/api";
+import { isCustomInputPending } from "@/lib/schemas/custom-input";
 import { Language, SubmissionStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -208,8 +209,7 @@ export default function BenchmarkPage() {
                 const maxAttempts = 60;
 
                 while (
-                    !result.finished &&
-                    result.status === "PENDING" &&
+                    isCustomInputPending(result) &&
                     attempts < maxAttempts
                 ) {
                     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -219,10 +219,21 @@ export default function BenchmarkPage() {
                     attempts++;
                 }
 
+                if (isCustomInputPending(result)) {
+                    newResults.push({
+                        language: lang.name,
+                        executionTime: 0,
+                        runtime: 0,
+                        overhead: 0,
+                        status: "TIME_LIMIT_EXCEEDED" as SubmissionStatus,
+                    });
+                    continue;
+                }
+
                 const endTime = performance.now();
                 const executionTime = endTime - startTime;
                 // Runtime is returned in seconds, convert to ms
-                const runtime = (result.runtime || 0) * 1000;
+                const runtime = result.runtime * 1000;
                 const overhead = Math.max(0, executionTime - runtime);
 
                 const status = result.status;
