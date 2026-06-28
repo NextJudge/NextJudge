@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -p 8080",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --grep-invert @judge",
     "test:e2e:judge": "playwright test --grep @judge",
