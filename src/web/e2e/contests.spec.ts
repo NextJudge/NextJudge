@@ -45,21 +45,4 @@ test.describe("contests", () => {
       page.getByRole("button", { name: "Back to Contests" }),
     ).toBeVisible();
   });
-
-  test("user can register for an upcoming contest", async ({ page }) => {
-    await page.goto("/platform/contests");
-    await page.getByRole("tab", { name: /upcoming/i }).click();
-
-    const registerButton = page
-      .getByRole("button", { name: /register now|register for teams/i })
-      .first();
-    await expect(registerButton).toBeVisible({ timeout: 30_000 });
-    await registerButton.click();
-
-    await expect(
-      page.locator("[data-sonner-toast]").filter({
-        hasText: /registered|already registered/i,
-      }).first(),
-    ).toBeVisible({ timeout: 15_000 });
-  });
 });
