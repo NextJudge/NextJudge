@@ -36,7 +36,7 @@ type CreateTokenResponse struct {
 	Image string    `json:"image,omitempty"`
 }
 
-type ErrorResponse struct {
+type authErrorResponse struct {
 	Error string `json:"error"`
 	Code  string `json:"code"`
 }
@@ -343,7 +343,7 @@ func isAdminEmail(email string) bool {
 func writeErrorResponse(w http.ResponseWriter, statusCode int, errorMsg string, errorCode string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	errorResp := ErrorResponse{Error: errorMsg, Code: errorCode}
+	errorResp := authErrorResponse{Error: errorMsg, Code: errorCode}
 	json.NewEncoder(w).Encode(errorResp)
 }
 
