@@ -71,8 +71,10 @@ jobs:
     - run: npm run typecheck
 
   web-e2e:
-    needs: changes
-    if: needs.changes.outputs.web == 'true' || needs.changes.outputs.judge == 'true'
+    needs: [ changes, judge-ci ]
+    if: |
+      (needs.changes.outputs.web == 'true' || needs.changes.outputs.judge == 'true') &&
+      (needs.judge-ci.result == 'success' || needs.judge-ci.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -98,8 +100,15 @@ jobs:
     - name: Install Playwright browser
       working-directory: src/web
       run: npx playwright install chromium --with-deps
-    - name: Build judge image for E2E
+    - name: Pull judge image for E2E
       if: needs.changes.outputs.judge == 'true'
+      id: pull-judge
+      env:
+        E2E_JUDGE_USE_PULL: "1"
+        E2E_JUDGE_PULL_IMAGE: ${{ format('{0}/nextjudge-judge:ci-{1}', env.DOCKERHUB_NAMESPACE, github.sha) }}
+      run: ./scripts/prepare-e2e-judge-image.sh
+    - name: Build judge image for E2E (fallback)
+      if: needs.changes.outputs.judge == 'true' && steps.pull-judge.outcome == 'failure'
       uses: docker/bake-action@v6
       with:
         files: docker-bake.hcl
@@ -137,24 +146,23 @@ jobs:
           src/web/playwright-report/
         retention-days: 7
     - name: Prepare Playwright report for GitHub Pages
-      if: failure() && github.event_name == 'pull_request'
-      run: ./scripts/prepare-playwright-pages-bundle.sh
+      id: prepare-playwright-pages
+      if: github.event_name == 'pull_request'
+      run: |
+        if [ ! -d src/web/playwright-report ]; then
+          echo "skipped=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        ./scripts/prepare-playwright-pages-bundle.sh
+        echo "skipped=false" >> "$GITHUB_OUTPUT"
     - name: Publish Playwright report to GitHub Pages
-      if: failure() && github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' && steps.prepare-playwright-pages.outputs.skipped != 'true'
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: src/web/playwright-pages-bundle
         destination_dir: playwright/pr-${{ github.event.pull_request.number }}/${{ github.run_id }}
         keep_files: true
-    - name: Comment Playwright report URL
-      if: failure() && github.event_name == 'pull_request'
-      env:
-        GH_TOKEN: ${{ github.token }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
-        GITHUB_RUN_ID: ${{ github.run_id }}
-      run: ./scripts/post-playwright-report-comment.sh
     - name: Publish Playwright test results
       if: always() && github.event_name == 'pull_request'
       uses: EnricoMi/publish-unit-test-result-action@v2
@@ -222,25 +230,47 @@ jobs:
           core.cache-from=type=gha,scope=nextjudge-core
           core.cache-to=type=gha,mode=max,scope=nextjudge-core
 
-  judge-build:
+  judge-ci:
     needs: changes
     if: needs.changes.outputs.judge == 'true'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - uses: docker/setup-buildx-action@v3
-    - name: Build judge image
+    - uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: Build and push judge release image
       uses: docker/bake-action@v6
       with:
         files: docker-bake.hcl
         targets: basejudge,judge
-        push: false
+        push: true
         set: |
+          basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ github.sha }}
+          judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:ci-${{ github.sha }}
+          judge.args.BASEJUDGE=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ github.sha }}
           judge.target=release
           basejudge.cache-from=type=gha,scope=nextjudge-basejudge
           basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
           judge.cache-from=type=gha,scope=nextjudge-judge
           judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
+    - name: Build judge test image
+      uses: docker/bake-action@v6
+      with:
+        files: docker-bake.hcl
+        targets: basejudge,judge
+        push: false
+        load: true
+        set: |
+          judge.tags=nextjudge-judge-test
+          judge.target=test
+          basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+          judge.cache-from=type=gha,scope=nextjudge-judge
+    - name: Run judge integration tests
+      working-directory: src/judge
+      run: docker compose -f docker-compose.test.yml run --rm pytest
 
   backend-tests:
     needs: changes
@@ -256,33 +286,8 @@ jobs:
     - name: Run data layer tests
       run: ./scripts/run-data-layer-tests.sh
 
-  judge-tests:
-    needs: changes
-    if: needs.changes.outputs.judge == 'true'
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: docker/setup-buildx-action@v3
-    - name: Build judge test image
-      uses: docker/bake-action@v6
-      with:
-        files: docker-bake.hcl
-        targets: basejudge,judge
-        push: false
-        load: true
-        set: |
-          judge.tags=nextjudge-judge-test
-          judge.target=test
-          basejudge.cache-from=type=gha,scope=nextjudge-basejudge
-          basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
-          judge.cache-from=type=gha,scope=nextjudge-judge
-          judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
-    - name: Run judge integration tests
-      working-directory: src/judge
-      run: docker compose -f docker-compose.test.yml run --rm pytest
-
   ci-success:
-    needs: [ changes, web-lint, web-e2e, web-build, docs-build, core-build, judge-build, backend-tests, judge-tests ]
+    needs: [ changes, web-lint, web-e2e, web-build, docs-build, core-build, judge-ci, backend-tests ]
     if: always() && !cancelled() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     permissions:
@@ -299,10 +304,12 @@ jobs:
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
         GITHUB_RUN_ID: ${{ github.run_id }}
+        E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
+        E2E_RESULT: ${{ needs.web-e2e.result }}
       run: ./scripts/update-pr-status-comment.sh ci-success
 
   ci-failure-notify:
-    needs: [ changes, web-lint, web-e2e, web-build, docs-build, core-build, judge-build, backend-tests, judge-tests ]
+    needs: [ changes, web-lint, web-e2e, web-build, docs-build, core-build, judge-ci, backend-tests ]
     if: always() && !cancelled() && contains(needs.*.result, 'failure') && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -318,11 +325,12 @@ jobs:
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
         GITHUB_RUN_ID: ${{ github.run_id }}
-        E2E_FAILED: ${{ needs.web-e2e.result == 'failure' && 'true' || 'false' }}
+        E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
+        E2E_RESULT: ${{ needs.web-e2e.result }}
       run: ./scripts/update-pr-status-comment.sh ci-failed
 
   preview-deploy:
-    needs: [ changes, ci-success ]
+    needs: [ changes, ci-success, web-e2e ]
     # always() is required when ci-success ran via always() with skipped jobs
     # (e.g. docs-build). Otherwise preview-deploy is skipped even when web changed.
     if: |
@@ -400,6 +408,9 @@ jobs:
         SHA: ${{ github.event.pull_request.head.sha }}
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
+        E2E_RESULT: ${{ needs.web-e2e.result }}
       run: ./scripts/update-pr-status-comment.sh preview-ready
 
     - name: Update PR status comment on failure
@@ -410,4 +421,7 @@ jobs:
         SHA: ${{ github.event.pull_request.head.sha }}
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
+        E2E_RESULT: ${{ needs.web-e2e.result }}
       run: ./scripts/update-pr-status-comment.sh preview-failed
