@@ -9,14 +9,26 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
-  reporter: process.env.CI ? "github" : "list",
+  reporter: process.env.CI
+    ? [
+        ["github"],
+        ["html", { open: "never" }],
+        [
+          "junit",
+          {
+            outputFile:
+              process.env.PLAYWRIGHT_JUNIT_OUTPUT ?? "test-results/junit.xml",
+          },
+        ],
+      ]
+    : "list",
   timeout: 180_000,
   expect: {
     timeout: 120_000,
   },
   use: {
     baseURL,
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
