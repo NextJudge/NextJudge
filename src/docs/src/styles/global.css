@@ -107,6 +107,10 @@ body,
 	line-height: 1.7;
 }
 
+html {
+	scroll-behavior: smooth;
+}
+
 .content-panel h1#_top,
 .content-panel h1[data-page-title] {
 	font-size: clamp(2rem, 1.4rem + 2.2vw, 2.75rem) !important;
