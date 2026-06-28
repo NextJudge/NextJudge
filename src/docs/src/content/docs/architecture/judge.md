@@ -55,16 +55,22 @@ Timeouts map to `TIME_LIMIT_EXCEEDED`. OOM maps to `MEMORY_LIMIT_EXCEEDED`. Segf
 }
 ```
 
-## nsjail defaults
+Custom input runs PATCH `/v1/input_submissions/{id}` with `status`, `stdout`, `stderr`, `runtime`.
 
-Per-problem limits from the API can override run-time bounds.
+## Resource limits
+
+:::caution[Problem limits vs sandbox]
+Problems and contests store `accept_timeout`, `execution_timeout`, and `memory_limit` in Postgres. The UI and API expose them. **The judge does not read these fields today** — every run uses the fixed nsjail defaults below. Changing limits in the admin UI does not change sandbox behavior until the judge passes them into nsjail.
+:::
+
+Defaults from `src/judge/src/sandbox/environment.py`:
 
 | Limit | Compile | Run |
 | ----- | ------- | --- |
-| CPU time | 30s | 10s default |
-| Virtual memory | 16 MB | 6 MB default |
-| CPU cores | 2 | 1 |
-| File descriptors | 512 | 3 |
+| CPU time (`--time_limit` / `--rlimit_cpu`) | 30s | 10s |
+| Virtual memory (`--rlimit_as`) | 16 MB | 6 MB |
+| CPU cores (`--max_cpus`) | 2 for Go, 1 otherwise | 1 |
+| File descriptors | 512 | — |
 
 Also applied: chroot, UID 99999, no network, seccomp, read-only filesystem except build and output directories.
 
@@ -72,9 +78,9 @@ This configuration targets untrusted contest submissions in an isolated worker n
 
 ## Scaling
 
-More containers increase parallel throughput. RabbitMQ distributes work. Each worker handles one active submission.
+More containers increase parallel throughput. RabbitMQ distributes work. Each worker handles one active submission (`prefetch_count=1`).
 
-If queue depth rises during a contest, add workers before raising time limits on problems.
+If queue depth rises during a contest, add workers before raising time limits on problems (limits are not enforced in the sandbox yet anyway).
 
 ## Config
 
@@ -97,7 +103,7 @@ Logs go to stdout. Use `docker logs` and grep for `submission_id` when debugging
 ## Add a language
 
 1. Toolchain in `Dockerfile.newbase`
-2. `[[language]]` in `languages.toml` → `/executable/main`
+2. `[[language]]` in `src/judge/languages.toml` → `/executable/main`
 3. Rebuild image
 4. `POST /v1/languages`
 5. Submit reference AC solution

@@ -21,6 +21,8 @@ Clone the repo. Commands below assume the repository root as the working directo
 
 Required keys: `JWT_SIGNING_SECRET`, `JUDGE_PASSWORD`, `WEB_BRIDGE_SECRET`, `DB_PASSWORD`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`. Copy `WEB_BRIDGE_SECRET` into `src/web/.env.local` when running the web app outside Docker (see `src/web/.env.example`).
 
+**`.env` vs `.env.dev`:** `./deploy.sh` reads root `.env`. `./dev-deploy.sh` reads `.env.dev` (gitignored). Create both from `./.createenv.sh` — see [Configuration](/guides/configuration/).
+
 ## Deploy
 
 Backend only:
@@ -61,7 +63,7 @@ Deploy with `./deploy.sh web`, then follow these steps.
 
 ### 1. Register (UI path)
 
-Open http://localhost:8080 and sign up with email/password or GitHub (if configured in `.env.dev`).
+Open http://localhost:8080 and sign up with email/password or GitHub (if OAuth is configured — see [Configuration](/guides/configuration/#github-oauth-setup)).
 
 To grant admin access, add your email to `ADMIN_EMAILS` before starting the stack, then register with that address. See [Authentication](/reference/authentication/) for details.
 
@@ -212,6 +214,8 @@ The initial judge base image build is memory-intensive. Allocate at least **4 GB
 
 ## What's next
 
+- [Run a contest](/guides/run-a-contest/) — organizer workflow from problems to standings
+- [Configuration](/guides/configuration/) — OAuth, `.env` files, optional Elasticsearch
 - [Authentication](/reference/authentication/) for token details and required secrets
 - [Development guide](/guides/development/) for Playwright E2E and Tavern API tests
 - [CLI](/guides/cli/) for `nextjudge test` locally

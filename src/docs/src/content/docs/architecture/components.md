@@ -71,6 +71,8 @@ Stores users, problems, test cases, submissions, events and languages.
 
 GORM AutoMigrate runs on startup. That suits development; take a backup before production upgrades.
 
+Problem `accept_timeout`, `execution_timeout`, and `memory_limit` are persisted here. The judge does not yet apply them in nsjail — see [Judge service — resource limits](/architecture/judge/#resource-limits).
+
 ## CLI (`src/cli`)
 
 Command-line download, local test and submit. See the [CLI guide](/guides/cli/).

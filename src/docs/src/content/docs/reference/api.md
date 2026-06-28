@@ -7,6 +7,8 @@ Base URL: `http://localhost:5000` (dev). Routes under `/v1/` unless noted.
 
 **Auth:** [Authentication](/reference/authentication/). Send the raw JWT in the `Authorization` header with no `Bearer` prefix.
 
+Contest organizer workflows: [Run a contest](/guides/run-a-contest/).
+
 ## Quick flow
 
 ```bash
@@ -28,7 +30,7 @@ SUB_ID=$(curl -s -X POST http://localhost:5000/v1/submissions \
   | jq -r .id)
 
 # 4. Poll
-curl -s http://localhost:5000/v1/submissions/$SUB_ID -H "Authorization: $TOKEN" | jq .status
+curl -s http://localhost:5000/v1/submissions/$SUB_ID/status -H "Authorization: $TOKEN" | jq .status
 ```
 
 ---
@@ -41,8 +43,8 @@ curl -s http://localhost:5000/v1/submissions/$SUB_ID -H "Authorization: $TOKEN" 
 | POST | `/v1/basic_login` | none | Login + JWT |
 | POST | `/v1/create_or_login_user` | `WEB_BRIDGE_SECRET` | OAuth bridge (web app) |
 | POST | `/v1/login_judge` | `JUDGE_PASSWORD` | Judge worker JWT |
-| POST | `/v1/basic_request_password_reset` | none | Request reset |
-| POST | `/v1/basic_reset_password` | none | Set new password |
+| POST | `/v1/basic_request_password_reset` | none | Request reset (no email sent today) |
+| POST | `/v1/basic_reset_password` | none | Set new password directly |
 
 See [Authentication](/reference/authentication/) for bodies and responses.
 
@@ -63,10 +65,6 @@ List users. Query: `?username=` (filter by name).
 ### GET /v1/users/{user_id}
 
 **Auth:** any authenticated user
-
-```json
-{ "id": "uuid", "name": "ada", "email": "ada@example.com", "is_admin": false, "join_date": "..." }
-```
 
 ### POST /v1/users
 
@@ -94,13 +92,13 @@ Soft-delete. Self or admin (not last admin). `204`. Historical leaderboard rows 
 
 **Auth:** required. Public problems for everyone; admins see all.
 
-Query: `?query=` (Elasticsearch when enabled).
+Query: `?query=` (Elasticsearch when `ELASTIC_ENABLED=true`).
 
 ### GET /v1/problems/{problem_id}
 
 **Auth:** required
 
-Query: `?type=private` includes hidden tests (admin only).
+Hidden test cases are **always redacted** for non-judge callers (empty input/output, `hidden: true`). There is no `?type=private` query parameter. Judges and admins fetch full tests via `GET /v1/problem_description/{id}/tests`.
 
 ```json
 {
@@ -110,6 +108,9 @@ Query: `?type=private` includes hidden tests (admin only).
   "prompt": "...",
   "difficulty": "EASY",
   "public": true,
+  "accept_timeout": 10.0,
+  "execution_timeout": 5.0,
+  "memory_limit": 256,
   "test_cases": [{ "id": "uuid", "input": "hi", "expected_output": "ih", "hidden": false }],
   "categories": [{ "id": "uuid", "name": "Strings" }]
 }
@@ -137,19 +138,27 @@ Query: `?type=private` includes hidden tests (admin only).
 }
 ```
 
-Validation (`400` with `{"code":"400","message":"..."}`):
+`timeout` is a legacy default when the specific timeout fields are omitted.
 
-- `title`, `identifier` and `prompt` must be non-empty (after trim)
-- `difficulty` required — one of `VERY_EASY`, `EASY`, `MEDIUM`, `HARD`, `VERY_HARD`
-- At least one test case; each test case needs non-empty `input` and `expected_output`
+Validation (`400`):
+
+- `title`, `identifier`, `prompt` non-empty (after trim)
+- `difficulty` — one of `VERY EASY`, `EASY`, `MEDIUM`, `HARD`, `VERY HARD` (space in `VERY EASY` / `VERY HARD`)
+- At least one test case with non-empty `input` and `expected_output`
+
+`201`: `{ "id": 1, "event_problem_id": 0 }`
 
 ### PUT /v1/problems/{problem_id}
 
-**Auth:** admin. Partial updates to problem metadata and tests. Same validation rules as POST when problem fields or test cases are included.
+**Auth:** admin. Partial updates. Same validation when fields included. `200` same shape as POST response.
 
 ### DELETE /v1/problems/{problem_description_id}
 
 **Auth:** admin. `204`.
+
+### PUT /v1/admin/problems/{problem_id}/toggle-visibility
+
+**Auth:** admin. No body. Flips `public` boolean. `200` with updated problem summary.
 
 ### GET /v1/problem_description/{id}/tests
 
@@ -162,6 +171,10 @@ All test cases for judging. **Auth:** judge or admin.
 ```json
 [{ "id": "uuid", "name": "DP" }]
 ```
+
+### GET /v1/categories/{problem_id}
+
+**Auth:** required. Categories for a problem description ID.
 
 ---
 
@@ -176,9 +189,12 @@ Enqueue for grading. **Auth:** required
   "user_id": "uuid",
   "problem_id": 1,
   "language_id": "uuid",
-  "source_code": "..."
+  "source_code": "...",
+  "event_id": 1
 }
 ```
+
+`event_id` optional — required for contest submissions during the active window.
 
 `201`:
 
@@ -186,17 +202,13 @@ Enqueue for grading. **Auth:** required
 { "id": "uuid", "status": "PENDING", "submit_time": "...", "source_code": "..." }
 ```
 
-Judge PATCHes status later. You poll GET until `status != PENDING`.
-
 ### GET /v1/submissions/{submission_id}
 
-**Auth:** submission owner, judge, or admin
-
-Full submission including `source_code` and `test_case_results` after grading. Other authenticated users get `401 Unauthorized`.
+**Auth:** owner, judge, or admin. Full record including `test_case_results` after grading.
 
 ### GET /v1/submissions/{submission_id}/status
 
-**Auth:** submission owner, judge, or admin. Lightweight status-only poll (preferred by the web app while waiting).
+**Auth:** owner, judge, or admin. Lightweight poll:
 
 ```json
 { "id": "uuid", "status": "PENDING" }
@@ -223,7 +235,7 @@ Full submission including `source_code` and `test_case_results` after grading. O
 
 ### GET /v1/user_problem_submissions/{user_id}/{problem_id}
 
-**Auth:** self or admin. All attempts on one problem.
+**Auth:** self or admin
 
 ---
 
@@ -231,27 +243,56 @@ Full submission including `source_code` and `test_case_results` after grading. O
 
 ### POST /v1/input_submissions
 
-**Auth:** required. No test cases, arbitrary stdin.
+**Auth:** required.
 
 ```json
 { "user_id": "uuid", "language_id": "uuid", "source_code": "print(input())", "stdin": "test" }
 ```
 
-Also available unauthenticated on public/bench routes for demos (`/v1/public/input_submissions`, `/v1/bench/input_submissions`). Both POST routes are IP rate-limited (5/min, burst 2).
+`201` body is a **plain UUID string** (not JSON-wrapped).
 
-Authenticated POST limits (per user, in-memory per data-layer instance):
+Unauthenticated demo routes (IP rate-limited 5/min, burst 2):
+
+- `POST /v1/public/input_submissions`
+- `POST /v1/bench/input_submissions`
+
+Authenticated rate limits (in-memory per data-layer instance):
 
 | Route | Limit |
 | ----- | ----- |
 | `POST /v1/input_submissions` | 30/min, burst 10 |
 | `POST /v1/submissions` | 20/min, burst 5 |
-| `POST /v1/basic_login`, `/v1/basic_register`, password reset | 10/min per IP, burst 5 |
+| Auth / password reset | 10/min per IP, burst 5 |
 
-429 responses include `Retry-After: 60` and `{"code":"RATE_LIMIT_EXCEEDED",...}`.
+429: `Retry-After: 60`, `{"code":"RATE_LIMIT_EXCEEDED",...}`
 
 ### GET /v1/input_submissions/{id}
 
-Poll until `finished: true`. Returns `stdout`, `stderr`, `runtime`.
+**Auth:** required. While running:
+
+```json
+{ "status": "PENDING" }
+```
+
+When finished:
+
+```json
+{ "status": "ACCEPTED", "stdout": "...", "stderr": "", "finished": true, "runtime": 0.042 }
+```
+
+### GET /v1/public/input_submissions/{id} / GET /v1/bench/input_submissions/{id}
+
+**Auth:** none. Same poll shapes as authenticated GET.
+
+### PATCH /v1/input_submissions/{submission_id}
+
+**Auth:** judge or admin. Judge worker callback for custom runs.
+
+```json
+{ "status": "ACCEPTED", "stdout": "", "stderr": "", "runtime": 0.042 }
+```
+
+`204` on success.
 
 ---
 
@@ -277,7 +318,9 @@ No auth.
 
 ## Events (contests)
 
-The API says **events**. The UI says **contests**. Same thing.
+The API says **events**. The UI says **contests**.
+
+Scoring rules: [Run a contest — standings](/guides/run-a-contest/#6-standings-icpc-scoring).
 
 ### GET /v1/public/events
 
@@ -285,11 +328,15 @@ The API says **events**. The UI says **contests**. Same thing.
 
 ### GET /v1/public/events/{event_id}
 
-**Auth:** required. Event + problems.
+**Auth:** required. Event detail with participant list and problem id refs.
 
 ### POST /v1/public/events/{event_id}/register
 
-**Auth:** required. Register current user for public contest.
+**Auth:** required. Self-register. `409` if already registered.
+
+### GET /v1/public/events/{event_id}/participants
+
+**Auth:** required. Array of `User` objects.
 
 ### GET /v1/events
 
@@ -298,6 +345,10 @@ The API says **events**. The UI says **contests**. Same thing.
 ### GET /v1/events/{event_id}
 
 **Auth:** admin
+
+### GET /v1/event_details?title={title}
+
+**Auth:** admin. Lookup by title with full problem payloads and languages.
 
 ### POST /v1/events
 
@@ -310,13 +361,20 @@ The API says **events**. The UI says **contests**. Same thing.
   "start_time": "2026-04-01T18:00:00Z",
   "end_time": "2026-04-01T21:00:00Z",
   "teams": false,
-  "user_id": "admin-uuid"
+  "user_id": "admin-uuid",
+  "problems": [{
+    "problem_id": 1,
+    "accept_timeout": 5.0,
+    "execution_timeout": 5.0,
+    "memory_limit": 256
+  }],
+  "languages": [1]
 }
 ```
 
 ### PUT /v1/events/{event_id}
 
-**Auth:** admin
+**Auth:** admin. Updates title, description, times, teams — **not** problem attachments.
 
 ### DELETE /v1/events/{event_id}
 
@@ -327,73 +385,116 @@ The API says **events**. The UI says **contests**. Same thing.
 | Method | Path | Auth | Purpose |
 | ------ | ---- | ---- | ------- |
 | GET | `/v1/events/{id}/problems` | user | Problems in contest |
-| POST | `/v1/events/{id}/problems` | user | Attach problem |
+| GET | `/v1/events/{id}/problems/{event_problem_id}` | user | Single contest problem + public tests |
+| POST | `/v1/events/{id}/problems` | user | Attach problem `{ "problem_id": 1 }` → `201` |
 | GET | `/v1/events/{id}/submissions` | user | Filtered submissions (see below) |
-| GET | `/v1/events/{id}/attempts` | user | ICPC-style solve times |
-| GET | `/v1/events/{id}/participants` | user/admin | Who registered |
-| POST | `/v1/events/{id}/participants` | admin | Add participant |
-| GET/POST | `/v1/events/{id}/questions` | user | Clarification questions |
-| POST | `/v1/events/{id}/end` | admin | End contest early (sets `end_time` to now) |
+| GET | `/v1/events/{id}/attempts` | user | ICPC attempt stats per user/problem |
+| GET | `/v1/events/{id}/user_problem_status` | user | Current user's per-problem status |
+| GET | `/v1/events/{id}/problems_stats` | user | Acceptance counts per problem |
+| GET | `/v1/events/{id}/participants` | admin | Participant list |
+| POST | `/v1/events/{id}/participants` | admin | Add `{ "user_id": "..." }` |
+| GET | `/v1/events/{id}/questions` | user | List clarifications |
+| POST | `/v1/events/{id}/questions` | user | Ask `{ "question": "...", "problem_id": 1 }` |
+| PUT | `/v1/events/{id}/questions/{question_id}/answer` | user | Answer `{ "answer": "..." }` |
+| POST | `/v1/events/{id}/end` | admin | End early (`end_time = now`) |
+
+### GET /v1/events/{id}/attempts
+
+ICPC-style stats per `(user_id, problem_id)`:
+
+```json
+[{
+  "user_id": "uuid",
+  "problem_id": 1,
+  "attempts": 3,
+  "total_attempts": 5,
+  "first_accepted_time": "2026-04-01T19:30:00Z",
+  "minutes_to_solve": 45
+}]
+```
+
+`attempts` counts submissions that affect scoring; see [Run a contest](/guides/run-a-contest/#6-standings-icpc-scoring).
+
+### Clarifications
+
+**GET** returns `EventQuestionExt` array with nested `user`, optional `problem`, `answerer`.
+
+**POST** `201` with created question. Notifies other participants (`notification_type: "question"`).
+
+**PUT answer** `200` `{"message":"question answered successfully"}`. Notifies question author (`notification_type: "answer"`). Any authenticated user can call this endpoint — restrict at the proxy if needed.
 
 ### Team contests
 
-Create an event with `"teams": true`. Team endpoints only work when teams are enabled on that event.
+Create with `"teams": true`.
 
 | Method | Path | Auth | Purpose |
 | ------ | ---- | ---- | ------- |
-| GET | `/v1/events/{id}/teams` | user | List teams (`[{ "id", "event_id", "name" }]`) |
-| POST | `/v1/events/{id}/teams` | user | Create a team (creator joins automatically) |
-| GET | `/v1/events/{id}/teams/me` | user | Current user's team + `members` |
-| GET | `/v1/events/{id}/teams/{team_id}` | user | Team detail + `members` |
-| POST | `/v1/events/{id}/teams/{team_id}/join` | user | Join a team |
+| GET | `/v1/events/{id}/teams` | user | List teams |
+| POST | `/v1/events/{id}/teams` | user | Create `{ "name": "Team Ada" }` |
+| GET | `/v1/events/{id}/teams/me` | user | Current user's team + members |
+| GET | `/v1/events/{id}/teams/{team_id}` | user | Team detail |
+| POST | `/v1/events/{id}/teams/{team_id}/join` | user | Join (optional `{ "user_id" }`) |
 
-**POST** `/v1/events/{id}/teams` body:
-
-```json
-{ "name": "Team Ada" }
-```
-
-`201`: `{"message":"Success","team_id":"uuid"}`. Conflicts: `409` duplicate name or already on a team for this event.
-
-**POST** join body (optional — defaults to the authenticated user):
-
-```json
-{ "user_id": "uuid" }
-```
-
-`201` on success. One team per user per event.
+One team per user per event. Standings remain **per user**.
 
 ### GET /v1/events/{id}/submissions
 
-**Auth:** required. Query filters:
+Query filters:
 
 | Query | Behavior |
 | ----- | -------- |
-| (none) | All contest submissions — event owner, judge, or admin only |
-| `?user={uuid}` | That user's contest submissions — self or admin |
-| `?team={uuid}` | Team submissions — team members (or judge/admin) on team events |
+| (none) | All submissions — judge, admin, or event owner only |
+| `?user={uuid}` | That user's submissions — self or admin |
+| `?team={uuid}` | Team submissions — team members or judge/admin |
 
-**Redaction:** responses strip `source_code`, `stdout` and `stderr` for submissions you do not own. Status, timing and verdict fields remain visible. Owners, judges and admins see full payloads on their own submissions.
+Redaction: strips `source_code`, `stdout`, `stderr` for submissions you don't own.
 
 ---
 
 ## Notifications
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| GET | `/v1/user/notifications/count` | Unread count |
-| GET | `/v1/user/notifications` | List |
-| PUT | `/v1/user/notifications/mark-read` | Mark read |
+Triggered by contest clarifications. All require auth.
 
-All require auth.
+### GET /v1/user/notifications/count
+
+```json
+{ "count": 3 }
+```
+
+### GET /v1/user/notifications
+
+Returns recent notifications (unread + read from last 24h):
+
+```json
+[{
+  "id": "uuid",
+  "user_id": "uuid",
+  "event_id": 1,
+  "question_id": "uuid",
+  "notification_type": "question",
+  "is_read": false,
+  "created_at": "...",
+  "question": { }
+}]
+```
+
+`notification_type`: `"question"` | `"answer"`.
+
+### PUT /v1/user/notifications/mark-read
+
+Empty body. `200` `{"message":"notifications marked as read"}`.
 
 ---
 
 ## Health
 
-### GET /healthy
+| Method | Path | Response |
+| ------ | ---- | -------- |
+| GET | `/` | `{"status":"ok","service":"nextjudge-data-layer","health":"/health","api":"/v1"}` |
+| GET | `/health` | `{"status":"ok"}` |
+| GET | `/healthy` | `{"status":"ok"}` |
 
-No auth. `200` = up.
+No auth.
 
 ---
 
@@ -403,13 +504,16 @@ No auth. `200` = up.
 { "error": "Human-readable message", "code": "OPTIONAL_CODE" }
 ```
 
+Some validation errors use `{ "code": "400", "message": "..." }`.
+
 | HTTP | Meaning |
 | ---- | ------- |
 | 400 | Bad input |
 | 401 | Missing/invalid auth |
 | 403 | Wrong role |
 | 404 | Not found |
-| 409 | Conflict (e.g. user exists) |
+| 409 | Conflict |
+| 429 | Rate limited |
 | 500 | Internal server error |
 
-Auth errors are worth memorizing: `Malformed JWT token` almost always means you prefixed `Bearer`.
+`Malformed JWT token` almost always means you prefixed `Bearer`.

@@ -3,54 +3,46 @@ title: Deployment Guide
 description: Production deployment paths, environment variables, networking and operations for NextJudge at scale.
 ---
 
-Local setup: [Getting started](/start/getting-started/). This page covers server deployment.
+Local setup: [Getting started](/start/getting-started/). Environment and OAuth detail: [Configuration](/guides/configuration/).
 
 ## Pick your deploy path
 
-| Method | When | Command |
-| ------ | ---- | ------- |
+| Method | When | Command / file |
+| ------ | ---- | -------------- |
 | **deploy.sh** | First prod-like test on a VM | `./deploy.sh web` |
-| **Prebuilt images** | Production, CI, hosts without build toolchains | `docker compose -f compose/docker-compose.prebuilt.yml up -d` |
+| **Prebuilt images** | Production without local build | `docker compose -f compose/docker-compose.prebuilt.yml up -d` |
 | **docker buildx bake** | Fresh images after code changes | `docker buildx bake -f docker-bake.hcl` |
-| **Coolify** | Coolify host | `compose/docker-compose.coolify.yml` |
+| **Coolify** | Coolify-managed host | `compose/docker-compose.coolify.yml` |
 
 Build images on development machines or in CI. Pull prebuilt images on production hosts to avoid compiling Go and judge toolchains during deploy windows.
 
+---
+
 ## Environment variables
 
-Set via `.env`, a secrets manager or compose `environment`. Required variables:
+See [Configuration](/guides/configuration/) for the full matrix. Summary:
 
-### Data layer
+### Data layer (required)
+
+`DB_PASSWORD`, `JWT_SIGNING_SECRET`, `JUDGE_PASSWORD`, `WEB_BRIDGE_SECRET`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`
+
+### Data layer (production)
 
 | Variable | Notes |
 | -------- | ----- |
-| `DB_HOST`, `DB_PASSWORD`, … | Postgres |
-| `RABBITMQ_HOST`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD` | Queue |
-| `JWT_SIGNING_SECRET` | Long random string. **Required** — data layer won't start without it. Rotation invalidates existing sessions |
-| `JUDGE_PASSWORD` | **Required.** Shared with judge workers |
-| `WEB_BRIDGE_SECRET` | **Required.** Shared with web app — protects GitHub OAuth bridge (`POST /v1/create_or_login_user`). `AUTH_PROVIDER_PASSWORD` still works but is deprecated |
-| `CORS_ORIGIN` | Your web origin(s), comma-separated |
-| `ADMIN_EMAILS` | Comma-separated admin bootstrap emails |
+| `CORS_ORIGIN` | Web origin(s), comma-separated |
+| `ADMIN_EMAILS` | Admin bootstrap emails |
 | `SEED_DATA` | **`false`** in prod |
-| `ELASTIC_ENABLED` | `true` only if ES is deployed |
+| `ELASTIC_ENABLED` | `true` only if Elasticsearch is deployed |
+| `CORS_ALLOW_PREVIEW` | `true` for Coolify PR previews |
 
-### Judge
+### Web (build-time + runtime)
 
-Same RabbitMQ + `NEXTJUDGE_HOST`/`PORT` + matching `JUDGE_PASSWORD`.
+`NEXT_PUBLIC_API_URL`, `AUTH_SECRET`, `NEXTAUTH_URL`, `WEB_BRIDGE_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`
 
-### Web
+Generate backend secrets: `./.createenv.sh > .env`
 
-| Variable | Notes |
-| -------- | ----- |
-| `NEXT_PUBLIC_API_URL` | Public API URL the browser and server use (e.g. `https://api.yourdomain.com`). Set at **build** time (`next build`). If unset on a deployed build, defaults to `https://api.nextjudge.net`. Local `next dev` ignores remote values and uses `http://localhost:5000`. |
-| `AUTH_SECRET` | Session encryption (Auth.js) |
-| `NEXTAUTH_URL` | Public HTTPS URL of the web app (also used to derive app links when self-hosting) |
-| `WEB_BRIDGE_SECRET` | Same value as data layer — GitHub OAuth bridge |
-| `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub OAuth app credentials |
-
-Copy `src/web/.env.example` → `.env.local` for local dev. Root `.env.example` lists data-layer secrets; run `./.createenv.sh` to generate values.
-
-Full lists: `config.go`, judge `app.py`, web `.env.example`.
+---
 
 ## Network layout
 
@@ -64,9 +56,13 @@ Internet → TLS proxy → web :8080
                     judge workers (internal only)
 ```
 
-Block **5432**, **5672** and **5000** from the public internet. Expose only 443 (or 80 with redirect to HTTPS).
+Block **5432**, **5672** from the public internet. Expose **443** to users. The API (`5000`) should be reachable from the web app and judges — typically internal or a separate `api.` subdomain, not open to arbitrary clients without rate limiting.
+
+---
 
 ## TLS proxy (nginx sketch)
+
+### Web app
 
 ```nginx
 server {
@@ -83,7 +79,52 @@ server {
 }
 ```
 
-Set `NEXTAUTH_URL=https://nextjudge.example.com`. A mismatch with the URL in the browser causes login redirect loops.
+Set `NEXTAUTH_URL=https://nextjudge.example.com`.
+
+### API (optional separate subdomain)
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name api.nextjudge.example.com;
+    ssl_certificate     /etc/letsencrypt/live/api.nextjudge.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.nextjudge.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Set `NEXT_PUBLIC_API_URL=https://api.nextjudge.example.com` at web **build** time. Set `CORS_ORIGIN=https://nextjudge.example.com` on the data layer.
+
+---
+
+## Coolify
+
+Deploy the **backend** with `compose/docker-compose.coolify.yml`:
+
+- Images: `tnyuma/nextjudge-core:latest`, `tnyuma/nextjudge-judge:latest`
+- Data layer uses `expose: 5000` — route via Coolify proxy to your API domain
+- Does **not** include web or Elasticsearch
+
+Deploy **web** as a separate Coolify application from `src/web`. Required build env: `NEXT_PUBLIC_API_URL`, `AUTH_SECRET`, `NEXTAUTH_URL`, `WEB_BRIDGE_SECRET`, GitHub OAuth vars.
+
+Backend Coolify env: same secrets as [Configuration — Coolify](/guides/configuration/#coolify-deployment).
+
+PR previews: CI can deploy to `https://{PR}-web.preview.nextjudge.net`. Enable preview deployments on the Coolify app and set `CORS_ALLOW_PREVIEW=true` on the backend.
+
+---
+
+## Elasticsearch (optional)
+
+Off by default. Enables `GET /v1/problems?query=` when `ELASTIC_ENABLED=true`. Requires a reachable cluster at `ELASTIC_ENDPOINT` — startup **fails** if ES is enabled but unreachable.
+
+Not included in Coolify compose. To enable on a custom stack, uncomment the elasticsearch service in compose, set `ELASTIC_ENABLED=true`, and see [Configuration](/guides/configuration/#elasticsearch-optional).
+
+---
 
 ## Scale judges
 
@@ -93,11 +134,16 @@ docker compose -f compose/docker-compose.backend.yml up -d --scale nextjudge-jud
 
 Throughput scales roughly with `workers × (1 / avg_submission_seconds)`. Monitor queue depth rather than web container CPU.
 
+---
+
 ## Database ops
 
-- AutoMigrate on data layer boot. **pg_dump before upgrades.**
+- GORM AutoMigrate on data layer boot. **pg_dump before upgrades.**
+- Review `src/data-layer/src/schema_updates.sql` for manual migration notes
 - No `SEED_DATA` in prod
 - Test restore from backup on a schedule
+
+---
 
 ## Health
 
@@ -105,21 +151,28 @@ Throughput scales roughly with `workers × (1 / avg_submission_seconds)`. Monito
 curl -sf https://api.yourdomain.com/healthy && echo ok
 ```
 
-Judges have no HTTP health endpoint. Monitor queue depth, PENDING age and container restarts.
+Also available: `GET /health`, `GET /`. Judges have no HTTP health endpoint — monitor queue depth, PENDING age and container restarts.
+
+---
 
 ## Security
 
 - Patch judge images regularly
-- Rate-limit `/v1/basic_login` at the proxy
+- Rate-limit `/v1/basic_login` and `/v1/basic_register` at the proxy
 - Network-separate judge workers from internal admin tools
+- Do not expose `basic_reset_password` to the public internet without proper verification
+
+---
 
 ## Upgrade playbook
 
 1. `pg_dump`
-2. Read changelog / `schema_updates.sql`
-3. Pull/build images
+2. Read `src/data-layer/src/schema_updates.sql` and release notes for your version
+3. Pull or build images (`docker buildx bake` or prebuilt pull)
 4. Restart data layer (migrations) → judges → web
 5. Submit a known-AC solution. If that fails, roll back images before investigating new issues.
+
+---
 
 ## Troubleshooting
 
@@ -130,5 +183,6 @@ Judges have no HTTP health endpoint. Monitor queue depth, PENDING age and contai
 | Submissions stay `PENDING` | Judge workers down, RabbitMQ auth mismatch, or wrong `JUDGE_PASSWORD` |
 | Login succeeds then loops | `NEXTAUTH_URL` does not match the HTTPS URL users visit |
 | Judge PATCH returns 401 | `JUDGE_PASSWORD` differs between data layer and judge containers |
+| Data layer won't start with ES enabled | Elasticsearch unreachable at `ELASTIC_ENDPOINT` |
 
-Local stack issues: [Getting started troubleshooting](/start/getting-started/#troubleshooting).
+Local stack: [Getting started troubleshooting](/start/getting-started/#troubleshooting).

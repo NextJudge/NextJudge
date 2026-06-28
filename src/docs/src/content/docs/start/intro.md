@@ -82,7 +82,9 @@ You also take on operations: database, message queue, judge images, backups, mon
 ## Start here
 
 1. [Getting Started](/start/getting-started/) — deploy the stack and verify each service
-2. [Key terms](/start/key-terms/) — problems, test cases, submissions, verdicts
-3. [Design decisions](/start/principles/) — why the system is split into services
-4. [Development guide](/guides/development/) — work on individual components
-5. [API reference](/reference/api/) — integrate with the data layer directly
+2. [Run a contest](/guides/run-a-contest/) — organizer workflow from problems to standings
+3. [Key terms](/start/key-terms/) — problems, test cases, submissions, verdicts
+4. [Configuration](/guides/configuration/) — secrets, OAuth, optional Elasticsearch
+5. [Design decisions](/start/principles/) — why the system is split into services
+6. [Development guide](/guides/development/) — work on individual components
+7. [API reference](/reference/api/) — integrate with the data layer directly

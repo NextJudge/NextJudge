@@ -140,7 +140,11 @@ POST /v1/basic_request_password_reset   # body: {"email":"..."}
 POST /v1/basic_reset_password           # body: {"email":"...","new_password":"..."}
 ```
 
-Both return `{"status":"ok"}` even if the email is not found (anti-enumeration). Reset accepts email and new password directly; there is no magic-link token yet.
+Both return `{"status":"ok"}` even if the email is not found (anti-enumeration).
+
+**Current behavior:** `basic_request_password_reset` does **not** send email — it is a no-op stub. `basic_reset_password` sets a new password when you supply email and `new_password` directly (no token, no magic link). Suitable for scripts and local dev only; do not expose reset to untrusted clients without adding proper email verification.
+
+`RESEND_API_KEY` in `src/web/.env.example` is for other email features (waitlist), not wired to password reset today.
 
 ## Common mistakes
 
