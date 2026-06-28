@@ -15,3 +15,5 @@ __pycache__/
 coolify.env
 tsconfig.tsbuildinfo
 presentation/
+.env.prod
+.env.local
