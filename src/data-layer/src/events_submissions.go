@@ -1,37 +1,29 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"goji.io/pat"
 )
 
 func getEventSubmissions(w http.ResponseWriter, r *http.Request) {
-	eventIdParam := pat.Param(r, "event_id")
-	eventId, err := strconv.Atoi(eventIdParam)
+	eventId, err := ParseEventID(r)
 	if err != nil {
 		logrus.Warn("bad uuid")
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"code":"400", "message":"bad uuid"}`))
+		WriteError(w, http.StatusBadRequest, "bad uuid", "400")
 		return
 	}
 
 	event, err := db.GetEventByID(eventId)
 	if err != nil {
 		logrus.WithError(err).Error("error getting event from db")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"code":"500", "message":"error getting event from db"}`))
+		WriteError(w, http.StatusInternalServerError, "error getting event from db", "500")
 		return
 	}
 	if event == nil {
 		logrus.Error("event does not exist")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"code":"404", "message":"event does not exist"}`))
+		WriteError(w, http.StatusNotFound, "event does not exist", "404")
 		return
 	}
 
@@ -52,14 +44,7 @@ func getEventSubmissions(w http.ResponseWriter, r *http.Request) {
 		submissions[i] = redactSubmissionForViewer(claims, submissions[i])
 	}
 
-	respJSON, err := json.Marshal(submissions)
-	if err != nil {
-		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"code":"500", "message":"JSON parse error"}`))
-		return
-	}
-	_, _ = w.Write(respJSON)
+	WriteJSON(w, http.StatusOK, submissions)
 }
 
 func fetchEventSubmissions(
@@ -88,15 +73,13 @@ func resolveTeamEventSubmissions(
 	claims *NextJudgeClaims,
 ) ([]Submission, bool) {
 	if !event.Teams {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"code":"400", "message":"not a team event"}`))
+		WriteError(w, http.StatusBadRequest, "not a team event", "400")
 		return nil, false
 	}
 
 	teamID, err := uuid.Parse(teamQuery)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"code":"400", "message":"bad team id"}`))
+		WriteError(w, http.StatusBadRequest, "bad team id", "400")
 		return nil, false
 	}
 
@@ -104,13 +87,11 @@ func resolveTeamEventSubmissions(
 		eventUser, err := db.GetEventUser(claims.Id, eventId)
 		if err != nil {
 			logrus.WithError(err).Error("error checking event user")
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(`{"code":"500", "message":"error checking event user"}`))
+			WriteError(w, http.StatusInternalServerError, "error checking event user", "500")
 			return nil, false
 		}
 		if eventUser == nil || eventUser.TeamID != teamID {
-			w.WriteHeader(http.StatusForbidden)
-			_, _ = w.Write([]byte(`{"code":"403", "message":"forbidden"}`))
+			WriteError(w, http.StatusForbidden, "forbidden", "403")
 			return nil, false
 		}
 	}
@@ -118,8 +99,7 @@ func resolveTeamEventSubmissions(
 	submissions, err := db.GetAllEventSubmissionsByTeam(eventId, teamID)
 	if err != nil {
 		logrus.WithError(err).Error("error getting team submissions")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"code":"500", "message":"error getting submissions"}`))
+		WriteError(w, http.StatusInternalServerError, "error getting submissions", "500")
 		return nil, false
 	}
 
@@ -134,22 +114,19 @@ func resolveUserEventSubmissions(
 ) ([]Submission, bool) {
 	userID, err := uuid.Parse(userQuery)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"code":"400", "message":"bad user id"}`))
+		WriteError(w, http.StatusBadRequest, "bad user id", "400")
 		return nil, false
 	}
 
 	if !canReadSubmissionForClaims(claims, userID) {
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = w.Write([]byte(`{"code":"403", "message":"forbidden"}`))
+		WriteError(w, http.StatusForbidden, "forbidden", "403")
 		return nil, false
 	}
 
 	submissions, err := db.GetEventSubmissionsByUserID(eventId, userID)
 	if err != nil {
 		logrus.WithError(err).Error("error getting user submissions")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"code":"500", "message":"error getting submissions"}`))
+		WriteError(w, http.StatusInternalServerError, "error getting submissions", "500")
 		return nil, false
 	}
 
@@ -163,60 +140,16 @@ func resolveAllEventSubmissions(
 	claims *NextJudgeClaims,
 ) ([]Submission, bool) {
 	if !canViewAllEventSubmissions(claims, event) {
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = w.Write([]byte(`{"code":"403", "message":"forbidden"}`))
+		WriteError(w, http.StatusForbidden, "forbidden", "403")
 		return nil, false
 	}
 
 	submissions, err := db.GetAllEventSubmissions(eventId)
 	if err != nil {
 		logrus.WithError(err).Error("error getting event submissions")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"code":"500", "message":"error getting submissions"}`))
+		WriteError(w, http.StatusInternalServerError, "error getting submissions", "500")
 		return nil, false
 	}
 
 	return submissions, true
-}
-
-func endEventEarly(w http.ResponseWriter, r *http.Request) {
-	eventIdParam := pat.Param(r, "event_id")
-	eventId, err := strconv.Atoi(eventIdParam)
-	if err != nil {
-		logrus.Warn("bad event_id")
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"code":"400", "message":"bad event_id"}`))
-		return
-	}
-
-	event, err := db.GetEventByID(eventId)
-	if err != nil {
-		logrus.WithError(err).Error("error getting event from db")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"code":"500", "message":"error getting event from db"}`))
-		return
-	}
-	if event == nil {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"code":"404", "message":"event not found"}`))
-		return
-	}
-
-	now := time.Now()
-	if event.EndTime.Before(now) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"event already ended"}`))
-		return
-	}
-
-	event.EndTime = now
-	if err := db.UpdateEvent(event); err != nil {
-		logrus.WithError(err).Error("error ending event")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"code":"500", "message":"error ending event"}`))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(`{"message":"event ended successfully"}`))
 }

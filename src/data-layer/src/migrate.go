@@ -8,6 +8,7 @@ import (
 )
 
 //go:embed nextjudge.sql
+// keep ../nextjudge.sql in sync (docker init uses that copy)
 var schemaSQL string
 
 //go:embed schema_updates.sql
