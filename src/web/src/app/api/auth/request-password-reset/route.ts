@@ -2,18 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getBridgeUrl } from "@/lib/utils";
 
-const resetSchema = z.object({
+const requestSchema = z.object({
   email: z.string().email(),
-  new_password: z.string().min(6),
-  token: z.string().min(1),
 });
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const parsed = resetSchema.parse(body);
+    const parsed = requestSchema.parse(body);
 
-    const res = await fetch(`${getBridgeUrl()}/v1/basic_reset_password`, {
+    const res = await fetch(`${getBridgeUrl()}/v1/basic_request_password_reset`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(parsed),
@@ -23,12 +21,12 @@ export async function POST(request: NextRequest) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: data.error || "Password reset failed" },
+        { error: data.error || "Password reset request failed" },
         { status: res.status },
       );
     }
 
-    return NextResponse.json({ status: "ok" });
+    return NextResponse.json(data);
   } catch (e) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
