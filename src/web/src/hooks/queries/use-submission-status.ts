@@ -7,6 +7,7 @@ import {
   type SubmissionStatusPoll,
 } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
+import { isCustomInputPending } from "@/lib/schemas/custom-input";
 import { Submission, SubmissionStatus } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 
@@ -56,7 +57,7 @@ export function useCustomInputStatus(
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data) return 500;
-      return !data.finished && data.status === "PENDING" ? 500 : false;
+      return isCustomInputPending(data) ? 500 : false;
     },
   });
 }

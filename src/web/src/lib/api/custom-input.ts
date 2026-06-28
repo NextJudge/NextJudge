@@ -1,5 +1,9 @@
-import { CustomInputResult } from "../types";
-import { parseCustomInputResult } from "../schemas/custom-input";
+import {
+	isCustomInputFinished,
+	parseCustomInputResult,
+	type CustomInputFinishedSchema,
+	type CustomInputResultSchema,
+} from "../schemas/custom-input";
 import {
 	apiFetchParsed,
 	apiUrl,
@@ -11,9 +15,9 @@ export async function waitForCustomInputResult(
 	token: string,
 	runId: string,
 	intervalMs = 500,
-): Promise<CustomInputResult> {
+): Promise<CustomInputFinishedSchema> {
 	let result = await getCustomInputSubmissionStatus(token, runId);
-	while (!result.finished && result.status === "PENDING") {
+	while (!isCustomInputFinished(result)) {
 		await new Promise((resolve) => setTimeout(resolve, intervalMs));
 		result = await getCustomInputSubmissionStatus(token, runId);
 	}
@@ -46,7 +50,7 @@ export async function postCustomInputSubmission(
 export async function getCustomInputSubmissionStatus(
 	token: string,
 	submissionId: string,
-): Promise<CustomInputResult> {
+): Promise<CustomInputResultSchema> {
 	return apiFetchParsed(
 		`/v1/input_submissions/${submissionId}`,
 		parseCustomInputResult,
@@ -87,7 +91,7 @@ export async function postPublicCustomInputSubmission(
 export async function getPublicCustomInputSubmissionStatus(
 	submissionId: string,
 	options?: { benchmark?: boolean },
-): Promise<CustomInputResult> {
+): Promise<CustomInputResultSchema> {
 	const endpoint = options?.benchmark
 		? "/v1/bench/input_submissions"
 		: "/v1/public/input_submissions";

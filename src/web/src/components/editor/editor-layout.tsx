@@ -265,7 +265,7 @@ export default function EditorComponent({
 
         if (result.status === "COMPILE_TIME_ERROR") {
           overallStatus = "COMPILE_TIME_ERROR";
-          compileStderr = result.stderr;
+          compileStderr = result.stderr ?? "";
           setRunProgress({
             runResults: {
               status: overallStatus,
