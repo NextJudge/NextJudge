@@ -196,6 +196,12 @@ func answerEventQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !canManageEvent(token, event) {
+		logrus.Warn("user not authorized to answer event questions")
+		WriteError(w, http.StatusForbidden, "forbidden", "403")
+		return
+	}
+
 	reqData := new(AnswerQuestionRequest)
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {

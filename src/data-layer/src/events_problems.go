@@ -169,6 +169,19 @@ func addEventProblem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
+	if !ok || token == nil {
+		logrus.Error("Error in token")
+		WriteError(w, http.StatusInternalServerError, "Error in token", "500")
+		return
+	}
+
+	if !canManageEvent(token, event) {
+		logrus.Warn("user not authorized to add problems to event")
+		WriteError(w, http.StatusForbidden, "forbidden", "403")
+		return
+	}
+
 	// Make sure the problem exists
 	problem, err := db.GetProblemDescriptionByID(reqData.ProblemID)
 	if err != nil {

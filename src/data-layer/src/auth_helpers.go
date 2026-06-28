@@ -58,6 +58,10 @@ func canViewAllEventSubmissions(claims *NextJudgeClaims, event *Event) bool {
 	return claims.Role >= JudgeRoleEnum || claims.Id == event.UserID
 }
 
+func canManageEvent(claims *NextJudgeClaims, event *Event) bool {
+	return claims.Role >= JudgeRoleEnum || claims.Id == event.UserID
+}
+
 func redactSubmissionForViewer(claims *NextJudgeClaims, submission Submission) Submission {
 	if canReadSubmissionForClaims(claims, submission.UserID) {
 		return submission
