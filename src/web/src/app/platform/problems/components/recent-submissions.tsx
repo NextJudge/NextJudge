@@ -82,7 +82,7 @@ export function RecentSubmissionCard({
         <Card className="cursor-pointer hover:shadow-lg transition-shadow duration-200 ease-in-out">
           <CardHeader className="grid grid-cols-[1fr_100px] items-end gap-8 space-y-0">
             <div className="space-y-1">
-              <CardTitle>{submission.problem.title}</CardTitle>
+              <CardTitle>{submission.problem?.title ?? "Unknown problem"}</CardTitle>
             </div>
             <div className="flex items-center justify-end space-x-1">
               <SubmissionStatusBadge status={submissionStatus} />
@@ -94,10 +94,10 @@ export function RecentSubmissionCard({
                 <CircleDot
                   className={cn(
                     "mr-2 size-2",
-                    submission.language.name && getColorClass(submission.language.name)
+                    submission.language?.name && getColorClass(submission.language.name)
                   )}
                 />
-                {submission.language.name}
+                {submission.language?.name ?? "Unknown language"}
               </div>
               <div>{moment(submission.submit_time).fromNow()}</div>
             </div>
@@ -106,7 +106,7 @@ export function RecentSubmissionCard({
       </DialogTrigger>
       <DialogContent className="min-w-2xl max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Submission to {submission.problem.title}</DialogTitle>
+          <DialogTitle>Submission to {submission.problem?.title ?? "Unknown problem"}</DialogTitle>
           <DialogDescription>
             Submitted by {submission.user?.name || submission.user?.account_identifier || "Unknown"} on{" "}
             {format(submission.submit_time, "PPP 'at' p")}
@@ -120,7 +120,7 @@ export function RecentSubmissionCard({
         </div>
         <DummyCodeEditor
           sourceCode={submission.source_code}
-          language={convertToMonacoLanguageName(submission.language)}
+          language={convertToMonacoLanguageName(submission.language ?? undefined)}
           readOnly={true}
         />
         <DialogFooter className="gap-2 sm:justify-start">

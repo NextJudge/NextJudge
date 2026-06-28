@@ -2,8 +2,11 @@ import { ProblemRequest } from "../types";
 import {
 	type ProblemDetail,
 	type ProblemListItem,
+	type PostProblemResponse,
+	parsePostProblemResponse,
 	parseProblemDetail,
 	parseProblemList,
+	parseProblemListItem,
 } from "../schemas/problem";
 import { apiFetch, authHeaders, jsonAuthHeaders } from "./client";
 
@@ -39,7 +42,7 @@ export async function fetchProblemID(
 export async function apiToggleProblemVisibility(
 	token: string,
 	problemId: number,
-): Promise<ProblemDetail> {
+): Promise<ProblemListItem> {
 	const response = await apiFetch(
 		`/v1/admin/problems/${problemId}/toggle-visibility`,
 		{
@@ -48,31 +51,34 @@ export async function apiToggleProblemVisibility(
 		},
 	);
 	const json: unknown = await response.json();
-	return parseProblemDetail(json);
+	return parseProblemListItem(json);
 }
 
-export async function apiCreateProblem(token: string, data: ProblemRequest) {
+export async function apiCreateProblem(
+	token: string,
+	data: ProblemRequest,
+): Promise<PostProblemResponse> {
 	const response = await apiFetch("/v1/problems", {
 		method: "POST",
 		headers: jsonAuthHeaders(token),
 		body: JSON.stringify(data),
 	});
 	const json: unknown = await response.json();
-	return parseProblemDetail(json);
+	return parsePostProblemResponse(json);
 }
 
 export async function apiUpdateProblem(
 	token: string,
 	problemId: number,
 	data: ProblemRequest,
-) {
+): Promise<PostProblemResponse> {
 	const response = await apiFetch(`/v1/problems/${problemId}`, {
 		method: "PUT",
 		headers: jsonAuthHeaders(token),
 		body: JSON.stringify(data),
 	});
 	const json: unknown = await response.json();
-	return parseProblemDetail(json);
+	return parsePostProblemResponse(json);
 }
 
 export async function apiDeleteProblem(
