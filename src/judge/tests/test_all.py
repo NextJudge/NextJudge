@@ -1,5 +1,5 @@
 import pytest
-from src.app import *
+from app import *
 from pathlib import Path
 
 @pytest.fixture
