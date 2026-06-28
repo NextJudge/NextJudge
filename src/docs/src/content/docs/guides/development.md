@@ -112,7 +112,7 @@ When CI passes on a PR, `preview-deploy` may run (concurrency group `coolify-pre
 3. Deploy preview **web** and **docs** via Coolify when those paths changed
 4. Wait for preview URLs and update the PR status comment (web, docs, API rows)
 
-PR close triggers `preview-cleanup.yml` (Coolify previews + SSH backend cleanup).
+PR close triggers `preview-cleanup.yml` (Coolify previews, SSH backend cleanup, and Docker Hub `ci-{head.sha}` tag deletion).
 
 ## Common tasks
 

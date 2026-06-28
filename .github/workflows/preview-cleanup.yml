@@ -36,3 +36,11 @@ jobs:
           COOLIFY_PREVIEW_USE_SSH: ${{ vars.COOLIFY_SSH_HOST != '' && '1' || '' }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: ./scripts/coolify-preview-cleanup.sh "$PR_NUMBER"
+
+      - name: Delete CI preview images from Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          DOCKERHUB_NAMESPACE: tnyuma
+        run: ./scripts/dockerhub-delete-ci-preview-images.sh
