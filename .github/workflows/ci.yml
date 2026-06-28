@@ -361,6 +361,9 @@ jobs:
         needs.web-e2e.result == 'skipped'
       )
     uses: ./.github/workflows/preview-deploy-reusable.yml
+    permissions:
+      pull-requests: write
+      contents: read
     secrets: inherit
     with:
       pr_number: ${{ github.event.pull_request.number }}
