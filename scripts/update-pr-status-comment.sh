@@ -45,6 +45,10 @@ if [ "$PHASE" = "ci-failed" ]; then
     exit 1
   fi
   artifacts_url="${run_url}#artifacts"
+  report_url=""
+  if [ "${E2E_FAILED:-false}" = "true" ] && [ -n "${PR_NUMBER:-}" ] && [ -n "${GITHUB_RUN_ID:-}" ]; then
+    report_url="$("${SCRIPT_DIR}/playwright-report-url.sh" "$PR_NUMBER" "$GITHUB_RUN_ID")"
+  fi
   body="${MARKER}
 ### CI failed
 
@@ -54,9 +58,13 @@ Checks failed for commit \`${SHA:0:7}\`.
 
 #### Playwright E2E
 
-- See the **Playwright E2E** comment below for which specs failed.
-- [Download report, traces, and screenshots](${artifacts_url}) from the \`playwright-e2e-*\` artifact (kept 7 days).
-- To replay what the browser did: unzip the artifact, then drag \`test-results/**/trace.zip\` onto [trace.playwright.dev](https://trace.playwright.dev)."
+- See the **Playwright E2E** comment below for which specs failed."
+  if [ -n "$report_url" ]; then
+    body="${body}
+- [Open interactive report](${report_url}) (traces, screenshots, videos)."
+  fi
+  body="${body}
+- [Download artifact backup](${artifacts_url}) (\`playwright-e2e-*\`, kept 7 days)."
 elif [ "$WEB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ]; then
   body="${MARKER}
 ### CI passed
