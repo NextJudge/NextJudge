@@ -40,14 +40,7 @@ func getEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 func getPublicEvents(w http.ResponseWriter, r *http.Request) {
-	competitions, err := db.GetEventsWithParticipants()
-	if err != nil {
-		logrus.WithError(err).Error("error getting competitions from the db")
-		WriteError(w, http.StatusInternalServerError, "error getting competitions from the db", "500")
-		return
-	}
-
-	WriteJSON(w, http.StatusOK, competitions)
+	getEvents(w, r)
 }
 
 func getEventByTitle(w http.ResponseWriter, r *http.Request) {
