@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Copies the HTML report and test-results into a bundle for GitHub Pages.
-# Playwright keeps traces in test-results/ and references them from the report.
+# Copies the HTML report into a bundle for GitHub Pages (failures only in CI).
+# Traces and videos stay in GitHub Actions artifacts — not published to Pages.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WEB_DIR="$ROOT/src/web"
@@ -16,6 +16,5 @@ fi
 rm -rf "$BUNDLE_DIR"
 mkdir -p "$BUNDLE_DIR"
 cp -R "$WEB_DIR/playwright-report" "$BUNDLE_DIR/"
-cp -R "$WEB_DIR/test-results" "$BUNDLE_DIR/"
 
 echo "Prepared Playwright Pages bundle at ${BUNDLE_DIR}"
