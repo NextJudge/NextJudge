@@ -50,8 +50,8 @@ const submissionFieldsSchema = z.object({
 });
 
 export const submissionSchema = submissionFieldsSchema.extend({
-	problem: parsedProblemSchema,
-	language: languageSchema,
+	problem: optionalParsedProblemSchema,
+	language: languageSchema.optional().nullable(),
 });
 
 export const submissionListItemSchema = submissionFieldsSchema.extend({

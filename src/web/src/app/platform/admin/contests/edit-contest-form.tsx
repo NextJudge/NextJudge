@@ -134,7 +134,10 @@ export function EditContestForm({
     fetchUsers();
     if (contest.problems) {
       setSelectedProblems(
-        contest.problems.map((p) => ({ id: p.id, title: p.title }))
+        contest.problems.map((p) => ({
+          id: p.id,
+          title: "title" in p ? p.title : `Problem ${p.id}`,
+        }))
       );
     }
   }, [fetchProblems, fetchUsers, contest.problems]);

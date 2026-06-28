@@ -2,13 +2,13 @@ import { z } from "zod";
 
 export const userSchema = z.object({
 	id: z.string(),
-	account_identifier: z.string(),
+	account_identifier: z.string().optional().default(""),
 	name: z.string(),
 	email: z.string(),
-	emailVerified: z.string(),
-	image: z.string(),
-	join_date: z.string(),
-	is_admin: z.boolean(),
+	emailVerified: z.string().optional().default(""),
+	image: z.string().optional().default(""),
+	join_date: z.string().optional().default(""),
+	is_admin: z.boolean().optional().default(false),
 });
 
 export const userWithStatsSchema = userSchema.extend({
