@@ -19,7 +19,7 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { ContestForm } from "./contest-form";
 import { EditContestForm } from "./edit-contest-form";
-import { EnhancedContestGrid } from "./enhanced-contest-card";
+import { EnhancedContestGrid } from "@/components/contests/enhanced-contest-card";
 
 export default function AdminContestsPage() {
   const { data: session } = useSession();

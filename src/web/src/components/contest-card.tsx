@@ -25,10 +25,10 @@ import {
     useAddEventParticipant,
     useRegisterForEvent,
 } from "@/hooks/queries/use-event-queries";
-import { getContestStatus, ContestStatus } from "@/lib/contest-utils";
+import { getContestDuration, getContestStatus, getContestTimeDisplay, ContestStatus } from "@/lib/contest-utils";
 import { NextJudgeEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { CheckIcon, ClockIcon, Edit, FileCode, MoreVertical, Trash2, UsersIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -87,27 +87,8 @@ export function ContestCard({
     const startTime = new Date(contest.start_time);
     const endTime = new Date(contest.end_time);
 
-    const getTimeDisplay = () => {
-        switch (status) {
-            case "upcoming":
-                return `Starts ${formatDistanceToNow(startTime, { addSuffix: true })}`;
-            case "ongoing":
-                return `Ends ${formatDistanceToNow(endTime, { addSuffix: true })}`;
-            case "ended":
-                return `Ended ${formatDistanceToNow(endTime, { addSuffix: true })}`;
-        }
-    };
-
-    const getDuration = () => {
-        const duration = endTime.getTime() - startTime.getTime();
-        const hours = Math.floor(duration / (1000 * 60 * 60));
-        const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
-
-        if (hours > 0) {
-            return `${hours}h ${minutes}m`;
-        }
-        return `${minutes}m`;
-    };
+    const timeDisplay = getContestTimeDisplay(status, startTime, endTime);
+    const duration = getContestDuration(startTime, endTime);
 
     const handleNavigateToContest = () => {
         router.push(`/platform/contests/${contest.id}`);
@@ -249,13 +230,13 @@ export function ContestCard({
 
                 <CardContent className="space-y-2 pt-0">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-medium">{getTimeDisplay()}</span>
+                        <span className="font-medium">{timeDisplay}</span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 text-xs">
                         <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
                             <ClockIcon className="h-3 w-3" />
-                            <span className="font-medium">{getDuration()}</span>
+                            <span className="font-medium">{duration}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
                             <FileCode className="h-3 w-3" />
@@ -386,13 +367,13 @@ export function ContestCard({
 
             <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="font-medium">{getTimeDisplay()}</span>
+                    <span className="font-medium">{timeDisplay}</span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
                         <ClockIcon className="h-3.5 w-3.5" />
-                        <span className="font-medium">{getDuration()}</span>
+                        <span className="font-medium">{duration}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
                         <FileCode className="h-3.5 w-3.5" />
