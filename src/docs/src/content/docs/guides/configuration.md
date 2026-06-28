@@ -207,7 +207,7 @@ ADMIN_EMAILS=admin@example.com
 
 Set these on the Coolify **service** (Docker Compose stack), not the web application. The backend service UUID is `COOLIFY_BACKEND_SERVICE_UUID` in GitHub Actions.
 
-Images: `tnyuma/nextjudge-core:latest`, `tnyuma/nextjudge-judge:latest`. Build fresh with `docker buildx bake -f docker-bake.hcl`.
+Images: `${DOCKERHUB_NAMESPACE}/nextjudge-core:latest`, `${DOCKERHUB_NAMESPACE}/nextjudge-judge:latest`. Build fresh with `DOCKERHUB_NAMESPACE=your-namespace docker buildx bake -f docker-bake.hcl`.
 
 The Coolify compose file **does not** include the web app or Elasticsearch. Deploy `src/web` as a separate Coolify application.
 

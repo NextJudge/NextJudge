@@ -51,7 +51,7 @@ append_preview_row() {
 }
 
 append_e2e_report_row() {
-  if [ "$E2E_RAN" != "true" ] || [ -z "${GITHUB_RUN_ID:-}" ]; then
+  if [ "$E2E_RAN" != "true" ] || [ "${E2E_REPORT_PUBLISHED:-false}" != "true" ] || [ -z "${GITHUB_RUN_ID:-}" ]; then
     return 0
   fi
 

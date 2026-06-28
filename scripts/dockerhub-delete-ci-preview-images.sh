@@ -9,7 +9,7 @@ set -euo pipefail
 #   PR_HEAD_SHA
 #
 # Optional env:
-#   DOCKERHUB_NAMESPACE   default tnyuma
+#   DOCKERHUB_NAMESPACE   defaults to DOCKER_USERNAME
 #   CI_IMAGE_REPOS        space-separated repo names (default: core judge basejudge)
 
 require_env() {
@@ -24,7 +24,7 @@ require_env DOCKER_USERNAME
 require_env DOCKER_PASSWORD
 require_env PR_HEAD_SHA
 
-DOCKERHUB_NAMESPACE="${DOCKERHUB_NAMESPACE:-tnyuma}"
+DOCKERHUB_NAMESPACE="${DOCKERHUB_NAMESPACE:-$DOCKER_USERNAME}"
 CI_IMAGE_TAG="ci-${PR_HEAD_SHA}"
 CI_IMAGE_REPOS="${CI_IMAGE_REPOS:-nextjudge-core nextjudge-judge nextjudge-basejudge}"
 

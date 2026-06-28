@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  DOCKERHUB_NAMESPACE: tnyuma
+  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKER_USERNAME }}
   IMAGE_TAG: sha-${{ github.sha }}
 
 jobs:

@@ -1,5 +1,5 @@
 # prod or dev
-ARG BASEJUDGE=tnyuma/nextjudge-basejudge:latest
+ARG BASEJUDGE=nextjudge/nextjudge-basejudge:latest
 
 FROM ubuntu:24.04 AS build
 

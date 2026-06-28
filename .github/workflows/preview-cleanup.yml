@@ -42,5 +42,5 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          DOCKERHUB_NAMESPACE: tnyuma
+          DOCKERHUB_NAMESPACE: ${{ secrets.DOCKER_USERNAME }}
         run: ./scripts/dockerhub-delete-ci-preview-images.sh

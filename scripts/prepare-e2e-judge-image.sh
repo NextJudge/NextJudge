@@ -7,7 +7,8 @@ E2E_DIR="$ROOT/src/web/e2e"
 # shellcheck disable=SC1091
 source "$E2E_DIR/test-stack.config.sh"
 
-E2E_JUDGE_PULL_IMAGE="${E2E_JUDGE_PULL_IMAGE:-tnyuma/nextjudge-judge:latest}"
+DOCKERHUB_NAMESPACE="${DOCKERHUB_NAMESPACE:-nextjudge}"
+E2E_JUDGE_PULL_IMAGE="${E2E_JUDGE_PULL_IMAGE:-${DOCKERHUB_NAMESPACE}/nextjudge-judge:latest}"
 
 if docker image inspect "${E2E_JUDGE_IMAGE}" >/dev/null 2>&1 && [ "${E2E_JUDGE_FORCE_REBUILD:-}" != "1" ]; then
   echo "Judge image ${E2E_JUDGE_IMAGE} already present."

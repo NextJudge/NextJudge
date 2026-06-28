@@ -1,6 +1,6 @@
 services:
   nextjudge-data-layer:
-    image: tnyuma/nextjudge-core:${NEXTJUDGE_CORE_IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-nextjudge}/nextjudge-core:${NEXTJUDGE_CORE_IMAGE_TAG:-latest}
     platform: linux/amd64
     expose:
       - "5000"
@@ -72,7 +72,7 @@ services:
       retries: 5
 
   nextjudge-judge:
-    image: tnyuma/nextjudge-judge:${NEXTJUDGE_JUDGE_IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-nextjudge}/nextjudge-judge:${NEXTJUDGE_JUDGE_IMAGE_TAG:-latest}
     platform: linux/amd64
     privileged: true
     environment:

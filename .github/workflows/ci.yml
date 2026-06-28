@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DOCKERHUB_NAMESPACE: tnyuma
+  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKER_USERNAME }}
 
 jobs:
   changes:
@@ -80,6 +80,10 @@ jobs:
       (needs.judge-ci.result == 'success' || needs.judge-ci.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      CI_IMAGE_TAG: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    outputs:
+      playwright_report_published: ${{ steps.prepare-playwright-pages.outputs.skipped == 'false' }}
     permissions:
       contents: write
       checks: write
@@ -106,9 +110,10 @@ jobs:
     - name: Pull judge image for E2E
       if: needs.changes.outputs.judge == 'true'
       id: pull-judge
+      continue-on-error: true
       env:
         E2E_JUDGE_USE_PULL: "1"
-        E2E_JUDGE_PULL_IMAGE: ${{ format('{0}/nextjudge-judge:ci-{1}', env.DOCKERHUB_NAMESPACE, github.sha) }}
+        E2E_JUDGE_PULL_IMAGE: ${{ format('{0}/nextjudge-judge:ci-{1}', env.DOCKERHUB_NAMESPACE, env.CI_IMAGE_TAG) }}
       run: ./scripts/prepare-e2e-judge-image.sh
     - name: Build judge image for E2E (fallback)
       if: needs.changes.outputs.judge == 'true' && steps.pull-judge.outcome == 'failure'
@@ -311,6 +316,7 @@ jobs:
         GITHUB_RUN_ID: ${{ github.run_id }}
         E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
         E2E_RESULT: ${{ needs.web-e2e.result }}
+        E2E_REPORT_PUBLISHED: ${{ needs.web-e2e.outputs.playwright_report_published == 'true' && 'true' || 'false' }}
       run: ./scripts/update-pr-status-comment.sh ci-success
 
   ci-failure-notify:
@@ -333,6 +339,7 @@ jobs:
         GITHUB_RUN_ID: ${{ github.run_id }}
         E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
         E2E_RESULT: ${{ needs.web-e2e.result }}
+        E2E_REPORT_PUBLISHED: ${{ needs.web-e2e.outputs.playwright_report_published == 'true' && 'true' || 'false' }}
       run: ./scripts/update-pr-status-comment.sh ci-failed
 
   preview-deploy:
@@ -498,6 +505,7 @@ jobs:
         GITHUB_RUN_ID: ${{ github.run_id }}
         E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
         E2E_RESULT: ${{ needs.web-e2e.result }}
+        E2E_REPORT_PUBLISHED: ${{ needs.web-e2e.outputs.playwright_report_published == 'true' && 'true' || 'false' }}
       run: ./scripts/update-pr-status-comment.sh preview-ready
 
     - name: Update PR status comment on failure
@@ -512,4 +520,5 @@ jobs:
         GITHUB_RUN_ID: ${{ github.run_id }}
         E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
         E2E_RESULT: ${{ needs.web-e2e.result }}
+        E2E_REPORT_PUBLISHED: ${{ needs.web-e2e.outputs.playwright_report_published == 'true' && 'true' || 'false' }}
       run: ./scripts/update-pr-status-comment.sh preview-failed

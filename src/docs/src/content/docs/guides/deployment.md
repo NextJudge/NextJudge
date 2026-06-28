@@ -110,7 +110,7 @@ Set `NEXT_PUBLIC_API_URL=https://api.nextjudge.example.com` at web **build** tim
 
 Deploy the **backend** with `compose/docker-compose.coolify.yml`:
 
-- Images: `tnyuma/nextjudge-core:latest`, `tnyuma/nextjudge-judge:latest`
+- Images: `${DOCKERHUB_NAMESPACE}/nextjudge-core:latest`, `${DOCKERHUB_NAMESPACE}/nextjudge-judge:latest` (default namespace: `nextjudge`)
 - Data layer uses `expose: 5000` — route via Coolify proxy to your API domain
 - Does **not** include web or Elasticsearch
 
