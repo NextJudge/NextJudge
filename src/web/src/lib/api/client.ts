@@ -36,6 +36,22 @@ export const apiFetch = async (
 	return response;
 };
 
+export const parseApiJson = <T>(
+	json: unknown,
+	parser: (data: unknown) => T,
+): T => parser(json);
+
+export const apiFetchParsed = async <T>(
+	path: string,
+	parser: (data: unknown) => T,
+	init?: RequestInit,
+): Promise<T> => {
+	const response = await apiFetch(path, init);
+	const json: unknown = await response.json();
+	return parseApiJson(json, parser);
+};
+
+/** @deprecated use apiFetchParsed with a Zod parser */
 export const apiFetchJson = async <T>(
 	path: string,
 	init?: RequestInit,
