@@ -36,7 +36,7 @@ ENTRYPOINT sh -c "echo app.py | entr -n -r python3 -u app.py"
 
 FROM nextjudge-jail AS prod
 
-COPY src/app.py .
+COPY src/ .
 
 ENTRYPOINT [ "python3", "app.py" ]
 

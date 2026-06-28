@@ -1,0 +1,34 @@
+import os
+
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
+RABBITMQ_PORT = os.getenv("RABBITMQ_PORT", 5672)
+
+RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "guest")
+
+NEXTJUDGE_HOST = os.getenv("NEXTJUDGE_HOST", "localhost")
+NEXTJUDGE_PORT = os.getenv("NEXTJUDGE_PORT", 5000)
+
+JUDGE_PASSWORD = os.getenv("JUDGE_PASSWORD")
+
+NEXTJUDGE_ENDPOINT = f"http://{NEXTJUDGE_HOST}:{NEXTJUDGE_PORT}"
+
+SUBMISSION_QUEUE_NAME = "submission_queue"
+BRIDGE_QUEUE_NAME = "bridge_queue"
+
+NEXTJUDGE_USER_ID = 99999
+
+TARGET_TOP_LEVEL_DIRECTORY = "program_files"
+GO_CACHE_DIRECTORY = "/var/lib/nextjudge/go-cache"
+GO_MOD_CACHE_DIRECTORY = "/var/lib/nextjudge/go-mod"
+GO_JAIL_CACHE_DIRECTORY = "/home/NEXTJUDGE_USER/go-cache"
+GO_JAIL_MOD_CACHE_DIRECTORY = "/home/NEXTJUDGE_USER/go-mod-cache"
+GO_ROOT_DIRECTORY = "/home/NEXTJUDGE_USER/go"
+
+BUILD_DIRECTORY_NAME = "build"
+RUN_DIRECTORY_NAME = "executable"
+
+BUILD_SCRIPT_NAME = "build.sh"
+RUN_SCRIPT_NAME = "main"
+
+JUDGE_JWT_TOKEN = ""

@@ -62,7 +62,9 @@ FROM release AS test
 WORKDIR /app
 
 RUN mkdir -p /app/src/
-RUN mv /app/languages.toml /app/app.py /app/src/
+RUN mv /app/languages.toml /app/src/
+RUN mv /app/app.py /app/config.py /app/handlers.py /app/pipeline.py /app/src/
+RUN mv /app/mq /app/sandbox /app/src/
 RUN touch /app/src/__init__.py
 
 COPY test-requirements.txt ./
