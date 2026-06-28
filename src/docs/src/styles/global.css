@@ -216,8 +216,15 @@ body,
 
 /* --- Tables --------------------------------------------------------- */
 
-.sl-markdown-content table {
+/*
+ * Starlight sets `display: block` on tables for mobile scroll, which breaks
+ * table layout — rows shrink to content and zebra backgrounds clip early.
+ * Restore table display; use cell backgrounds so striping fills each row.
+ */
+.sl-markdown-content table:not(:where(.not-content *)) {
+	display: table !important;
 	width: 100%;
+	table-layout: auto;
 	border-collapse: separate;
 	border-spacing: 0;
 	border: 1px solid var(--border);
@@ -230,6 +237,7 @@ body,
 	padding: 0.625rem 0.9rem;
 	border-bottom: 1px solid var(--border);
 	text-align: start;
+	vertical-align: top;
 }
 
 .sl-markdown-content table tr:last-child :is(th, td) {
@@ -245,8 +253,22 @@ body,
 	letter-spacing: 0.04em;
 }
 
-.sl-markdown-content tbody tr:nth-child(even) {
+.sl-markdown-content tbody tr:nth-child(even) :is(td, th) {
 	background: color-mix(in oklab, var(--muted) 40%, transparent);
+}
+
+@media (max-width: 40rem) {
+	.sl-markdown-content table:not(:where(.not-content *)) {
+		display: block !important;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.sl-markdown-content table:not(:where(.not-content *)) :is(thead, tbody) {
+		display: table;
+		width: 100%;
+		min-width: 28rem;
+	}
 }
 
 /* --- Code ----------------------------------------------------------- */
