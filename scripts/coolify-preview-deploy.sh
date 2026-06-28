@@ -32,18 +32,50 @@ require_env() {
 require_env COOLIFY_API_URL
 require_env COOLIFY_API_TOKEN
 require_env COOLIFY_APP_UUID
-require_env COOLIFY_GITHUB_WEBHOOK_SECRET
 require_env PR_NUMBER
-require_env PR_HEAD_SHA
-require_env PR_HEAD_REF
-require_env PR_HTML_URL
-require_env REPO_FULL_NAME
+
+if [[ "${COOLIFY_RESOURCE_TYPE:-application}" != "service" ]]; then
+  require_env COOLIFY_GITHUB_WEBHOOK_SECRET
+  require_env PR_HEAD_SHA
+  require_env PR_HEAD_REF
+  require_env PR_HTML_URL
+  require_env REPO_FULL_NAME
+fi
 
 COOLIFY_WEBHOOK_BASE_URL="${COOLIFY_WEBHOOK_BASE_URL:-${COOLIFY_API_URL%/api/v1}}"
 PR_TITLE="${PR_TITLE:-Preview deployment}"
 PR_AUTHOR_ASSOCIATION="${PR_AUTHOR_ASSOCIATION:-MEMBER}"
 PR_BASE_REF="${PR_BASE_REF:-main}"
 FORCE_DEPLOY="${FORCE_DEPLOY:-true}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+set_preview_image_tags() {
+  local resource_type="${COOLIFY_RESOURCE_TYPE:-application}"
+  if [[ -n "${DOCKERHUB_NAMESPACE:-}" ]]; then
+    KEY=DOCKERHUB_NAMESPACE VALUE="${DOCKERHUB_NAMESPACE}" \
+      COOLIFY_APP_UUID="${COOLIFY_APP_UUID}" \
+      COOLIFY_RESOURCE_TYPE="${resource_type}" \
+      "${SCRIPT_DIR}/coolify-set-preview-env.sh"
+  fi
+  if [[ -n "${NEXTJUDGE_CORE_IMAGE_TAG:-}" ]]; then
+    KEY=NEXTJUDGE_CORE_IMAGE_TAG VALUE="${NEXTJUDGE_CORE_IMAGE_TAG}" \
+      COOLIFY_APP_UUID="${COOLIFY_APP_UUID}" \
+      COOLIFY_RESOURCE_TYPE="${resource_type}" \
+      "${SCRIPT_DIR}/coolify-set-preview-env.sh"
+  fi
+  if [[ -n "${NEXTJUDGE_JUDGE_IMAGE_TAG:-}" ]]; then
+    KEY=NEXTJUDGE_JUDGE_IMAGE_TAG VALUE="${NEXTJUDGE_JUDGE_IMAGE_TAG}" \
+      COOLIFY_APP_UUID="${COOLIFY_APP_UUID}" \
+      COOLIFY_RESOURCE_TYPE="${resource_type}" \
+      "${SCRIPT_DIR}/coolify-set-preview-env.sh"
+  fi
+}
+
+deploy_preview_backend_ssh() {
+  require_env COOLIFY_SSH_HOST
+  export COOLIFY_BACKEND_SERVICE_UUID="${COOLIFY_APP_UUID}"
+  "${SCRIPT_DIR}/coolify-preview-backend-ssh.sh" deploy
+}
 
 deploy_preview() {
   local response
@@ -135,6 +167,13 @@ bootstrap_preview() {
   echo "Preview bootstrap webhook accepted." >&2
 }
 
+set_preview_image_tags
+
+if [[ "${COOLIFY_RESOURCE_TYPE:-application}" == "service" ]]; then
+  deploy_preview_backend_ssh
+  exit 0
+fi
+
 if deploy_preview; then
   exit 0
 else
@@ -146,4 +185,5 @@ fi
 
 bootstrap_preview
 sleep 5
+set_preview_image_tags
 deploy_preview

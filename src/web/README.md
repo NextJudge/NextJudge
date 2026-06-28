@@ -82,6 +82,16 @@ Runs against an isolated Docker stack — not production.
 
 Specs and stack config: `e2e/`. See the [development guide](https://github.com/NextJudge/NextJudge/blob/main/src/docs/src/content/docs/guides/development.md#tests) for details.
 
+## Coolify PR previews
+
+Preview web hostnames (`{PR}-web.preview.nextjudge.net`) route API traffic to `{PR}-api.preview.nextjudge.net` at runtime — do not set `NEXT_PUBLIC_API_URL` on preview web builds.
+
+Backend previews are deployed per PR over SSH (`scripts/coolify-preview-backend-ssh.sh`), not via Coolify service preview API.
+
+GitHub OAuth callbacks stay on production (`https://nextjudge.net/api/auth/callback/github`). Set `AUTH_REDIRECT_PROXY_URL=https://nextjudge.net/api/auth` and `AUTH_TRUST_HOST=true` on production and preview web. Preview web must share `AUTH_SECRET` with production and use preview-specific `WEB_BRIDGE_SECRET` (matching the preview backend).
+
+See [configuration guide](https://github.com/NextJudge/NextJudge/blob/main/src/docs/src/content/docs/guides/configuration.md#pr-previews-coolify) (PR previews section).
+
 # GitHub OAuth2
 
 Homepage URL

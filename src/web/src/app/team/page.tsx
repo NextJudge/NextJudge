@@ -6,25 +6,25 @@ import Link from 'next/link'
 const members = [
     {
         name: 'Tom Nyuma',
-        role: '\'Web Wizard\'',
+        role: '\'Software Engineer at NextJudge\'',
         avatar: '/tom.webp',
         link: 'https://nyuma.dev',
     },
     {
         name: 'Otso Barron',
-        role: '\'LeBron James\'',
+        role: '\'PhD Student at Carnegie Mellon University\'',
         avatar: '/otso.webp',
         link: 'https://www.linkedin.com/in/otsobarron/',
     },
     {
         name: 'Andrew Dang',
-        role: '\'Adopted\'',
+        role: '\'Software Engineer at Open Dental Software\'',
         avatar: '/andrew.webp',
         link: 'https://www.linkedin.com/in/theandrewdang',
     },
     {
         name: 'Jordan Brantner',
-        role: '\'CRUD Demon\'',
+        role: '\'Software Engineer at Siemens EDA\'',
         avatar: '/jordan.webp',
         link: 'https://www.linkedin.com/in/jordan-brantner-2209a2214',
     },

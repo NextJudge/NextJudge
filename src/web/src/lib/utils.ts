@@ -1,11 +1,17 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { SITE_URLS } from "./site";
+import {
+  getPreviewApiUrlFromWebHostname,
+  getPreviewWebUrlFromHostname,
+  SITE_URLS,
+} from "./site";
 import { Language } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
+
+type UrlOptions = { hostname?: string };
 
 const isLocalHostname = (url: string): boolean => {
     try {
@@ -43,7 +49,25 @@ const getConfiguredApiUrl = (): string | undefined => {
     return undefined;
 };
 
-export function getBridgeUrl() {
+const resolveHostname = (hostname?: string): string | undefined => {
+    if (hostname) {
+        return hostname.split(":")[0];
+    }
+    if (typeof window !== "undefined") {
+        return window.location.hostname;
+    }
+    return undefined;
+};
+
+export function getBridgeUrl(options?: UrlOptions): string {
+    const host = resolveHostname(options?.hostname);
+    if (host) {
+        const previewApi = getPreviewApiUrlFromWebHostname(host);
+        if (previewApi) {
+            return previewApi;
+        }
+    }
+
     const apiOverride = getConfiguredApiUrl();
 
     if (isRunningLocally()) {
@@ -60,7 +84,15 @@ export function getBridgeUrl() {
     return SITE_URLS.production.api;
 }
 
-export function getAppUrl() {
+export function getAppUrl(options?: UrlOptions): string {
+    const host = resolveHostname(options?.hostname);
+    if (host) {
+        const previewApp = getPreviewWebUrlFromHostname(host);
+        if (previewApp) {
+            return previewApp;
+        }
+    }
+
     const authUrl = process.env.NEXTAUTH_URL?.trim() ?? process.env.AUTH_URL?.trim();
     if (authUrl) {
         try {

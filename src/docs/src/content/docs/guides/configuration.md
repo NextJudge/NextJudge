@@ -72,7 +72,9 @@ Copy `src/web/.env.example` → `src/web/.env.local`:
 | `WEB_BRIDGE_SECRET` | Yes | Must match data layer |
 | `AUTH_GITHUB_ID` | For GitHub login | OAuth app client ID |
 | `AUTH_GITHUB_SECRET` | For GitHub login | OAuth app client secret |
-| `NEXT_PUBLIC_API_URL` | Self-hosted prod | Set at **`next build`**. Local `next dev` uses `http://localhost:5000` |
+| `AUTH_REDIRECT_PROXY_URL` | PR previews | Production OAuth callback host, e.g. `https://nextjudge.net/api/auth` |
+| `AUTH_TRUST_HOST` | PR previews | `true` when behind Coolify Traefik |
+| `NEXT_PUBLIC_API_URL` | Self-hosted prod | Set at **`next build`**. Omit on Coolify **preview** web (runtime routing) |
 | `NEXTAUTH_URL` | Self-hosted prod | Public HTTPS URL of the web app |
 | `RESEND_API_KEY` | Optional | Email (waitlist, etc.) |
 
@@ -123,7 +125,39 @@ After GitHub login, Auth.js calls `POST /v1/create_or_login_user` with `Authoriz
 
 ### PR previews (Coolify)
 
-Preview URLs: `https://{PR_NUMBER}-web.preview.nextjudge.net`. Register matching callback URLs per preview or use a wildcard app. Set `CORS_ALLOW_PREVIEW=true` on the backend.
+Each PR gets an isolated stack:
+
+| Service | URL pattern |
+| ------- | ----------- |
+| Web | `https://{PR_NUMBER}-web.preview.nextjudge.net` |
+| Docs | `https://{PR_NUMBER}-docs.preview.nextjudge.net` |
+| API | `https://{PR_NUMBER}-api.preview.nextjudge.net` |
+
+**Web and docs** use Coolify application preview deployments (enable in Application → Advanced).
+
+**Backend** is a Coolify compose *service* — Coolify does not provision per-PR compose previews via its deploy API. CI runs `scripts/coolify-preview-backend-ssh.sh` over SSH: an isolated `docker compose` project per PR, Traefik on the host `coolify` network, hostname `{PR}-api.preview.nextjudge.net`.
+
+**Backend preview env** (preview-scoped on the compose service): `SEED_DATA=true`, `PASSWORD_RESET_DEBUG=true`, relaxed `AUTH_RATE_LIMIT_*`, isolated secrets. `WEB_BRIDGE_SECRET` must match preview web.
+
+**Web preview env:** do **not** set `NEXT_PUBLIC_API_URL` — `{PR}-web` hostnames route API calls to `{PR}-api` at runtime.
+
+**GitHub OAuth:** one production callback (`https://nextjudge.net/api/auth/callback/github`). Set `AUTH_REDIRECT_PROXY_URL=https://nextjudge.net/api/auth` and `AUTH_TRUST_HOST=true` on production and preview web. Share `AUTH_SECRET` with production; use preview-only GitHub credentials and `WEB_BRIDGE_SECRET`.
+
+**Setup scripts** (require `coolify.env` + `ssh nextjudge`):
+
+```bash
+./scripts/coolify-configure-preview-stack.sh   # prod + preview env on Coolify
+./scripts/setup-coolify-preview-webhooks.sh    # sync GitHub webhook secrets (web/docs)
+```
+
+**Manual deploy / cleanup:**
+
+```bash
+PR_NUMBER=123 COOLIFY_SSH_HOST=nextjudge ./scripts/coolify-preview-backend-ssh.sh deploy
+PR_NUMBER=123 COOLIFY_SSH_HOST=nextjudge ./scripts/coolify-preview-backend-ssh.sh cleanup
+```
+
+Seeded preview login: `Alice.Smith0@example.com` / `test123` (when `SEED_DATA=true`).
 
 ---
 
@@ -173,13 +207,13 @@ ADMIN_EMAILS=admin@example.com
 
 Set these on the Coolify **service** (Docker Compose stack), not the web application. The backend service UUID is `COOLIFY_BACKEND_SERVICE_UUID` in GitHub Actions.
 
-Images: `tnyuma/nextjudge-core:latest`, `tnyuma/nextjudge-judge:latest`. Build fresh with `docker buildx bake -f docker-bake.hcl`.
+Images: `${DOCKERHUB_NAMESPACE}/nextjudge-core:latest`, `${DOCKERHUB_NAMESPACE}/nextjudge-judge:latest`. Build fresh with `DOCKERHUB_NAMESPACE=your-namespace docker buildx bake -f docker-bake.hcl`.
 
 The Coolify compose file **does not** include the web app or Elasticsearch. Deploy `src/web` as a separate Coolify application.
 
 ### Web app on Coolify
 
-Set at **build time**:
+Set at **build time** (production):
 
 ```
 NEXT_PUBLIC_API_URL=https://api.yourdomain.com
@@ -188,9 +222,11 @@ AUTH_GITHUB_ID=...
 AUTH_GITHUB_SECRET=...
 WEB_BRIDGE_SECRET=...
 NEXTAUTH_URL=https://yourdomain.com
+AUTH_REDIRECT_PROXY_URL=https://yourdomain.com/api/auth
+AUTH_TRUST_HOST=true
 ```
 
-Route the API subdomain to the data-layer service (`expose: 5000` internally).
+Preview web: same `AUTH_REDIRECT_PROXY_URL`, `AUTH_TRUST_HOST`, and `AUTH_SECRET`; preview GitHub creds and `WEB_BRIDGE_SECRET`; **omit** `NEXT_PUBLIC_API_URL`. See [PR previews](/guides/configuration/#pr-previews-coolify).
 
 More production detail: [Deployment guide](/guides/deployment/).
 

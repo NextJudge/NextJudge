@@ -13,6 +13,7 @@ import { auth, signIn, signOut } from "./auth";
 import { newsletterFormSchema } from "./validation";
 import { getEmailFrom } from "@/lib/site";
 import { getAppUrl } from "@/lib/utils";
+import { getRequestHostname } from "@/lib/request-host";
 
 export interface ReturnType {
   status: "error" | "success";
@@ -60,7 +61,7 @@ export async function sendEmail(formData: FormData): Promise<ReturnType> {
 
 export async function signUpUser(data: SignUpFormValues): Promise<ReturnType> {
   try {
-    const response = await fetch(`${getAppUrl()}/api/auth/register`, {
+    const response = await fetch(`${getAppUrl({ hostname: getRequestHostname() })}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

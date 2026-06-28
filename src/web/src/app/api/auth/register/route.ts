@@ -1,4 +1,5 @@
 import { getBridgeUrl } from '@/lib/utils'
+import { getHostnameFromHeaderValue } from '@/lib/request-host'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -20,7 +21,11 @@ export async function POST(request: NextRequest) {
             image: `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`,
         }
 
-        const response = await fetch(`${getBridgeUrl()}/v1/basic_register`, {
+        const hostname = getHostnameFromHeaderValue(
+            request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+        );
+
+        const response = await fetch(`${getBridgeUrl({ hostname })}/v1/basic_register`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

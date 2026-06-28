@@ -101,11 +101,18 @@ Path-filtered jobs in `.github/workflows/ci.yml`:
 | Change in | Runs |
 | --------- | ---- |
 | `src/web/**` | lint, Playwright smoke (no judge), Playwright judge E2E (pull prebuilt image), Docker build |
-| `src/data-layer/**` | Go unit tests, Tavern API tests (local stack), Docker image build |
+| `src/data-layer/**`, `compose/docker-compose.coolify.yml`, `scripts/coolify-*.sh` | Go unit tests, Tavern API tests, Docker image build |
 | `src/judge/**` | Judge tests (cached image build), judge image build for Playwright `@judge` specs |
 | `src/docs/**` | Docs build |
 
-Changes confined to one service usually trigger only that job.
+When CI passes on a PR, `preview-deploy` may run (concurrency group `coolify-preview-deploy`):
+
+1. Build-push `nextjudge-core` and `nextjudge-judge` images tagged `ci-{head.sha}` when web, data-layer, or judge paths changed
+2. Deploy preview **backend** over SSH (`{PR}-api.preview.nextjudge.net`) before web
+3. Deploy preview **web** and **docs** via Coolify when those paths changed
+4. Wait for preview URLs and update the PR status comment (web, docs, API rows)
+
+PR close triggers `preview-cleanup.yml` (Coolify previews, SSH backend cleanup, and Docker Hub `ci-{head.sha}` tag deletion).
 
 ## Common tasks
 

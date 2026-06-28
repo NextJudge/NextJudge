@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DOCKERHUB_NAMESPACE: tnyuma
+  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKER_USERNAME }}
 
 jobs:
   changes:
@@ -21,6 +21,7 @@ jobs:
       docs: ${{ steps.filter.outputs.docs }}
       core: ${{ steps.filter.outputs.core }}
       judge: ${{ steps.filter.outputs.judge }}
+      preview_backend: ${{ steps.filter.outputs.web == 'true' || steps.filter.outputs.core == 'true' || steps.filter.outputs.judge == 'true' }}
     steps:
     - uses: actions/checkout@v4
     - uses: dorny/paths-filter@v3
@@ -41,6 +42,8 @@ jobs:
           core:
             - 'src/data-layer/**'
             - 'scripts/run-data-layer-tests.sh'
+            - 'compose/docker-compose.coolify.yml'
+            - 'scripts/coolify-*.sh'
             - 'docker-bake.hcl'
             - '.github/workflows/ci.yml'
           judge:
@@ -77,6 +80,10 @@ jobs:
       (needs.judge-ci.result == 'success' || needs.judge-ci.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      CI_IMAGE_TAG: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    outputs:
+      playwright_report_published: ${{ steps.prepare-playwright-pages.outputs.skipped == 'false' }}
     permissions:
       contents: write
       checks: write
@@ -103,9 +110,10 @@ jobs:
     - name: Pull judge image for E2E
       if: needs.changes.outputs.judge == 'true'
       id: pull-judge
+      continue-on-error: true
       env:
         E2E_JUDGE_USE_PULL: "1"
-        E2E_JUDGE_PULL_IMAGE: ${{ format('{0}/nextjudge-judge:ci-{1}', env.DOCKERHUB_NAMESPACE, github.sha) }}
+        E2E_JUDGE_PULL_IMAGE: ${{ format('{0}/nextjudge-judge:ci-{1}', env.DOCKERHUB_NAMESPACE, env.CI_IMAGE_TAG) }}
       run: ./scripts/prepare-e2e-judge-image.sh
     - name: Build judge image for E2E (fallback)
       if: needs.changes.outputs.judge == 'true' && steps.pull-judge.outcome == 'failure'
@@ -234,6 +242,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.judge == 'true'
     runs-on: ubuntu-latest
+    env:
+      CI_IMAGE_TAG: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
     steps:
     - uses: actions/checkout@v4
     - uses: docker/setup-buildx-action@v3
@@ -248,8 +258,8 @@ jobs:
         targets: basejudge,judge
         push: true
         set: |
-          basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ github.sha }}
-          judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:ci-${{ github.sha }}
+          basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ env.CI_IMAGE_TAG }}
+          judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:ci-${{ env.CI_IMAGE_TAG }}
           judge.target=release
           basejudge.cache-from=type=gha,scope=nextjudge-basejudge
           basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
@@ -302,9 +312,11 @@ jobs:
         SHA: ${{ github.event.pull_request.head.sha }}
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        BACKEND_CHANGED: ${{ needs.changes.outputs.preview_backend }}
         GITHUB_RUN_ID: ${{ github.run_id }}
         E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
         E2E_RESULT: ${{ needs.web-e2e.result }}
+        E2E_REPORT_PUBLISHED: ${{ needs.web-e2e.outputs.playwright_report_published == 'true' && 'true' || 'false' }}
       run: ./scripts/update-pr-status-comment.sh ci-success
 
   ci-failure-notify:
@@ -323,104 +335,49 @@ jobs:
         SHA: ${{ github.event.pull_request.head.sha }}
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        BACKEND_CHANGED: ${{ needs.changes.outputs.preview_backend }}
         GITHUB_RUN_ID: ${{ github.run_id }}
         E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
         E2E_RESULT: ${{ needs.web-e2e.result }}
+        E2E_REPORT_PUBLISHED: ${{ needs.web-e2e.outputs.playwright_report_published == 'true' && 'true' || 'false' }}
       run: ./scripts/update-pr-status-comment.sh ci-failed
 
   preview-deploy:
     needs: [ changes, ci-success, web-e2e ]
-    # always() is required when ci-success ran via always() with skipped jobs
-    # (e.g. docs-build). Otherwise preview-deploy is skipped even when web changed.
+    concurrency:
+      group: coolify-preview-deploy
+      cancel-in-progress: false
     if: |
       always() &&
       needs.ci-success.result == 'success' &&
       github.event_name == 'pull_request' &&
       (
         needs.changes.outputs.web == 'true' ||
-        needs.changes.outputs.docs == 'true'
+        needs.changes.outputs.docs == 'true' ||
+        needs.changes.outputs.preview_backend == 'true'
+      ) &&
+      (
+        needs.web-e2e.result == 'success' ||
+        needs.web-e2e.result == 'skipped'
       )
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/preview-deploy-reusable.yml
     permissions:
       pull-requests: write
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Deploy web preview
-      if: needs.changes.outputs.web == 'true'
-      env:
-        COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
-        COOLIFY_WEB_APP_UUID: ${{ vars.COOLIFY_WEB_APP_UUID }}
-        COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-        COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        PR_HTML_URL: ${{ github.event.pull_request.html_url }}
-        PR_TITLE: ${{ github.event.pull_request.title }}
-        PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-        REPO_FULL_NAME: ${{ github.repository }}
-      run: |
-        COOLIFY_APP_UUID="${COOLIFY_WEB_APP_UUID}" \
-          ./scripts/coolify-preview-deploy.sh
-
-    - name: Deploy docs preview
-      if: needs.changes.outputs.docs == 'true'
-      env:
-        COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
-        COOLIFY_DOCS_APP_UUID: ${{ vars.COOLIFY_DOCS_APP_UUID }}
-        COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-        COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        PR_HTML_URL: ${{ github.event.pull_request.html_url }}
-        PR_TITLE: ${{ github.event.pull_request.title }}
-        PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-        REPO_FULL_NAME: ${{ github.repository }}
-      run: |
-        COOLIFY_APP_UUID="${COOLIFY_DOCS_APP_UUID}" \
-          ./scripts/coolify-preview-deploy.sh
-
-    - name: Wait for preview URLs
-      env:
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        WEB_CHANGED: ${{ needs.changes.outputs.web }}
-        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
-        PREVIEW_WAIT_TIMEOUT_SEC: "600"
-        PREVIEW_POLL_INTERVAL_SEC: "30"
-      run: |
-        urls=""
-        if [ "$WEB_CHANGED" = "true" ]; then
-          urls="${urls} $(./scripts/preview-url.sh web)"
-        fi
-        if [ "$DOCS_CHANGED" = "true" ]; then
-          urls="${urls} $(./scripts/preview-url.sh docs)"
-        fi
-        PREVIEW_URLS="${urls# }" ./scripts/wait-for-preview-urls.sh
-
-    - name: Update PR status comment
-      if: success()
-      env:
-        GH_TOKEN: ${{ github.token }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        SHA: ${{ github.event.pull_request.head.sha }}
-        WEB_CHANGED: ${{ needs.changes.outputs.web }}
-        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
-        GITHUB_RUN_ID: ${{ github.run_id }}
-        E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
-        E2E_RESULT: ${{ needs.web-e2e.result }}
-      run: ./scripts/update-pr-status-comment.sh preview-ready
-
-    - name: Update PR status comment on failure
-      if: failure()
-      env:
-        GH_TOKEN: ${{ github.token }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        SHA: ${{ github.event.pull_request.head.sha }}
-        WEB_CHANGED: ${{ needs.changes.outputs.web }}
-        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
-        GITHUB_RUN_ID: ${{ github.run_id }}
-        E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
-        E2E_RESULT: ${{ needs.web-e2e.result }}
-      run: ./scripts/update-pr-status-comment.sh preview-failed
+      contents: read
+    secrets: inherit
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_head_sha: ${{ github.event.pull_request.head.sha }}
+      pr_head_ref: ${{ github.event.pull_request.head.ref }}
+      pr_html_url: ${{ github.event.pull_request.html_url }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_base_ref: ${{ github.event.pull_request.base.ref }}
+      web_changed: ${{ needs.changes.outputs.web }}
+      docs_changed: ${{ needs.changes.outputs.docs }}
+      preview_backend_changed: ${{ needs.changes.outputs.preview_backend }}
+      judge_changed: ${{ needs.changes.outputs.judge }}
+      build_images: "true"
+      update_pr_comment: "true"
+      e2e_ran: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
+      e2e_result: ${{ needs.web-e2e.result }}
+      e2e_report_published: ${{ needs.web-e2e.outputs.playwright_report_published == 'true' && 'true' || 'false' }}

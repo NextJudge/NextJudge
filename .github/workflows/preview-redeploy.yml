@@ -1,0 +1,77 @@
+name: Redeploy PR preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number
+        required: true
+        type: number
+      build_images:
+        description: Rebuild and push backend Docker images before deploy
+        required: false
+        type: boolean
+        default: false
+      deploy_web:
+        description: Deploy web preview
+        required: false
+        type: boolean
+        default: true
+      deploy_docs:
+        description: Deploy docs preview
+        required: false
+        type: boolean
+        default: true
+      deploy_backend:
+        description: Deploy backend preview
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: coolify-preview-deploy
+  cancel-in-progress: false
+
+jobs:
+  resolve-pr:
+    runs-on: ubuntu-latest
+    outputs:
+      head_sha: ${{ steps.meta.outputs.head_sha }}
+      head_ref: ${{ steps.meta.outputs.head_ref }}
+      html_url: ${{ steps.meta.outputs.html_url }}
+      title: ${{ steps.meta.outputs.title }}
+      base_ref: ${{ steps.meta.outputs.base_ref }}
+    steps:
+      - name: Load PR metadata
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          json="$(gh pr view "${{ inputs.pr_number }}" --repo "${{ github.repository }}" \
+            --json headRefOid,headRefName,url,title,baseRefName)"
+          echo "head_sha=$(jq -r .headRefOid <<<"$json")" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$(jq -r .headRefName <<<"$json")" >> "$GITHUB_OUTPUT"
+          echo "html_url=$(jq -r .url <<<"$json")" >> "$GITHUB_OUTPUT"
+          echo "title=$(jq -r .title <<<"$json")" >> "$GITHUB_OUTPUT"
+          echo "base_ref=$(jq -r .baseRefName <<<"$json")" >> "$GITHUB_OUTPUT"
+
+  preview-deploy:
+    needs: resolve-pr
+    uses: ./.github/workflows/preview-deploy-reusable.yml
+    secrets: inherit
+    with:
+      pr_number: ${{ inputs.pr_number }}
+      pr_head_sha: ${{ needs.resolve-pr.outputs.head_sha }}
+      pr_head_ref: ${{ needs.resolve-pr.outputs.head_ref }}
+      pr_html_url: ${{ needs.resolve-pr.outputs.html_url }}
+      pr_title: ${{ needs.resolve-pr.outputs.title }}
+      pr_base_ref: ${{ needs.resolve-pr.outputs.base_ref }}
+      web_changed: ${{ inputs.deploy_web && 'true' || 'false' }}
+      docs_changed: ${{ inputs.deploy_docs && 'true' || 'false' }}
+      preview_backend_changed: ${{ inputs.deploy_backend && 'true' || 'false' }}
+      judge_changed: "true"
+      build_images: ${{ inputs.build_images && 'true' || 'false' }}
+      update_pr_comment: "true"
+      e2e_ran: "false"
+      e2e_result: "skipped"
+      e2e_report_published: "false"

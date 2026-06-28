@@ -31,7 +31,16 @@ jobs:
           COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
           COOLIFY_WEB_APP_UUID: ${{ vars.COOLIFY_WEB_APP_UUID }}
           COOLIFY_DOCS_APP_UUID: ${{ vars.COOLIFY_DOCS_APP_UUID }}
+          COOLIFY_BACKEND_SERVICE_UUID: ${{ vars.COOLIFY_BACKEND_SERVICE_UUID }}
           COOLIFY_SSH_HOST: ${{ vars.COOLIFY_SSH_HOST }}
           COOLIFY_PREVIEW_USE_SSH: ${{ vars.COOLIFY_SSH_HOST != '' && '1' || '' }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: ./scripts/coolify-preview-cleanup.sh "$PR_NUMBER"
+
+      - name: Delete CI preview images from Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          DOCKERHUB_NAMESPACE: ${{ secrets.DOCKER_USERNAME }}
+        run: ./scripts/dockerhub-delete-ci-preview-images.sh

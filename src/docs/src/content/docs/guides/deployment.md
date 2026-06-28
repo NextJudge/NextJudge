@@ -110,7 +110,7 @@ Set `NEXT_PUBLIC_API_URL=https://api.nextjudge.example.com` at web **build** tim
 
 Deploy the **backend** with `compose/docker-compose.coolify.yml`:
 
-- Images: `tnyuma/nextjudge-core:latest`, `tnyuma/nextjudge-judge:latest`
+- Images: `${DOCKERHUB_NAMESPACE}/nextjudge-core:latest`, `${DOCKERHUB_NAMESPACE}/nextjudge-judge:latest` (default namespace: `nextjudge`)
 - Data layer uses `expose: 5000` — route via Coolify proxy to your API domain
 - Does **not** include web or Elasticsearch
 
@@ -118,7 +118,7 @@ Deploy **web** as a separate Coolify application from `src/web`. Required build 
 
 Backend Coolify env: same secrets as [Configuration — Coolify](/guides/configuration/#coolify-deployment).
 
-PR previews: CI can deploy to `https://{PR}-web.preview.nextjudge.net`. Enable preview deployments on the Coolify app and set `CORS_ALLOW_PREVIEW=true` on the backend.
+PR previews: CI deploys `{PR}-web`, `{PR}-docs` via Coolify application previews and `{PR}-api` via SSH (`scripts/coolify-preview-backend-ssh.sh`). Set `CORS_ALLOW_PREVIEW=true` on the production backend service. Preview web omits `NEXT_PUBLIC_API_URL`; GitHub OAuth uses the production redirect proxy. Details: [Configuration — PR previews](/guides/configuration/#pr-previews-coolify).
 
 ---
 
