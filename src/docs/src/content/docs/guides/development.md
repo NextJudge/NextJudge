@@ -10,7 +10,7 @@ After [`./dev-deploy.sh web`](/start/getting-started/), use this page to work on
 | Tool | Version | For |
 | ---- | ------- | --- |
 | Docker | 20.10+ | Compose stacks |
-| Go | 1.21+ | Data layer |
+| Go | 1.24+ | Data layer |
 | Node / Bun | 18+ | Web |
 | Python | 3.10+ | Judge + Tavern tests |
 | Git | any | PRs |
@@ -131,7 +131,7 @@ Edit `models.go`. AutoMigrate runs on the next data layer start. For destructive
 | Judge | `docker logs $(docker ps -qf name=judge)` |
 | Web | DevTools + terminal running `npm run dev` |
 | Postgres | `docker exec -it $(docker ps -qf name=postgres) psql -U postgres nextjudge` |
-| RabbitMQ | http://localhost:15672 (creds from `.env.dev`) |
+| RabbitMQ | http://localhost:15672 (creds from `.env` or `.env.dev`) |
 
 Env sources: `config.go`, judge `app.py`, web `.env.example`.
 
@@ -141,6 +141,6 @@ Go: `gofmt`, early returns. TypeScript: strict, no `any`. Python: PEP 8, type hi
 
 ## Contributing
 
-Branch from `main`, test locally, open a PR. See [CONTRIBUTING.md](https://github.com/nextjudge/nextjudge/blob/main/CONTRIBUTING.md).
+Branch from `main`, test locally, open a PR. See the repository `CONTRIBUTING.md` on GitHub for community guidelines.
 
 Build all images: `docker buildx bake -f docker-bake.hcl`

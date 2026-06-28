@@ -23,7 +23,11 @@ Languages are defined in `src/judge/languages.toml` and registered in Postgres v
 | Kotlin | 1.9.24 | `.kt` | JVM, `InputKt.class` entry |
 | Haskell | 9.4.7 | `.hs` | GHC |
 
-Time and memory limits come from the **problem**, not this table. Defaults are usually 5 to 10s CPU and 256 to 512 MB unless overridden on create.
+## Resource limits on problems
+
+Problems store `accept_timeout`, `execution_timeout`, and `memory_limit`. Admins set these when creating problems or attaching them to contests.
+
+**Important:** the judge currently uses **fixed nsjail defaults** (10s run CPU, ~6 MB virtual memory) and does not read per-problem limits from the API. Values in the UI are stored for future use and display. See [Judge service — resource limits](/architecture/judge/#resource-limits).
 
 ## Execution
 
