@@ -42,10 +42,11 @@ has_deployment_table() {
 append_preview_row() {
   local label="$1"
   local key="$2"
-  local url status
+  local url status row
   url="$(preview_url "$key")"
   status="$(preview_status)"
-  printf '| %s | %s | [Link](%s) |\n' "$label" "$status" "$url"
+  printf -v row '| %s | %s | [Link](%s) |' "$label" "$status" "$url"
+  body="${body}${row}"$'\n'
 }
 
 append_e2e_report_row() {
@@ -53,10 +54,11 @@ append_e2e_report_row() {
     return 0
   fi
 
-  local url status
+  local url status row
   url="$("${SCRIPT_DIR}/playwright-report-url.sh" "$PR_NUMBER" "$GITHUB_RUN_ID")"
   status="$(e2e_report_status)"
-  printf '| E2E report | %s | [Link](%s) |\n' "$status" "$url"
+  printf -v row '| E2E report | %s | [Link](%s) |' "$status" "$url"
+  body="${body}${row}"$'\n'
 }
 
 append_deployments_table() {
@@ -67,12 +69,12 @@ append_deployments_table() {
 |---------|--------|------|
 "
   if [ "$WEB_CHANGED" = "true" ]; then
-    body="${body}$(append_preview_row Web web)"
+    append_preview_row Web web
   fi
   if [ "$DOCS_CHANGED" = "true" ]; then
-    body="${body}$(append_preview_row Docs docs)"
+    append_preview_row Docs docs
   fi
-  body="${body}$(append_e2e_report_row)"
+  append_e2e_report_row
 }
 
 run_url=""
