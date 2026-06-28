@@ -1,6 +1,24 @@
 import { z } from "zod";
-import { problemListItemSchema } from "./problem";
+import { problemListItemSchema, type ProblemListItem } from "./problem";
 import { userSchema } from "./user";
+
+const eventProblemRefSchema = z.object({
+	id: z.number(),
+});
+
+const parseEventProblems = (
+	entries: Array<ProblemListItem | z.infer<typeof eventProblemRefSchema>> | undefined,
+): ProblemListItem[] | undefined => {
+	if (!entries) {
+		return undefined;
+	}
+
+	const problems = entries.filter(
+		(entry): entry is ProblemListItem => "title" in entry,
+	);
+
+	return problems.length > 0 ? problems : undefined;
+};
 
 export const nextJudgeEventSchema = z.object({
 	id: z.number(),
@@ -10,7 +28,10 @@ export const nextJudgeEventSchema = z.object({
 	start_time: z.string(),
 	end_time: z.string(),
 	teams: z.boolean(),
-	problems: z.array(problemListItemSchema).optional(),
+	problems: z
+		.array(z.union([problemListItemSchema, eventProblemRefSchema]))
+		.optional()
+		.transform(parseEventProblems),
 	participants: z.array(userSchema).optional(),
 	participant_count: z.number().optional(),
 	problem_count: z.number().optional(),
