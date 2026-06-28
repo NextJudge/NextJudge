@@ -30,18 +30,18 @@ const eventProblemEntrySchema = z.preprocess(
 	z.union([parsedProblemSchema, eventProblemRefSchema]),
 );
 
+export type EventProblemEntry =
+	| ProblemListItem
+	| z.infer<typeof eventProblemRefSchema>;
+
 const parseEventProblems = (
 	entries: z.infer<typeof eventProblemEntrySchema>[] | undefined,
-): ProblemListItem[] | undefined => {
-	if (!entries) {
+): EventProblemEntry[] | undefined => {
+	if (!entries || entries.length === 0) {
 		return undefined;
 	}
 
-	const problems = entries.filter(
-		(entry): entry is ProblemListItem => "title" in entry,
-	);
-
-	return problems.length > 0 ? problems : undefined;
+	return entries;
 };
 
 export const nextJudgeEventSchema = z.object({

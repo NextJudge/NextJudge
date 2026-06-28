@@ -40,7 +40,7 @@ export interface NextJudgeEvent {
 	start_time: string;
 	end_time: string;
 	teams: boolean;
-	problems?: Problem[];
+	problems?: (Problem | { id: number })[];
 	participants?: User[];
 	participant_count?: number;
 	problem_count?: number;
@@ -206,10 +206,10 @@ export interface CreateTeamResponse {
 
 export interface CustomInputResult {
 	status: SubmissionStatus | "PENDING";
-	stdout: string;
-	stderr: string;
-	finished: boolean;
-	runtime: number;
+	stdout?: string;
+	stderr?: string;
+	finished?: boolean;
+	runtime?: number;
 }
 
 export interface PracticeRunTestCaseResult {
