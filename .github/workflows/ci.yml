@@ -147,7 +147,7 @@ jobs:
         retention-days: 7
     - name: Prepare Playwright report for GitHub Pages
       id: prepare-playwright-pages
-      if: failure() && github.event_name == 'pull_request'
+      if: always() && !cancelled() && github.event_name == 'pull_request'
       run: |
         if [ ! -d src/web/playwright-report ]; then
           echo "skipped=true" >> "$GITHUB_OUTPUT"
@@ -156,7 +156,7 @@ jobs:
         ./scripts/prepare-playwright-pages-bundle.sh
         echo "skipped=false" >> "$GITHUB_OUTPUT"
     - name: Publish Playwright report to GitHub Pages
-      if: failure() && github.event_name == 'pull_request' && steps.prepare-playwright-pages.outputs.skipped != 'true'
+      if: always() && !cancelled() && github.event_name == 'pull_request' && steps.prepare-playwright-pages.outputs.skipped == 'false'
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
