@@ -118,7 +118,7 @@ Deploy **web** as a separate Coolify application from `src/web`. Required build 
 
 Backend Coolify env: same secrets as [Configuration — Coolify](/guides/configuration/#coolify-deployment).
 
-PR previews: CI can deploy to `https://{PR}-web.preview.nextjudge.net`. Enable preview deployments on the Coolify app and set `CORS_ALLOW_PREVIEW=true` on the backend.
+PR previews: CI deploys per-PR stacks at `https://{PR}-web|docs|api.preview.nextjudge.net`. Enable preview deployments on the Coolify web, docs, and backend service. Set `CORS_ALLOW_PREVIEW=true` on the backend. Preview web omits `NEXT_PUBLIC_API_URL` (runtime routing to `{PR}-api`). GitHub OAuth uses the production redirect proxy — see [Configuration — PR previews](/guides/configuration/#pr-previews-coolify).
 
 ---
 

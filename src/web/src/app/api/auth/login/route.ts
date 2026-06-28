@@ -1,4 +1,5 @@
 import { getBridgeUrl } from '@/lib/utils'
+import { getHostnameFromHeaderValue } from '@/lib/request-host'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -12,7 +13,11 @@ export async function POST(request: NextRequest) {
         const body = await request.json()
         const { email, password } = loginSchema.parse(body)
 
-        const response = await fetch(`${getBridgeUrl()}/v1/basic_login`, {
+        const hostname = getHostnameFromHeaderValue(
+            request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+        );
+
+        const response = await fetch(`${getBridgeUrl({ hostname })}/v1/basic_login`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

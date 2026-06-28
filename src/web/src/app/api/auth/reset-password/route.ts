@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getBridgeUrl } from "@/lib/utils";
+import { getHostnameFromHeaderValue } from "@/lib/request-host";
 
 const resetSchema = z.object({
   email: z.string().email(),
@@ -13,7 +14,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = resetSchema.parse(body);
 
-    const res = await fetch(`${getBridgeUrl()}/v1/basic_reset_password`, {
+    const hostname = getHostnameFromHeaderValue(
+      request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+    );
+
+    const res = await fetch(`${getBridgeUrl({ hostname })}/v1/basic_reset_password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(parsed),

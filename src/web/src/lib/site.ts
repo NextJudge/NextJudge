@@ -97,3 +97,17 @@ export const LOCALE = {
   openGraph: "en_US",
   countryName: "United States",
 } as const;
+
+export const PREVIEW_WEB_HOST_REGEX = /^(\d+)-web\.preview\.nextjudge\.net$/;
+
+export const getPreviewApiUrlFromWebHostname = (hostname: string): string | null => {
+  const match = hostname.match(PREVIEW_WEB_HOST_REGEX);
+  if (!match) return null;
+  return `https://${match[1]}-api.preview.nextjudge.net`;
+};
+
+export const getPreviewWebUrlFromHostname = (hostname: string): string | null => {
+  const match = hostname.match(PREVIEW_WEB_HOST_REGEX);
+  if (!match) return null;
+  return `https://${match[1]}-web.preview.nextjudge.net`;
+};

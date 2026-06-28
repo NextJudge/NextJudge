@@ -1,10 +1,11 @@
 services:
   nextjudge-data-layer:
-    image: tnyuma/nextjudge-core:latest
+    image: tnyuma/nextjudge-core:${NEXTJUDGE_CORE_IMAGE_TAG:-latest}
     platform: linux/amd64
     expose:
       - "5000"
     environment:
+      - SERVICE_FQDN_NEXTJUDGE_DATA_LAYER_5000
       - JUDGE_PASSWORD=${JUDGE_PASSWORD}
       - JWT_SIGNING_SECRET=${JWT_SIGNING_SECRET}
       - WEB_BRIDGE_SECRET=${WEB_BRIDGE_SECRET}
@@ -18,7 +19,12 @@ services:
       - TRUSTED_PROXY=${TRUSTED_PROXY:-true}
       - PASSWORD_RESET_DEBUG=${PASSWORD_RESET_DEBUG:-false}
       - ALLOW_INSECURE_PASSWORD_RESET=${ALLOW_INSECURE_PASSWORD_RESET:-false}
+      - SEED_DATA=${SEED_DATA:-false}
       - ADMIN_EMAILS=${ADMIN_EMAILS}
+      - AUTH_RATE_LIMIT_PER_MIN=${AUTH_RATE_LIMIT_PER_MIN}
+      - AUTH_RATE_LIMIT_BURST=${AUTH_RATE_LIMIT_BURST}
+    networks:
+      - internal
     healthcheck:
       test: ["CMD", "/main", "-healthcheck", "-p", "5000"]
       interval: 30s
@@ -39,6 +45,10 @@ services:
       - POSTGRES_DB=nextjudge
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      internal:
+        aliases:
+          - db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -51,6 +61,10 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+    networks:
+      internal:
+        aliases:
+          - rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -58,7 +72,7 @@ services:
       retries: 5
 
   nextjudge-judge:
-    image: tnyuma/nextjudge-judge:latest
+    image: tnyuma/nextjudge-judge:${NEXTJUDGE_JUDGE_IMAGE_TAG:-latest}
     platform: linux/amd64
     privileged: true
     environment:
@@ -72,11 +86,17 @@ services:
     volumes:
       - go_cache:/var/lib/nextjudge/go-cache
       - go_mod_cache:/var/lib/nextjudge/go-mod
+    networks:
+      - internal
     depends_on:
       nextjudge-data-layer:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+
+networks:
+  internal:
+    driver: bridge
 
 volumes:
   postgres_data:

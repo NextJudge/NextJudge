@@ -123,7 +123,19 @@ After GitHub login, Auth.js calls `POST /v1/create_or_login_user` with `Authoriz
 
 ### PR previews (Coolify)
 
-Preview URLs: `https://{PR_NUMBER}-web.preview.nextjudge.net`. Register matching callback URLs per preview or use a wildcard app. Set `CORS_ALLOW_PREVIEW=true` on the backend.
+Each PR gets an isolated stack:
+
+| Service | URL pattern |
+| ------- | ----------- |
+| Web | `https://{PR_NUMBER}-web.preview.nextjudge.net` |
+| Docs | `https://{PR_NUMBER}-docs.preview.nextjudge.net` |
+| API | `https://{PR_NUMBER}-api.preview.nextjudge.net` |
+
+**Backend:** Set `CORS_ALLOW_PREVIEW=true`. Preview env uses `SEED_DATA=true`, `PASSWORD_RESET_DEBUG=true`, relaxed `AUTH_RATE_LIMIT_*`, and isolated secrets. `WEB_BRIDGE_SECRET` on the preview backend must match the preview web app.
+
+**Web:** Do **not** set `NEXT_PUBLIC_API_URL` on preview deployments — the web app detects `{PR}-web` hostnames and routes API calls to `{PR}-api` at runtime.
+
+**GitHub OAuth:** Register a single production callback (`https://nextjudge.net/api/auth/callback/github`). On production web set `AUTH_REDIRECT_PROXY_URL=https://nextjudge.net/api/auth` and `AUTH_TRUST_HOST=true`. Preview web uses the same proxy URL and the same `AUTH_SECRET` as production, with preview-only GitHub app credentials and `WEB_BRIDGE_SECRET`.
 
 ---
 

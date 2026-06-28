@@ -11,6 +11,7 @@ PR_NUMBER="${PR_NUMBER:?PR_NUMBER is required}"
 SHA="${SHA:?SHA is required}"
 WEB_CHANGED="${WEB_CHANGED:-false}"
 DOCS_CHANGED="${DOCS_CHANGED:-false}"
+BACKEND_CHANGED="${BACKEND_CHANGED:-false}"
 E2E_RAN="${E2E_RAN:-false}"
 E2E_RESULT="${E2E_RESULT:-skipped}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,7 +37,7 @@ e2e_report_status() {
 }
 
 has_deployment_table() {
-  [ "$WEB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ] || [ "$E2E_RAN" = "true" ]
+  [ "$WEB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ] || [ "$BACKEND_CHANGED" = "true" ] || [ "$E2E_RAN" = "true" ]
 }
 
 append_preview_row() {
@@ -73,6 +74,9 @@ append_deployments_table() {
   fi
   if [ "$DOCS_CHANGED" = "true" ]; then
     append_preview_row Docs docs
+  fi
+  if [ "$BACKEND_CHANGED" = "true" ]; then
+    append_preview_row API api
   fi
   append_e2e_report_row
 }
@@ -118,7 +122,7 @@ Preview URLs are live. Last deploy: \`${SHA:0:7}\`."
   elif [ "$PHASE" = "preview-failed" ]; then
     body="${body}
 Preview deploy failed for commit \`${SHA:0:7}\`. Check the workflow logs for details."
-  elif [ "$WEB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ]; then
+  elif [ "$WEB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ] || [ "$BACKEND_CHANGED" = "true" ]; then
     body="${body}
 Preview deploys are in progress. Links below will become available shortly."
   fi
@@ -127,7 +131,7 @@ else
 ### CI passed
 
 Build succeeded for commit \`${SHA:0:7}\`.
-No preview deployments for this PR (web/docs unchanged)."
+No preview deployments for this PR (web/docs/backend unchanged)."
 fi
 
 comment_id="$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \

@@ -12,10 +12,13 @@ set -euo pipefail
 #   COOLIFY_API_TOKEN
 #   COOLIFY_WEB_APP_UUID
 #   COOLIFY_DOCS_APP_UUID
+#   COOLIFY_BACKEND_SERVICE_UUID
 #
 # Optional (SSH fallback when preview DELETE API is unavailable):
 #   COOLIFY_SSH_HOST          e.g. nextjudge or user@77.42.27.51
 #   COOLIFY_PREVIEW_USE_SSH=1 force docker cleanup over SSH
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 require_env() {
   local name="$1"
@@ -26,13 +29,14 @@ require_env() {
 }
 
 delete_preview_via_api() {
-  local app_uuid="$1"
-  local pr_number="$2"
+  local resource_type="$1"
+  local resource_uuid="$2"
+  local pr_number="$3"
 
-  local response http_code
+  local response http_code body
   response="$(
     curl -sS -w "\n%{http_code}" -X DELETE \
-      "${COOLIFY_API_URL}/applications/${app_uuid}/previews/${pr_number}" \
+      "${COOLIFY_API_URL}/${resource_type}s/${resource_uuid}/previews/${pr_number}" \
       -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
       -H "Accept: application/json"
   )"
@@ -41,15 +45,15 @@ delete_preview_via_api() {
 
   case "$http_code" in
     200)
-      echo "Queued Coolify preview deletion for app ${app_uuid} (PR #${pr_number})." >&2
+      echo "Queued Coolify preview deletion for ${resource_type} ${resource_uuid} (PR #${pr_number})." >&2
       return 0
       ;;
     404)
-      echo "Coolify preview API unavailable or no preview record for app ${app_uuid} (PR #${pr_number})." >&2
+      echo "Coolify preview API unavailable or no preview record for ${resource_type} ${resource_uuid} (PR #${pr_number})." >&2
       return 1
       ;;
     *)
-      echo "Coolify preview delete failed (${http_code}) for app ${app_uuid} (PR #${pr_number}): ${body}" >&2
+      echo "Coolify preview delete failed (${http_code}) for ${resource_type} ${resource_uuid} (PR #${pr_number}): ${body}" >&2
       return 1
       ;;
   esac
@@ -84,10 +88,19 @@ cleanup_pr() {
   local api_ok=0
   if [[ -n "${COOLIFY_API_URL:-}" && -n "${COOLIFY_API_TOKEN:-}" ]]; then
     if [[ -n "${COOLIFY_WEB_APP_UUID:-}" ]]; then
-      delete_preview_via_api "$COOLIFY_WEB_APP_UUID" "$pr_number" || api_ok=1
+      delete_preview_via_api application "$COOLIFY_WEB_APP_UUID" "$pr_number" || api_ok=1
     fi
     if [[ -n "${COOLIFY_DOCS_APP_UUID:-}" ]]; then
-      delete_preview_via_api "$COOLIFY_DOCS_APP_UUID" "$pr_number" || api_ok=1
+      delete_preview_via_api application "$COOLIFY_DOCS_APP_UUID" "$pr_number" || api_ok=1
+    fi
+    if [[ -n "${COOLIFY_BACKEND_SERVICE_UUID:-}" ]]; then
+      if [[ -n "${COOLIFY_SSH_HOST:-}" ]]; then
+        COOLIFY_BACKEND_SERVICE_UUID="${COOLIFY_BACKEND_SERVICE_UUID}" \
+          COOLIFY_SSH_HOST="${COOLIFY_SSH_HOST}" \
+          "${SCRIPT_DIR}/coolify-preview-backend-ssh.sh" cleanup || api_ok=1
+      else
+        delete_preview_via_api service "$COOLIFY_BACKEND_SERVICE_UUID" "$pr_number" || api_ok=1
+      fi
     fi
   else
     api_ok=1

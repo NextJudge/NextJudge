@@ -21,6 +21,7 @@ jobs:
       docs: ${{ steps.filter.outputs.docs }}
       core: ${{ steps.filter.outputs.core }}
       judge: ${{ steps.filter.outputs.judge }}
+      preview_backend: ${{ steps.filter.outputs.web == 'true' || steps.filter.outputs.core == 'true' || steps.filter.outputs.judge == 'true' }}
     steps:
     - uses: actions/checkout@v4
     - uses: dorny/paths-filter@v3
@@ -41,6 +42,8 @@ jobs:
           core:
             - 'src/data-layer/**'
             - 'scripts/run-data-layer-tests.sh'
+            - 'compose/docker-compose.coolify.yml'
+            - 'scripts/coolify-*.sh'
             - 'docker-bake.hcl'
             - '.github/workflows/ci.yml'
           judge:
@@ -234,6 +237,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.judge == 'true'
     runs-on: ubuntu-latest
+    env:
+      CI_IMAGE_TAG: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
     steps:
     - uses: actions/checkout@v4
     - uses: docker/setup-buildx-action@v3
@@ -248,8 +253,8 @@ jobs:
         targets: basejudge,judge
         push: true
         set: |
-          basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ github.sha }}
-          judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:ci-${{ github.sha }}
+          basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ env.CI_IMAGE_TAG }}
+          judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:ci-${{ env.CI_IMAGE_TAG }}
           judge.target=release
           basejudge.cache-from=type=gha,scope=nextjudge-basejudge
           basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
@@ -302,6 +307,7 @@ jobs:
         SHA: ${{ github.event.pull_request.head.sha }}
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        BACKEND_CHANGED: ${{ needs.changes.outputs.preview_backend }}
         GITHUB_RUN_ID: ${{ github.run_id }}
         E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
         E2E_RESULT: ${{ needs.web-e2e.result }}
@@ -323,6 +329,7 @@ jobs:
         SHA: ${{ github.event.pull_request.head.sha }}
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        BACKEND_CHANGED: ${{ needs.changes.outputs.preview_backend }}
         GITHUB_RUN_ID: ${{ github.run_id }}
         E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
         E2E_RESULT: ${{ needs.web-e2e.result }}
@@ -330,6 +337,9 @@ jobs:
 
   preview-deploy:
     needs: [ changes, ci-success, web-e2e ]
+    concurrency:
+      group: coolify-preview-deploy
+      cancel-in-progress: false
     # always() is required when ci-success ran via always() with skipped jobs
     # (e.g. docs-build). Otherwise preview-deploy is skipped even when web changed.
     if: |
@@ -338,13 +348,76 @@ jobs:
       github.event_name == 'pull_request' &&
       (
         needs.changes.outputs.web == 'true' ||
-        needs.changes.outputs.docs == 'true'
+        needs.changes.outputs.docs == 'true' ||
+        needs.changes.outputs.preview_backend == 'true'
+      ) &&
+      (
+        needs.web-e2e.result == 'success' ||
+        needs.web-e2e.result == 'skipped'
       )
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
     steps:
     - uses: actions/checkout@v4
+
+    - uses: docker/setup-buildx-action@v3
+      if: needs.changes.outputs.preview_backend == 'true'
+    - uses: docker/login-action@v3
+      if: needs.changes.outputs.preview_backend == 'true'
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: Build and push core image for preview
+      if: needs.changes.outputs.preview_backend == 'true'
+      uses: docker/bake-action@v6
+      with:
+        files: docker-bake.hcl
+        targets: core
+        push: true
+        set: |
+          core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:ci-${{ env.PR_HEAD_SHA }}
+          core.target=release
+          core.cache-from=type=gha,scope=nextjudge-core
+          core.cache-to=type=gha,mode=max,scope=nextjudge-core
+    - name: Build and push judge image for preview
+      if: needs.changes.outputs.preview_backend == 'true' && needs.changes.outputs.judge != 'true'
+      uses: docker/bake-action@v6
+      with:
+        files: docker/bake.hcl
+        targets: basejudge,judge
+        push: true
+        set: |
+          basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:ci-${{ env.PR_HEAD_SHA }}
+          judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:ci-${{ env.PR_HEAD_SHA }}
+          judge.target=release
+          basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+          basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
+          judge.cache-from=type=gha,scope=nextjudge-judge
+          judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
+
+    - name: Deploy backend preview
+      if: needs.changes.outputs.preview_backend == 'true'
+      env:
+        COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
+        COOLIFY_BACKEND_SERVICE_UUID: ${{ vars.COOLIFY_BACKEND_SERVICE_UUID }}
+        COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+        COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
+        PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        REPO_FULL_NAME: ${{ github.repository }}
+        NEXTJUDGE_CORE_IMAGE_TAG: ci-${{ github.event.pull_request.head.sha }}
+        NEXTJUDGE_JUDGE_IMAGE_TAG: ci-${{ github.event.pull_request.head.sha }}
+        COOLIFY_RESOURCE_TYPE: service
+        COOLIFY_SSH_HOST: ${{ vars.COOLIFY_SSH_HOST }}
+      run: |
+        COOLIFY_APP_UUID="${COOLIFY_BACKEND_SERVICE_UUID}" \
+          ./scripts/coolify-preview-deploy.sh
 
     - name: Deploy web preview
       if: needs.changes.outputs.web == 'true'
@@ -353,8 +426,6 @@ jobs:
         COOLIFY_WEB_APP_UUID: ${{ vars.COOLIFY_WEB_APP_UUID }}
         COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
         COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         PR_HTML_URL: ${{ github.event.pull_request.html_url }}
         PR_TITLE: ${{ github.event.pull_request.title }}
@@ -371,8 +442,6 @@ jobs:
         COOLIFY_DOCS_APP_UUID: ${{ vars.COOLIFY_DOCS_APP_UUID }}
         COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
         COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         PR_HTML_URL: ${{ github.event.pull_request.html_url }}
         PR_TITLE: ${{ github.event.pull_request.title }}
@@ -384,13 +453,16 @@ jobs:
 
     - name: Wait for preview URLs
       env:
-        PR_NUMBER: ${{ github.event.pull_request.number }}
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        BACKEND_CHANGED: ${{ needs.changes.outputs.preview_backend }}
         PREVIEW_WAIT_TIMEOUT_SEC: "600"
         PREVIEW_POLL_INTERVAL_SEC: "30"
       run: |
         urls=""
+        if [ "$BACKEND_CHANGED" = "true" ]; then
+          urls="${urls} $(./scripts/preview-url.sh api)/healthy"
+        fi
         if [ "$WEB_CHANGED" = "true" ]; then
           urls="${urls} $(./scripts/preview-url.sh web)"
         fi
@@ -407,6 +479,7 @@ jobs:
         SHA: ${{ github.event.pull_request.head.sha }}
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        BACKEND_CHANGED: ${{ needs.changes.outputs.preview_backend }}
         GITHUB_RUN_ID: ${{ github.run_id }}
         E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
         E2E_RESULT: ${{ needs.web-e2e.result }}
@@ -420,6 +493,7 @@ jobs:
         SHA: ${{ github.event.pull_request.head.sha }}
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        BACKEND_CHANGED: ${{ needs.changes.outputs.preview_backend }}
         GITHUB_RUN_ID: ${{ github.run_id }}
         E2E_RAN: ${{ needs.web-e2e.result != 'skipped' && 'true' || 'false' }}
         E2E_RESULT: ${{ needs.web-e2e.result }}

@@ -1,4 +1,5 @@
 import { getBridgeUrl } from "@/lib/utils";
+import { getHostnameFromHeaderValue, getRequestHostname } from "@/lib/request-host";
 import { LoginFormSchema } from "@/lib/zod";
 import NextAuth, { User } from "next-auth";
 import type { Provider } from "next-auth/providers";
@@ -49,10 +50,11 @@ const clearNextJudgeSession = (token: Record<string, unknown>) => {
 const fetchNextJudgeUser = async (
     userId: string,
     authToken: string,
+    hostname?: string,
 ): Promise<NextJudgeUserResponse | null | undefined> => {
     try {
         const response = await fetch(
-            `${getBridgeUrl()}/v1/users/${userId}`, {
+            `${getBridgeUrl({ hostname })}/v1/users/${userId}`, {
             headers: {
                 Authorization: authToken,
             },
@@ -85,9 +87,15 @@ const providers: Provider[] = [
             try {
                 const { email, password } = LoginFormSchema.parse(credentials);
                 const image = `https://api.dicebear.com/8.x/pixel-art/svg?seed=${email}`;
+                const hostname = request
+                    ? getHostnameFromHeaderValue(
+                          request.headers.get("x-forwarded-host") ??
+                              request.headers.get("host"),
+                      )
+                    : getRequestHostname();
 
                 const response = await fetch(
-                    `${getBridgeUrl()}/v1/basic_login`, {
+                    `${getBridgeUrl({ hostname })}/v1/basic_login`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -139,6 +147,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     debug: process.env.NODE_ENV === "development" ? true : false,
     callbacks: {
         async jwt({ token, user }) {
+            const hostname = getRequestHostname();
+
             if (user) {
                 token.nextjudge_token = user.nextjudge_token
                 token.nextjudge_id = user.nextjudge_id
@@ -148,6 +158,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 const userData = await fetchNextJudgeUser(
                     token.nextjudge_id,
                     token.nextjudge_token,
+                    hostname,
                 );
 
                 if (userData === null) {
@@ -191,13 +202,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         async signIn({ user, account, profile }) {
             if (account?.provider === "github") {
                 console.log("Reaching out")
+                const hostname = getRequestHostname();
                 const user_id = `github-${account.providerAccountId}`
                 const githubProfile = profile
                 const image = user.image || githubProfile?.avatar_url || `https://api.dicebear.com/8.x/pixel-art/svg?seed=${user.email}`
 
                 try {
                     const response = await fetch(
-                        `${getBridgeUrl()}/v1/create_or_login_user`, {
+                        `${getBridgeUrl({ hostname })}/v1/create_or_login_user`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
