@@ -30,7 +30,11 @@ See [Configuration](/guides/configuration/) for the full matrix. Summary:
 
 | Variable | Notes |
 | -------- | ----- |
-| `CORS_ORIGIN` | Web origin(s), comma-separated |
+| `CORS_ORIGIN` | Web origin(s), comma-separated; no wildcards |
+| `CORS_ALLOW_PREVIEW` | `true` for Coolify PR previews |
+| `TRUSTED_PROXY` | `true` when the API sits behind Coolify Traefik or another reverse proxy |
+| `PASSWORD_RESET_DEBUG` | **`false`** in prod (dev/E2E only) |
+| `ALLOW_INSECURE_PASSWORD_RESET` | **`false`** in prod (dev only) |
 | `ADMIN_EMAILS` | Admin bootstrap emails |
 | `SEED_DATA` | **`false`** in prod |
 | `ELASTIC_ENABLED` | `true` only if Elasticsearch is deployed |
@@ -98,7 +102,7 @@ server {
 }
 ```
 
-Set `NEXT_PUBLIC_API_URL=https://api.nextjudge.example.com` at web **build** time. Set `CORS_ORIGIN=https://nextjudge.example.com` on the data layer.
+Set `NEXT_PUBLIC_API_URL=https://api.nextjudge.example.com` at web **build** time. Set `CORS_ORIGIN=https://nextjudge.example.com` on the data layer. Set `TRUSTED_PROXY=true` on the data layer so rate limits use the client IP from `X-Forwarded-For`.
 
 ---
 
@@ -158,9 +162,11 @@ Also available: `GET /health`, `GET /`. Judges have no HTTP health endpoint — 
 ## Security
 
 - Patch judge images regularly
-- Rate-limit `/v1/basic_login` and `/v1/basic_register` at the proxy
+- Rate-limit `/v1/basic_login`, `/v1/basic_register`, and password-reset routes at the proxy
+- Set `TRUSTED_PROXY=true` on the data layer when it runs behind a reverse proxy
+- Keep `PASSWORD_RESET_DEBUG=false` and `ALLOW_INSECURE_PASSWORD_RESET=false` in production
 - Network-separate judge workers from internal admin tools
-- Do not expose `basic_reset_password` to the public internet without proper verification
+- Password reset requires a one-time token (see [Authentication — Password reset](/reference/authentication/#password-reset))
 
 ---
 

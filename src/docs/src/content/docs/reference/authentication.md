@@ -135,14 +135,32 @@ Returns `{"token":"..."}`. That token has `role: 1` and can PATCH submissions an
 
 ## Password reset
 
+Production flow uses one-time tokens stored in the database (1 hour TTL):
+
 ```bash
-POST /v1/basic_request_password_reset   # body: {"email":"..."}
-POST /v1/basic_reset_password           # body: {"email":"...","new_password":"..."}
+# Step 1 — request a token (always returns {"status":"ok"}; no email is sent yet)
+curl -X POST http://localhost:5000/v1/basic_request_password_reset \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ada@example.com"}'
+
+# Step 2 — reset with email + token + new password
+curl -X POST http://localhost:5000/v1/basic_reset_password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ada@example.com","token":"...","new_password":"new-secret"}'
 ```
 
-Both return `{"status":"ok"}` even if the email is not found (anti-enumeration).
+The web app wraps these as `POST /api/auth/request-password-reset` and `POST /api/auth/reset-password`.
 
-**Current behavior:** `basic_request_password_reset` does **not** send email — it is a no-op stub. `basic_reset_password` sets a new password when you supply email and `new_password` directly (no token, no magic link). Suitable for scripts and local dev only; do not expose reset to untrusted clients without adding proper email verification.
+Both API steps return `{"status":"ok"}` even if the email is not found (anti-enumeration). Invalid or expired tokens return `401`.
+
+### Dev-only flags
+
+| Variable | When to use |
+| -------- | ----------- |
+| `PASSWORD_RESET_DEBUG=true` | Local dev or E2E: step 1 also returns `token` in the JSON response so you can test without email |
+| `ALLOW_INSECURE_PASSWORD_RESET=true` | Local scripts only: step 2 accepts `email` + `new_password` with no `token` |
+
+Leave both **`false`** in production. Coolify prod should set them explicitly to `false` alongside `TRUSTED_PROXY=true`.
 
 `RESEND_API_KEY` in `src/web/.env.example` is for other email features (waitlist), not wired to password reset today.
 
