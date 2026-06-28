@@ -279,7 +279,27 @@ jobs:
         SHA: ${{ github.event.pull_request.head.sha }}
         WEB_CHANGED: ${{ needs.changes.outputs.web }}
         DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
       run: ./scripts/update-pr-status-comment.sh ci-success
+
+  ci-failure-notify:
+    needs: [ changes, web-lint, web-e2e, web-build, docs-build, core-build, judge-build, backend-tests, judge-tests ]
+    if: always() && !cancelled() && contains(needs.*.result, 'failure') && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Update PR status comment
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        SHA: ${{ github.event.pull_request.head.sha }}
+        WEB_CHANGED: ${{ needs.changes.outputs.web }}
+        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+      run: ./scripts/update-pr-status-comment.sh ci-failed
 
   preview-deploy:
     needs: [ changes, ci-success ]
