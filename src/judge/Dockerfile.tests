@@ -4,11 +4,9 @@ FROM nextjudge-judge-test
 
 WORKDIR /app
 
-RUN mkdir -p /app/src/
-RUN mv /app/languages.toml /app/src/
-RUN mv /app/app.py /app/config.py /app/handlers.py /app/pipeline.py /app/src/
-RUN mv /app/mq /app/sandbox /app/src/
-RUN touch /app/src/__init__.py
+COPY src/ /app/src/
+COPY languages.toml /app/src/languages.toml
+ENV PYTHONPATH=/app/src
 
 COPY test-requirements.txt ./
 RUN pip install -r test-requirements.txt --break-system-packages
