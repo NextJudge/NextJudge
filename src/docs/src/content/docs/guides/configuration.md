@@ -9,6 +9,7 @@ NextJudge splits configuration across the **backend** (Docker Compose) and the *
 
 | File | Used by | Purpose |
 | ---- | ------- | ------- |
+| `.env.example` (repo root) | Reference | Template for backend secrets and security flags |
 | `.env` (repo root) | `./deploy.sh` | Prod-like local stack; no seed by default |
 | `.env.dev` (repo root) | `./dev-deploy.sh` | Dev stack: hot reload, `SEED_DATA=true` |
 | `src/web/.env.local` | `npm run dev` / `npm start` on host | Auth.js, API URL, bridge secret |
@@ -48,8 +49,11 @@ Optional backend keys:
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
 | `ADMIN_EMAILS` | — | Comma-separated; matching emails get admin on register |
-| `CORS_ORIGIN` | — | Web origin(s), comma-separated (production) |
+| `CORS_ORIGIN` | `http://localhost:8080` | Web origin(s), comma-separated; wildcards are rejected |
 | `CORS_ALLOW_PREVIEW` | `false` | Allow `{id}-web.preview.nextjudge.net` origins |
+| `TRUSTED_PROXY` | `false` | Trust `X-Forwarded-For` for auth rate limits (set `true` behind Traefik/nginx in production) |
+| `PASSWORD_RESET_DEBUG` | `false` | Dev/E2E only: include reset token in `basic_request_password_reset` response — **never enable in production** |
+| `ALLOW_INSECURE_PASSWORD_RESET` | `false` | Dev only: allow `basic_reset_password` without a token — **never enable in production** |
 | `SEED_DATA` | `false` | `true` in dev compose — sample users/problems/events |
 | `ELASTIC_ENABLED` | `false` | Problem search index (optional) |
 | `ELASTIC_ENDPOINT` | `http://localhost:9200` | Elasticsearch URL when enabled |
@@ -161,8 +165,13 @@ RABBITMQ_USER
 RABBITMQ_PASSWORD
 CORS_ORIGIN=https://yourdomain.com
 CORS_ALLOW_PREVIEW=true
+TRUSTED_PROXY=true
+PASSWORD_RESET_DEBUG=false
+ALLOW_INSECURE_PASSWORD_RESET=false
 ADMIN_EMAILS=admin@example.com
 ```
+
+Set these on the Coolify **service** (Docker Compose stack), not the web application. The backend service UUID is `COOLIFY_BACKEND_SERVICE_UUID` in GitHub Actions.
 
 Images: `tnyuma/nextjudge-core:latest`, `tnyuma/nextjudge-judge:latest`. Build fresh with `docker buildx bake -f docker-bake.hcl`.
 
@@ -196,6 +205,9 @@ More production detail: [Deployment guide](/guides/deployment/).
 | `WEB_BRIDGE_SECRET` | ✓ | | ✓ |
 | `DB_PASSWORD` | ✓ | | |
 | `RABBITMQ_*` | ✓ | ✓ | |
+| `TRUSTED_PROXY` | ✓ | | |
+| `PASSWORD_RESET_DEBUG` | ✓ | | |
+| `ALLOW_INSECURE_PASSWORD_RESET` | ✓ | | |
 | `AUTH_SECRET` | | | ✓ |
 | `AUTH_GITHUB_*` | | | ✓ |
 | `NEXTAUTH_URL` | | | ✓ |

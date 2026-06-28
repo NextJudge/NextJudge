@@ -19,7 +19,7 @@ Clone the repo. Commands below assume the repository root as the working directo
 ./.createenv.sh > .env
 ```
 
-Required keys: `JWT_SIGNING_SECRET`, `JUDGE_PASSWORD`, `WEB_BRIDGE_SECRET`, `DB_PASSWORD`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`. Copy `WEB_BRIDGE_SECRET` into `src/web/.env.local` when running the web app outside Docker (see `src/web/.env.example`).
+Required keys: `JWT_SIGNING_SECRET`, `JUDGE_PASSWORD`, `WEB_BRIDGE_SECRET`, `DB_PASSWORD`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`. See `.env.example` at the repo root for optional security flags (`TRUSTED_PROXY`, password-reset dev toggles). Copy `WEB_BRIDGE_SECRET` into `src/web/.env.local` when running the web app outside Docker (see `src/web/.env.example`).
 
 **`.env` vs `.env.dev`:** `./deploy.sh` reads root `.env`. `./dev-deploy.sh` reads `.env.dev` (gitignored). Create both from `./.createenv.sh` — see [Configuration](/guides/configuration/).
 
