@@ -1,4 +1,19 @@
 import {
+	parseCreateTeamResponse,
+	parseEvent,
+	parseEventList,
+	parseEventProblemAttemptList,
+	parseEventProblemStatsList,
+	parseEventQuestion,
+	parseEventQuestionList,
+	parseEventTeam,
+	parseEventTeamList,
+	parseUserEventProblemStatusList,
+} from "../schemas/event";
+import { parseProblemList } from "../schemas/problem";
+import { parseSubmissionList } from "../schemas/submission";
+import { parseUserList } from "../schemas/user";
+import {
 	AnswerQuestionRequest,
 	CreateEventRequest,
 	CreateQuestionRequest,
@@ -10,27 +25,42 @@ import {
 	Submission,
 	User,
 } from "../types";
-import { apiFetch, apiFetchJson, apiUrl, authHeaders, jsonAuthHeaders, parseApiError } from "./client";
+import {
+	apiFetch,
+	apiFetchParsed,
+	apiUrl,
+	authHeaders,
+	jsonAuthHeaders,
+	parseApiError,
+} from "./client";
 
 export async function apiGetEvents(token: string): Promise<NextJudgeEvent[]> {
-	return apiFetchJson("/v1/events", { headers: authHeaders(token) });
+	return apiFetchParsed("/v1/events", parseEventList, {
+		headers: authHeaders(token),
+	});
 }
 
 export async function apiGetPublicEvents(
 	token: string,
 ): Promise<NextJudgeEvent[]> {
-	return apiFetchJson("/v1/public/events", { headers: authHeaders(token) });
+	return apiFetchParsed("/v1/public/events", parseEventList, {
+		headers: authHeaders(token),
+	});
 }
 
 export async function apiCreateEvent(
 	token: string,
 	data: CreateEventRequest,
 ): Promise<NextJudgeEvent> {
-	return apiFetchJson("/v1/events", {
-		method: "POST",
-		headers: jsonAuthHeaders(token),
-		body: JSON.stringify(data),
-	});
+	return apiFetchParsed(
+		"/v1/events",
+		parseEvent,
+		{
+			method: "POST",
+			headers: jsonAuthHeaders(token),
+			body: JSON.stringify(data),
+		},
+	);
 }
 
 export async function apiUpdateEvent(
@@ -38,11 +68,15 @@ export async function apiUpdateEvent(
 	id: number,
 	data: Partial<CreateEventRequest>,
 ): Promise<NextJudgeEvent> {
-	return apiFetchJson(`/v1/events/${id}`, {
-		method: "PUT",
-		headers: jsonAuthHeaders(token),
-		body: JSON.stringify(data),
-	});
+	return apiFetchParsed(
+		`/v1/events/${id}`,
+		parseEvent,
+		{
+			method: "PUT",
+			headers: jsonAuthHeaders(token),
+			body: JSON.stringify(data),
+		},
+	);
 }
 
 export async function apiEndEvent(
@@ -69,7 +103,9 @@ export async function apiGetEvent(
 	token: string,
 	id: number,
 ): Promise<NextJudgeEvent> {
-	return apiFetchJson(`/v1/events/${id}`, { headers: authHeaders(token) });
+	return apiFetchParsed(`/v1/events/${id}`, parseEvent, {
+		headers: authHeaders(token),
+	});
 }
 
 export async function apiAddEventParticipant(
@@ -98,9 +134,11 @@ export async function apiGetEventTeams(
 	token: string,
 	eventId: number,
 ): Promise<EventTeam[]> {
-	return apiFetchJson(`/v1/events/${eventId}/teams`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/events/${eventId}/teams`,
+		parseEventTeamList,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export async function apiGetMyEventTeam(
@@ -119,7 +157,8 @@ export async function apiGetMyEventTeam(
 		await parseApiError(response);
 	}
 
-	return response.json();
+	const json: unknown = await response.json();
+	return parseEventTeam(json);
 }
 
 export async function apiGetEventTeam(
@@ -127,9 +166,11 @@ export async function apiGetEventTeam(
 	eventId: number,
 	teamId: string,
 ): Promise<EventTeam> {
-	return apiFetchJson(`/v1/events/${eventId}/teams/${teamId}`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/events/${eventId}/teams/${teamId}`,
+		parseEventTeam,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export async function apiCreateEventTeam(
@@ -137,11 +178,15 @@ export async function apiCreateEventTeam(
 	eventId: number,
 	name: string,
 ): Promise<CreateTeamResponse> {
-	return apiFetchJson(`/v1/events/${eventId}/teams`, {
-		method: "POST",
-		headers: jsonAuthHeaders(token),
-		body: JSON.stringify({ name }),
-	});
+	return apiFetchParsed(
+		`/v1/events/${eventId}/teams`,
+		parseCreateTeamResponse,
+		{
+			method: "POST",
+			headers: jsonAuthHeaders(token),
+			body: JSON.stringify({ name }),
+		},
+	);
 }
 
 export async function apiJoinEventTeam(
@@ -161,27 +206,33 @@ export async function apiGetEventWithDetails(
 	token: string,
 	eventId: number,
 ): Promise<NextJudgeEvent> {
-	return apiFetchJson(`/v1/public/events/${eventId}`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/public/events/${eventId}`,
+		parseEvent,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export async function apiGetEventProblems(
 	token: string,
 	eventId: number,
 ): Promise<Problem[]> {
-	return apiFetchJson(`/v1/events/${eventId}/problems`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/events/${eventId}/problems`,
+		parseProblemList,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export async function apiGetEventParticipants(
 	token: string,
 	eventId: number,
 ): Promise<User[]> {
-	return apiFetchJson(`/v1/public/events/${eventId}/participants`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/public/events/${eventId}/participants`,
+		parseUserList,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export interface EventProblemStats {
@@ -199,27 +250,33 @@ export async function apiGetEventProblemsStats(
 	token: string,
 	eventId: number,
 ): Promise<EventProblemStats[]> {
-	return apiFetchJson(`/v1/events/${eventId}/problems_stats`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/events/${eventId}/problems_stats`,
+		parseEventProblemStatsList,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export async function apiGetUserEventProblemsStatus(
 	token: string,
 	eventId: number,
 ): Promise<UserEventProblemStatus[]> {
-	return apiFetchJson(`/v1/events/${eventId}/user_problem_status`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/events/${eventId}/user_problem_status`,
+		parseUserEventProblemStatusList,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export async function apiGetEventSubmissions(
 	token: string,
 	eventId: number,
 ): Promise<Submission[]> {
-	return apiFetchJson(`/v1/events/${eventId}/submissions`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/events/${eventId}/submissions`,
+		parseSubmissionList,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export interface EventProblemAttemptDTO {
@@ -235,18 +292,22 @@ export async function apiGetEventAttempts(
 	token: string,
 	eventId: number,
 ): Promise<EventProblemAttemptDTO[]> {
-	return apiFetchJson(`/v1/events/${eventId}/attempts`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/events/${eventId}/attempts`,
+		parseEventProblemAttemptList,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export async function apiGetEventQuestions(
 	token: string,
 	eventId: number,
 ): Promise<EventQuestion[]> {
-	return apiFetchJson(`/v1/events/${eventId}/questions`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/events/${eventId}/questions`,
+		parseEventQuestionList,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export async function apiCreateEventQuestion(
@@ -254,11 +315,15 @@ export async function apiCreateEventQuestion(
 	eventId: number,
 	questionData: CreateQuestionRequest,
 ): Promise<EventQuestion> {
-	return apiFetchJson(`/v1/events/${eventId}/questions`, {
-		method: "POST",
-		headers: jsonAuthHeaders(token),
-		body: JSON.stringify(questionData),
-	});
+	return apiFetchParsed(
+		`/v1/events/${eventId}/questions`,
+		parseEventQuestion,
+		{
+			method: "POST",
+			headers: jsonAuthHeaders(token),
+			body: JSON.stringify(questionData),
+		},
+	);
 }
 
 export async function apiAnswerEventQuestion(

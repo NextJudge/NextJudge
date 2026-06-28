@@ -1,5 +1,11 @@
 import { CustomInputResult } from "../types";
-import { apiFetchJson, apiUrl, jsonAuthHeaders, parseApiError } from "./client";
+import { parseCustomInputResult } from "../schemas/custom-input";
+import {
+	apiFetchParsed,
+	apiUrl,
+	jsonAuthHeaders,
+	parseApiError,
+} from "./client";
 
 export async function waitForCustomInputResult(
 	token: string,
@@ -41,9 +47,11 @@ export async function getCustomInputSubmissionStatus(
 	token: string,
 	submissionId: string,
 ): Promise<CustomInputResult> {
-	return apiFetchJson(`/v1/input_submissions/${submissionId}`, {
-		headers: jsonAuthHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/input_submissions/${submissionId}`,
+		parseCustomInputResult,
+		{ headers: jsonAuthHeaders(token) },
+	);
 }
 
 export async function postPublicCustomInputSubmission(
@@ -84,7 +92,9 @@ export async function getPublicCustomInputSubmissionStatus(
 		? "/v1/bench/input_submissions"
 		: "/v1/public/input_submissions";
 
-	return apiFetchJson(`${endpoint}/${submissionId}`, {
-		headers: { "Content-Type": "application/json" },
-	});
+	return apiFetchParsed(
+		`${endpoint}/${submissionId}`,
+		parseCustomInputResult,
+		{ headers: { "Content-Type": "application/json" } },
+	);
 }

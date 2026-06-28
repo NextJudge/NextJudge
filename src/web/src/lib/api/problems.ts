@@ -5,7 +5,7 @@ import {
 	parseProblemDetail,
 	parseProblemList,
 } from "../schemas/problem";
-import { apiFetch, apiFetchJson, authHeaders, jsonAuthHeaders } from "./client";
+import { apiFetch, authHeaders, jsonAuthHeaders } from "./client";
 
 export async function apiGetProblems(
 	token: string,
@@ -52,11 +52,13 @@ export async function apiToggleProblemVisibility(
 }
 
 export async function apiCreateProblem(token: string, data: ProblemRequest) {
-	return apiFetchJson("/v1/problems", {
+	const response = await apiFetch("/v1/problems", {
 		method: "POST",
 		headers: jsonAuthHeaders(token),
 		body: JSON.stringify(data),
 	});
+	const json: unknown = await response.json();
+	return parseProblemDetail(json);
 }
 
 export async function apiUpdateProblem(
@@ -64,11 +66,13 @@ export async function apiUpdateProblem(
 	problemId: number,
 	data: ProblemRequest,
 ) {
-	return apiFetchJson(`/v1/problems/${problemId}`, {
+	const response = await apiFetch(`/v1/problems/${problemId}`, {
 		method: "PUT",
 		headers: jsonAuthHeaders(token),
 		body: JSON.stringify(data),
 	});
+	const json: unknown = await response.json();
+	return parseProblemDetail(json);
 }
 
 export async function apiDeleteProblem(

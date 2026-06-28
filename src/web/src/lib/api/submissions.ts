@@ -1,8 +1,13 @@
 import { z } from "zod";
 import { Submission, SubmissionStatus } from "../types";
 import {
+	parseSubmission,
+	parseSubmissionList,
+	parseSubmissionStatusPoll,
+} from "../schemas/submission";
+import {
 	apiFetch,
-	apiFetchJson,
+	apiFetchParsed,
 	apiUrl,
 	authHeaders,
 	jsonAuthHeaders,
@@ -56,9 +61,11 @@ export async function apiGetSubmissionStatusPoll(
 	token: string,
 	id: string,
 ): Promise<SubmissionStatusPoll> {
-	return apiFetchJson(`/v1/submissions/${id}/status`, {
-		headers: jsonAuthHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/submissions/${id}/status`,
+		parseSubmissionStatusPoll,
+		{ headers: jsonAuthHeaders(token) },
+	);
 }
 
 export async function apiWaitForSubmissionResult(
@@ -79,18 +86,22 @@ export async function apiGetSubmissionsStatus(
 	token: string,
 	id: string,
 ): Promise<Submission> {
-	return apiFetchJson(`/v1/submissions/${id}`, {
-		headers: jsonAuthHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/submissions/${id}`,
+		parseSubmission,
+		{ headers: jsonAuthHeaders(token) },
+	);
 }
 
 export async function apiGetRecentSubmissions(
 	token: string,
 	user_id: string,
 ): Promise<Submission[]> {
-	return apiFetchJson(`/v1/user_submissions/${user_id}`, {
-		headers: authHeaders(token),
-	});
+	return apiFetchParsed(
+		`/v1/user_submissions/${user_id}`,
+		parseSubmissionList,
+		{ headers: authHeaders(token) },
+	);
 }
 
 export async function apiGetRecentSubmissionsForProblem(
@@ -98,8 +109,9 @@ export async function apiGetRecentSubmissionsForProblem(
 	problem_id: number,
 	user_id: string,
 ): Promise<Submission[]> {
-	return apiFetchJson(
+	return apiFetchParsed(
 		`/v1/user_problem_submissions/${user_id}/${problem_id}`,
+		parseSubmissionList,
 		{ headers: authHeaders(token) },
 	);
 }
