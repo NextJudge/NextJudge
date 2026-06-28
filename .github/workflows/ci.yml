@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [ main ]
   push:
-    branches: [main]
+    branches: [ main ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -22,31 +22,31 @@ jobs:
       core: ${{ steps.filter.outputs.core }}
       judge: ${{ steps.filter.outputs.judge }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            web:
-              - 'src/web/**'
-              - 'scripts/run-e2e-tests.sh'
-              - 'scripts/run-e2e-playwright.sh'
-              - 'scripts/prepare-e2e-judge-image.sh'
-              - 'scripts/start-e2e-stack.sh'
-              - 'scripts/stop-e2e-stack.sh'
-              - '.github/workflows/ci.yml'
-            docs:
-              - 'src/docs/**'
-              - '.github/workflows/ci.yml'
-            core:
-              - 'src/data-layer/**'
-              - 'scripts/run-data-layer-tests.sh'
-              - 'docker-bake.hcl'
-              - '.github/workflows/ci.yml'
-            judge:
-              - 'src/judge/**'
-              - 'docker-bake.hcl'
-              - '.github/workflows/ci.yml'
+    - uses: actions/checkout@v4
+    - uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          web:
+            - 'src/web/**'
+            - 'scripts/run-e2e-tests.sh'
+            - 'scripts/run-e2e-playwright.sh'
+            - 'scripts/prepare-e2e-judge-image.sh'
+            - 'scripts/start-e2e-stack.sh'
+            - 'scripts/stop-e2e-stack.sh'
+            - '.github/workflows/ci.yml'
+          docs:
+            - 'src/docs/**'
+            - '.github/workflows/ci.yml'
+          core:
+            - 'src/data-layer/**'
+            - 'scripts/run-data-layer-tests.sh'
+            - 'docker-bake.hcl'
+            - '.github/workflows/ci.yml'
+          judge:
+            - 'src/judge/**'
+            - 'docker-bake.hcl'
+            - '.github/workflows/ci.yml'
 
   web-lint:
     needs: changes
@@ -56,18 +56,19 @@ jobs:
       run:
         working-directory: src/web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: src/web/package-lock.json
-      - name: Configure Tiptap registry
-        run: |
-          printf '@tiptap-pro:registry=https://registry.tiptap.dev/\n//registry.tiptap.dev/:_authToken=%s\n' \
-            "${{ secrets.TIPTAP_NPM_TOKEN }}" > .npmrc
-      - run: npm ci
-      - run: npm run lint
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+        cache-dependency-path: src/web/package-lock.json
+    - name: Configure Tiptap registry
+      run: |
+        printf '@tiptap-pro:registry=https://registry.tiptap.dev/\n//registry.tiptap.dev/:_authToken=%s\n' \
+          "${{ secrets.TIPTAP_NPM_TOKEN }}" > .npmrc
+    - run: npm ci
+    - run: npm run lint
+    - run: npm run typecheck
 
   web-e2e:
     needs: changes
@@ -75,189 +76,189 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: src/web/package-lock.json
-      - uses: docker/setup-buildx-action@v3
-      - name: Configure Tiptap registry
-        working-directory: src/web
-        run: |
-          printf '@tiptap-pro:registry=https://registry.tiptap.dev/\n//registry.tiptap.dev/:_authToken=%s\n' \
-            "${{ secrets.TIPTAP_NPM_TOKEN }}" > .npmrc
-      - name: Install web dependencies
-        working-directory: src/web
-        run: npm ci
-      - name: Install Playwright browser
-        working-directory: src/web
-        run: npx playwright install chromium --with-deps
-      - name: Build judge image for E2E
-        if: needs.changes.outputs.judge == 'true'
-        uses: docker/bake-action@v6
-        with:
-          files: docker-bake.hcl
-          targets: basejudge,judge
-          push: false
-          load: true
-          set: |
-            judge.tags=nextjudge-judge:e2e
-            judge.target=release
-            basejudge.cache-from=type=gha,scope=nextjudge-basejudge
-            basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
-            judge.cache-from=type=gha,scope=nextjudge-judge
-            judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
-      - name: Start E2E stack
-        env:
-          E2E_WITH_JUDGE: ${{ needs.changes.outputs.judge == 'true' && '1' || '0' }}
-        run: ./scripts/start-e2e-stack.sh
-      - name: Run Playwright smoke tests
-        if: needs.changes.outputs.web == 'true'
-        run: ./scripts/run-e2e-playwright.sh --grep-invert @judge
-      - name: Run Playwright judge E2E tests
-        if: needs.changes.outputs.judge == 'true'
-        run: ./scripts/run-e2e-playwright.sh --grep @judge
-      - name: Stop E2E stack
-        if: always()
-        run: ./scripts/stop-e2e-stack.sh
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+        cache-dependency-path: src/web/package-lock.json
+    - uses: docker/setup-buildx-action@v3
+    - name: Configure Tiptap registry
+      working-directory: src/web
+      run: |
+        printf '@tiptap-pro:registry=https://registry.tiptap.dev/\n//registry.tiptap.dev/:_authToken=%s\n' \
+          "${{ secrets.TIPTAP_NPM_TOKEN }}" > .npmrc
+    - name: Install web dependencies
+      working-directory: src/web
+      run: npm ci
+    - name: Install Playwright browser
+      working-directory: src/web
+      run: npx playwright install chromium --with-deps
+    - name: Build judge image for E2E
+      if: needs.changes.outputs.judge == 'true'
+      uses: docker/bake-action@v6
+      with:
+        files: docker-bake.hcl
+        targets: basejudge,judge
+        push: false
+        load: true
+        set: |
+          judge.tags=nextjudge-judge:e2e
+          judge.target=release
+          basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+          basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
+          judge.cache-from=type=gha,scope=nextjudge-judge
+          judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
+    - name: Start E2E stack
+      env:
+        E2E_WITH_JUDGE: ${{ needs.changes.outputs.judge == 'true' && '1' || '0' }}
+      run: ./scripts/start-e2e-stack.sh
+    - name: Run Playwright smoke tests
+      if: needs.changes.outputs.web == 'true'
+      run: ./scripts/run-e2e-playwright.sh --grep-invert @judge
+    - name: Run Playwright judge E2E tests
+      if: needs.changes.outputs.judge == 'true'
+      run: ./scripts/run-e2e-playwright.sh --grep @judge
+    - name: Stop E2E stack
+      if: always()
+      run: ./scripts/stop-e2e-stack.sh
 
   web-build:
     needs: changes
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build web image
-        uses: docker/build-push-action@v6
-        with:
-          context: src/web
-          file: src/web/Dockerfile
-          push: false
-          load: true
-          tags: nextjudge-web:ci
-          build-args: |
-            TIPTAP_NPM_TOKEN=${{ secrets.TIPTAP_NPM_TOKEN }}
-          cache-from: type=gha,scope=nextjudge-web
-          cache-to: type=gha,mode=max,scope=nextjudge-web
+    - uses: actions/checkout@v4
+    - uses: docker/setup-buildx-action@v3
+    - name: Build web image
+      uses: docker/build-push-action@v6
+      with:
+        context: src/web
+        file: src/web/Dockerfile
+        push: false
+        load: true
+        tags: nextjudge-web:ci
+        build-args: |
+          TIPTAP_NPM_TOKEN=${{ secrets.TIPTAP_NPM_TOKEN }}
+        cache-from: type=gha,scope=nextjudge-web
+        cache-to: type=gha,mode=max,scope=nextjudge-web
 
   docs-build:
     needs: changes
     if: needs.changes.outputs.docs == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build docs image
-        uses: docker/build-push-action@v6
-        with:
-          context: src/docs
-          file: src/docs/Dockerfile
-          push: false
-          load: true
-          tags: nextjudge-docs:ci
-          cache-from: type=gha,scope=nextjudge-docs
-          cache-to: type=gha,mode=max,scope=nextjudge-docs
+    - uses: actions/checkout@v4
+    - uses: docker/setup-buildx-action@v3
+    - name: Build docs image
+      uses: docker/build-push-action@v6
+      with:
+        context: src/docs
+        file: src/docs/Dockerfile
+        push: false
+        load: true
+        tags: nextjudge-docs:ci
+        cache-from: type=gha,scope=nextjudge-docs
+        cache-to: type=gha,mode=max,scope=nextjudge-docs
 
   core-build:
     needs: changes
     if: needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build core image
-        uses: docker/bake-action@v6
-        with:
-          files: docker-bake.hcl
-          targets: core
-          push: false
-          set: |
-            core.target=release
-            core.cache-from=type=gha,scope=nextjudge-core
-            core.cache-to=type=gha,mode=max,scope=nextjudge-core
+    - uses: actions/checkout@v4
+    - uses: docker/setup-buildx-action@v3
+    - name: Build core image
+      uses: docker/bake-action@v6
+      with:
+        files: docker-bake.hcl
+        targets: core
+        push: false
+        set: |
+          core.target=release
+          core.cache-from=type=gha,scope=nextjudge-core
+          core.cache-to=type=gha,mode=max,scope=nextjudge-core
 
   judge-build:
     needs: changes
     if: needs.changes.outputs.judge == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build judge image
-        uses: docker/bake-action@v6
-        with:
-          files: docker-bake.hcl
-          targets: basejudge,judge
-          push: false
-          set: |
-            judge.target=release
-            basejudge.cache-from=type=gha,scope=nextjudge-basejudge
-            basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
-            judge.cache-from=type=gha,scope=nextjudge-judge
-            judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
+    - uses: actions/checkout@v4
+    - uses: docker/setup-buildx-action@v3
+    - name: Build judge image
+      uses: docker/bake-action@v6
+      with:
+        files: docker-bake.hcl
+        targets: basejudge,judge
+        push: false
+        set: |
+          judge.target=release
+          basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+          basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
+          judge.cache-from=type=gha,scope=nextjudge-judge
+          judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
 
   backend-tests:
     needs: changes
     if: needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: src/data-layer/go.mod
-          cache-dependency-path: src/data-layer/go.sum
-      - uses: docker/setup-buildx-action@v3
-      - name: Run data layer tests
-        run: ./scripts/run-data-layer-tests.sh
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: src/data-layer/go.mod
+        cache-dependency-path: src/data-layer/go.sum
+    - uses: docker/setup-buildx-action@v3
+    - name: Run data layer tests
+      run: ./scripts/run-data-layer-tests.sh
 
   judge-tests:
     needs: changes
     if: needs.changes.outputs.judge == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build judge test image
-        uses: docker/bake-action@v6
-        with:
-          files: docker-bake.hcl
-          targets: basejudge,judge
-          push: false
-          load: true
-          set: |
-            judge.tags=nextjudge-judge-test
-            judge.target=test
-            basejudge.cache-from=type=gha,scope=nextjudge-basejudge
-            basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
-            judge.cache-from=type=gha,scope=nextjudge-judge
-            judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
-      - name: Run judge integration tests
-        working-directory: src/judge
-        run: docker compose -f docker-compose.test.yml run --rm pytest
+    - uses: actions/checkout@v4
+    - uses: docker/setup-buildx-action@v3
+    - name: Build judge test image
+      uses: docker/bake-action@v6
+      with:
+        files: docker-bake.hcl
+        targets: basejudge,judge
+        push: false
+        load: true
+        set: |
+          judge.tags=nextjudge-judge-test
+          judge.target=test
+          basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+          basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
+          judge.cache-from=type=gha,scope=nextjudge-judge
+          judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
+    - name: Run judge integration tests
+      working-directory: src/judge
+      run: docker compose -f docker-compose.test.yml run --rm pytest
 
   ci-success:
-    needs: [changes, web-lint, web-e2e, web-build, docs-build, core-build, judge-build, backend-tests, judge-tests]
+    needs: [ changes, web-lint, web-e2e, web-build, docs-build, core-build, judge-build, backend-tests, judge-tests ]
     if: always() && !cancelled() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Update PR status comment
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          SHA: ${{ github.event.pull_request.head.sha }}
-          WEB_CHANGED: ${{ needs.changes.outputs.web }}
-          DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
-        run: ./scripts/update-pr-status-comment.sh ci-success
+    - name: Update PR status comment
+      if: github.event_name == 'pull_request'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        SHA: ${{ github.event.pull_request.head.sha }}
+        WEB_CHANGED: ${{ needs.changes.outputs.web }}
+        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+      run: ./scripts/update-pr-status-comment.sh ci-success
 
   preview-deploy:
-    needs: [changes, ci-success]
+    needs: [ changes, ci-success ]
     # always() is required when ci-success ran via always() with skipped jobs
     # (e.g. docs-build). Otherwise preview-deploy is skipped even when web changed.
     if: |
@@ -272,77 +273,77 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Deploy web preview
-        if: needs.changes.outputs.web == 'true'
-        env:
-          COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
-          COOLIFY_WEB_APP_UUID: ${{ vars.COOLIFY_WEB_APP_UUID }}
-          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-          COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          PR_HTML_URL: ${{ github.event.pull_request.html_url }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-          REPO_FULL_NAME: ${{ github.repository }}
-        run: |
-          COOLIFY_APP_UUID="${COOLIFY_WEB_APP_UUID}" \
-            ./scripts/coolify-preview-deploy.sh
+    - name: Deploy web preview
+      if: needs.changes.outputs.web == 'true'
+      env:
+        COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
+        COOLIFY_WEB_APP_UUID: ${{ vars.COOLIFY_WEB_APP_UUID }}
+        COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+        COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        REPO_FULL_NAME: ${{ github.repository }}
+      run: |
+        COOLIFY_APP_UUID="${COOLIFY_WEB_APP_UUID}" \
+          ./scripts/coolify-preview-deploy.sh
 
-      - name: Deploy docs preview
-        if: needs.changes.outputs.docs == 'true'
-        env:
-          COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
-          COOLIFY_DOCS_APP_UUID: ${{ vars.COOLIFY_DOCS_APP_UUID }}
-          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-          COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          PR_HTML_URL: ${{ github.event.pull_request.html_url }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-          REPO_FULL_NAME: ${{ github.repository }}
-        run: |
-          COOLIFY_APP_UUID="${COOLIFY_DOCS_APP_UUID}" \
-            ./scripts/coolify-preview-deploy.sh
+    - name: Deploy docs preview
+      if: needs.changes.outputs.docs == 'true'
+      env:
+        COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
+        COOLIFY_DOCS_APP_UUID: ${{ vars.COOLIFY_DOCS_APP_UUID }}
+        COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+        COOLIFY_GITHUB_WEBHOOK_SECRET: ${{ secrets.COOLIFY_GITHUB_WEBHOOK_SECRET }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        REPO_FULL_NAME: ${{ github.repository }}
+      run: |
+        COOLIFY_APP_UUID="${COOLIFY_DOCS_APP_UUID}" \
+          ./scripts/coolify-preview-deploy.sh
 
-      - name: Wait for preview URLs
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          WEB_CHANGED: ${{ needs.changes.outputs.web }}
-          DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
-          PREVIEW_WAIT_TIMEOUT_SEC: "600"
-          PREVIEW_POLL_INTERVAL_SEC: "30"
-        run: |
-          urls=""
-          if [ "$WEB_CHANGED" = "true" ]; then
-            urls="${urls} $(./scripts/preview-url.sh web)"
-          fi
-          if [ "$DOCS_CHANGED" = "true" ]; then
-            urls="${urls} $(./scripts/preview-url.sh docs)"
-          fi
-          PREVIEW_URLS="${urls# }" ./scripts/wait-for-preview-urls.sh
+    - name: Wait for preview URLs
+      env:
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        WEB_CHANGED: ${{ needs.changes.outputs.web }}
+        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+        PREVIEW_WAIT_TIMEOUT_SEC: "600"
+        PREVIEW_POLL_INTERVAL_SEC: "30"
+      run: |
+        urls=""
+        if [ "$WEB_CHANGED" = "true" ]; then
+          urls="${urls} $(./scripts/preview-url.sh web)"
+        fi
+        if [ "$DOCS_CHANGED" = "true" ]; then
+          urls="${urls} $(./scripts/preview-url.sh docs)"
+        fi
+        PREVIEW_URLS="${urls# }" ./scripts/wait-for-preview-urls.sh
 
-      - name: Update PR status comment
-        if: success()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          SHA: ${{ github.event.pull_request.head.sha }}
-          WEB_CHANGED: ${{ needs.changes.outputs.web }}
-          DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
-        run: ./scripts/update-pr-status-comment.sh preview-ready
+    - name: Update PR status comment
+      if: success()
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        SHA: ${{ github.event.pull_request.head.sha }}
+        WEB_CHANGED: ${{ needs.changes.outputs.web }}
+        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+      run: ./scripts/update-pr-status-comment.sh preview-ready
 
-      - name: Update PR status comment on failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          SHA: ${{ github.event.pull_request.head.sha }}
-          WEB_CHANGED: ${{ needs.changes.outputs.web }}
-          DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
-        run: ./scripts/update-pr-status-comment.sh preview-failed
+    - name: Update PR status comment on failure
+      if: failure()
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        SHA: ${{ github.event.pull_request.head.sha }}
+        WEB_CHANGED: ${{ needs.changes.outputs.web }}
+        DOCS_CHANGED: ${{ needs.changes.outputs.docs }}
+      run: ./scripts/update-pr-status-comment.sh preview-failed
