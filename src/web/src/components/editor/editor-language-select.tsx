@@ -34,13 +34,7 @@ export function EditorLanguageSelect({
   variant = "default"
 }: EditorLanguageSelectProps) {
   const [open, setOpen] = React.useState(false);
-  const [currentLanguage, setCurrentLanguage] = React.useState<Language | undefined>(defaultLanguage);
-  const prevDefaultLanguageRef = React.useRef<Language | undefined>(defaultLanguage);
-
-  if (defaultLanguage?.id !== prevDefaultLanguageRef.current?.id) {
-    setCurrentLanguage(defaultLanguage);
-    prevDefaultLanguageRef.current = defaultLanguage;
-  }
+  const currentLanguage = defaultLanguage;
 
   const isLanding = variant === "landing";
   const isCompact = variant === "compact";
@@ -98,7 +92,6 @@ export function EditorLanguageSelect({
                   value={language.name}
                   onSelect={() => {
                     onLanguageSelect(language);
-                    setCurrentLanguage(language);
                     setOpen(false);
                   }}
                   className={cn(
