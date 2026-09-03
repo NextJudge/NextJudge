@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { User } from "@/lib/types";
@@ -77,9 +77,9 @@ export function UserSelector({
                 <PopoverContent className="w-full p-0" align="start">
                     <Command>
                         <CommandInput placeholder="Search users..." className="h-9" />
-                        <CommandEmpty>No users found.</CommandEmpty>
-                        <CommandGroup>
-                            <ScrollArea className="h-64">
+                        <CommandList className="max-h-64">
+                            <CommandEmpty>No users found.</CommandEmpty>
+                            <CommandGroup>
                                 {availableUsers.map((user) => (
                                     <CommandItem
                                         key={user.id}
@@ -112,8 +112,8 @@ export function UserSelector({
                                         </div>
                                     </CommandItem>
                                 ))}
-                            </ScrollArea>
-                        </CommandGroup>
+                            </CommandGroup>
+                        </CommandList>
                     </Command>
                 </PopoverContent>
             </Popover>

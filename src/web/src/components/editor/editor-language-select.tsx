@@ -7,6 +7,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -86,44 +87,46 @@ export function EditorLanguageSelect({
               isLanding && "text-white"
             )}
           />
-          <CommandEmpty className={isLanding ? "text-gray-300" : ""}>
-            No language found.
-          </CommandEmpty>
-          <CommandGroup className="overflow-y-scroll max-h-52">
-            {languages.map((language: Language) => (
-              <CommandItem
-                key={language.id}
-                value={language.name}
-                onSelect={() => {
-                  onLanguageSelect(language);
-                  setCurrentLanguage(language);
-                  setOpen(false);
-                }}
-                className={cn(
-                  isLanding && "text-white hover:bg-black/80 aria-selected:bg-black/80"
-                )}
-              >
-                <div className="flex justify-between w-full">
-                  <span>{language.name}</span>
-                  <span className={cn(
-                    "text-sm opacity-70",
-                    isLanding ? "text-gray-300" : "text-gray-500"
-                  )}>
-                    {language.version}
-                  </span>
-                </div>
-                <CheckIcon
+          <CommandList className="max-h-52">
+            <CommandEmpty className={isLanding ? "text-gray-300" : ""}>
+              No language found.
+            </CommandEmpty>
+            <CommandGroup>
+              {languages.map((language: Language) => (
+                <CommandItem
+                  key={language.id}
+                  value={language.name}
+                  onSelect={() => {
+                    onLanguageSelect(language);
+                    setCurrentLanguage(language);
+                    setOpen(false);
+                  }}
                   className={cn(
-                    "ml-auto h-4 w-4",
-                    currentLanguage && currentLanguage.id === language.id
-                      ? "opacity-100"
-                      : "opacity-0",
-                    isLanding && "text-osu"
+                    isLanding && "text-white hover:bg-black/80 aria-selected:bg-black/80"
                   )}
-                />
-              </CommandItem>
-            ))}
-          </CommandGroup>
+                >
+                  <div className="flex justify-between w-full">
+                    <span>{language.name}</span>
+                    <span className={cn(
+                      "text-sm opacity-70",
+                      isLanding ? "text-gray-300" : "text-gray-500"
+                    )}>
+                      {language.version}
+                    </span>
+                  </div>
+                  <CheckIcon
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      currentLanguage && currentLanguage.id === language.id
+                        ? "opacity-100"
+                        : "opacity-0",
+                      isLanding && "text-osu"
+                    )}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
