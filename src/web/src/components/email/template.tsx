@@ -1,6 +1,3 @@
-// eslint-disable-next-line @next/next/no-page-custom-font
-// eslint-disable-next-line @next/next/no-img-element
-
 import {
   BRAND_NAME,
   EMAIL,
@@ -16,10 +13,10 @@ interface EmailTemplateProps {
   dev?: boolean;
 }
 
-export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
+export function EmailTemplate({
   firstName,
   dev = false,
-}) => {
+}: Readonly<EmailTemplateProps>): React.JSX.Element {
   const contactEmail = dev ? EMAIL.dev : EMAIL.hello;
 
   return (
@@ -141,4 +138,4 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
     </Tailwind>
   </>
   );
-};
+}

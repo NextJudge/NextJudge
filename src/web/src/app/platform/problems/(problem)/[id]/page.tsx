@@ -29,13 +29,14 @@ const emptyProblem: ProblemDetail = {
 }
 
 
-export default async function Editor({
-    params,
-    searchParams
-}: {
-    params: { id: string };
-    searchParams: { contest?: string }
-}) {
+export default async function Editor(
+    props: {
+        params: Promise<{ id: string }>;
+        searchParams: Promise<{ contest?: string }>
+    }
+) {
+    const searchParams = await props.searchParams;
+    const params = await props.params;
     const { id } = params;
     const problem_id = parseInt(id)
     const contestId = searchParams.contest ? parseInt(searchParams.contest) : undefined;

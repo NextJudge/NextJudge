@@ -19,6 +19,12 @@ export const metadata: Metadata = createPageMetadata({
 const Code = dynamic(() => import("@/components/code"), { ssr: false });
 
 export default function SignUpPage() {
+  const basicRegistrationValue = process.env.BASIC_REGISTRATION_ENABLED
+    ?.trim()
+    .toLowerCase();
+  const allowBasicRegistration =
+    basicRegistrationValue === "true" || basicRegistrationValue === "1";
+
   return (
     <>
       <header className="absolute top-4 left-4 z-50 flex items-center gap-2">
@@ -39,7 +45,7 @@ export default function SignUpPage() {
       >
         <div className="lg:p-8">
           <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-            <SignUpForm />
+            <SignUpForm allowBasicRegistration={allowBasicRegistration} />
           </div>
         </div>
         <div className="relative hidden h-full flex-col px-10 pt-10 dark:text-white text-black lg:flex dark:border-r ">

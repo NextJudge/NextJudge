@@ -1,12 +1,12 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { CheckedState } from "@radix-ui/react-checkbox";
-import { Mathematics } from "@tiptap-pro/extension-mathematics";
+import { Mathematics } from "@tiptap/extension-mathematics";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import "katex/dist/katex.min.css";
 import { useCallback } from "react";
-import { Markdown } from "tiptap-markdown";
+import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import "./styles.scss";
 import EditorToolbar from "./toolbar/editor-toolbar";
 
@@ -16,12 +16,11 @@ interface EditorProps {
   onChange: (value: string) => void;
 }
 
-Mathematics.configure({
-  shouldRender: (state, pos, node) => {
-    const $pos = state.doc.resolve(pos);
-    return node.type.name === "text" && $pos.parent.type.name !== "codeBlock";
-  },
-});
+declare module "@tiptap/core" {
+  interface Storage {
+    markdown: MarkdownStorage;
+  }
+}
 
 const Editor = ({ content, placeholder, onChange }: EditorProps) => {
   const editor = useEditor({

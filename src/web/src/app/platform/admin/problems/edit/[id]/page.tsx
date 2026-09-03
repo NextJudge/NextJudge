@@ -7,10 +7,11 @@ import "katex/dist/katex.min.css";
 import { notFound } from "next/navigation";
 
 interface EditProblemPageProps {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }
 
-export default async function EditProblemPage({ params }: EditProblemPageProps) {
+export default async function EditProblemPage(props: EditProblemPageProps) {
+    const params = await props.params;
     const session = await auth();
 
     if (!session?.user || !session.nextjudge_token) {

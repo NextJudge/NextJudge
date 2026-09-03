@@ -9,7 +9,19 @@ const registerSchema = z.object({
     password: z.string().min(6),
 })
 
+function basicRegistrationEnabled(): boolean {
+    const value = process.env.BASIC_REGISTRATION_ENABLED?.trim().toLowerCase()
+    return value === 'true' || value === '1'
+}
+
 export async function POST(request: NextRequest) {
+    if (!basicRegistrationEnabled()) {
+        return NextResponse.json(
+            { error: 'Email registration is disabled. Use GitHub to create an account.' },
+            { status: 403 },
+        )
+    }
+
     try {
         const body = await request.json()
         const { name, email, password } = registerSchema.parse(body)
@@ -43,6 +55,7 @@ export async function POST(request: NextRequest) {
                 'DATABASE_ERROR': 'Database error occurred',
                 'SALT_GENERATION_ERROR': 'Registration failed',
                 'TOKEN_ERROR': 'Authentication failed',
+                'BASIC_REGISTRATION_DISABLED': 'Email registration is disabled. Use GitHub to create an account.',
             }
 
             const errorMessage = errorMap[data.code] || 'Registration failed'

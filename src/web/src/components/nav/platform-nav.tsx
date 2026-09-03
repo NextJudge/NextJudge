@@ -14,6 +14,7 @@ import { platformRoutes } from "@/lib/constants";
 import { BRAND_NAME } from "@/lib/site";
 import { Menu } from "lucide-react";
 import { Session } from "next-auth";
+import Link from "next/link";
 import { ModeToggle } from "../theme";
 import { Button, buttonVariants } from "../ui/button";
 import { NotificationBell } from "../ui/notification-bell";
@@ -40,9 +41,9 @@ export default function PlatformNavbar({
       <div className="container h-14 px-4 w-screen flex justify-between">
         <div className="font-bold flex items-center mx-2 md:mx-12 gap-4">
           <Icons.logo className="text-orange-600 w-6 h-6" />
-          <a href="/" className=" font-bold text-xl">
+          <Link href="/" className=" font-bold text-xl">
             {BRAND_NAME}
-          </a>
+          </Link>
           <span className="hidden md:block">
             <ModeToggle />
           </span>

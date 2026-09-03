@@ -7,8 +7,8 @@ export const getHostnameFromHeaderValue = (
   return raw.split(",")[0]?.trim().split(":")[0];
 };
 
-export const getRequestHostname = (): string | undefined => {
-  const h = headers();
+export const getRequestHostname = async (): Promise<string | undefined> => {
+  const h = await headers();
   const raw = h.get("x-forwarded-host") ?? h.get("host");
   return getHostnameFromHeaderValue(raw);
 };
