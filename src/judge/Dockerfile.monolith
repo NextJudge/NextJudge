@@ -33,8 +33,9 @@ RUN wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | 
 ENV NVM_DIR=/home/NEXTJUDGE_USER/.nvm
 RUN \. "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION} && nvm use ${NODE_VERSION} && nvm alias default ${NODE_VERSION}
 
-# TypeScript
-RUN \. "$NVM_DIR/nvm.sh" && npm install typescript -g
+# TypeScript. Keep the installed compiler aligned with languages.toml so a
+# floating major release cannot silently change the submission contract.
+RUN \. "$NVM_DIR/nvm.sh" && npm install typescript@5.4.5 -g
 
 # Lua
 RUN curl -L -R -O https://www.lua.org/ftp/lua-5.4.6.tar.gz && \

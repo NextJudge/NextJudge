@@ -25,7 +25,7 @@ script="""
 /usr/bin/pypy3 -m py_compile {IN_FILE}
 
 echo "#!/bin/sh" >> /executable/main
-echo "/usr/bin/pypy3 /build/{IN_FILE}" >> /executable/main
+echo "/usr/bin/pypy3 --jit off /build/{IN_FILE}" >> /executable/main
 chmod +x /executable/main
 """
 
@@ -84,14 +84,16 @@ version = "5.4.5"
 extension = "ts"
 script= """
 #!/bin/sh
+set -eu
 export PATH="/home/NEXTJUDGE_USER/.nvm/versions/node/v21.6.2/bin/:$PATH"
 export NODE_OPTIONS="--max_old_space_size=2048"
 export GENERATE_SOURCEMAP=false
-tsc {IN_FILE} --outfile main2
+rm -f /executable/input.js /executable/main
+tsc {IN_FILE} --target ES2022 --module commonjs --outDir /executable
 
-echo "#!/bin/sh" >> /executable/main
+echo "#!/bin/sh" > /executable/main
 echo 'export PATH="/home/NEXTJUDGE_USER/.nvm/versions/node/v21.6.2/bin/:$PATH"' >> /executable/main
-echo "node /build/main2" >> /executable/main
+echo "exec node /executable/input.js" >> /executable/main
 chmod +x /executable/main
 """
 
