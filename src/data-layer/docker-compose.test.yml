@@ -48,6 +48,7 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_USER=e2e-rabbit
       - RABBITMQ_PASSWORD=e2e-rabbit-password
+      - BASIC_REGISTRATION_ENABLED=true
     depends_on:
       db:
         condition: service_healthy

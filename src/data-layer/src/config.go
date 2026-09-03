@@ -12,26 +12,26 @@ import (
 )
 
 type config struct {
-	CORSOrigin           []string
-	CORSAllowPreview     bool
-	Host                 string
-	Port                 int64
-	Username             string
-	Password             string
-	WebBridgeSecret      []byte
-	JudgePassword        []byte
-	JwtSigningSecret     []byte
-	DBName               string
-	DBDriver             string
-	RabbitMQHost         string
-	RabbitUser           string
-	RabbitPassword       string
-	ElasticEndpoint      string
-	ProblemsIndex        string
-	CompetitionsIndex    string
-	ElasticEnabled       bool
+	CORSOrigin                 []string
+	CORSAllowPreview           bool
+	Host                       string
+	Port                       int64
+	Username                   string
+	Password                   string
+	WebBridgeSecret            []byte
+	JudgePassword              []byte
+	JwtSigningSecret           []byte
+	DBName                     string
+	DBDriver                   string
+	RabbitMQHost               string
+	RabbitUser                 string
+	RabbitPassword             string
+	ElasticEndpoint            string
+	ProblemsIndex              string
+	CompetitionsIndex          string
+	ElasticEnabled             bool
 	AdminEmails                []string
-	SeedData                   bool
+	BasicRegistrationEnabled   bool
 	AllowInsecurePasswordReset bool
 	PasswordResetDebug         bool
 	TrustedProxy               bool
@@ -197,7 +197,7 @@ func init() {
 		logrus.Info("Configured admin emails: ", cfg.AdminEmails)
 	}
 
-	cfg.SeedData = envBool("SEED_DATA")
+	cfg.BasicRegistrationEnabled = envBool("BASIC_REGISTRATION_ENABLED")
 	cfg.AllowInsecurePasswordReset = envBool("ALLOW_INSECURE_PASSWORD_RESET")
 	cfg.PasswordResetDebug = envBool("PASSWORD_RESET_DEBUG")
 	cfg.TrustedProxy = envBool("TRUSTED_PROXY")

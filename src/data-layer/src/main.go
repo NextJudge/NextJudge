@@ -26,6 +26,7 @@ func main() {
 	var debug = flag.Bool("d", false, "enable debug logging")
 	var port = flag.String("p", "5000", "port")
 	var healthcheck = flag.Bool("healthcheck", false, "check HTTP health endpoint and exit")
+	var seedDev = flag.Bool("seed-dev", false, "seed development data and exit")
 	flag.Parse()
 
 	if *healthcheck {
@@ -39,11 +40,6 @@ func main() {
 		logrus.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
 	}
 
-	err = SetupRabbitMQConnection()
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
 	db, err = NewDatabase()
 	if err != nil {
 		logrus.WithError(err).Error("error creating database")
@@ -55,10 +51,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	if cfg.SeedData {
+	if *seedDev {
 		if err := SeedDevData(db); err != nil {
-			logrus.WithError(err).Warn("seed failed, continuing...")
+			logrus.WithError(err).Error("development seed failed")
+			os.Exit(1)
 		}
+		logrus.Info("development seed completed")
+		return
+	}
+
+	err = SetupRabbitMQConnection()
+	if err != nil {
+		logrus.Fatal(err)
 	}
 
 	StartEnqueueReaper()
@@ -100,7 +104,16 @@ func main() {
 	logrus.Info("Starting data layer API")
 
 	addr := ":" + *port
-	err = http.ListenAndServe(addr, mux)
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+	}
+	err = server.ListenAndServe()
 	if err != nil {
 		logrus.WithError(err).Error("http listener error")
 		CloseRabbitMQConnection()
