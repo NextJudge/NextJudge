@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# One-shot Coolify + preview env configuration for NextJudge production and previews.
+# One-shot Coolify preview environment configuration for NextJudge.
+# Every write in this script is preview-scoped. Production is configured by the
+# production deployment workflow.
 # Requires: coolify.env with COOLIFY_API_TOKEN, ssh nextjudge access for verification.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -46,10 +48,6 @@ rand_secret() {
   openssl rand -base64 48 | tr -d '/+=' | head -c 48
 }
 
-echo "=== Production web: OAuth redirect proxy ==="
-upsert application "$COOLIFY_WEB_APP_UUID" false AUTH_REDIRECT_PROXY_URL "https://nextjudge.net/api/auth"
-upsert application "$COOLIFY_WEB_APP_UUID" false AUTH_TRUST_HOST "true"
-
 echo "=== Preview web: OAuth redirect proxy ==="
 upsert application "$COOLIFY_WEB_APP_UUID" true AUTH_REDIRECT_PROXY_URL "https://nextjudge.net/api/auth"
 upsert application "$COOLIFY_WEB_APP_UUID" true AUTH_TRUST_HOST "true"
@@ -64,12 +62,13 @@ if [[ -z "$preview_bridge" ]]; then
   preview_bridge="$(rand_secret)"
   upsert application "$COOLIFY_WEB_APP_UUID" true WEB_BRIDGE_SECRET "$preview_bridge"
 fi
+upsert application "$COOLIFY_WEB_APP_UUID" true BASIC_REGISTRATION_ENABLED "true"
 
 echo "=== Preview backend service env ==="
 upsert service "$COOLIFY_BACKEND_SERVICE_UUID" true WEB_BRIDGE_SECRET "$preview_bridge"
-upsert service "$COOLIFY_BACKEND_SERVICE_UUID" true SEED_DATA "true"
 upsert service "$COOLIFY_BACKEND_SERVICE_UUID" true PASSWORD_RESET_DEBUG "true"
 upsert service "$COOLIFY_BACKEND_SERVICE_UUID" true ALLOW_INSECURE_PASSWORD_RESET "false"
+upsert service "$COOLIFY_BACKEND_SERVICE_UUID" true BASIC_REGISTRATION_ENABLED "true"
 upsert service "$COOLIFY_BACKEND_SERVICE_UUID" true ADMIN_EMAILS "Alice.Smith0@example.com"
 upsert service "$COOLIFY_BACKEND_SERVICE_UUID" true AUTH_RATE_LIMIT_PER_MIN "60"
 upsert service "$COOLIFY_BACKEND_SERVICE_UUID" true AUTH_RATE_LIMIT_BURST "20"
@@ -100,11 +99,5 @@ if [[ -n "$webhook_secret" ]]; then
   export COOLIFY_GITHUB_WEBHOOK_SECRET="$webhook_secret"
   "${SCRIPT_DIR}/setup-coolify-preview-webhooks.sh"
 fi
-
-echo "=== Redeploy production web ==="
-curl -fsS -X GET \
-  "${COOLIFY_API_URL}/deploy?uuid=${COOLIFY_WEB_APP_UUID}&force=false" \
-  -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
-  -H "Accept: application/json" | jq -r '.deployments[]? | .message // .'
 
 echo "Done. Verify GitHub OAuth app Ov23livh7IuZKmQG4F07 callback: https://nextjudge.net/api/auth/callback/github"

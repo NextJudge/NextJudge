@@ -36,13 +36,15 @@ Auth is always enforced in production and in tests. There is no `AUTH_DISABLED` 
 
 | Path | Who uses it | Endpoint |
 | ---- | ----------- | -------- |
-| Email/password | Scripts, curl, integrations | `POST /v1/basic_register`, `POST /v1/basic_login` |
+| Email/password | Existing basic accounts and self-hosted development | `POST /v1/basic_register`, `POST /v1/basic_login` |
 | OAuth (GitHub, etc.) | Web app via NextAuth | `POST /v1/create_or_login_user` |
 | Judge worker | Python judge service | `POST /v1/login_judge` |
 
 Most integrators use **basic_login**. The web app uses **create_or_login_user** after OAuth succeeds.
 
 ## Register and log in (API)
+
+New accounts on hosted NextJudge use GitHub. The basic registration example below is for local development or self-hosting with `BASIC_REGISTRATION_ENABLED=true`; existing basic accounts can always continue to log in.
 
 ```bash
 curl -X POST http://localhost:5000/v1/basic_register \

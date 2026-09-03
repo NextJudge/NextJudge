@@ -2,79 +2,99 @@ name: Deploy Production
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+permissions:
+  actions: read
+  contents: read
+
 env:
   DOCKERHUB_NAMESPACE: ${{ secrets.DOCKER_USERNAME }}
-  IMAGE_TAG: sha-${{ github.sha }}
+  TARGET_IMAGE_TAG: sha-${{ github.sha }}
 
 jobs:
-  changes:
+  gate-ci:
     runs-on: ubuntu-latest
     outputs:
-      web: ${{ steps.filter.outputs.web }}
-      docs: ${{ steps.filter.outputs.docs }}
-      core: ${{ steps.filter.outputs.core }}
-      judge: ${{ steps.filter.outputs.judge }}
-      backend: ${{ steps.filter.outputs.core == 'true' || steps.filter.outputs.judge == 'true' }}
+      rollback_sha: ${{ steps.rollback.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
         with:
-          filters: |
-            web:
-              - 'src/web/**'
-            docs:
-              - 'src/docs/**'
-            core:
-              - 'src/data-layer/**'
-              - 'docker-bake.hcl'
-            judge:
-              - 'src/judge/**'
-              - 'docker-bake.hcl'
+          fetch-depth: 2
+      - name: Resolve rollback commit
+        id: rollback
+        run: echo "sha=$(git rev-parse "${GITHUB_SHA}^")" >> "$GITHUB_OUTPUT"
+      - name: Require successful CI for this exact commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./scripts/wait-for-ci.sh
 
-  build-and-push-core:
-    needs: changes
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.core == 'true'
+  prepare-rollback-images:
+    needs: gate-ci
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 60
+    env:
+      ROLLBACK_IMAGE_TAG: sha-${{ needs.gate-ci.outputs.rollback_sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-ci.outputs.rollback_sha }}
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Build and push core
+      - name: Check immutable core rollback image
+        id: core
+        run: |
+          if docker buildx imagetools inspect "${DOCKERHUB_NAMESPACE}/nextjudge-core:${ROLLBACK_IMAGE_TAG}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build missing core rollback image
+        if: steps.core.outputs.exists != 'true'
         uses: docker/bake-action@v6
         with:
           files: docker-bake.hcl
           targets: core
           push: true
           set: |
-            core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:${{ env.IMAGE_TAG }}
-            core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:latest
+            core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:${{ env.ROLLBACK_IMAGE_TAG }}
+            core.target=release
             core.cache-from=type=gha,scope=nextjudge-core
             core.cache-to=type=gha,mode=max,scope=nextjudge-core
-            core.target=release
+      - name: Check immutable judge rollback image
+        id: judge
+        run: |
+          if docker buildx imagetools inspect "${DOCKERHUB_NAMESPACE}/nextjudge-judge:${ROLLBACK_IMAGE_TAG}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build missing judge rollback image
+        if: steps.judge.outputs.exists != 'true'
+        uses: docker/bake-action@v6
+        with:
+          files: docker-bake.hcl
+          targets: basejudge,judge
+          push: true
+          set: |
+            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.ROLLBACK_IMAGE_TAG }}
+            judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:${{ env.ROLLBACK_IMAGE_TAG }}
+            judge.target=release
+            basejudge.cache-from=type=gha,scope=nextjudge-basejudge
+            basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
+            judge.cache-from=type=gha,scope=nextjudge-judge
+            judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
 
-  build-and-push-judge:
-    needs: changes
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.judge == 'true'
+  build-and-push-core:
+    needs: gate-ci
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -82,66 +102,68 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Build and push basejudge and judge
+      - name: Build and push immutable core image
+        uses: docker/bake-action@v6
+        with:
+          files: docker-bake.hcl
+          targets: core
+          push: true
+          set: |
+            core.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-core:${{ env.TARGET_IMAGE_TAG }}
+            core.target=release
+            core.cache-from=type=gha,scope=nextjudge-core
+            core.cache-to=type=gha,mode=max,scope=nextjudge-core
+
+  build-and-push-judge:
+    needs: gate-ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build and push immutable judge image
         uses: docker/bake-action@v6
         with:
           files: docker-bake.hcl
           targets: basejudge,judge
           push: true
           set: |
-            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.IMAGE_TAG }}
-            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:latest
-            judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:${{ env.IMAGE_TAG }}
-            judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:latest
+            basejudge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-basejudge:${{ env.TARGET_IMAGE_TAG }}
+            judge.tags=${{ env.DOCKERHUB_NAMESPACE }}/nextjudge-judge:${{ env.TARGET_IMAGE_TAG }}
+            judge.target=release
             basejudge.cache-from=type=gha,scope=nextjudge-basejudge
             basejudge.cache-to=type=gha,mode=max,scope=nextjudge-basejudge
             judge.cache-from=type=gha,scope=nextjudge-judge
             judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
-            judge.target=release
 
   deploy:
-    needs: [changes, build-and-push-core, build-and-push-judge]
-    if: always() && !cancelled() && !contains(needs.*.result, 'failure')
+    needs:
+      - gate-ci
+      - prepare-rollback-images
+      - build-and-push-core
+      - build-and-push-judge
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
-      - name: Deploy backend stack
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          needs.changes.outputs.backend == 'true'
+      - uses: actions/checkout@v4
+      - name: Deploy exact release and automatically roll back on failure
         env:
           COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
           COOLIFY_BACKEND_SERVICE_UUID: ${{ vars.COOLIFY_BACKEND_SERVICE_UUID }}
-          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-        run: |
-          curl -sS -X GET \
-            "${COOLIFY_API_URL}/deploy?uuid=${COOLIFY_BACKEND_SERVICE_UUID}&force=false" \
-            -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
-            -H "Accept: application/json" | jq .
-
-      - name: Deploy web app
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          needs.changes.outputs.web == 'true'
-        env:
-          COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
           COOLIFY_WEB_APP_UUID: ${{ vars.COOLIFY_WEB_APP_UUID }}
-          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-        run: |
-          curl -sS -X GET \
-            "${COOLIFY_API_URL}/deploy?uuid=${COOLIFY_WEB_APP_UUID}&force=false" \
-            -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
-            -H "Accept: application/json" | jq .
-
-      - name: Deploy docs app
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          needs.changes.outputs.docs == 'true'
-        env:
-          COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
           COOLIFY_DOCS_APP_UUID: ${{ vars.COOLIFY_DOCS_APP_UUID }}
           COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-        run: |
-          curl -sS -X GET \
-            "${COOLIFY_API_URL}/deploy?uuid=${COOLIFY_DOCS_APP_UUID}&force=false" \
-            -H "Accept: application/json" \
-            -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" | jq .
+          TARGET_SHA: ${{ github.sha }}
+          ROLLBACK_SHA: ${{ needs.gate-ci.outputs.rollback_sha }}
+          CORE_ROLLBACK_TAG: sha-${{ needs.gate-ci.outputs.rollback_sha }}
+          JUDGE_ROLLBACK_TAG: sha-${{ needs.gate-ci.outputs.rollback_sha }}
+          DEPLOY_BACKEND: "true"
+          DEPLOY_WEB: "true"
+          DEPLOY_DOCS: "true"
+          CORE_CHANGED: "true"
+          JUDGE_CHANGED: "true"
+        run: ./scripts/coolify-production-deploy.sh

@@ -39,11 +39,11 @@ curl -s http://localhost:5000/v1/submissions/$SUB_ID/status -H "Authorization: $
 
 | Method | Path | Auth header | Purpose |
 | ------ | ---- | ----------- | ------- |
-| POST | `/v1/basic_register` | none | Create account + JWT |
+| POST | `/v1/basic_register` | none | Create account + JWT when `BASIC_REGISTRATION_ENABLED=true` |
 | POST | `/v1/basic_login` | none | Login + JWT |
 | POST | `/v1/create_or_login_user` | `WEB_BRIDGE_SECRET` | OAuth bridge (web app) |
 | POST | `/v1/login_judge` | `JUDGE_PASSWORD` | Judge worker JWT |
-| POST | `/v1/basic_request_password_reset` | none | Issue one-time reset token (no email sent today) |
+| POST | `/v1/basic_request_password_reset` | none | Issue a one-time reset token; the trusted web bridge emails it without exposing it publicly |
 | POST | `/v1/basic_reset_password` | none | Set new password with `email`, `token`, and `new_password` |
 
 See [Authentication](/reference/authentication/) for bodies and responses.

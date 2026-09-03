@@ -28,7 +28,7 @@ NextJudge/
 │   ├── cli/            # nextjudge command
 │   └── docs/           # this site
 ├── deploy.sh           # prod-ish local stack
-├── dev-deploy.sh       # hot reload + SEED_DATA
+├── dev-deploy.sh       # hot reload + explicit one-shot dev seed
 └── fully-reset.sh      # wipe local data and volumes
 ```
 
@@ -73,7 +73,7 @@ PLAYWRIGHT_BASE_URL=http://127.0.0.1:8080 npm run test:e2e:judge
 
 Constants and stack config live in `src/web/e2e/` (`constants.ts`, `test-stack.config.sh`, `docker-compose.yml`). The `@judge` tag marks specs that need the judge worker (`platform.spec.ts`).
 
-The E2E stack sets `PASSWORD_RESET_DEBUG=true` on the data layer so tests can complete password reset without email delivery. Do not copy that flag to production.
+The E2E stack first runs `/main -seed-dev`, then starts the API. It sets `PASSWORD_RESET_DEBUG=true` so tests can complete password reset without email delivery. Do not copy that flag to production.
 
 **Data layer:**
 

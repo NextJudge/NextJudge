@@ -16,10 +16,10 @@ set -euo pipefail
 # Deploy reads preview-scoped env from Coolify when set:
 #   COOLIFY_API_URL, COOLIFY_API_TOKEN, COOLIFY_BACKEND_SERVICE_UUID
 #
-# Optional deploy env:
+# Required deploy env:
 #   PREVIEW_BACKEND_ENV_FILE  path to .env on the runner (skips API fetch)
-#   NEXTJUDGE_CORE_IMAGE_TAG  default latest
-#   NEXTJUDGE_JUDGE_IMAGE_TAG default latest
+#   NEXTJUDGE_CORE_IMAGE_TAG  immutable ci-{commit} tag
+#   NEXTJUDGE_JUDGE_IMAGE_TAG immutable ci-{commit} tag
 
 require_env() {
   local name="$1"
@@ -35,6 +35,7 @@ require_env PR_NUMBER
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${REPO_ROOT}/compose/docker-compose.coolify.yml"
+PREVIEW_COMPOSE_FILE="${REPO_ROOT}/compose/docker-compose.preview.yml"
 PROJECT_NAME="nextjudge-pr-${PR_NUMBER}"
 REMOTE_DIR="nextjudge-previews/pr-${PR_NUMBER}"
 PREVIEW_HOST="${PR_NUMBER}-api.preview.nextjudge.net"
@@ -93,6 +94,9 @@ YAML
 }
 
 deploy_preview_backend() {
+  require_env NEXTJUDGE_CORE_IMAGE_TAG
+  require_env NEXTJUDGE_JUDGE_IMAGE_TAG
+
   PREVIEW_BACKEND_ENV_TEMP=0
   if [[ -z "${PREVIEW_BACKEND_ENV_FILE:-}" ]]; then
     fetch_preview_env_from_api || true
@@ -126,6 +130,7 @@ deploy_preview_backend() {
 
   scp -o BatchMode=yes -o StrictHostKeyChecking=yes \
     "$COMPOSE_FILE" \
+    "$PREVIEW_COMPOSE_FILE" \
     "$env_local" \
     "$override_local" \
     "${COOLIFY_SSH_HOST}:${REMOTE_DIR}/"
@@ -135,8 +140,8 @@ deploy_preview_backend() {
 
   rm -f "$override_local" "$env_local"
 
-  local core_tag="${NEXTJUDGE_CORE_IMAGE_TAG:-latest}"
-  local judge_tag="${NEXTJUDGE_JUDGE_IMAGE_TAG:-latest}"
+  local core_tag="$NEXTJUDGE_CORE_IMAGE_TAG"
+  local judge_tag="$NEXTJUDGE_JUDGE_IMAGE_TAG"
 
   ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$COOLIFY_SSH_HOST" bash -s -- \
     "$PROJECT_NAME" "$PR_NUMBER" "$core_tag" "$judge_tag" "${DOCKERHUB_NAMESPACE:-}" <<'REMOTE'
@@ -161,12 +166,28 @@ set +a
 docker compose \
   --project-name "$project" \
   -f docker-compose.coolify.yml \
+  -f docker-compose.preview.yml \
   -f traefik.override.yml \
   pull
 
 docker compose \
   --project-name "$project" \
   -f docker-compose.coolify.yml \
+  -f docker-compose.preview.yml \
+  -f traefik.override.yml \
+  up -d --wait db rabbitmq
+
+docker compose \
+  --project-name "$project" \
+  -f docker-compose.coolify.yml \
+  -f docker-compose.preview.yml \
+  -f traefik.override.yml \
+  run --rm --no-deps nextjudge-data-layer -seed-dev
+
+docker compose \
+  --project-name "$project" \
+  -f docker-compose.coolify.yml \
+  -f docker-compose.preview.yml \
   -f traefik.override.yml \
   up -d --remove-orphans
 
@@ -187,7 +208,11 @@ dir="$HOME/nextjudge-previews/pr-${pr}"
 if [[ -d "$dir" ]]; then
   cd "$dir"
   if [[ -f traefik.override.yml ]]; then
-    docker compose --project-name "$project" -f docker-compose.coolify.yml -f traefik.override.yml down -v --remove-orphans
+    if [[ -f docker-compose.preview.yml ]]; then
+      docker compose --project-name "$project" -f docker-compose.coolify.yml -f docker-compose.preview.yml -f traefik.override.yml down -v --remove-orphans
+    else
+      docker compose --project-name "$project" -f docker-compose.coolify.yml -f traefik.override.yml down -v --remove-orphans
+    fi
   else
     docker compose --project-name "$project" -f docker-compose.coolify.yml down -v --remove-orphans
   fi

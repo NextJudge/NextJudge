@@ -31,14 +31,13 @@ See [Configuration](/guides/configuration/) for the full matrix. Summary:
 | Variable | Notes |
 | -------- | ----- |
 | `CORS_ORIGIN` | Web origin(s), comma-separated; no wildcards |
-| `CORS_ALLOW_PREVIEW` | `true` for Coolify PR previews |
+| `CORS_ALLOW_PREVIEW` | **`false`** in prod; preview uses a separate compose override |
 | `TRUSTED_PROXY` | `true` when the API sits behind Coolify Traefik or another reverse proxy |
 | `PASSWORD_RESET_DEBUG` | **`false`** in prod (dev/E2E only) |
 | `ALLOW_INSECURE_PASSWORD_RESET` | **`false`** in prod (dev only) |
+| `BASIC_REGISTRATION_ENABLED` | **`false`** for GitHub-only new registration |
 | `ADMIN_EMAILS` | Admin bootstrap emails |
-| `SEED_DATA` | **`false`** in prod |
 | `ELASTIC_ENABLED` | `true` only if Elasticsearch is deployed |
-| `CORS_ALLOW_PREVIEW` | `true` for Coolify PR previews |
 
 ### Web (build-time + runtime)
 
@@ -110,7 +109,7 @@ Set `NEXT_PUBLIC_API_URL=https://api.nextjudge.example.com` at web **build** tim
 
 Deploy the **backend** with `compose/docker-compose.coolify.yml`:
 
-- Images: `${DOCKERHUB_NAMESPACE}/nextjudge-core:latest`, `${DOCKERHUB_NAMESPACE}/nextjudge-judge:latest` (default namespace: `nextjudge`)
+- Images: `${DOCKERHUB_NAMESPACE}/nextjudge-core:sha-{commit}` and `${DOCKERHUB_NAMESPACE}/nextjudge-judge:sha-{commit}` (default namespace: `nextjudge`)
 - Data layer uses `expose: 5000` — route via Coolify proxy to your API domain
 - Does **not** include web or Elasticsearch
 
@@ -118,7 +117,7 @@ Deploy **web** as a separate Coolify application from `src/web`. Required build 
 
 Backend Coolify env: same secrets as [Configuration — Coolify](/guides/configuration/#coolify-deployment).
 
-PR previews: CI deploys `{PR}-web`, `{PR}-docs` via Coolify application previews and `{PR}-api` via SSH (`scripts/coolify-preview-backend-ssh.sh`). Set `CORS_ALLOW_PREVIEW=true` on the production backend service. Preview web omits `NEXT_PUBLIC_API_URL`; GitHub OAuth uses the production redirect proxy. Details: [Configuration — PR previews](/guides/configuration/#pr-previews-coolify).
+PR previews: CI deploys `{PR}-web`, `{PR}-docs` via Coolify application previews and `{PR}-api` via SSH (`scripts/coolify-preview-backend-ssh.sh`). Preview-only CORS, reset-debug, email-registration, and seeding behavior lives in `compose/docker-compose.preview.yml`; production remains fail-closed. Preview web omits `NEXT_PUBLIC_API_URL`; GitHub OAuth uses the production redirect proxy. Details: [Configuration — PR previews](/guides/configuration/#pr-previews-coolify).
 
 ---
 
@@ -144,7 +143,7 @@ Throughput scales roughly with `workers × (1 / avg_submission_seconds)`. Monito
 
 - GORM AutoMigrate on data layer boot. **pg_dump before upgrades.**
 - Review `src/data-layer/src/schema_updates.sql` for manual migration notes
-- No `SEED_DATA` in prod
+- The server has no startup seeding flag; only invoke `-seed-dev` in disposable local, E2E, or preview databases
 - Test restore from backup on a schedule
 
 ---
@@ -165,6 +164,7 @@ Also available: `GET /health`, `GET /`. Judges have no HTTP health endpoint — 
 - Rate-limit `/v1/basic_login`, `/v1/basic_register`, and password-reset routes at the proxy
 - Set `TRUSTED_PROXY=true` on the data layer when it runs behind a reverse proxy
 - Keep `PASSWORD_RESET_DEBUG=false` and `ALLOW_INSECURE_PASSWORD_RESET=false` in production
+- Keep `BASIC_REGISTRATION_ENABLED=false` when new accounts must use GitHub
 - Network-separate judge workers from internal admin tools
 - Password reset requires a one-time token (see [Authentication — Password reset](/reference/authentication/#password-reset))
 
@@ -174,9 +174,9 @@ Also available: `GET /health`, `GET /`. Judges have no HTTP health endpoint — 
 
 1. `pg_dump`
 2. Read `src/data-layer/src/schema_updates.sql` and release notes for your version
-3. Pull or build images (`docker buildx bake` or prebuilt pull)
-4. Restart data layer (migrations) → judges → web
-5. Submit a known-AC solution. If that fails, roll back images before investigating new issues.
+3. Wait for CI on the exact main commit
+4. Dispatch `Deploy Production`; it publishes immutable images, deploys data layer → judges → web/docs, and health-checks public endpoints
+5. Submit a known-AC solution. The workflow rolls back to the parent SHA when deployment or health verification fails.
 
 ---
 
