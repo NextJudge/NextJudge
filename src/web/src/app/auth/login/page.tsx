@@ -1,14 +1,12 @@
 import { LoginForm } from "@/components/forms/login-form";
+import { CodeLoader } from "@/components/code-loader";
 import { Icons } from "@/components/icons";
 import { ModeToggle } from "@/components/theme";
 import { buttonVariants } from "@/components/ui/button";
 import { BRAND_NAME, getCopyrightNotice } from "@/lib/site";
 import { createPageMetadata, SEO_ROBOTS } from "@/lib/seo";
 import { cn } from "@/lib/utils";
-import dynamic from "next/dynamic";
 import Link from "next/link";
-
-const Code = dynamic(() => import("@/components/code"), { ssr: false });
 
 export const metadata = createPageMetadata({
   title: "Login",
@@ -56,7 +54,7 @@ export default function LoginPage() {
             {BRAND_NAME}
           </div>
           <div id="lottie-panel" className="relative z-20 mt-auto">
-            <Code />
+            <CodeLoader />
           </div>
           <div className="relative z-20 mt-auto">
             <p className="text-xs text-muted-foreground">

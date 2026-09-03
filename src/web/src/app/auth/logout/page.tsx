@@ -1,4 +1,5 @@
 import { signOut } from "@/app/auth";
+import { CodeLoader } from "@/components/code-loader";
 import { Icons } from "@/components/icons";
 import { ModeToggle } from "@/components/theme";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -11,9 +12,7 @@ import {
 } from "@/components/ui/card";
 import { BRAND_NAME, getCopyrightNotice, SITE_COPY } from "@/lib/site";
 import { cn } from "@/lib/utils";
-import dynamic from "next/dynamic";
 import Link from "next/link";
-const Code = dynamic(() => import("@/components/code"), { ssr: false });
 
 export default function SignOutPage() {
   return (
@@ -62,7 +61,7 @@ export default function SignOutPage() {
             {BRAND_NAME}
           </div>
           <div id="lottie-panel" className="relative z-20 mt-auto">
-            <Code />
+            <CodeLoader />
           </div>
           <div className="relative z-20 mt-auto">
             <p className="text-xs text-muted-foreground">

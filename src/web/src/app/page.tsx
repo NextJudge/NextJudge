@@ -3,22 +3,14 @@ import { AltHero } from "@/components/landing/alt-hero";
 import { EarlyAccess } from "@/components/landing/early-access";
 import { FAQ } from "@/components/landing/faq";
 import Features from "@/components/landing/features";
+import { LandingEditorLoader } from "@/components/landing/landing-editor-loader";
 import { ScrollToTop } from "@/components/landing/scroll-up";
 import { SectionDivider } from "@/components/landing/section-divider";
 import { LandingNavbar } from "@/components/nav/landing-navbar";
 import { NavbarWithSession } from "@/components/nav/navbar-with-session";
 import { Metadata } from "next";
-import Dynamic from "next/dynamic";
 import { Suspense } from "react";
 import { preload } from "react-dom";
-const WhyNextJudge = Dynamic(
-  () => import("@/components/landing/bento").then((mod) => mod.WhyNextJudge),
-  { ssr: false }
-);
-const LandingEditor = Dynamic(
-  () => import("@/components/landing/landing-editor").then((mod) => mod.LandingEditor),
-  { ssr: false }
-);
 
 export const dynamic = 'force-dynamic';
 
@@ -89,7 +81,7 @@ export default function Home() {
           }}
         >
           <div className="relative z-10 max-w-screen-2xl mx-auto">
-            <LandingEditor />
+            <LandingEditorLoader />
           </div>
         </div>
 
