@@ -35,7 +35,7 @@ RUN \. "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION} && nvm use ${NODE_VERSIO
 
 # TypeScript. Keep the installed compiler aligned with languages.toml so a
 # floating major release cannot silently change the submission contract.
-RUN \. "$NVM_DIR/nvm.sh" && npm install typescript@5.4.5 -g
+RUN \. "$NVM_DIR/nvm.sh" && npm install typescript@5.4.5 @types/node@20.11.27 -g
 
 # Lua
 RUN curl -L -R -O https://www.lua.org/ftp/lua-5.4.6.tar.gz && \

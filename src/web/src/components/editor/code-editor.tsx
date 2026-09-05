@@ -2,6 +2,7 @@
 
 import { FALLBACK_TYPESCRIPT } from "@/hooks/use-languages-suspense";
 import { defaultEditorOptions } from "@/lib/constants";
+import { configureMonacoTypeScript } from "@/lib/monaco-typescript";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 import type { Language } from "@/lib/types";
 import { convertToMonacoLanguageName } from "@/lib/utils";
@@ -255,28 +256,12 @@ export default function CodeEditor({
         monacoInstance: Monaco
     ) => {
         editorRef.current = editor;
-        editor.focus();
 
         setTimeout(() => {
             editor.layout();
         }, 0);
 
-        monacoInstance.languages.typescript.typescriptDefaults.setCompilerOptions({
-            module: monacoInstance.languages.typescript.ModuleKind.CommonJS,
-            allowJs: true,
-            checkJs: true,
-        });
-
-        monacoInstance.languages.typescript.javascriptDefaults.setEagerModelSync(true);
-        monacoInstance.languages.typescript.typescriptDefaults.addExtraLib(
-            `declare var process: NodeJS.Process;`
-        );
-        monacoInstance.languages.typescript.typescriptDefaults.addExtraLib(
-            "node:readline/promises"
-        );
-        monacoInstance.languages.typescript.typescriptDefaults.addExtraLib(
-            "node_modules/@types/node/index.d.ts"
-        );
+        configureMonacoTypeScript(monacoInstance);
 
         const editorElement = editor.getDomNode();
         if (editorElement && editorContainerRef.current) {

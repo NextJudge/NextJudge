@@ -89,7 +89,8 @@ export PATH="/home/NEXTJUDGE_USER/.nvm/versions/node/v21.6.2/bin/:$PATH"
 export NODE_OPTIONS="--max_old_space_size=2048"
 export GENERATE_SOURCEMAP=false
 rm -f /executable/input.js /executable/main
-tsc {IN_FILE} --target ES2022 --module commonjs --outDir /executable
+TYPES_ROOT="$(npm root -g)/@types"
+tsc {IN_FILE} --target ES2022 --module commonjs --esModuleInterop --skipLibCheck --typeRoots "$TYPES_ROOT" --outDir /executable
 
 echo "#!/bin/sh" > /executable/main
 echo 'export PATH="/home/NEXTJUDGE_USER/.nvm/versions/node/v21.6.2/bin/:$PATH"' >> /executable/main

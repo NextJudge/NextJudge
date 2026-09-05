@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { FALLBACK_TYPESCRIPT, getLanguagesResource } from "@/hooks/use-languages-suspense";
 import { getPublicCustomInputSubmissionStatus, postPublicCustomInputSubmission } from "@/lib/api";
 import { defaultEditorOptions } from "@/lib/constants";
+import { configureMonacoTypeScript } from "@/lib/monaco-typescript";
 import { isCustomInputPending } from "@/lib/schemas/custom-input";
 import type { CustomInputResult, Language, SubmissionStatus } from "@/lib/types";
 import { cn, convertToMonacoLanguageName } from "@/lib/utils";
@@ -72,20 +73,26 @@ print(s[::-1])
   pypy: `s = input()
 print(s[::-1])
 `,
-  javascript: `const readline = require('readline');
-const rl = readline.createInterface({ input: process.stdin });
+  javascript: `const readline = require("readline");
 
-rl.on('line', (s) => {
-  console.log(s.split('').reverse().join(''));
-  rl.close();
+const rl = readline.createInterface({
+  input: process.stdin,
+  crlfDelay: Infinity,
+});
+
+rl.on("line", (line) => {
+  console.log(line.split("").reverse().join(""));
 });
 `,
-  typescript: `const readline = require('readline');
-const rl = readline.createInterface({ input: process.stdin });
+  typescript: `import * as readline from "readline";
 
-rl.on('line', (s: string) => {
-  console.log(s.split('').reverse().join(''));
-  rl.close();
+const rl = readline.createInterface({
+  input: process.stdin,
+  crlfDelay: Infinity,
+});
+
+rl.on("line", (line: string) => {
+  console.log(line.split("").reverse().join(""));
 });
 `,
   "c++": `#include <bits/stdc++.h>
@@ -292,11 +299,7 @@ const LandingEditorContent = () => {
     monacoRef.current = monaco;
     setTimeout(() => editor.layout(), 0);
 
-    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-      module: monaco.languages.typescript.ModuleKind.CommonJS,
-      allowJs: true,
-      checkJs: true,
-    });
+    configureMonacoTypeScript(monaco);
 
     const editorElement = editor.getDomNode();
     if (editorElement && editorContainerRef.current) {
@@ -341,6 +344,11 @@ const LandingEditorContent = () => {
 
       const handleClick = () => {
         if (!isEditorFocusedRef.current) {
+          const textarea = editorElement.querySelector("textarea");
+          if (textarea instanceof HTMLTextAreaElement) {
+            textarea.focus({ preventScroll: true });
+            return;
+          }
           editor.focus();
         }
       };
@@ -491,7 +499,7 @@ const LandingEditorContent = () => {
                       </Button>
                     </div>
                   </div>
-                      <div className="flex-1 min-h-0" ref={editorContainerRef}>
+                      <div className="flex-1 min-h-0 pb-16" ref={editorContainerRef}>
                     <Editor
                       loading={<div className="flex items-center justify-center h-full"><Icons.loader className="w-6 h-6 animate-spin text-primary" /></div>}
                           language={convertToMonacoLanguageName(currentLanguage)}
@@ -562,7 +570,7 @@ const LandingEditorContent = () => {
                           </Button>
                       </div>
                     </div>
-                          <div className="flex-1 min-h-0" ref={editorContainerRef}>
+                          <div className="flex-1 min-h-0 pb-16" ref={editorContainerRef}>
                       <Editor
                         loading={
                                 <div className="flex items-center justify-center h-full bg-black/80">
@@ -603,8 +611,8 @@ const LandingEditorContent = () => {
             </ResizablePanel>
           </ResizablePanelGroup>
         )}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent pt-8 pb-3 px-4">
-              <div className="flex items-center justify-center gap-4 text-sm text-white">
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent pt-8 pb-3 px-4">
+              <div className="pointer-events-auto flex items-center justify-center gap-4 text-sm text-white">
                 <span className="text-gray-300">Ready for more challenges?</span>
             <div className="flex gap-2">
                   <Button
