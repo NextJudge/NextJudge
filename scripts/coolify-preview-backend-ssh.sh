@@ -164,14 +164,14 @@ docker compose \
   -f docker-compose.coolify.yml \
   -f docker-compose.preview.yml \
   -f traefik.override.yml \
-  run --rm --no-deps nextjudge-data-layer -seed-dev
+  run --rm --no-deps -T nextjudge-data-layer -seed-dev </dev/null
 
 docker compose \
   --project-name "$project" \
   -f docker-compose.coolify.yml \
   -f docker-compose.preview.yml \
   -f traefik.override.yml \
-  up -d --remove-orphans
+  up -d --wait --remove-orphans
 
 echo "Preview backend stack ${project} started."
 REMOTE
