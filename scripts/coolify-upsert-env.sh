@@ -37,6 +37,10 @@ if [[ "$COOLIFY_RESOURCE_TYPE" != "application" && "$COOLIFY_RESOURCE_TYPE" != "
 fi
 
 resource_path="${COOLIFY_RESOURCE_TYPE}s"
+if [[ "$COOLIFY_RESOURCE_TYPE" == "service" && "$IS_PREVIEW" == "true" ]]; then
+  echo "Coolify service envs are not preview-isolated; use PREVIEW_BACKEND_ENV instead." >&2
+  exit 1
+fi
 preview_flag="false"
 if [[ "$IS_PREVIEW" == "true" ]]; then
   preview_flag="true"

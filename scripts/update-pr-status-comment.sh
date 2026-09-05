@@ -22,9 +22,24 @@ preview_url() {
 
 preview_status() {
   case "$PHASE" in
-    preview-ready) echo "✅" ;;
-    preview-failed) echo "❌" ;;
-    *) echo "🟠" ;;
+    preview-ready) echo "✅ Healthy" ;;
+    preview-failed)
+      local result
+      case "$1" in
+        web) result="${WEB_DEPLOY_RESULT:-unknown}" ;;
+        docs) result="${DOCS_DEPLOY_RESULT:-unknown}" ;;
+        api) result="${BACKEND_DEPLOY_RESULT:-unknown}" ;;
+      esac
+      case "$result" in
+        failure) echo "❌ Deploy failed" ;;
+        skipped) echo "— Not attempted" ;;
+        cancelled) echo "— Cancelled" ;;
+        success) echo "🟠 Deploy requested; health unconfirmed" ;;
+        *) echo "— Unknown; see workflow" ;;
+      esac
+      ;;
+    ci-failed) echo "— Not attempted" ;;
+    *) echo "🟠 Pending" ;;
   esac
 }
 
@@ -45,7 +60,7 @@ append_preview_row() {
   local key="$2"
   local url status row
   url="$(preview_url "$key")"
-  status="$(preview_status)"
+  status="$(preview_status "$key")"
   printf -v row '| %s | %s | [Link](%s) |' "$label" "$status" "$url"
   body="${body}${row}"$'\n'
 }
@@ -110,7 +125,7 @@ See the **Playwright E2E** comment below if specs failed."
   fi
 elif has_deployment_table; then
   body="${MARKER}
-### CI passed
+### Build and test checks passed
 
 Build succeeded for commit \`${SHA:0:7}\`.
 "
@@ -121,7 +136,8 @@ Build succeeded for commit \`${SHA:0:7}\`.
 Preview URLs are live. Last deploy: \`${SHA:0:7}\`."
   elif [ "$PHASE" = "preview-failed" ]; then
     body="${body}
-Preview deploy failed for commit \`${SHA:0:7}\`. Check the workflow logs for details."
+Preview deployment failed for commit \`${SHA:0:7}\`. Services later in the deployment sequence may have been skipped. The E2E report covers the isolated CI stack, not these preview URLs.
+[View deployment failure](${run_url})"
   elif [ "$WEB_CHANGED" = "true" ] || [ "$DOCS_CHANGED" = "true" ] || [ "$BACKEND_CHANGED" = "true" ]; then
     body="${body}
 Preview deploys are in progress. Links below will become available shortly."

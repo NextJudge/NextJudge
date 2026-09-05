@@ -46,6 +46,8 @@ jobs:
             - 'compose/docker-compose.preview.yml'
             - 'compose/docker-compose.prebuilt.yml'
             - 'scripts/coolify-*.sh'
+            - 'scripts/validate-preview-backend-env.sh'
+            - '.github/workflows/preview-deploy-reusable.yml'
             - 'scripts/wait-for-ci.sh'
             - 'docker-bake.hcl'
             - '.github/workflows/ci.yml'
@@ -54,6 +56,13 @@ jobs:
             - 'src/judge/**'
             - 'docker-bake.hcl'
             - '.github/workflows/ci.yml'
+
+  preview-script-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Test preview configuration and status reporting
+      run: bash scripts/test-preview-scripts.sh
 
   web-lint:
     needs: changes
@@ -289,7 +298,7 @@ jobs:
       run: ./scripts/run-data-layer-tests.sh
 
   ci-success:
-    needs: [ changes, web-lint, web-e2e, web-build, docs-build, core-build, judge-ci, backend-tests ]
+    needs: [ changes, preview-script-tests, web-lint, web-e2e, web-build, docs-build, core-build, judge-ci, backend-tests ]
     if: always() && !cancelled() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     permissions:
@@ -313,7 +322,7 @@ jobs:
       run: ./scripts/update-pr-status-comment.sh ci-success
 
   ci-failure-notify:
-    needs: [ changes, web-lint, web-e2e, web-build, docs-build, core-build, judge-ci, backend-tests ]
+    needs: [ changes, preview-script-tests, web-lint, web-e2e, web-build, docs-build, core-build, judge-ci, backend-tests ]
     if: always() && !cancelled() && contains(needs.*.result, 'failure') && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:

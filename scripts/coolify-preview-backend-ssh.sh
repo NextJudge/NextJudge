@@ -13,11 +13,10 @@ set -euo pipefail
 #   COOLIFY_SSH_HOST          SSH alias or user@host (e.g. nextjudge)
 #   PR_NUMBER
 #
-# Deploy reads preview-scoped env from Coolify when set:
-#   COOLIFY_API_URL, COOLIFY_API_TOKEN, COOLIFY_BACKEND_SERVICE_UUID
+# Deploy reads PREVIEW_BACKEND_ENV from GitHub Actions, never the production service.
 #
 # Required deploy env:
-#   PREVIEW_BACKEND_ENV_FILE  path to .env on the runner (skips API fetch)
+#   PREVIEW_BACKEND_ENV_FILE  optional path to .env instead of PREVIEW_BACKEND_ENV
 #   NEXTJUDGE_CORE_IMAGE_TAG  immutable ci-{commit} tag
 #   NEXTJUDGE_JUDGE_IMAGE_TAG immutable ci-{commit} tag
 
@@ -39,29 +38,6 @@ PREVIEW_COMPOSE_FILE="${REPO_ROOT}/compose/docker-compose.preview.yml"
 PROJECT_NAME="nextjudge-pr-${PR_NUMBER}"
 REMOTE_DIR="nextjudge-previews/pr-${PR_NUMBER}"
 PREVIEW_HOST="${PR_NUMBER}-api.preview.nextjudge.net"
-
-fetch_preview_env_from_api() {
-  if [[ -z "${COOLIFY_API_URL:-}" || -z "${COOLIFY_API_TOKEN:-}" || -z "${COOLIFY_BACKEND_SERVICE_UUID:-}" ]]; then
-    return 1
-  fi
-
-  local tmp
-  tmp="$(mktemp)"
-  curl -fsS \
-    "${COOLIFY_API_URL}/services/${COOLIFY_BACKEND_SERVICE_UUID}/envs" \
-    -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
-    -H "Accept: application/json" \
-    | jq -r '.[] | select(.is_preview == true) | "\(.key)=\(.value)"' >"$tmp"
-
-  if [[ ! -s "$tmp" ]]; then
-    rm -f "$tmp"
-    return 1
-  fi
-
-  PREVIEW_BACKEND_ENV_FILE="$tmp"
-  PREVIEW_BACKEND_ENV_TEMP=1
-  return 0
-}
 
 write_traefik_override() {
   local path="$1"
@@ -99,11 +75,14 @@ deploy_preview_backend() {
 
   PREVIEW_BACKEND_ENV_TEMP=0
   if [[ -z "${PREVIEW_BACKEND_ENV_FILE:-}" ]]; then
-    fetch_preview_env_from_api || true
+    require_env PREVIEW_BACKEND_ENV
+    PREVIEW_BACKEND_ENV_FILE="$(mktemp)"
+    printf '%s\n' "$PREVIEW_BACKEND_ENV" > "$PREVIEW_BACKEND_ENV_FILE"
+    PREVIEW_BACKEND_ENV_TEMP=1
   fi
 
   if [[ -z "${PREVIEW_BACKEND_ENV_FILE:-}" || ! -f "${PREVIEW_BACKEND_ENV_FILE}" ]]; then
-    echo "No preview backend env. Configure Coolify preview env vars on the backend service." >&2
+    echo "No preview backend env. Configure the PREVIEW_BACKEND_ENV repository secret." >&2
     exit 1
   fi
 
@@ -131,6 +110,7 @@ deploy_preview_backend() {
   scp -o BatchMode=yes -o StrictHostKeyChecking=yes \
     "$COMPOSE_FILE" \
     "$PREVIEW_COMPOSE_FILE" \
+    "${SCRIPT_DIR}/validate-preview-backend-env.sh" \
     "$env_local" \
     "$override_local" \
     "${COOLIFY_SSH_HOST}:${REMOTE_DIR}/"
@@ -159,9 +139,11 @@ export NEXTJUDGE_JUDGE_IMAGE_TAG="$judge_tag"
 if [[ -n "$namespace" ]]; then
   export DOCKERHUB_NAMESPACE="$namespace"
 fi
-set -a
-source .env
-set +a
+# Compose parses .env itself. Do not execute configuration as shell code.
+# Validate before pulling images or touching running services. Report key names only.
+docker compose --project-name "$project" \
+  -f docker-compose.coolify.yml -f docker-compose.preview.yml -f traefik.override.yml \
+  config --environment | bash ./validate-preview-backend-env.sh
 
 docker compose \
   --project-name "$project" \

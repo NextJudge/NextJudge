@@ -167,12 +167,13 @@ bootstrap_preview() {
   echo "Preview bootstrap webhook accepted." >&2
 }
 
-set_preview_image_tags
-
 if [[ "${COOLIFY_RESOURCE_TYPE:-application}" == "service" ]]; then
+  # Image tags are passed directly to SSH; service env updates are not preview-isolated.
   deploy_preview_backend_ssh
   exit 0
 fi
+
+set_preview_image_tags
 
 if deploy_preview; then
   exit 0
