@@ -83,14 +83,24 @@ export const setEditorCode = async (page: Page, code: string): Promise<void> => 
 export const selectPythonLanguage = async (page: Page): Promise<void> => {
   const combobox = page.getByRole("combobox", { name: /programming language/i });
   await expect(combobox).not.toHaveText(/select a language/i);
+
+  const comboboxLabel = (await combobox.textContent())?.trim() ?? "";
+  if (/^python\b/i.test(comboboxLabel)) {
+    return;
+  }
+
   await combobox.click();
 
   const searchInput = page.getByPlaceholder("Search languages...");
-  await expect(searchInput).toBeVisible();
-  await searchInput.fill("python");
+  await expect(searchInput).toBeVisible({ timeout: 15_000 });
 
-  const pythonOption = page.getByRole("option", { name: /^python\b/i });
-  await expect(pythonOption).toBeVisible();
+  let pythonOption = page.getByRole("option", { name: /^python\b/i });
+  if ((await pythonOption.count()) === 0) {
+    await searchInput.fill("python");
+    pythonOption = page.getByRole("option", { name: /^python\b/i });
+  }
+
+  await expect(pythonOption).toBeVisible({ timeout: 15_000 });
   await pythonOption.click();
 
   await expect(combobox).toContainText(/^python\b/i, { timeout: 15_000 });

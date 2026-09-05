@@ -90,6 +90,7 @@ export function EditorLanguageSelect({
                 <CommandItem
                   key={language.id}
                   value={language.name}
+                  keywords={[language.name, language.version, language.extension]}
                   onSelect={() => {
                     onLanguageSelect(language);
                     setOpen(false);
