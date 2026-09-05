@@ -56,6 +56,11 @@ const resolveHostname = (hostname?: string): string | undefined => {
     if (typeof window !== "undefined") {
         return window.location.hostname;
     }
+    // Coolify supplies each container's own hostname at runtime. Server-rendered
+    // API calls have no window, but must still use the same PR backend as clients.
+    if (process.env.NODE_ENV === "production") {
+        return process.env.COOLIFY_FQDN?.split(",")[0]?.trim();
+    }
     return undefined;
 };
 

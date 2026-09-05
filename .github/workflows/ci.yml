@@ -79,6 +79,8 @@ jobs:
         cache: npm
         cache-dependency-path: src/web/package-lock.json
     - run: npm ci
+    - name: Test preview API routing
+      run: npx --no-install tsx --test scripts/preview-routing.test.ts
     - run: npm run lint
     - run: npm run typecheck
 
