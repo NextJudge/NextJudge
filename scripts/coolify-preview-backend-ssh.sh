@@ -49,6 +49,7 @@ services:
       - coolify
     labels:
       traefik.enable: "true"
+      traefik.docker.network: coolify
       traefik.http.middlewares.gzip.compress: "true"
       traefik.http.middlewares.redirect-to-https.redirectscheme.scheme: https
       traefik.http.routers.http-${PR_NUMBER}-api.entryPoints: http
