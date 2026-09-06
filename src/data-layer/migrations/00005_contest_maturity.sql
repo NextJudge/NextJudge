@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 -- Contest maturity: visibility, registration, roles, standings config, outbox.
 
 DO $$ BEGIN
@@ -62,3 +64,9 @@ CREATE TABLE IF NOT EXISTS outbox_events (
 
 CREATE INDEX IF NOT EXISTS idx_outbox_events_status_created
     ON outbox_events (status, created_at);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+-- no-op down migration
+-- +goose StatementEnd

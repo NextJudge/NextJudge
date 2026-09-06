@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 -- Problem lifecycle: revisions, editorials, and publication state.
 
 DO $$ BEGIN
@@ -56,3 +58,9 @@ CREATE TABLE IF NOT EXISTS editorials (
 
 CREATE INDEX IF NOT EXISTS idx_editorials_revision_id
     ON editorials (revision_id);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+-- no-op down migration
+-- +goose StatementEnd

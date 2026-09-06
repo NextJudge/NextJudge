@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 -- Organizations, classes, rosters, and assignments (M7).
 
 DO $$ BEGIN
@@ -84,3 +86,9 @@ CREATE TABLE IF NOT EXISTS assignments (
 CREATE INDEX IF NOT EXISTS idx_assignments_class_id ON assignments (class_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_revision_id ON assignments (revision_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_due_at ON assignments (due_at);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+-- no-op down migration
+-- +goose StatementEnd

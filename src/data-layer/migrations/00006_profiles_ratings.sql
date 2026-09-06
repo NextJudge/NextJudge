@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 -- Profiles, handles, ratings, and PostgreSQL FTS on problem titles.
 
 ALTER TABLE users
@@ -102,3 +104,9 @@ CREATE TABLE IF NOT EXISTS user_ratings (
     contests_rated INTEGER NOT NULL DEFAULT 0,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+-- no-op down migration
+-- +goose StatementEnd

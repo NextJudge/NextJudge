@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 -- Community solutions, moderation, similarity review, and integrity signals.
 
 DO $$ BEGIN
@@ -175,3 +177,9 @@ CREATE INDEX IF NOT EXISTS idx_integrity_signals_submission
 
 CREATE INDEX IF NOT EXISTS idx_integrity_signals_hash
     ON integrity_signals (signal_type, signal_hash, recorded_at DESC);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+-- no-op down migration
+-- +goose StatementEnd

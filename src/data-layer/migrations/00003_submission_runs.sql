@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 -- submission_runs tracks each judge attempt for a submission.
 
 CREATE TABLE IF NOT EXISTS submission_runs (
@@ -69,3 +71,9 @@ FROM submission_runs sr
 WHERE stcr.submission_id = sr.submission_id
   AND sr.run_number = 1
   AND stcr.run_id IS NULL;
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+-- no-op down migration
+-- +goose StatementEnd

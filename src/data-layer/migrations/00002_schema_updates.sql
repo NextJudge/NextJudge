@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 -- Incremental schema updates for existing deployments.
 -- Each statement must be safe to run multiple times.
 
@@ -84,3 +86,9 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 );
 
 CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens (user_id);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+-- no-op down migration
+-- +goose StatementEnd

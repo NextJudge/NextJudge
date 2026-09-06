@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 -- NextJudge Tables
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -329,3 +331,9 @@ DROP TRIGGER IF EXISTS trigger_update_event_questions_updated_at ON event_questi
 CREATE TRIGGER trigger_update_event_questions_updated_at
 BEFORE UPDATE ON event_questions
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+-- no-op down migration
+-- +goose StatementEnd

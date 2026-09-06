@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 -- API tokens and audit events (M8).
 
 CREATE TABLE IF NOT EXISTS api_tokens (
@@ -33,3 +35,9 @@ CREATE TABLE IF NOT EXISTS audit_events (
 CREATE INDEX IF NOT EXISTS idx_audit_events_actor_user_id ON audit_events (actor_user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_events_action ON audit_events (action);
 CREATE INDEX IF NOT EXISTS idx_audit_events_created_at ON audit_events (created_at DESC);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+-- no-op down migration
+-- +goose StatementEnd
