@@ -9,6 +9,10 @@ import { pretty, render, toPlainText } from "@react-email/components";
 import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { ZodError } from "zod";
+import {
+  getAuthFailureMessage,
+  getAuthRedirectErrorMessage,
+} from "@/lib/auth-errors";
 import { auth, signIn, signOut } from "./auth";
 import { newsletterFormSchema } from "./validation";
 import { getEmailFrom } from "@/lib/site";
@@ -73,35 +77,62 @@ export async function signUpUser(data: SignUpFormValues): Promise<ReturnType> {
     const result = await response.json()
 
     if (!response.ok) {
-      const errorMessage = result.error || 'Registration failed'
-      throw new Error(errorMessage)
+      const errorMessage =
+        typeof result.error === "string" ? result.error : "Registration failed";
+      return {
+        status: "error",
+        message: errorMessage,
+      };
     }
 
     return {
       status: 'success',
-      message: result.message,
+      message:
+        typeof result.message === "string"
+          ? result.message
+          : "Account created successfully",
     }
   } catch (error) {
     console.error('Signup error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Network error - try again later'
-    throw new Error(errorMessage)
+    return {
+      status: "error",
+      message:
+        error instanceof Error && error.message
+          ? error.message
+          : "Network error — try again later",
+    };
   }
 }
 
 
 export async function logUserIn(data: LoginFormValues): Promise<ReturnType> {
   try {
-    await signIn('credentials', {
+    const redirectTarget = await signIn("credentials", {
       email: data.email,
       password: data.password,
       redirect: false,
-    })
-    return {
-      status: 'success',
-      message: 'Login successful',
+    });
+
+    if (typeof redirectTarget === "string") {
+      const redirectError = getAuthRedirectErrorMessage(redirectTarget);
+      if (redirectError) {
+        return {
+          status: "error",
+          message: redirectError,
+        };
+      }
     }
+
+    return {
+      status: "success",
+      message: "Login successful",
+    };
   } catch (error) {
-    throw new Error('Login failed - please try again')
+    console.error("Login error:", error);
+    return {
+      status: "error",
+      message: getAuthFailureMessage(error),
+    };
   }
 }
 interface ProfileData {

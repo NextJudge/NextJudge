@@ -88,7 +88,7 @@ Preview web hostnames (`{PR}-web.preview.nextjudge.net`) route API traffic to `{
 
 Backend previews are deployed per PR over SSH (`scripts/coolify-preview-backend-ssh.sh`), not via Coolify service preview API.
 
-GitHub OAuth callbacks stay on production (`https://nextjudge.net/api/auth/callback/github`). Set `AUTH_REDIRECT_PROXY_URL=https://nextjudge.net/api/auth` and `AUTH_TRUST_HOST=true` on production and preview web. Preview web must share `AUTH_SECRET` with production and use preview-specific `WEB_BRIDGE_SECRET` (matching the preview backend).
+GitHub OAuth callbacks stay on production (`https://nextjudge.net/api/auth/callback/github`). Set `AUTH_REDIRECT_PROXY_URL=https://nextjudge.net/api/auth` and `AUTH_TRUST_HOST=true` on **preview web only** — production web must not set `AUTH_REDIRECT_PROXY_URL`. Preview web must share `AUTH_SECRET` with production and use preview-specific `WEB_BRIDGE_SECRET` (matching the preview backend). Production `WEB_BRIDGE_SECRET` must match the production backend.
 
 See [configuration guide](https://github.com/NextJudge/NextJudge/blob/main/src/docs/src/content/docs/guides/configuration.md#pr-previews-coolify) (PR previews section).
 

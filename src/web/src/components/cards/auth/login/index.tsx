@@ -45,12 +45,15 @@ export function LoginCard({ children }: LoginCardProps) {
     try {
       const { email, password } = data;
       const res = await logUserIn({ email, password });
+      if (res.status === "error") {
+        toast.error(res.message);
+        return;
+      }
       toast.success(res.message);
       router.push("/platform");
     } catch (error) {
       console.error("Login error:", error);
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      toast.error(errorMessage);
+      toast.error("Could not sign in. Please try again.");
     }
   }
 

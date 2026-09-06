@@ -67,8 +67,9 @@ cat >"${output_dir}/rotation-manifest.json" <<EOF
   ],
   "next_steps": [
     "Upsert backend.env to Coolify backend service",
+    "Upsert WEB_BRIDGE_SECRET to Coolify production web app (must match backend)",
     "Run sync-db-password.sh with new DB_PASSWORD",
-    "Redeploy backend and judge",
+    "Redeploy backend, judge, and web",
     "Archive manifest off-repo; do not commit backend.env"
   ]
 }
@@ -87,7 +88,14 @@ if [[ "$apply" == "true" ]]; then
     [[ -z "$line" || "$line" =~ ^# ]] && continue
     key="${line%%=*}"
     val="${line#*=}"
-    "$upsert" --service-uuid "$COOLIFY_BACKEND_SERVICE_UUID" --key "$key" --value "$val"
+    COOLIFY_RESOURCE_TYPE=service COOLIFY_APP_UUID="$COOLIFY_BACKEND_SERVICE_UUID" \
+      KEY="$key" VALUE="$val" IS_PREVIEW=false bash "$upsert"
   done <"${output_dir}/backend.env"
+  if [[ -n "${COOLIFY_WEB_APP_UUID:-}" ]]; then
+    web_bridge="$(grep '^WEB_BRIDGE_SECRET=' "${output_dir}/backend.env" | cut -d= -f2-)"
+    COOLIFY_RESOURCE_TYPE=application COOLIFY_APP_UUID="$COOLIFY_WEB_APP_UUID" \
+      KEY=WEB_BRIDGE_SECRET VALUE="$web_bridge" IS_PREVIEW=false bash "$upsert"
+    printf 'Synced WEB_BRIDGE_SECRET to production web app.\n'
+  fi
   printf 'Applied backend secrets via coolify-upsert-env.sh\n'
 fi
