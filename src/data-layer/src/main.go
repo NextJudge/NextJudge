@@ -85,6 +85,7 @@ func main() {
 	})
 
 	mux.Use(JSONMiddleware)
+	mux.Use(MaintenanceMiddleware)
 	mux.Use(LimitRequestBodyMiddleware)
 	mux.Use(c.Handler)
 

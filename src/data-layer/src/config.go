@@ -35,6 +35,7 @@ type config struct {
 	AllowInsecurePasswordReset bool
 	PasswordResetDebug         bool
 	TrustedProxy               bool
+	MaintenanceMode            bool
 }
 
 var cfg config
@@ -201,6 +202,7 @@ func init() {
 	cfg.AllowInsecurePasswordReset = envBool("ALLOW_INSECURE_PASSWORD_RESET")
 	cfg.PasswordResetDebug = envBool("PASSWORD_RESET_DEBUG")
 	cfg.TrustedProxy = envBool("TRUSTED_PROXY")
+	cfg.MaintenanceMode = envBool("MAINTENANCE_MODE")
 }
 
 func envBool(key string) bool {
