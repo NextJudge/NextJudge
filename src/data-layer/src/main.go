@@ -13,6 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"goji.io"
 	"goji.io/pat"
+
+	"main/src/api"
 )
 
 var db *Database
@@ -66,6 +68,8 @@ func main() {
 	}
 
 	StartEnqueueReaper()
+	StartFingerprintReaper()
+	StartOutboxPublisher(30 * time.Second)
 
 	if cfg.ElasticEnabled {
 		es, err = NewElasticSearch()
@@ -82,24 +86,34 @@ func main() {
 	mux := goji.NewMux()
 	c := cors.New(cors.Options{
 		AllowOriginFunc:  originAllowed,
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization", api.RequestIDHeader},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 		MaxAge:           3600,
 	})
 
 	mux.Use(JSONMiddleware)
+	mux.Use(api.RequestIDMiddleware)
+	mux.Use(MaintenanceMiddleware)
 	mux.Use(LimitRequestBodyMiddleware)
 	mux.Use(c.Handler)
 
 	addAuthRoutes(mux)
 	addInputSubmissionRoutes(mux)
+	addProfileRoutes(mux)
 	addUserRoutes(mux)
 	addProblemRoutes(mux)
+	addEditorialRoutes(mux)
+	addCommunityRoutes(mux)
 	addSubmissionRoutes(mux)
 	addLanguageRoutes(mux)
 	addEventsRoutes(mux)
+	addJudgeWorkerRoutes(mux)
+	addAdminJudgeRoutes(mux)
+	addOrganizationRoutes(mux)
+	addTokenRoutes(mux)
 	addHealthyRoute(mux)
+	addOpenAPIRoutes(mux)
 
 	logrus.Info("Starting data layer API")
 

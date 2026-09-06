@@ -15,6 +15,7 @@ __pycache__/
 coolify.env
 tsconfig.tsbuildinfo
 presentation/
+src.from-restore/
 .env.prod
 .env.local
 src/web/playwright-pages-bundle/
