@@ -5,7 +5,8 @@ import {
 	parseUserList,
 	parseUserWithStatsList,
 } from "../schemas/user";
-import { apiFetch, apiFetchParsed, authHeaders } from "./client";
+import { parseUpdateHandleResponse } from "../schemas/profile";
+import { apiFetch, apiFetchParsed, authHeaders, jsonAuthHeaders } from "./client";
 
 export async function apiGetUser(
 	token: string,
@@ -62,5 +63,20 @@ export async function apiGetTopUsersByContests(
 		`/v1/users/top-by-contests?limit=${limit}`,
 		parseUserWithStatsList,
 		{ headers: authHeaders(token) },
+	);
+}
+
+export async function apiUpdateMyHandle(
+	token: string,
+	handle: string,
+): Promise<{ handle: string; handle_changed_at?: string }> {
+	return apiFetchParsed(
+		"/v1/users/me/handle",
+		parseUpdateHandleResponse,
+		{
+			method: "PUT",
+			headers: jsonAuthHeaders(token),
+			body: JSON.stringify({ handle }),
+		},
 	);
 }

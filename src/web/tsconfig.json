@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -10,7 +14,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -18,9 +22,14 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@nextjudge/*": ["./public/*"],
-    }
+      "@/*": [
+        "./src/*"
+      ],
+      "@nextjudge/*": [
+        "./public/*"
+      ]
+    },
+    "target": "ES2017"
   },
   "include": [
     "next-env.d.ts",
@@ -28,7 +37,10 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "postcss.config.ts",
-    "monaco.d.ts"
+    "monaco.d.ts",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

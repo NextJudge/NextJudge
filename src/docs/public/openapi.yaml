@@ -1,0 +1,1480 @@
+openapi: 3.1.0
+info:
+  title: NextJudge Data Layer API
+  version: 1.0.0
+  description: |
+    HTTP API for the NextJudge competitive programming platform data layer.
+
+    Authenticated requests send the JWT directly in the `Authorization` header
+    (not a `Bearer` prefix). Admin and judge roles unlock additional routes.
+  contact:
+    name: NextJudge
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+
+servers:
+  - url: http://localhost:5000
+    description: Local development
+  - url: https://api.nextjudge.net
+    description: Production
+
+tags:
+  - name: auth
+    description: Authentication and account access
+  - name: problems
+    description: Problem catalog and metadata
+  - name: submissions
+    description: Code submissions and judging status
+  - name: events
+    description: Contests and events
+  - name: organizations
+    description: Organizations, classes, and assignments
+  - name: tokens
+    description: API tokens and session introspection
+
+paths:
+  /v1/openapi.json:
+    get:
+      operationId: getOpenAPISpec
+      summary: OpenAPI document
+      description: Returns this API specification as JSON.
+      tags: []
+      security: []
+      responses:
+        "200":
+          description: OpenAPI 3.1 document
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v1/basic_register:
+    post:
+      operationId: basicRegister
+      summary: Register with email and password
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BasicAuthRequest"
+      responses:
+        "200":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "403":
+          $ref: "#/components/responses/ErrorResponse"
+        "409":
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/basic_login:
+    post:
+      operationId: basicLogin
+      summary: Login with email and password
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BasicAuthRequest"
+      responses:
+        "200":
+          description: Login succeeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "401":
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/basic_request_password_reset:
+    post:
+      operationId: basicRequestPasswordReset
+      summary: Request a password reset token
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+      responses:
+        "200":
+          description: Reset request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetRequestResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/basic_reset_password:
+    post:
+      operationId: basicResetPassword
+      summary: Reset password with token
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetDirect"
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetRequestResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/create_or_login_user:
+    post:
+      operationId: createOrLoginUser
+      summary: Create or login OAuth user (web bridge)
+      tags: [auth]
+      security:
+        - WebBridgeAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthUserRequest"
+      responses:
+        "200":
+          description: User session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "401":
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/login_judge:
+    post:
+      operationId: loginJudge
+      summary: Obtain a judge service token
+      tags: [auth]
+      security: []
+      responses:
+        "200":
+          description: Judge token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/problems:
+    get:
+      operationId: listProblems
+      summary: List problems visible to the caller
+      description: Admins receive all problems; other users receive public problems only.
+      tags: [problems]
+      security:
+        - JwtAuth: []
+      responses:
+        "200":
+          description: Problem list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProblemPublic"
+        "401":
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    post:
+      operationId: createProblem
+      summary: Create a problem
+      tags: [problems]
+      security:
+        - JwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProblemRequest"
+      responses:
+        "201":
+          description: Problem created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateProblemResponse"
+        "401":
+          $ref: "#/components/responses/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/problems/{problem_id}:
+    get:
+      operationId: getProblem
+      summary: Get problem details
+      description: Returns public test cases; hidden tests omit input and expected output.
+      tags: [problems]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ProblemId"
+      responses:
+        "200":
+          description: Problem details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemPublic"
+        "404":
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/submissions:
+    post:
+      operationId: createSubmission
+      summary: Submit code for judging
+      tags: [submissions]
+      security:
+        - JwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubmissionRequest"
+      responses:
+        "201":
+          description: Submission queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionPublic"
+        "404":
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/submissions/{submission_id}:
+    get:
+      operationId: getSubmission
+      summary: Get submission details
+      tags: [submissions]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SubmissionId"
+      responses:
+        "200":
+          description: Submission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionPublic"
+        "404":
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/submissions/{submission_id}/status:
+    get:
+      operationId: getSubmissionStatus
+      summary: Get submission judging status
+      tags: [submissions]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SubmissionId"
+      responses:
+        "200":
+          description: Submission status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionStatus"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/user_submissions/{user_id}:
+    get:
+      operationId: listUserSubmissions
+      summary: List submissions for a user
+      tags: [submissions]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Cursor page of submissions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/CursorPage"
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/SubmissionPublic"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/events:
+    get:
+      operationId: listEventsAdmin
+      summary: List all events (admin)
+      tags: [events]
+      security:
+        - JwtAuth: []
+      responses:
+        "200":
+          description: Events with participant summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventWithParticipants"
+        "403":
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    post:
+      operationId: createEvent
+      summary: Create an event
+      tags: [events]
+      security:
+        - JwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/public/events:
+    get:
+      operationId: listPublicEvents
+      summary: List events visible to authenticated users
+      tags: [events]
+      security:
+        - JwtAuth: []
+      responses:
+        "200":
+          description: Events with participant summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventWithParticipants"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/public/events/{event_id}:
+    get:
+      operationId: getPublicEvent
+      summary: Get event details
+      tags: [events]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Event detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetail"
+        "404":
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/events/{event_id}:
+    get:
+      operationId: getEventAdmin
+      summary: Get event details (admin)
+      tags: [events]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Event detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetail"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    put:
+      operationId: updateEvent
+      summary: Update an event
+      tags: [events]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    delete:
+      operationId: deleteEvent
+      summary: Delete an event
+      tags: [events]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "204":
+          description: Event deleted
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/events/{event_id}/problems:
+    get:
+      operationId: listEventProblems
+      summary: List problems attached to an event
+      tags: [events]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Event problems
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProblemPublic"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/events/{event_id}/submissions:
+    get:
+      operationId: listEventSubmissions
+      summary: List submissions for an event
+      tags: [events]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Cursor page of event submissions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/CursorPage"
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/SubmissionPublic"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/public/events/{event_id}/register:
+    post:
+      operationId: registerForEvent
+      summary: Register the current user for an event
+      tags: [events]
+      security:
+        - JwtAuth: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "201":
+          description: Registered
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/auth/whoami:
+    get:
+      operationId: whoami
+      summary: Current authenticated user
+      tags: [tokens]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhoamiResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/tokens:
+    get:
+      operationId: listTokens
+      summary: List API tokens for the current user
+      tags: [tokens]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      responses:
+        "200":
+          description: Token list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/APITokenPublic"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    post:
+      operationId: createToken
+      summary: Create a new API token
+      tags: [tokens]
+      security:
+        - JwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTokenRequest"
+      responses:
+        "201":
+          description: Token created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateTokenResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/tokens/{token_id}:
+    delete:
+      operationId: revokeToken
+      summary: Revoke an API token
+      tags: [tokens]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      parameters:
+        - name: token_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Revoked
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/organizations:
+    get:
+      operationId: listOrganizations
+      summary: List organizations visible to the caller
+      tags: [organizations]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      responses:
+        "200":
+          description: Organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Organization"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    post:
+      operationId: createOrganization
+      summary: Create an organization
+      tags: [organizations]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganizationRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/organizations/{org_id}:
+    get:
+      operationId: getOrganization
+      summary: Get organization by ID
+      tags: [organizations]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+      responses:
+        "200":
+          description: Organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    put:
+      operationId: updateOrganization
+      summary: Update organization
+      tags: [organizations]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganizationRequest"
+      responses:
+        "200":
+          description: Updated organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    delete:
+      operationId: deleteOrganization
+      summary: Delete organization
+      tags: [organizations]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+      responses:
+        "204":
+          description: Deleted
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/organizations/{org_id}/classes:
+    get:
+      operationId: listOrganizationClasses
+      summary: List classes in an organization
+      tags: [organizations]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+      responses:
+        "200":
+          description: Classes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassRoom"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    post:
+      operationId: createClass
+      summary: Create a class
+      tags: [organizations]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassRequest"
+      responses:
+        "201":
+          description: Created class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassRoom"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+  /v1/classes/{class_id}/roster/import:
+    post:
+      operationId: importClassRoster
+      summary: Import class roster from CSV
+      tags: [organizations]
+      security:
+        - JwtAuth: []
+        - ApiTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      requestBody:
+        required: true
+        content:
+          text/csv:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: Import summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RosterImportResult"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+
+components:
+  securitySchemes:
+    JwtAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Raw JWT token (no Bearer prefix).
+    ApiTokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API token prefixed with nj_ (Bearer prefix optional).
+    WebBridgeAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Shared secret configured for the Next.js web bridge.
+
+  parameters:
+    ProblemId:
+      name: problem_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    SubmissionId:
+      name: submission_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    EventId:
+      name: event_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    OrgId:
+      name: org_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ClassId:
+      name: class_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Opaque pagination cursor from a previous response.
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+      description: Maximum number of items to return.
+
+  responses:
+    ErrorResponse:
+      description: Standard API error envelope
+      headers:
+        X-Request-ID:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code:
+              type: string
+              examples: [UNAUTHORIZED, INVALID_CREDENTIALS, NOT_FOUND]
+            message:
+              type: string
+            details:
+              type: [object, "null"]
+            request_id:
+              type: string
+
+    CursorPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {}
+        next_cursor:
+          type: string
+          description: Present when another page is available.
+
+    UserPublic:
+      type: object
+      required: [id, name, email]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        image:
+          type: string
+          format: uri
+        join_date:
+          type: string
+          format: date-time
+        is_admin:
+          type: boolean
+
+    ProblemPublic:
+      type: object
+      required: [id, title, prompt, difficulty, public]
+      properties:
+        id:
+          type: integer
+        event_id:
+          type: integer
+        title:
+          type: string
+        identifier:
+          type: string
+        prompt:
+          type: string
+        source:
+          type: string
+        difficulty:
+          $ref: "#/components/schemas/Difficulty"
+        user_id:
+          type: string
+          format: uuid
+        upload_date:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        public:
+          type: boolean
+        accept_timeout:
+          type: number
+          format: float
+        execution_timeout:
+          type: number
+          format: float
+        memory_limit:
+          type: integer
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+        test_cases:
+          type: array
+          items:
+            $ref: "#/components/schemas/TestCasePublic"
+
+    SubmissionPublic:
+      type: object
+      required: [id, user_id, problem_id, language_id, status, submit_time]
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        problem_id:
+          type: integer
+        language_id:
+          type: string
+          format: uuid
+        event_id:
+          type: integer
+        status:
+          $ref: "#/components/schemas/SubmissionStatusEnum"
+        submit_time:
+          type: string
+          format: date-time
+        time_elapsed:
+          type: number
+          format: float
+        source_code:
+          type: string
+        stdout:
+          type: string
+        stderr:
+          type: string
+        enqueue_state:
+          $ref: "#/components/schemas/EnqueueState"
+
+    SubmissionStatus:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/SubmissionStatusEnum"
+
+    AuthTokenResponse:
+      type: object
+      required: [token, id, name, email]
+      properties:
+        token:
+          type: string
+          description: JWT used in the Authorization header.
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        image:
+          type: string
+          format: uri
+
+    BasicAuthRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        image:
+          type: string
+          format: uri
+
+    OAuthUserRequest:
+      type: object
+      required: [id, name, email]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        image:
+          type: string
+          format: uri
+
+    PasswordResetRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    PasswordResetDirect:
+      type: object
+      required: [email, new_password, token]
+      properties:
+        email:
+          type: string
+          format: email
+        new_password:
+          type: string
+          format: password
+        token:
+          type: string
+
+    PasswordResetRequestResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+        token:
+          type: string
+          description: Returned only to trusted web bridge callers in development.
+
+    CreateProblemRequest:
+      type: object
+      required: [title, identifier, prompt, difficulty, user_id]
+      properties:
+        title:
+          type: string
+        identifier:
+          type: string
+        prompt:
+          type: string
+        source:
+          type: string
+        difficulty:
+          $ref: "#/components/schemas/Difficulty"
+        timeout:
+          type: number
+          format: float
+        accept_timeout:
+          type: number
+          format: float
+        execution_timeout:
+          type: number
+          format: float
+        memory_limit:
+          type: integer
+        user_id:
+          type: string
+          format: uuid
+        test_cases:
+          type: array
+          items:
+            $ref: "#/components/schemas/TestCaseInput"
+        category_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        public:
+          type: boolean
+
+    CreateProblemResponse:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: integer
+        event_problem_id:
+          type: integer
+
+    CreateSubmissionRequest:
+      type: object
+      required: [user_id, problem_id, language_id, source_code]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        problem_id:
+          type: integer
+        language_id:
+          type: string
+          format: uuid
+        source_code:
+          type: string
+        time_elapsed:
+          type: number
+          format: float
+        event_id:
+          type: integer
+          description: Required when submitting to a contest.
+
+    CreateEventRequest:
+      type: object
+      required: [title, start_time, end_time]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        teams:
+          type: boolean
+        languages:
+          type: array
+          items:
+            type: integer
+        problems:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateEventProblem"
+
+    CreateEventProblem:
+      type: object
+      required: [problem_id]
+      properties:
+        problem_id:
+          type: integer
+        accept_timeout:
+          type: number
+          format: float
+        execution_timeout:
+          type: number
+          format: float
+        memory_limit:
+          type: integer
+        languages:
+          type: array
+          items:
+            type: integer
+
+    Event:
+      type: object
+      required: [id, title, start_time, end_time, teams]
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        teams:
+          type: boolean
+
+    EventWithParticipants:
+      allOf:
+        - $ref: "#/components/schemas/Event"
+        - type: object
+          properties:
+            participants:
+              type: array
+              items:
+                $ref: "#/components/schemas/UserPublic"
+            problem_count:
+              type: integer
+
+    EventDetail:
+      allOf:
+        - $ref: "#/components/schemas/Event"
+        - type: object
+          properties:
+            participants:
+              type: array
+              items:
+                $ref: "#/components/schemas/UserPublic"
+            problems:
+              type: array
+              items:
+                type: object
+                required: [id]
+                properties:
+                  id:
+                    type: integer
+
+    Category:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+
+    TestCasePublic:
+      type: object
+      required: [id, hidden]
+      properties:
+        id:
+          type: string
+          format: uuid
+        problem_id:
+          type: integer
+        input:
+          type: string
+        expected_output:
+          type: string
+        hidden:
+          type: boolean
+
+    TestCaseInput:
+      type: object
+      properties:
+        input:
+          type: string
+        expected_output:
+          type: string
+        hidden:
+          type: boolean
+
+    Difficulty:
+      type: string
+      enum: ["VERY EASY", EASY, MEDIUM, HARD, "VERY HARD"]
+
+    SubmissionStatusEnum:
+      type: string
+      enum:
+        - PENDING
+        - ACCEPTED
+        - WRONG_ANSWER
+        - TIME_LIMIT_EXCEEDED
+        - MEMORY_LIMIT_EXCEEDED
+        - RUNTIME_ERROR
+        - COMPILE_TIME_ERROR
+
+    EnqueueState:
+      type: string
+      enum: [pending, queued, failed]
+
+    WhoamiResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        is_admin:
+          type: boolean
+        role:
+          type: integer
+
+    APITokenPublic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        token_prefix:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        expires_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    CreateTokenRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        expires_in_days:
+          type: integer
+
+    CreateTokenResponse:
+      type: object
+      properties:
+        token:
+          $ref: "#/components/schemas/APITokenPublic"
+        secret:
+          type: string
+
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateOrganizationRequest:
+      type: object
+      required: [slug, name]
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+
+    ClassRoom:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        term:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateClassRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        term:
+          type: string
+
+    RosterImportResult:
+      type: object
+      properties:
+        added:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string

@@ -20,7 +20,7 @@ export default async function SettingsProfilePage() {
         <div>
           <h3 className="text-lg font-medium">Overview</h3>
           <p className="text-sm text-muted-foreground">
-            Your organizer account details. Profile editing is not available yet.
+            Your organizer account details and public handle settings.
           </p>
         </div>
         <Separator />

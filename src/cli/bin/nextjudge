@@ -15,6 +15,8 @@ from pathlib import Path
 import tempfile
 import configparser
 import subprocess
+import getpass
+import stat
 from jsonschema import validate, ValidationError
 
 try:
@@ -26,6 +28,7 @@ except:
 
 CONFIG_FILE_NAME = ".nextjudge.config"
 CONFIG_FILE_PATH = Path.home() / CONFIG_FILE_NAME
+AUTH_SECTION = "auth"
 
 BASE_DIRECTORY = Path(os.path.dirname(os.path.abspath(__file__))).parent.absolute()
 
@@ -59,6 +62,13 @@ def main():
 
     # Auth
     auth_parser = toplevel_parser.add_parser("auth")
+    auth_subparser = auth_parser.add_subparsers(dest="auth_subcommand", required=True)
+    auth_login = auth_subparser.add_parser("login")
+    auth_login.add_argument("--email", dest="email", default=None)
+    auth_login.add_argument("--password", dest="password", default=None)
+    auth_login.add_argument("--token-name", dest="token_name", default="cli")
+    auth_subparser.add_parser("logout")
+    auth_subparser.add_parser("whoami")
 
     # Submit
     submit_parser = toplevel_parser.add_parser("submit")
@@ -127,7 +137,12 @@ def main():
 
     # Handle sub-commands
     if args.command == "auth":
-        pass
+        if args.auth_subcommand == "login":
+            auth_login_command(args.host, args.port, args.email, args.password, args.token_name)
+        elif args.auth_subcommand == "logout":
+            auth_logout_command()
+        elif args.auth_subcommand == "whoami":
+            auth_whoami_command(args.host, args.port)
     elif args.command == "event":
         subcommand = args.event_subcommand
         print(subcommand)
@@ -326,7 +341,7 @@ def send_solution(sol_path: str, problem_id: int | None, host: str, port: int) -
         print("Could not map the file to a language (based on extension)")
         return None
 
-    test_data_data = get_test_user_auth(host, port)
+    test_data_data = get_cli_auth(host, port)
     token = test_data_data["token"]
     id = test_data_data["id"]
     
@@ -737,7 +752,7 @@ def parse_event_yaml_file(path: str) -> EventDefinition:
 
 def event_create(host, port) -> None:
     # Fails if the event name already exists
-    test_data_data = get_test_user_auth(host, port)
+    test_data_data = get_cli_auth(host, port)
     token = test_data_data["token"]
     id = test_data_data["id"]
 
@@ -902,7 +917,7 @@ def event_get_by_id(host, port, event_id:int) -> dict:
     return get_test_event_data.json()
 
 def event_get_by_title(host, port, title:str) -> dict:
-    test_data_data = get_test_user_auth(host, port)
+    test_data_data = get_cli_auth(host, port)
     token = test_data_data["token"]
     id = test_data_data["id"]
 
@@ -930,6 +945,106 @@ def event_handle(host, port) -> None:
 CLI_TEST_EMAIL = "nextjudge-cli@local.dev"
 CLI_TEST_PASSWORD = "nextjudge-cli-local-password"
 CLI_TEST_NAME = "NextJudge CLI User"
+
+def load_cli_config() -> configparser.ConfigParser:
+    config = configparser.ConfigParser()
+    if CONFIG_FILE_PATH.exists():
+        config.read(CONFIG_FILE_PATH)
+    return config
+
+def save_cli_config(config: configparser.ConfigParser) -> None:
+    CONFIG_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(CONFIG_FILE_PATH, "w", encoding="utf-8") as handle:
+        config.write(handle)
+    CONFIG_FILE_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
+
+def get_stored_api_token() -> str | None:
+    config = load_cli_config()
+    if AUTH_SECTION not in config:
+        return None
+    token = config[AUTH_SECTION].get("token", "").strip()
+    return token or None
+
+def get_stored_api_host_port(default_host: str, default_port: int) -> tuple[str, int]:
+    config = load_cli_config()
+    if AUTH_SECTION not in config:
+        return default_host, default_port
+    host = config[AUTH_SECTION].get("host", default_host)
+    port = int(config[AUTH_SECTION].get("port", str(default_port)))
+    return host, port
+
+def auth_login_command(host: str, port: int, email: str | None, password: str | None, token_name: str) -> None:
+    base = f"http://{host}:{port}"
+    resolved_email = email or input("Email: ").strip()
+    resolved_password = password or getpass.getpass("Password: ")
+
+    login = requests.post(
+        f"{base}/v1/basic_login",
+        json={"email": resolved_email, "password": resolved_password},
+    )
+    if not login.ok:
+        print(f"Login failed: {login.status_code} {login.text}")
+        sys.exit(1)
+
+    jwt = login.json()["token"]
+    token_response = requests.post(
+        f"{base}/v1/tokens",
+        json={"name": token_name, "scopes": ["cli"]},
+        headers={"Authorization": jwt},
+    )
+    if not token_response.ok:
+        print(f"Token creation failed: {token_response.status_code} {token_response.text}")
+        sys.exit(1)
+
+    payload = token_response.json()
+    secret = payload["secret"]
+    config = load_cli_config()
+    if AUTH_SECTION not in config:
+        config[AUTH_SECTION] = {}
+    config[AUTH_SECTION]["token"] = secret
+    config[AUTH_SECTION]["host"] = host
+    config[AUTH_SECTION]["port"] = str(port)
+    config[AUTH_SECTION]["token_prefix"] = payload["token"]["token_prefix"]
+    save_cli_config(config)
+    print(f"Saved API token {payload['token']['token_prefix']}… to {CONFIG_FILE_PATH}")
+
+def auth_logout_command() -> None:
+    if CONFIG_FILE_PATH.exists():
+        CONFIG_FILE_PATH.unlink()
+    print("Cleared CLI credentials")
+
+def auth_whoami_command(host: str, port: int) -> None:
+    token = get_stored_api_token()
+    if token is None:
+        print("Not logged in. Run: nextjudge auth login")
+        sys.exit(1)
+
+    stored_host, stored_port = get_stored_api_host_port(host, port)
+    base = f"http://{stored_host}:{stored_port}"
+    response = requests.get(
+        f"{base}/v1/auth/whoami",
+        headers={"Authorization": token},
+    )
+    if not response.ok:
+        print(f"Whoami failed: {response.status_code} {response.text}")
+        sys.exit(1)
+
+    data = response.json()
+    print(json.dumps(data, indent=2))
+
+def get_cli_auth(host: str, port: int) -> dict:
+    token = get_stored_api_token()
+    if token is not None:
+        stored_host, stored_port = get_stored_api_host_port(host, port)
+        base = f"http://{stored_host}:{stored_port}"
+        response = requests.get(
+            f"{base}/v1/auth/whoami",
+            headers={"Authorization": token},
+        )
+        if response.ok:
+            data = response.json()
+            return {"token": token, "id": data["id"]}
+    return get_test_user_auth(host, port)
 
 def get_test_user_auth(host, port) -> dict:
     base = f"http://{host}:{port}"

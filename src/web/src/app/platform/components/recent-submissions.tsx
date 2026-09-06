@@ -50,7 +50,7 @@ const handleCopyCode = async (sourceCode: string) => {
 export function RecentSubmissions({
   submissions,
   sectionId = "submissions",
-  viewAllHref = "/platform/problems#submissions",
+  viewAllHref = "/platform/submissions",
 }: RecentSubmissionsProps) {
   const router = useRouter();
   const safeSubmissions = Array.isArray(submissions) ? submissions : [];

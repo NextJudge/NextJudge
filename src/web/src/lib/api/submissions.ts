@@ -3,7 +3,9 @@ import { Submission, SubmissionStatus } from "../types";
 import {
 	parseSubmission,
 	parseSubmissionList,
+	parseSubmissionListPage,
 	parseSubmissionStatusPoll,
+	type SubmissionListPageSchema,
 } from "../schemas/submission";
 import {
 	apiFetch,
@@ -19,11 +21,78 @@ export type SubmissionStatusPoll = {
 	status: SubmissionStatus;
 };
 
+export type SubmissionListParams = {
+	cursor?: string;
+	limit?: number;
+	status?: SubmissionStatus;
+	problem_id?: number;
+	language_id?: string;
+};
+
 const postSubmissionResponseSchema = z.object({
 	id: z.string(),
 });
 
 export type PostSubmissionResponse = z.infer<typeof postSubmissionResponseSchema>;
+
+const buildSubmissionListQuery = (params: SubmissionListParams = {}): string => {
+	const search = new URLSearchParams();
+	if (params.cursor) {
+		search.set("cursor", params.cursor);
+	}
+	if (params.limit !== undefined) {
+		search.set("limit", String(params.limit));
+	}
+	if (params.status) {
+		search.set("status", params.status);
+	}
+	if (params.problem_id !== undefined) {
+		search.set("problem_id", String(params.problem_id));
+	}
+	if (params.language_id) {
+		search.set("language_id", params.language_id);
+	}
+	const query = search.toString();
+	return query ? `?${query}` : "";
+};
+
+export async function apiListSubmissions(
+	token: string,
+	params: SubmissionListParams = {},
+): Promise<SubmissionListPageSchema> {
+	return apiFetchParsed(
+		`/v1/submissions${buildSubmissionListQuery(params)}`,
+		parseSubmissionListPage,
+		{ headers: authHeaders(token) },
+	);
+}
+
+export async function apiGetSubmission(
+	token: string,
+	id: string,
+): Promise<Submission> {
+	return apiFetchParsed(
+		`/v1/submissions/${id}`,
+		parseSubmission,
+		{ headers: authHeaders(token) },
+	);
+}
+
+/** @deprecated use apiGetSubmission */
+export async function apiGetSubmissionsStatus(
+	token: string,
+	id: string,
+): Promise<Submission> {
+	return apiGetSubmission(token, id);
+}
+
+/** Fetches a graded submission including per-test-case run results. */
+export async function apiGetSubmissionRuns(
+	token: string,
+	id: string,
+): Promise<Submission> {
+	return apiGetSubmission(token, id);
+}
 
 export async function postSolution(
 	token: string,
@@ -79,18 +148,7 @@ export async function apiWaitForSubmissionResult(
 		poll = await apiGetSubmissionStatusPoll(token, id);
 	}
 
-	return apiGetSubmissionsStatus(token, id);
-}
-
-export async function apiGetSubmissionsStatus(
-	token: string,
-	id: string,
-): Promise<Submission> {
-	return apiFetchParsed(
-		`/v1/submissions/${id}`,
-		parseSubmission,
-		{ headers: jsonAuthHeaders(token) },
-	);
+	return apiGetSubmission(token, id);
 }
 
 export async function apiGetRecentSubmissions(

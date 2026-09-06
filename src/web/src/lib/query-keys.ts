@@ -26,6 +26,15 @@ export const queryKeys = {
       ["events", eventId, "metadata", token] as const,
   },
   submissions: {
+    list: (
+      token: string,
+      filters: {
+        status?: string;
+        problemId?: number;
+        languageId?: string;
+      },
+    ) => ["submissions", "list", token, filters] as const,
+    detail: (token: string, id: string) => ["submissions", "detail", token, id] as const,
     status: (token: string, id: string) => ["submissions", token, id] as const,
     customInput: (token: string, id: string) =>
       ["customInput", token, id] as const,
