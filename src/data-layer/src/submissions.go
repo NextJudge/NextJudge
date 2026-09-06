@@ -646,10 +646,13 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if run == nil {
-			logrus.Warn("no pending submission run found")
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, `{"code":"400", "message":"run_id is required"}`)
-			return
+			run, err = db.CreateSubmissionRun(submission.ID)
+			if err != nil {
+				logrus.WithError(err).Error("failed to create submission run")
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(w, `{"code":"500", "message":"failed to create submission run"}`)
+				return
+			}
 		}
 	}
 
