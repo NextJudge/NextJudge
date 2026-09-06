@@ -1,0 +1,60 @@
+slug: constellation-partitions
+name: Constellation Partitions
+identifier: constellation-partitions
+difficulty: VERY HARD
+source: NextJudge Original
+topic: dynamic programming
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Constellation Partitions
+
+  Astronomers line up star brightness values in order. They want to cut the sequence into
+  **contiguous groups** so every group has the same total brightness.
+
+  Count how many **valid target brightnesses** exist: a target `T` is valid if you can
+  partition the entire sequence into one or more contiguous groups, each summing exactly
+  to `T`, using every element once in order.
+
+  ## Input
+
+  - Line 1: integer `n` (`1 ≤ n ≤ 200000`)
+  - Line 2: `n` positive integers `a_1 … a_n` (`1 ≤ a_i ≤ 10^9`)
+
+  ## Output
+
+  Print the number of valid targets `T`.
+
+  ## Examples
+
+  **Input**
+  ```
+  4
+  1 1 1 1
+  ```
+
+  **Output**
+  ```
+  3
+  ```
+
+  Explanation: targets `1`, `2`, and `4` each yield exactly one valid partition.
+
+  **Input**
+  ```
+  3
+  2 4 6
+  ```
+
+  **Output**
+  ```
+  2
+  ```
+
+  Explanation: targets `6` (`[2,4] | [6]`) and `12` (the whole array).

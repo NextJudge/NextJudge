@@ -1,0 +1,60 @@
+slug: relay-routes
+name: Relay Routes
+identifier: relay-routes
+difficulty: MEDIUM
+source: NextJudge Original
+topic: bfs
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Relay Routes
+
+  Field relays sit on a grid. Each cell is open (`.`), blocked (`#`), the start (`S`),
+  or the goal (`E`). A technician may move up, down, left, or right through open cells
+  in one minute per step.
+
+  Find the **minimum number of minutes** to reach `E` from `S`. Print `-1` if impossible.
+
+  ## Input
+
+  - Line 1: integers `r` and `c` (`1 ≤ r, c ≤ 1000`)
+  - Next `r` lines: a string of length `c` describing the grid
+
+  ## Output
+
+  Print one integer: the shortest travel time, or `-1` if `E` is unreachable.
+
+  ## Examples
+
+  **Input**
+  ```
+  4 5
+  S...#
+  .#.#.
+  ...#.
+  ....E
+  ```
+
+  **Output**
+  ```
+  7
+  ```
+
+  **Input**
+  ```
+  3 3
+  S#E
+  ###
+  ...
+  ```
+
+  **Output**
+  ```
+  -1
+  ```

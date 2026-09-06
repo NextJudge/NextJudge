@@ -1,0 +1,55 @@
+slug: beacon-checksum
+name: Beacon Checksum
+identifier: beacon-checksum
+difficulty: VERY EASY
+source: NextJudge Original
+topic: parsing
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Beacon Checksum
+
+  A rescue beacon broadcasts a short codeword. Ground stations verify the signal by
+  computing its **checksum**: add the ASCII value of every character in the codeword,
+  then take the result modulo `256`.
+
+  ## Input
+
+  A single line containing a non-empty string `S` (length at most `1000`). The string
+  contains no spaces.
+
+  ## Output
+
+  Print one integer: the checksum of `S`.
+
+  ## Examples
+
+  **Input**
+  ```
+  ABC
+  ```
+
+  **Output**
+  ```
+  198
+  ```
+
+  Explanation: `65 + 66 + 67 = 198`.
+
+  **Input**
+  ```
+  Hi
+  ```
+
+  **Output**
+  ```
+  177
+  ```
+
+  Explanation: `72 + 105 = 177`.

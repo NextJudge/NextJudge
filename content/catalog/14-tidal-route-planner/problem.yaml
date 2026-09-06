@@ -1,0 +1,62 @@
+slug: tidal-route-planner
+name: Tidal Route Planner
+identifier: tidal-route-planner
+difficulty: HARD
+source: NextJudge Original
+topic: dijkstra
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Tidal Route Planner
+
+  Coastal ports are connected by ferry routes. Each route has a travel cost and a type:
+
+  - `0` — calm water (unlimited use)
+  - `1` — tidal channel (you may traverse **at most one** tidal route on the whole trip)
+
+  Find the minimum total cost to sail from port `1` to port `n`. If impossible, print `-1`.
+
+  ## Input
+
+  - Line 1: integers `n` and `m` (`2 ≤ n ≤ 100000`, `1 ≤ m ≤ 200000`)
+  - Next `m` lines: integers `u`, `v`, `w`, `t` — undirected route between `u` and `v`
+    with cost `w` (`1 ≤ w ≤ 10^9`) and type `t` (`0` or `1`)
+
+  ## Output
+
+  Print the minimum cost, or `-1` if port `n` cannot be reached.
+
+  ## Examples
+
+  **Input**
+  ```
+  3 3
+  1 2 10 0
+  2 3 1 1
+  1 3 100 0
+  ```
+
+  **Output**
+  ```
+  11
+  ```
+
+  Explanation: sail `1 → 2` (cost `10`), then take the one allowed tidal route `2 → 3`
+  (cost `1`).
+
+  **Input**
+  ```
+  2 1
+  1 2 7 0
+  ```
+
+  **Output**
+  ```
+  7
+  ```
