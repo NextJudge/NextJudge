@@ -347,11 +347,7 @@ func writeErrorResponse(w http.ResponseWriter, r *http.Request, statusCode int, 
 
 func basicRegister(w http.ResponseWriter, r *http.Request) {
 	if !cfg.BasicRegistrationEnabled {
-<<<<<<< HEAD
 		writeErrorResponse(w, r, http.StatusForbidden, "Basic registration is disabled; use GitHub to create an account", "BASIC_REGISTRATION_DISABLED")
-=======
-		writeErrorResponse(w, http.StatusForbidden, "Basic registration is disabled; use GitHub to create an account", "BASIC_REGISTRATION_DISABLED")
->>>>>>> origin/main
 		return
 	}
 
