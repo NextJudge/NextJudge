@@ -1,4 +1,6 @@
 import os
+import socket
+import uuid
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 RABBITMQ_PORT = os.getenv("RABBITMQ_PORT", 5672)
@@ -32,3 +34,8 @@ BUILD_SCRIPT_NAME = "build.sh"
 RUN_SCRIPT_NAME = "main"
 
 JUDGE_JWT_TOKEN = ""
+
+JUDGE_WORKER_ID = os.getenv("JUDGE_WORKER_ID", str(uuid.uuid4()))
+JUDGE_HOSTNAME = os.getenv("JUDGE_HOSTNAME", socket.gethostname())
+JUDGE_METRICS_PORT = int(os.getenv("JUDGE_METRICS_PORT", "9090"))
+JUDGE_HEARTBEAT_INTERVAL_SECONDS = int(os.getenv("JUDGE_HEARTBEAT_INTERVAL_SECONDS", "30"))

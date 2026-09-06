@@ -6,6 +6,7 @@ import aio_pika
 import aio_pika.abc
 
 import config
+from metrics import ACTIVE_SUBMISSIONS, SUBMISSION_DURATION_SECONDS, SUBMISSIONS_TOTAL
 from pipeline import (
     get_input_submission_data,
     get_submission_data,
@@ -15,28 +16,47 @@ from pipeline import (
 
 
 async def handle_test_submission(submission_id: str) -> None:
-    submission_data = await asyncio.to_thread(get_submission_data, submission_id)
+    ACTIVE_SUBMISSIONS.inc()
+    start_time = time.time()
+    status = "error"
+    try:
+        submission_data = await asyncio.to_thread(get_submission_data, submission_id)
 
-    if submission_data.get("status") != "PENDING":
-        print(f"Submission {submission_id} already judged ({submission_data.get('status')}), skipping")
-        return
+        if submission_data.get("status") != "PENDING":
+            print(f"Submission {submission_id} already judged ({submission_data.get('status')}), skipping")
+            status = "skipped"
+            return
 
-    await judge_test_submission(submission_data)
+        await judge_test_submission(submission_data)
+        status = "processed"
+    finally:
+        SUBMISSIONS_TOTAL.labels(type="submission", status=status).inc()
+        SUBMISSION_DURATION_SECONDS.labels(type="submission").observe(time.time() - start_time)
+        ACTIVE_SUBMISSIONS.dec()
 
 
 async def handle_custom_input_submission(json_data: dict[str, object]) -> None:
+    ACTIVE_SUBMISSIONS.inc()
+    start_time = time.time()
+    status = "error"
     submission_id = str(json_data["id"])
+    try:
+        input_data = await asyncio.to_thread(get_input_submission_data, submission_id)
+        if input_data.get("finished"):
+            print(f"Input submission {submission_id} already finished, skipping")
+            status = "skipped"
+            return
 
-    input_data = await asyncio.to_thread(get_input_submission_data, submission_id)
-    if input_data.get("finished"):
-        print(f"Input submission {submission_id} already finished, skipping")
-        return
+        source_code = str(input_data["source_code"])
+        language_id = str(input_data["language_id"])
+        stdin = str(input_data["stdin"])
 
-    source_code = str(input_data["source_code"])
-    language_id = str(input_data["language_id"])
-    stdin = str(input_data["stdin"])
-
-    await judge_custom_input_submission(submission_id, source_code, language_id, stdin)
+        await judge_custom_input_submission(submission_id, source_code, language_id, stdin)
+        status = "processed"
+    finally:
+        SUBMISSIONS_TOTAL.labels(type="input", status=status).inc()
+        SUBMISSION_DURATION_SECONDS.labels(type="input").observe(time.time() - start_time)
+        ACTIVE_SUBMISSIONS.dec()
 
 
 async def handle_submission(message: aio_pika.abc.AbstractIncomingMessage) -> None:

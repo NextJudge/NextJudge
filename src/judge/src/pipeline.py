@@ -7,6 +7,7 @@ import requests
 import config
 from sandbox.environment import (
     CompileResult,
+    ProblemLimits,
     ProgramEnvironment,
     ResultReason,
     Test,
@@ -98,6 +99,26 @@ def post_judgement(submission_id: str, data: dict[str, object]) -> requests.Resp
     return response
 
 
+def post_worker_heartbeat() -> None:
+    response = requests.post(
+        f"{config.NEXTJUDGE_ENDPOINT}/v1/judge_workers/heartbeat",
+        json={
+            "worker_id": config.JUDGE_WORKER_ID,
+            "hostname": config.JUDGE_HOSTNAME,
+        },
+        headers={
+            "Authorization": config.JUDGE_JWT_TOKEN,
+        },
+        timeout=5,
+    )
+    if not response.ok:
+        print(
+            f"Failed to post judge worker heartbeat: "
+            f"status_code={response.status_code}, response={response.text}",
+            flush=True,
+        )
+
+
 def post_custom_input_result(submission_id: str, body: dict[str, object]) -> None:
     print(
         f"Sending custom input result for submission {submission_id}: "
@@ -183,12 +204,36 @@ def compile_submission(
     source_code: str,
     language_id: str,
     environment: ProgramEnvironment,
+    limits: ProblemLimits | None = None,
 ) -> tuple[Language | None, CompileResult | None]:
     language = resolve_local_language(language_id)
     if language is None:
         return None, None
-    compile_result = compile_in_jail(source_code, language, environment)
+    compile_result = compile_in_jail(source_code, language, environment, limits=limits)
     return language, compile_result
+
+
+def parse_problem_limits(test_data: dict[str, object]) -> tuple[ProblemLimits, ProblemLimits]:
+    run_defaults = ProblemLimits.run_defaults()
+    compile_defaults = ProblemLimits.compile_defaults()
+
+    accept_timeout = float(test_data.get("default_accept_timeout", run_defaults.time_limit))
+    execution_timeout = float(
+        test_data.get("default_execution_timeout", test_data.get("default_cpu_timeout", accept_timeout))
+    )
+    memory_limit = int(test_data.get("default_memory_timeout", test_data.get("default_memory_limit", 256)))
+
+    run_limits = ProblemLimits(
+        time_limit=accept_timeout,
+        cpu_limit=execution_timeout,
+        memory_limit_mb=memory_limit,
+    )
+    compile_limits = ProblemLimits(
+        time_limit=max(accept_timeout, compile_defaults.time_limit),
+        cpu_limit=max(execution_timeout, compile_defaults.cpu_limit),
+        memory_limit_mb=max(memory_limit, compile_defaults.memory_limit_mb),
+    )
+    return run_limits, compile_limits
 
 
 def build_tests_from_api(test_data: dict[str, object]) -> list[Test]:
@@ -207,6 +252,7 @@ def run_test_suite(
     tests: list[Test],
     environment: ProgramEnvironment,
     language: Language,
+    limits: ProblemLimits | None = None,
 ) -> tuple[ResultReason, bytes, bytes, str, list[TestCaseResultPayload], float]:
     test_case_results: list[TestCaseResultPayload] = []
     last_stdout = b""
@@ -215,7 +261,7 @@ def run_test_suite(
 
     for test in tests:
         start_time = time.time()
-        run_result = run_single_test_case(test, environment, language=language)
+        run_result = run_single_test_case(test, environment, limits=limits, language=language)
         elapsed = time.time() - start_time
         total_time_elapsed += elapsed
 
@@ -245,6 +291,7 @@ def run_test_suite(
 async def judge_test_submission(submission_data: SubmissionData) -> None:
     test_data = get_test_data(submission_data["problem"]["id"])
     tests = build_tests_from_api(test_data)
+    run_limits, compile_limits = parse_problem_limits(test_data)
 
     environment = create_program_environment()
     environment.create_directories()
@@ -254,6 +301,7 @@ async def judge_test_submission(submission_data: SubmissionData) -> None:
         submission_data["source_code"],
         submission_data["language_id"],
         environment,
+        limits=compile_limits,
     )
 
     if language is None:
@@ -283,6 +331,7 @@ async def judge_test_submission(submission_data: SubmissionData) -> None:
         tests,
         environment,
         language,
+        limits=run_limits,
     )
 
     environment.remove_files()
