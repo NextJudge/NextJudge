@@ -92,7 +92,7 @@ curl -s http://localhost:5000/v1/languages | jq '.[0:3]'
 
 Note a language `id` (for example Python). The walkthrough calls it `$LANG_ID`.
 
-No auth required. An empty array `[]` usually means the database did not seed. `./dev-deploy.sh` sets `SEED_DATA=true`; plain `./deploy.sh` may not. Admins can register languages later.
+No auth required. An empty array `[]` usually means the one-shot development seed did not complete. `./dev-deploy.sh` runs that seed explicitly; plain `./deploy.sh` does not. Admins can register languages later.
 
 ### 4. Find a problem
 

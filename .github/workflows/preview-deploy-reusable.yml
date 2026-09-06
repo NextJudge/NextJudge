@@ -120,8 +120,10 @@ jobs:
             judge.cache-to=type=gha,mode=max,scope=nextjudge-judge
 
       - name: Deploy backend preview
+        id: backend
         if: inputs.preview_backend_changed == 'true'
         env:
+          PREVIEW_BACKEND_ENV: ${{ secrets.PREVIEW_BACKEND_ENV }}
           COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
           COOLIFY_BACKEND_SERVICE_UUID: ${{ vars.COOLIFY_BACKEND_SERVICE_UUID }}
           COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
@@ -141,6 +143,7 @@ jobs:
             ./scripts/coolify-preview-deploy.sh
 
       - name: Deploy web preview
+        id: web
         if: inputs.web_changed == 'true'
         env:
           COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
@@ -157,6 +160,7 @@ jobs:
             ./scripts/coolify-preview-deploy.sh
 
       - name: Deploy docs preview
+        id: docs
         if: inputs.docs_changed == 'true'
         env:
           COOLIFY_API_URL: ${{ vars.COOLIFY_API_URL }}
@@ -210,6 +214,9 @@ jobs:
       - name: Update PR status comment on failure
         if: failure() && inputs.update_pr_comment == 'true'
         env:
+          BACKEND_DEPLOY_RESULT: ${{ steps.backend.outcome }}
+          WEB_DEPLOY_RESULT: ${{ steps.web.outcome }}
+          DOCS_DEPLOY_RESULT: ${{ steps.docs.outcome }}
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ inputs.pr_number }}
           SHA: ${{ inputs.pr_head_sha }}

@@ -1,6 +1,6 @@
 services:
   nextjudge-data-layer:
-    image: ${DOCKERHUB_NAMESPACE:-nextjudge}/nextjudge-core:${NEXTJUDGE_CORE_IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-nextjudge}/nextjudge-core:${NEXTJUDGE_CORE_IMAGE_TAG:?set an immutable core image tag}
     platform: linux/amd64
     expose:
       - "5000"
@@ -15,7 +15,7 @@ services:
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
       - CORS_ORIGIN=${CORS_ORIGIN}
-      - CORS_ALLOW_PREVIEW=${CORS_ALLOW_PREVIEW:-true}
+      - CORS_ALLOW_PREVIEW=false
       - TRUSTED_PROXY=${TRUSTED_PROXY:-true}
       - PASSWORD_RESET_DEBUG=false
       - ALLOW_INSECURE_PASSWORD_RESET=false
@@ -73,7 +73,7 @@ services:
       retries: 5
 
   nextjudge-judge:
-    image: ${DOCKERHUB_NAMESPACE:-nextjudge}/nextjudge-judge:${NEXTJUDGE_JUDGE_IMAGE_TAG:-latest}
+    image: ${DOCKERHUB_NAMESPACE:-nextjudge}/nextjudge-judge:${NEXTJUDGE_JUDGE_IMAGE_TAG:?set an immutable judge image tag}
     platform: linux/amd64
     privileged: true
     environment:

@@ -563,7 +563,7 @@ TAVERN_HOST=http://127.0.0.1:5050 pytest tests/test_data_layer.tavern.yaml -p no
 docker compose -f docker-compose.test.yml down -v
 ```
 
-Go unit tests run as part of the script above (`go test ./src/...`). Auth is always on — tests register users via `basic_register` / `basic_login`.
+Go unit tests run as part of the script above (`go test ./src/...`). Auth is always on; the isolated test compose explicitly enables basic registration so Tavern can exercise `basic_register` / `basic_login`.
 
 Canonical API docs: [nextjudge.net docs](https://nextjudge.net) or `src/docs/src/content/docs/reference/api.md` in this repo.
 

@@ -15,8 +15,8 @@ interface PlatformLayoutProps {
   children: React.ReactNode;
 }
 
-export default function PlatformLayout({ children }: PlatformLayoutProps) {
-  const headersList = headers();
+export default async function PlatformLayout({ children }: PlatformLayoutProps) {
+  const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
 
   const isEditorPage =

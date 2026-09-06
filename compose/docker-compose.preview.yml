@@ -1,0 +1,7 @@
+services:
+  nextjudge-data-layer:
+    environment:
+      - CORS_ALLOW_PREVIEW=true
+      - PASSWORD_RESET_DEBUG=true
+      - ALLOW_INSECURE_PASSWORD_RESET=false
+      - BASIC_REGISTRATION_ENABLED=true

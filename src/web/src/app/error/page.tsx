@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 enum Error {
   Configuration = "There is a problem with the server configuration. Check if your options are correct.",
@@ -96,12 +97,12 @@ export default function AuthErrorPage() {
               </Suspense>
             </CardContent>
             <CardFooter>
-              <a
+              <Link
                 href="/"
                 className={cn(`${buttonVariants({ variant: "link" })}`)}
               >
                 Return to home
-              </a>
+              </Link>
             </CardFooter>
           </Card>
         </div>

@@ -7,6 +7,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -74,38 +75,33 @@ export function EditorThemeSelector({
       <PopoverContent className={cn(isCompact ? "w-[220px] p-0" : "w-[200px] p-0")}>
         <Command>
           <CommandInput placeholder="Search our themes..." className="h-9" />
-          <CommandEmpty>No theme found.</CommandEmpty>
-          <CommandGroup className="overflow-y-scroll max-h-52">
-            {allThemes.map((theme: Theme) => (
-              <CommandItem
-                key={theme.name}
-                value={theme.name}
-                onSelect={(currVal: string) => {
-                  // Handle built-in themes differently
-                  if (theme.name === "vs-dark" || theme.name === "light") {
-                    // For built-in themes, we need to use the provider's setTheme differently
-                    // But since the provider doesn't handle built-ins, we'll need to work around this
+          <CommandList className="max-h-52">
+            <CommandEmpty>No theme found.</CommandEmpty>
+            <CommandGroup>
+              {allThemes.map((theme: Theme) => (
+                <CommandItem
+                  key={theme.name}
+                  value={theme.name}
+                  onSelect={() => {
                     setTheme(theme);
-                  } else {
-                    setTheme(theme);
-                  }
-                  setOpen(false);
-                }}
-              >
-                {theme.name === "vs-dark" ? "VS Code Dark" :
-                  theme.name === "light" ? "VS Code Light" :
-                    theme.name}
-                <CheckIcon
-                  className={cn(
-                    "ml-auto h-4 w-4",
-                    currentTheme?.name === theme.name
-                      ? "opacity-100"
-                      : "opacity-0"
-                  )}
-                />
-              </CommandItem>
-            ))}
-          </CommandGroup>
+                    setOpen(false);
+                  }}
+                >
+                  {theme.name === "vs-dark" ? "VS Code Dark" :
+                    theme.name === "light" ? "VS Code Light" :
+                      theme.name}
+                  <CheckIcon
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      currentTheme?.name === theme.name
+                        ? "opacity-100"
+                        : "opacity-0"
+                    )}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>

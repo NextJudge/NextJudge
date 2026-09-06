@@ -7,13 +7,8 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-ARG TIPTAP_NPM_TOKEN
-
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
-RUN if [ -n "$TIPTAP_NPM_TOKEN" ]; then \
-      printf '@tiptap-pro:registry=https://registry.tiptap.dev/\n//registry.tiptap.dev/:_authToken=%s\n' "$TIPTAP_NPM_TOKEN" > .npmrc; \
-    fi
 RUN npm ci
 
 # 2. Rebuild the source code only when needed

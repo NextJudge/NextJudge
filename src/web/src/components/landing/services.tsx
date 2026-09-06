@@ -15,18 +15,22 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
+import type { LottieProps } from "lottie-react";
 import animationData from "../../../public//lottie/lottie.json";
 import { items } from "./bento";
 // import Lottie from "lottie-react";
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+const Lottie = dynamic<LottieProps>(
+  () => import("lottie-react").then((module) => module.Lottie),
+  { ssr: false }
+);
 
 const Code = dynamic(() => import("@/components/code"), { ssr: false });
 
 interface ServiceProps {
   title: string;
   description: string;
-  icon: JSX.Element;
+  icon: ReactElement;
   id: number;
 }
 
@@ -166,10 +170,10 @@ const PlatformItems = () => {
 const LottieAnimation = () => {
   return (
     <Lottie
-      animationData={animationData}
+      src={animationData}
       className="w-[200px] md:w-[400px] lg:w-[500px] object-contain"
       loop={true}
-      autoPlay
+      autoplay
     />
   );
 };

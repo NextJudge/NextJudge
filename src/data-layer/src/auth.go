@@ -25,8 +25,8 @@ func addAuthRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/login_judge"), loginJudge)
 	mux.HandleFunc(pat.Post("/v1/basic_register"), RateLimitMiddleware(basicRegister, authEndpointLimiter))
 	mux.HandleFunc(pat.Post("/v1/basic_login"), RateLimitMiddleware(basicLogin, authEndpointLimiter))
-    mux.HandleFunc(pat.Post("/v1/basic_request_password_reset"), RateLimitMiddleware(basicRequestPasswordReset, authEndpointLimiter))
-    mux.HandleFunc(pat.Post("/v1/basic_reset_password"), RateLimitMiddleware(basicResetPassword, authEndpointLimiter))
+	mux.HandleFunc(pat.Post("/v1/basic_request_password_reset"), RateLimitMiddleware(basicRequestPasswordReset, authEndpointLimiter))
+	mux.HandleFunc(pat.Post("/v1/basic_reset_password"), RateLimitMiddleware(basicResetPassword, authEndpointLimiter))
 }
 
 type CreateTokenResponse struct {
@@ -354,6 +354,11 @@ func writeErrorResponse(w http.ResponseWriter, statusCode int, errorMsg string, 
 }
 
 func basicRegister(w http.ResponseWriter, r *http.Request) {
+	if !cfg.BasicRegistrationEnabled {
+		writeErrorResponse(w, http.StatusForbidden, "Basic registration is disabled; use GitHub to create an account", "BASIC_REGISTRATION_DISABLED")
+		return
+	}
+
 	reqData := new(BasicUserPost)
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -494,7 +499,7 @@ func basicLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 type PasswordResetRequest struct {
-    Email string `json:"email"`
+	Email string `json:"email"`
 }
 
 type PasswordResetDirect struct {
@@ -506,6 +511,12 @@ type PasswordResetDirect struct {
 type PasswordResetRequestResponse struct {
 	Status string `json:"status"`
 	Token  string `json:"token,omitempty"`
+}
+
+func isTrustedWebBridgeRequest(r *http.Request) bool {
+	authHeaders, ok := r.Header["Authorization"]
+	return len(cfg.WebBridgeSecret) > 0 && ok && len(authHeaders) == 1 &&
+		subtle.ConstantTimeCompare([]byte(authHeaders[0]), cfg.WebBridgeSecret) == 1
 }
 
 // validates the email exists and stores a single-use reset token.
@@ -543,8 +554,10 @@ func basicRequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 			writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
 			return
 		}
-		if cfg.PasswordResetDebug {
+		if cfg.PasswordResetDebug || isTrustedWebBridgeRequest(r) {
 			resp.Token = plainToken
+		}
+		if cfg.PasswordResetDebug {
 			logrus.WithField("email", req.Email).Warn("PASSWORD_RESET_DEBUG enabled: reset token issued")
 		}
 	}

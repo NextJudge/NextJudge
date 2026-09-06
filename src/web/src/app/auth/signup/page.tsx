@@ -2,13 +2,13 @@ import { Metadata } from "next";
 import Link from "next/link";
 
 import { SignUpForm } from "@/components/forms/signup-form";
+import { CodeLoader } from "@/components/code-loader";
 import { Icons } from "@/components/icons";
 import { ModeToggle } from "@/components/theme";
 import { buttonVariants } from "@/components/ui/button";
 import { createPageMetadata } from "@/lib/seo";
 import { BRAND_NAME, getCopyrightNotice } from "@/lib/site";
 import { cn } from "@/lib/utils";
-import dynamic from "next/dynamic";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Sign up",
@@ -16,9 +16,13 @@ export const metadata: Metadata = createPageMetadata({
   path: "/auth/signup",
 });
 
-const Code = dynamic(() => import("@/components/code"), { ssr: false });
-
 export default function SignUpPage() {
+  const basicRegistrationValue = process.env.BASIC_REGISTRATION_ENABLED
+    ?.trim()
+    .toLowerCase();
+  const allowBasicRegistration =
+    basicRegistrationValue === "true" || basicRegistrationValue === "1";
+
   return (
     <>
       <header className="absolute top-4 left-4 z-50 flex items-center gap-2">
@@ -39,7 +43,7 @@ export default function SignUpPage() {
       >
         <div className="lg:p-8">
           <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-            <SignUpForm />
+            <SignUpForm allowBasicRegistration={allowBasicRegistration} />
           </div>
         </div>
         <div className="relative hidden h-full flex-col px-10 pt-10 dark:text-white text-black lg:flex dark:border-r ">
@@ -57,7 +61,7 @@ export default function SignUpPage() {
             {BRAND_NAME}
           </div>
           <div id="lottie-panel" className="relative z-20 mt-auto">
-            <Code />
+            <CodeLoader />
           </div>
           <div className="relative z-20 mt-auto">
             <p className="text-xs text-muted-foreground">

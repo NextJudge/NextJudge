@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { ReactElement } from "react";
 import cSvg from "../../../public/icons/c.svg";
 import cplusplusSvg from "../../../public/icons/cplusplus.svg";
 import csharpSvg from "../../../public/icons/csharp.svg";
@@ -25,7 +26,7 @@ interface SvgProps {
   alt: string;
 }
 
-type Component = (props: SvgProps) => JSX.Element;
+type Component = (props: SvgProps) => ReactElement;
 
 const SvgAsJsx: Component = ({ icon, size, alt }) => {
   return (
@@ -53,7 +54,7 @@ const LanguageCard = ({
   icon,
 }: {
   label: string;
-  icon: JSX.Element;
+  icon: ReactElement;
 }) => {
   return (
     <div

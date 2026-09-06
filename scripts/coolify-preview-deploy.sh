@@ -97,7 +97,8 @@ deploy_preview() {
 
   if [[ -n "$deployment_uuid" ]]; then
     echo "Queued preview deployment ${deployment_uuid} for app ${COOLIFY_APP_UUID} (PR #${PR_NUMBER})." >&2
-    return 0
+    wait_for_deployment "$deployment_uuid"
+    return $?
   fi
 
   if [[ "$message" == *"not found for this resource"* ]]; then
@@ -106,6 +107,31 @@ deploy_preview() {
 
   echo "Coolify preview deploy failed for app ${COOLIFY_APP_UUID}: ${message:-unknown error}" >&2
   echo "$response" >&2
+  return 1
+}
+
+wait_for_deployment() {
+  local deployment_uuid="$1" status response
+  local deadline=$((SECONDS + 1200))
+  while (( SECONDS < deadline )); do
+    response="$(curl -fsS --max-time 30 \
+      "${COOLIFY_API_URL}/deployments/${deployment_uuid}" \
+      -H "Authorization: Bearer ${COOLIFY_API_TOKEN}")" || return 1
+    status="$(printf '%s' "$response" | jq -r '.status // empty')"
+    case "$status" in
+      finished)
+        if [[ "$(printf '%s' "$response" | jq -r '.commit // empty')" != "$PR_HEAD_SHA" ]]; then
+          echo "Preview deployment finished with an unexpected commit." >&2
+          return 1
+        fi
+        return 0 ;;
+      failed|error|cancelled|cancelled-by-user)
+        echo "Preview deployment ${deployment_uuid}: ${status}" >&2
+        return 1 ;;
+    esac
+    sleep 15
+  done
+  echo "Timed out waiting for preview deployment ${deployment_uuid}." >&2
   return 1
 }
 
@@ -167,12 +193,13 @@ bootstrap_preview() {
   echo "Preview bootstrap webhook accepted." >&2
 }
 
-set_preview_image_tags
-
 if [[ "${COOLIFY_RESOURCE_TYPE:-application}" == "service" ]]; then
+  # Image tags are passed directly to SSH; service env updates are not preview-isolated.
   deploy_preview_backend_ssh
   exit 0
 fi
+
+set_preview_image_tags
 
 if deploy_preview; then
   exit 0

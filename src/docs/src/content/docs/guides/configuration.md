@@ -11,7 +11,7 @@ NextJudge splits configuration across the **backend** (Docker Compose) and the *
 | ---- | ------- | ------- |
 | `.env.example` (repo root) | Reference | Template for backend secrets and security flags |
 | `.env` (repo root) | `./deploy.sh` | Prod-like local stack; no seed by default |
-| `.env.dev` (repo root) | `./dev-deploy.sh` | Dev stack: hot reload, `SEED_DATA=true` |
+| `.env.dev` (repo root) | `./dev-deploy.sh` | Dev stack: hot reload plus an explicit one-shot seed service |
 | `src/web/.env.local` | `npm run dev` / `npm start` on host | Auth.js, API URL, bridge secret |
 
 Generate backend secrets once:
@@ -54,7 +54,7 @@ Optional backend keys:
 | `TRUSTED_PROXY` | `false` | Trust `X-Forwarded-For` for auth rate limits (set `true` behind Traefik/nginx in production) |
 | `PASSWORD_RESET_DEBUG` | `false` | Dev/E2E only: include reset token in `basic_request_password_reset` response — **never enable in production** |
 | `ALLOW_INSECURE_PASSWORD_RESET` | `false` | Dev only: allow `basic_reset_password` without a token — **never enable in production** |
-| `SEED_DATA` | `false` | `true` in dev compose — sample users/problems/events |
+| `BASIC_REGISTRATION_ENABLED` | `false` | Permit new email/password accounts. NextJudge production keeps this off and uses GitHub registration |
 | `ELASTIC_ENABLED` | `false` | Problem search index (optional) |
 | `ELASTIC_ENDPOINT` | `http://localhost:9200` | Elasticsearch URL when enabled |
 
@@ -76,7 +76,8 @@ Copy `src/web/.env.example` → `src/web/.env.local`:
 | `AUTH_TRUST_HOST` | PR previews | `true` when behind Coolify Traefik |
 | `NEXT_PUBLIC_API_URL` | Self-hosted prod | Set at **`next build`**. Omit on Coolify **preview** web (runtime routing) |
 | `NEXTAUTH_URL` | Self-hosted prod | Public HTTPS URL of the web app |
-| `RESEND_API_KEY` | Optional | Email (waitlist, etc.) |
+| `RESEND_API_KEY` | Production | Transactional email, including password-reset tokens for existing basic accounts |
+| `BASIC_REGISTRATION_ENABLED` | No | Defaults off; enable only for local development or a self-hosted instance that accepts email registration |
 
 Deprecated fallback on web: `AUTH_PROVIDER_PASSWORD` — use `WEB_BRIDGE_SECRET`.
 
@@ -137,7 +138,7 @@ Each PR gets an isolated stack:
 
 **Backend** is a Coolify compose *service* — Coolify does not provision per-PR compose previews via its deploy API. CI runs `scripts/coolify-preview-backend-ssh.sh` over SSH: an isolated `docker compose` project per PR, Traefik on the host `coolify` network, hostname `{PR}-api.preview.nextjudge.net`.
 
-**Backend preview env** (preview-scoped on the compose service): `SEED_DATA=true`, `PASSWORD_RESET_DEBUG=true`, relaxed `AUTH_RATE_LIMIT_*`, isolated secrets. `WEB_BRIDGE_SECRET` must match preview web.
+**Backend preview env** (preview-scoped on the compose service): `PASSWORD_RESET_DEBUG=true`, `BASIC_REGISTRATION_ENABLED=true`, relaxed `AUTH_RATE_LIMIT_*`, and isolated secrets. CI applies `compose/docker-compose.preview.yml` and invokes `/main -seed-dev` once before starting the preview API. `WEB_BRIDGE_SECRET` must match preview web.
 
 **Web preview env:** do **not** set `NEXT_PUBLIC_API_URL` — `{PR}-web` hostnames route API calls to `{PR}-api` at runtime.
 
@@ -146,7 +147,7 @@ Each PR gets an isolated stack:
 **Setup scripts** (require `coolify.env` + `ssh nextjudge`):
 
 ```bash
-./scripts/coolify-configure-preview-stack.sh   # prod + preview env on Coolify
+./scripts/coolify-configure-preview-stack.sh   # preview-scoped env on Coolify
 ./scripts/setup-coolify-preview-webhooks.sh    # sync GitHub webhook secrets (web/docs)
 ```
 
@@ -157,7 +158,7 @@ PR_NUMBER=123 COOLIFY_SSH_HOST=nextjudge ./scripts/coolify-preview-backend-ssh.s
 PR_NUMBER=123 COOLIFY_SSH_HOST=nextjudge ./scripts/coolify-preview-backend-ssh.sh cleanup
 ```
 
-Seeded preview login: `Alice.Smith0@example.com` / `test123` (when `SEED_DATA=true`).
+Seeded preview login: `Alice.Smith0@example.com` / `test123` after the explicit preview seed command completes.
 
 ---
 
@@ -198,16 +199,17 @@ JWT_SIGNING_SECRET
 RABBITMQ_USER
 RABBITMQ_PASSWORD
 CORS_ORIGIN=https://yourdomain.com
-CORS_ALLOW_PREVIEW=true
+CORS_ALLOW_PREVIEW=false
 TRUSTED_PROXY=true
 PASSWORD_RESET_DEBUG=false
 ALLOW_INSECURE_PASSWORD_RESET=false
+BASIC_REGISTRATION_ENABLED=false
 ADMIN_EMAILS=admin@example.com
 ```
 
 Set these on the Coolify **service** (Docker Compose stack), not the web application. The backend service UUID is `COOLIFY_BACKEND_SERVICE_UUID` in GitHub Actions.
 
-Images: `${DOCKERHUB_NAMESPACE}/nextjudge-core:latest`, `${DOCKERHUB_NAMESPACE}/nextjudge-judge:latest`. Build fresh with `DOCKERHUB_NAMESPACE=your-namespace docker buildx bake -f docker-bake.hcl`.
+Production images must use immutable `sha-{full_commit_sha}` tags for both core and judge. The manual production workflow waits for CI, publishes the exact SHA images, health-checks the platform, and rolls back to the parent SHA on failure.
 
 The Coolify compose file **does not** include the web app or Elasticsearch. Deploy `src/web` as a separate Coolify application.
 

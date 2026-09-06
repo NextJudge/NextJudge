@@ -1,6 +1,6 @@
 services:
   nextjudge-data-layer:
-    image: "ghcr.io/nextjudge/core:latest"
+    image: "ghcr.io/nextjudge/core:${NEXTJUDGE_CORE_IMAGE_TAG:?set an immutable core image tag}"
     environment:
       - ELASTIC_ENDPOINT=http://elasticsearch:9200
       - ELASTIC_ENABLED="${ELASTIC_ENABLED:-false}"
@@ -27,7 +27,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
 
   nextjudge-judge:
-    image: "ghcr.io/nextjudge/judge:latest"
+    image: "ghcr.io/nextjudge/judge:${NEXTJUDGE_JUDGE_IMAGE_TAG:?set an immutable judge image tag}"
     privileged: true
     environment:
       - RABBITMQ_HOST=rabbitmq

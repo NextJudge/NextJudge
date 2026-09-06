@@ -243,9 +243,9 @@ export function PlatformNavbar() {
       <div className="container h-14 px-4 w-screen flex justify-between ">
         <div className="font-bold flex items-center">
           <Pyramid className="w-10 h-10" />
-          <a href="/" className="ml-3 font-bold text-xl flex">
+          <Link href="/" className="ml-3 font-bold text-xl flex">
             {BRAND_NAME}
-          </a>
+          </Link>
         </div>
         <div className="flex md:hidden">
           {/* mobile */}

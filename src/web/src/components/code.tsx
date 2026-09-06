@@ -2,25 +2,25 @@
 
 import animationDataDark from "@nextjudge/lottie/code-dark.json";
 import animationDataLight from "@nextjudge/lottie/code-light.json";
-import Lottie from "lottie-react";
+import { Lottie } from "lottie-react";
 
 export default function Code() {
   return (
     <>
       <div className="hidden dark:block">
         <Lottie
-          animationData={animationDataDark}
+          src={animationDataDark}
           className="w-[200px] md:w-[400px] lg:w-[500px] object-contain"
           loop={true}
-          autoPlay
+          autoplay
         />
       </div>
       <div className="flex dark:hidden">
         <Lottie
-          animationData={animationDataLight}
+          src={animationDataLight}
           className="w-[200px] md:w-[400px] lg:w-[500px] object-contain"
           loop={true}
-          autoPlay
+          autoplay
         />
       </div>
     </>

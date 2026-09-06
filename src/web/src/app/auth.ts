@@ -92,7 +92,7 @@ const providers: Provider[] = [
                           request.headers.get("x-forwarded-host") ??
                               request.headers.get("host"),
                       )
-                    : getRequestHostname();
+                    : await getRequestHostname();
 
                 const response = await fetch(
                     `${getBridgeUrl({ hostname })}/v1/basic_login`, {
@@ -147,7 +147,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     debug: process.env.NODE_ENV === "development" ? true : false,
     callbacks: {
         async jwt({ token, user }) {
-            const hostname = getRequestHostname();
+            const hostname = await getRequestHostname();
 
             if (user) {
                 token.nextjudge_token = user.nextjudge_token
@@ -201,8 +201,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
         async signIn({ user, account, profile }) {
             if (account?.provider === "github") {
-                console.log("Reaching out")
-                const hostname = getRequestHostname();
+                if (!webBridgeSecret) {
+                    console.error("WEB_BRIDGE_SECRET is not configured for GitHub sign-in")
+                    return false
+                }
+
+                const hostname = await getRequestHostname();
                 const user_id = `github-${account.providerAccountId}`
                 const githubProfile = profile
                 const image = user.image || githubProfile?.avatar_url || `https://api.dicebear.com/8.x/pixel-art/svg?seed=${user.email}`
@@ -226,23 +230,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                     if (!response.ok) {
                         console.error("Backend auth failed:", response.status, response.statusText)
-                        const errorText = await response.text()
-                        console.error("Error response:", errorText)
                         return false
                     }
 
                     const contentType = response.headers.get("content-type")
                     if (!contentType || !contentType.includes("application/json")) {
                         console.error("Backend returned non-JSON response:", contentType)
-                        const responseText = await response.text()
-                        console.error("Response body:", responseText)
                         return false
                     }
 
                     const data = await response.json()
 
                     if (!data.token || !data.id) {
-                        console.error("Backend response missing token or id:", data)
+                        console.error("Backend response is missing required authentication fields")
                         return false
                     }
 

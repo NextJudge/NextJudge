@@ -1,5 +1,29 @@
 services:
 
+  nextjudge-data-layer-seed-dev:
+    build:
+      context: ../src/data-layer
+      dockerfile: Dockerfile.dev
+    entrypoint: ["go", "run", "./src"]
+    command: ["-seed-dev"]
+    restart: "no"
+    environment:
+      - ELASTIC_ENABLED=false
+      - JUDGE_PASSWORD=${JUDGE_PASSWORD}
+      - JWT_SIGNING_SECRET=${JWT_SIGNING_SECRET}
+      - WEB_BRIDGE_SECRET=${WEB_BRIDGE_SECRET}
+      - DB_HOST=db-dev
+      - DB_PASSWORD=${DB_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq-dev
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - BASIC_REGISTRATION_ENABLED=true
+    volumes:
+      - ../src/data-layer:/app
+    depends_on:
+      db-dev:
+        condition: service_healthy
+
   nextjudge-data-layer-dev:
     extends:
       file: ../src/data-layer/docker-compose.dev.yml
@@ -15,8 +39,10 @@ services:
       - RABBITMQ_HOST=rabbitmq-dev
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-      - SEED_DATA=true
+      - BASIC_REGISTRATION_ENABLED=true
     depends_on:
+      nextjudge-data-layer-seed-dev:
+        condition: service_completed_successfully
       db-dev:
         condition: service_healthy
       rabbitmq-dev:

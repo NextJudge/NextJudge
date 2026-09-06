@@ -136,6 +136,8 @@ AUTH_URL=http://${E2E_WEB_HOST}:${E2E_WEB_PORT}
 WEB_BRIDGE_SECRET=${E2E_WEB_BRIDGE_SECRET}
 NEXTAUTH_URL=http://${E2E_WEB_HOST}:${E2E_WEB_PORT}
 NEXT_PUBLIC_API_URL=http://${E2E_WEB_HOST}:${E2E_DATA_LAYER_PORT}
+BASIC_REGISTRATION_ENABLED=true
+PASSWORD_RESET_DEBUG=true
 EOF
 
 cd "$WEB_DIR"
@@ -157,7 +159,7 @@ if port_in_use; then
 fi
 
 echo "Starting web app against local E2E stack..."
-./node_modules/.bin/next dev --hostname "$E2E_WEB_HOST" --port "$E2E_WEB_PORT" &
+./node_modules/.bin/next dev --webpack --hostname "$E2E_WEB_HOST" --port "$E2E_WEB_PORT" &
 WEB_PID=$!
 echo "$WEB_PID" > "$PID_FILE"
 

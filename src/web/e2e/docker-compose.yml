@@ -1,4 +1,23 @@
 # Isolated stack for Playwright E2E only. Values match test-stack.config.sh.
+x-data-layer-environment: &data-layer-environment
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_USERNAME: postgres
+  DB_PASSWORD: e2e-postgres-password
+  DB_NAME: nextjudge
+  ELASTIC_ENABLED: "false"
+  JUDGE_PASSWORD: e2e-judge-password
+  JWT_SIGNING_SECRET: e2e-jwt-signing-secret-minimum-32-chars
+  WEB_BRIDGE_SECRET: e2e-auth-provider-password
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_USER: e2e-rabbit
+  RABBITMQ_PASSWORD: e2e-rabbit-password
+  AUTH_RATE_LIMIT_PER_MIN: "120"
+  AUTH_RATE_LIMIT_BURST: "30"
+  CORS_ORIGIN: http://localhost:8080
+  PASSWORD_RESET_DEBUG: "true"
+  BASIC_REGISTRATION_ENABLED: "true"
+
 services:
   db:
     image: postgres:16-alpine
@@ -36,27 +55,10 @@ services:
       context: ../../data-layer
     ports:
       - "${E2E_DATA_LAYER_PORT:-5051}:5000"
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USERNAME: postgres
-      DB_PASSWORD: e2e-postgres-password
-      DB_NAME: nextjudge
-      ELASTIC_ENABLED: "false"
-      JUDGE_PASSWORD: e2e-judge-password
-      JWT_SIGNING_SECRET: e2e-jwt-signing-secret-minimum-32-chars
-      WEB_BRIDGE_SECRET: e2e-auth-provider-password
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USER: e2e-rabbit
-      RABBITMQ_PASSWORD: e2e-rabbit-password
-      SEED_DATA: "true"
-      AUTH_RATE_LIMIT_PER_MIN: "120"
-      AUTH_RATE_LIMIT_BURST: "30"
-      CORS_ORIGIN: http://localhost:8080
-      PASSWORD_RESET_DEBUG: "true"
+    environment: *data-layer-environment
     depends_on:
-      db:
-        condition: service_healthy
+      nextjudge-data-layer-seed:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
     healthcheck:
@@ -65,6 +67,16 @@ services:
       timeout: 5s
       retries: 12
       start_period: 20s
+
+  nextjudge-data-layer-seed:
+    build:
+      context: ../../data-layer
+    command: ["-seed-dev"]
+    restart: "no"
+    environment: *data-layer-environment
+    depends_on:
+      db:
+        condition: service_healthy
 
   nextjudge-judge:
     profiles: ["with-judge"]
