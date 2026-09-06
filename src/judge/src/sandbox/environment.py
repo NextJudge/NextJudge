@@ -322,11 +322,24 @@ def run_single(
 
     if run_result.returncode:
         nsjail_errors_lower = nsjail_errors.lower()
+        stderr_text = run_result.stderr.decode("utf-8", errors="replace").lower()
+        combined_output = f"{nsjail_errors_lower}\n{stderr_text}"
+        memory_keywords = (
+            "out of memory",
+            "memoryerror",
+            "cannot allocate",
+            "memory limit",
+            "oom-kill",
+        )
+        if any(keyword in combined_output for keyword in memory_keywords):
+            if verbose:
+                print(f"Runtime error (memory) - {run_result.returncode}")
+            return RunResult("RUNTIME_ERROR", run_result.stdout, run_result.stderr, elapsed_time)
+
         has_timeout_keywords = (
             "time limit" in nsjail_errors_lower
             or "timeout" in nsjail_errors_lower
             or "wall time" in nsjail_errors_lower
-            or "sigkill" in nsjail_errors_lower
         )
         timeout_threshold = max(limits.time_limit - 0.5, limits.time_limit * 0.95)
         is_likely_timeout = elapsed_time >= timeout_threshold and not run_result.stdout and not run_result.stderr

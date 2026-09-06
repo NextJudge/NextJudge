@@ -1,0 +1,21 @@
+---
+description: Squash-merge PR subjects must include the PR number
+alwaysApply: true
+---
+
+# GitHub squash merge commit subjects
+
+When squash-merging a pull request with `gh pr merge --squash`:
+
+- Set `--subject` to the PR title (or a short imperative summary) **plus the PR number in parentheses**.
+- Format: `type(scope): short description (#123)`
+- Subject only — no commit body unless the user explicitly asks for one.
+- Use `--delete-branch` unless told otherwise.
+
+Examples:
+
+- `fix(core): add maintenance mode and recovery scripts (#112)`
+- `fix: secure production and stabilize previews (#110)`
+- `feat: platform v1 epic (#111)`
+
+Do not omit `(#PR)` from squash merge subjects.
