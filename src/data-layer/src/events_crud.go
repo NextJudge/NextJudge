@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -19,13 +20,21 @@ type PostEventProblem struct {
 }
 
 type PostEventRequestBody struct {
-	Title            string             `json:"title"`
-	Description      string             `json:"description"`
-	StartTime        string             `json:"start_time"`
-	EndTime          string             `json:"end_time"`
-	Teams            bool               `json:"teams"`
-	AllowedLanguages []int              `json:"languages"`
-	Problems         []PostEventProblem `json:"problems"`
+	Title              string             `json:"title"`
+	Description        string             `json:"description"`
+	StartTime          string             `json:"start_time"`
+	EndTime            string             `json:"end_time"`
+	Teams              bool               `json:"teams"`
+	Visibility         EventVisibility    `json:"visibility"`
+	InviteCode         string             `json:"invite_code,omitempty"`
+	RegistrationStart  string             `json:"registration_start,omitempty"`
+	RegistrationEnd    string             `json:"registration_end,omitempty"`
+	ParticipantLimit   *int               `json:"participant_limit,omitempty"`
+	PenaltyMinutes     *int               `json:"penalty_minutes,omitempty"`
+	FreezeAt           string             `json:"freeze_at,omitempty"`
+	UpsolveMode        UpsolveMode        `json:"upsolve_mode,omitempty"`
+	AllowedLanguages   []int              `json:"languages"`
+	Problems           []PostEventProblem `json:"problems"`
 }
 
 func getEvents(w http.ResponseWriter, r *http.Request) {
@@ -184,6 +193,12 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 		Problems: []EventProblem{},
 	}
 
+	if err := applyEventMaturityFields(&dbEvent.Event, reqData); err != nil {
+		logrus.WithError(err).Warn("invalid event maturity fields")
+		WriteError(w, http.StatusBadRequest, err.Error(), "400")
+		return
+	}
+
 	// Create the problems
 	for _, postEventProblem := range reqData.Problems {
 		problemId := postEventProblem.ProblemID
@@ -227,6 +242,18 @@ func postEvent(w http.ResponseWriter, r *http.Request) {
 		logrus.WithError(err).Error("error inserting competition into db")
 		WriteError(w, http.StatusInternalServerError, "error inserting competition into db", "500")
 		return
+	}
+
+	if reqData.InviteCode != "" {
+		if err := db.SetEventInviteCode(newCompetition.ID, reqData.InviteCode); err != nil {
+			logrus.WithError(err).Error("error setting invite code")
+			WriteError(w, http.StatusInternalServerError, "error setting invite code", "500")
+			return
+		}
+	}
+
+	if err := db.CreateEventRole(userId, newCompetition.ID, EventRoleOwner); err != nil {
+		logrus.WithError(err).Warn("error assigning event owner role")
 	}
 
 	WriteJSON(w, http.StatusCreated, newCompetition)
@@ -318,11 +345,25 @@ func putEvent(w http.ResponseWriter, r *http.Request) {
 	existingEvent.EndTime = endTime
 	existingEvent.Teams = reqData.Teams
 
+	if err := applyEventMaturityFields(existingEvent, reqData); err != nil {
+		logrus.WithError(err).Warn("invalid event maturity fields")
+		WriteError(w, http.StatusBadRequest, err.Error(), "400")
+		return
+	}
+
 	err = db.UpdateEvent(existingEvent)
 	if err != nil {
 		logrus.WithError(err).Error("error updating event in database")
 		WriteError(w, http.StatusInternalServerError, "error updating event in database", "500")
 		return
+	}
+
+	if reqData.InviteCode != "" {
+		if err := db.SetEventInviteCode(existingEvent.ID, reqData.InviteCode); err != nil {
+			logrus.WithError(err).Error("error updating invite code")
+			WriteError(w, http.StatusInternalServerError, "error updating invite code", "500")
+			return
+		}
 	}
 
 	WriteJSON(w, http.StatusOK, existingEvent)
@@ -391,4 +432,58 @@ func endEventEarly(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]string{"message": "event ended successfully"})
+}
+
+func applyEventMaturityFields(event *Event, req *PostEventRequestBody) error {
+	if req.Visibility != "" {
+		switch req.Visibility {
+		case EventVisibilityPublic, EventVisibilityUnlisted, EventVisibilityPrivate:
+			event.Visibility = req.Visibility
+		default:
+			return fmt.Errorf("invalid visibility")
+		}
+	}
+
+	if req.RegistrationStart != "" {
+		t, err := time.Parse(time.RFC3339, req.RegistrationStart)
+		if err != nil {
+			return fmt.Errorf("error parsing registration_start")
+		}
+		event.RegistrationStart = &t
+	}
+
+	if req.RegistrationEnd != "" {
+		t, err := time.Parse(time.RFC3339, req.RegistrationEnd)
+		if err != nil {
+			return fmt.Errorf("error parsing registration_end")
+		}
+		event.RegistrationEnd = &t
+	}
+
+	if req.ParticipantLimit != nil {
+		event.ParticipantLimit = req.ParticipantLimit
+	}
+
+	if req.PenaltyMinutes != nil {
+		event.PenaltyMinutes = *req.PenaltyMinutes
+	}
+
+	if req.FreezeAt != "" {
+		t, err := time.Parse(time.RFC3339, req.FreezeAt)
+		if err != nil {
+			return fmt.Errorf("error parsing freeze_at")
+		}
+		event.FreezeAt = &t
+	}
+
+	if req.UpsolveMode != "" {
+		switch req.UpsolveMode {
+		case UpsolveDisabled, UpsolveAfterEnd, UpsolveAlways:
+			event.UpsolveMode = req.UpsolveMode
+		default:
+			return fmt.Errorf("invalid upsolve_mode")
+		}
+	}
+
+	return nil
 }

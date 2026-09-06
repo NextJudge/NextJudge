@@ -1,0 +1,70 @@
+slug: festival-queue
+name: Festival Queue
+identifier: festival-queue
+difficulty: MEDIUM
+source: NextJudge Original
+topic: fenwick tree
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Festival Queue
+
+  Festival wristbands are numbered `1` through `m`. A scanner records each band sold.
+  After all sales, operators ask order-statistic questions: for each query value `x`,
+  how many sold bands have number **at most** `x`?
+
+  ## Input
+
+  - Line 1: integers `n` and `m` (`1 ≤ n ≤ 200000`, `1 ≤ m ≤ 200000`)
+  - Line 2: `n` integers `b_1 … b_n` (`1 ≤ b_i ≤ m`) — band numbers sold
+  - Line 3: integer `q` (`1 ≤ q ≤ 200000`)
+  - Next `q` lines: integer `x` (`1 ≤ x ≤ m`)
+
+  ## Output
+
+  For each query, print the count of sold bands with number `≤ x`.
+
+  ## Examples
+
+  **Input**
+  ```
+  5 6
+  3 1 4 1 5
+  4
+  2
+  4
+  5
+  6
+  ```
+
+  **Output**
+  ```
+  2
+  4
+  5
+  5
+  ```
+
+  Explanation: sold bands are `{1,1,3,4,5}`. At most `2` → two bands; at most `4` → four
+  bands; at most `5` or `6` → all five sales.
+
+  **Input**
+  ```
+  3 5
+  2 2 2
+  2
+  1
+  2
+  ```
+
+  **Output**
+  ```
+  0
+  3
+  ```

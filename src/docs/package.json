@@ -3,7 +3,8 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev",
+    "prebuild": "node ./scripts/copy-openapi.mjs",
+    "dev": "node ./scripts/copy-openapi.mjs && astro dev",
     "start": "astro dev",
     "build": "astro check && astro build",
     "typecheck": "astro check",

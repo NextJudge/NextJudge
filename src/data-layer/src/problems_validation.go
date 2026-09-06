@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"main/src/api"
 )
 
 func validateProblemRequestBody(req *PostProblemRequestBody) (int, string) {
@@ -45,7 +48,6 @@ func validateProblemRequestBody(req *PostProblemRequestBody) (int, string) {
 	return 0, ""
 }
 
-func writeProblemValidationError(w http.ResponseWriter, statusCode int, message string) {
-	w.WriteHeader(statusCode)
-	fmt.Fprintf(w, `{"code":"%d", "message":"%s"}`, statusCode, message)
+func writeProblemValidationError(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+	api.WriteAPIError(w, r, statusCode, strconv.Itoa(statusCode), message, nil)
 }

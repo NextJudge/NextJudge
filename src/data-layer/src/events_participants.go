@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -11,6 +12,11 @@ import (
 
 type PostCompetitionParticipantRequestBody struct {
 	UserID uuid.UUID `json:"user_id"`
+}
+
+type RegisterEventRequestBody struct {
+	InviteCode        string            `json:"invite_code,omitempty"`
+	ParticipationMode ParticipationMode `json:"participation_mode,omitempty"`
 }
 
 func addParticipant(w http.ResponseWriter, r *http.Request) {
@@ -96,15 +102,9 @@ func registerForEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get user from token
 	token, ok := r.Context().Value(ContextTokenKey).(*NextJudgeClaims)
-	if !ok {
+	if !ok || token == nil {
 		logrus.Error("Error in token")
-		WriteError(w, http.StatusUnauthorized, "unauthorized", "401")
-		return
-	}
-	if token == nil {
-		logrus.Error("Token is nil")
 		WriteError(w, http.StatusUnauthorized, "unauthorized", "401")
 		return
 	}
@@ -123,6 +123,47 @@ func registerForEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	reqData := &RegisterEventRequestBody{}
+	if r.Body != nil {
+		reqBodyBytes, readErr := io.ReadAll(r.Body)
+		if readErr != nil {
+			logrus.WithError(readErr).Error("error reading request body")
+			WriteError(w, http.StatusInternalServerError, "error reading request body", "500")
+			return
+		}
+		if len(reqBodyBytes) > 0 {
+			if unmarshalErr := json.Unmarshal(reqBodyBytes, reqData); unmarshalErr != nil {
+				logrus.WithError(unmarshalErr).Error("JSON parse error")
+				WriteError(w, http.StatusBadRequest, "JSON parse error", "400")
+				return
+			}
+		}
+	}
+
+	now := time.Now()
+	if !db.RegistrationOpen(event, now) {
+		WriteError(w, http.StatusForbidden, "registration is closed", "403")
+		return
+	}
+
+	limitReached, err := db.ParticipantLimitReached(event)
+	if err != nil {
+		logrus.WithError(err).Error("error checking participant limit")
+		WriteError(w, http.StatusInternalServerError, "error checking participant limit", "500")
+		return
+	}
+	if limitReached {
+		WriteError(w, http.StatusConflict, "participant limit reached", "409")
+		return
+	}
+
+	if event.Visibility == EventVisibilityPrivate && len(event.InviteCodeHash) > 0 {
+		if !db.ValidateEventInviteCode(event, reqData.InviteCode) {
+			WriteError(w, http.StatusForbidden, "invalid invite code", "403")
+			return
+		}
+	}
+
 	user, err := db.GetUserByID(userId)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for user")
@@ -135,7 +176,6 @@ func registerForEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// check if user is already a participant
 	existingEventUser, err := db.GetEventUser(user.ID, eventId)
 	if err != nil {
 		logrus.WithError(err).Error("error checking existing participant")
@@ -148,9 +188,21 @@ func registerForEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	participationMode := ParticipationOfficial
+	if reqData.ParticipationMode != "" {
+		switch reqData.ParticipationMode {
+		case ParticipationOfficial, ParticipationVirtual, ParticipationPractice:
+			participationMode = reqData.ParticipationMode
+		default:
+			WriteError(w, http.StatusBadRequest, "invalid participation_mode", "400")
+			return
+		}
+	}
+
 	eventUser := EventUser{
-		UserID:  user.ID,
-		EventID: eventId,
+		UserID:            user.ID,
+		EventID:           eventId,
+		ParticipationMode: participationMode,
 	}
 
 	_, err = db.CreateEventUser(&eventUser)

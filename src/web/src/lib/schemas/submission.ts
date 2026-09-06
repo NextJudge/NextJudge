@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cursorPageSchema } from "./pagination";
 import {
 	optionalParsedProblemSchema,
 	parsedProblemSchema,
@@ -75,6 +76,14 @@ export const parseSubmission = (data: unknown): SubmissionSchema =>
 
 export const parseSubmissionList = (data: unknown): SubmissionListItemSchema[] =>
 	z.array(submissionListItemSchema).parse(data);
+
+export const submissionListPageSchema = cursorPageSchema(submissionListItemSchema);
+
+export type SubmissionListPageSchema = z.infer<typeof submissionListPageSchema>;
+
+export const parseSubmissionListPage = (
+	data: unknown,
+): SubmissionListPageSchema => submissionListPageSchema.parse(data);
 
 export const parseSubmissionStatusPoll = (
 	data: unknown,

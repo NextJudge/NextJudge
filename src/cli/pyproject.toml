@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nextjudge-cli"
+version = "0.1.0"
+description = "Command-line interface for NextJudge"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "requests>=2.31.0",
+  "pyyaml>=6.0",
+  "jsonschema>=4.21.0",
+  "argcomplete>=3.2.0",
+]
+
+[project.scripts]
+nextjudge = "nextjudge_cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nextjudge_cli*"]
+
+[tool.setuptools.package-data]
+nextjudge_cli = ["schema/*"]

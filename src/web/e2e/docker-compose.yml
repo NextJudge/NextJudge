@@ -29,8 +29,6 @@ services:
       POSTGRES_PASSWORD: e2e-postgres-password
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../../data-layer/nextjudge.sql:/docker-entrypoint-initdb.d/0_nextjudge.sql
-      - ../../data-layer/init_prod_data.sql:/docker-entrypoint-initdb.d/1_init_prod_data.sql
     healthcheck:
       test: pg_isready -U $$POSTGRES_USER
       interval: 1s

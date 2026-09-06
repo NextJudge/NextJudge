@@ -9,8 +9,6 @@ services:
       - POSTGRES_PASSWORD=example
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./nextjudge.sql:/docker-entrypoint-initdb.d/0_nextjudge.sql
-      - ./init_prod_data.sql:/docker-entrypoint-initdb.d/1_init_prod_data.sql
     healthcheck:
       test: pg_isready -U $$POSTGRES_USER
       interval: 1s

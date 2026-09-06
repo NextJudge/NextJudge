@@ -33,7 +33,7 @@ export default function CompactNavbar({ className }: { className?: string }) {
           <div className="flex flex-col space-y-4 text-sm">
             <HoveredLink href="/platform/problems">All Problems</HoveredLink>
             <HoveredLink href="/platform/editorials">Editorials</HoveredLink>
-            <HoveredLink href="/platform/problems#submissions">
+            <HoveredLink href="/platform/submissions">
               My Submissions
             </HoveredLink>
           </div>

@@ -1,0 +1,61 @@
+slug: cache-tournament
+name: Cache Tournament
+identifier: cache-tournament
+difficulty: HARD
+source: NextJudge Original
+topic: segment tree
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Cache Tournament
+
+  Servers report cache hit rates throughout a tournament. Answer range-maximum queries
+  over the static scoreboard.
+
+  ## Input
+
+  - Line 1: integers `n` and `q` (`1 ≤ n, q ≤ 100000`)
+  - Line 2: `n` integers `a_1 … a_n` (`0 ≤ a_i ≤ 10^9`)
+  - Next `q` lines: two integers `L` and `R` (`1 ≤ L ≤ R ≤ n`)
+
+  ## Output
+
+  For each query, print the maximum value in `a_L … a_R`.
+
+  ## Examples
+
+  **Input**
+  ```
+  6 3
+  2 7 1 8 2 8
+  1 3
+  3 6
+  2 5
+  ```
+
+  **Output**
+  ```
+  7
+  8
+  8
+  ```
+
+  **Input**
+  ```
+  4 2
+  5 5 5 5
+  1 4
+  2 3
+  ```
+
+  **Output**
+  ```
+  5
+  5
+  ```

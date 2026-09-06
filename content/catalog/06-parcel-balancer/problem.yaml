@@ -1,0 +1,62 @@
+slug: parcel-balancer
+name: Parcel Balancer
+identifier: parcel-balancer
+difficulty: EASY
+source: NextJudge Original
+topic: greedy
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Parcel Balancer
+
+  A warehouse ships parcels using boxes of capacity `W`. Each parcel must fit entirely
+  in one box, and each box holds at most one parcel at a time in this simplified model:
+  a box's used capacity is the sum of parcel weights placed inside it, and a parcel may
+  be added only if the box still has enough remaining capacity.
+
+  Pack all parcels using the **fewest boxes possible**. Use this greedy rule:
+
+  1. Sort parcel weights in **non-increasing** order (heaviest first).
+  2. For each parcel, place it in the first existing box with enough remaining capacity.
+  3. If no box fits, open a new box.
+
+  ## Input
+
+  - Line 1: integers `n` and `W` (`1 ≤ n ≤ 100000`, `1 ≤ W ≤ 10^9`)
+  - Line 2: `n` integers — parcel weights (`1 ≤ weight ≤ W`)
+
+  ## Output
+
+  Print the minimum number of boxes required.
+
+  ## Examples
+
+  **Input**
+  ```
+  5 10
+  7 2 9 5 3
+  ```
+
+  **Output**
+  ```
+  3
+  ```
+
+  Explanation: after sorting `[9, 7, 5, 3, 2]` we use boxes `(9)`, `(7, 3)`, `(5, 2)`.
+
+  **Input**
+  ```
+  3 5
+  5 5 5
+  ```
+
+  **Output**
+  ```
+  3
+  ```

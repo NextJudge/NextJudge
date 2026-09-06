@@ -1,0 +1,59 @@
+slug: archive-deduplicator
+name: Archive Deduplicator
+identifier: archive-deduplicator
+difficulty: MEDIUM
+source: NextJudge Original
+topic: hashing
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Archive Deduplicator
+
+  A digital archive ingests document titles. Before indexing, it must count how many
+  **distinct** titles appear in the batch (case-sensitive, exact match).
+
+  ## Input
+
+  - Line 1: integer `n` (`1 ≤ n ≤ 200000`)
+  - Next `n` lines: a non-empty string of length at most `100` (lowercase letters only)
+
+  ## Output
+
+  Print the number of unique strings.
+
+  ## Examples
+
+  **Input**
+  ```
+  5
+  apple
+  banana
+  apple
+  cherry
+  banana
+  ```
+
+  **Output**
+  ```
+  3
+  ```
+
+  **Input**
+  ```
+  4
+  alpha
+  beta
+  gamma
+  delta
+  ```
+
+  **Output**
+  ```
+  4
+  ```

@@ -8,10 +8,12 @@ import time
 from pathlib import Path
 
 import requests
+from prometheus_client import start_http_server
 
 import config
 from handlers import connect_to_rabbitmq, handle_submission
-from pipeline import get_languages
+from metrics import ACTIVE_SUBMISSIONS, SUBMISSION_DURATION_SECONDS, SUBMISSIONS_TOTAL
+from pipeline import get_languages, post_worker_heartbeat
 from sandbox.environment import (
     FullResult,
     Test,
@@ -28,8 +30,11 @@ from sandbox.languages import (
 )
 
 __all__ = [
+    "ACTIVE_SUBMISSIONS",
     "BRIDGE_LANG_ID_MAP",
     "FullResult",
+    "SUBMISSION_DURATION_SECONDS",
+    "SUBMISSIONS_TOTAL",
     "Test",
     "create_program_environment",
     "get_language_by_extension",
@@ -71,6 +76,20 @@ def ensure_nextjudge_healthy_and_login(password: str) -> None:
     raise Exception("Cannot connect to core server")
 
 
+async def heartbeat_loop() -> None:
+    while True:
+        try:
+            await asyncio.to_thread(post_worker_heartbeat)
+        except Exception as exc:
+            print(f"Judge worker heartbeat failed: {exc}", flush=True)
+        await asyncio.sleep(config.JUDGE_HEARTBEAT_INTERVAL_SECONDS)
+
+
+def start_metrics_server() -> None:
+    start_http_server(config.JUDGE_METRICS_PORT)
+    print(f"Prometheus metrics available at :{config.JUDGE_METRICS_PORT}/metrics", flush=True)
+
+
 async def main() -> None:
     print("Reading languages.toml file")
     parse_languages()
@@ -87,6 +106,10 @@ async def main() -> None:
 
     ensure_nextjudge_healthy_and_login(config.JUDGE_PASSWORD)
     print("Can contact the core service")
+
+    start_metrics_server()
+    await asyncio.to_thread(post_worker_heartbeat)
+    asyncio.create_task(heartbeat_loop())
 
     languages = get_languages()
     for bridge_lang in languages:

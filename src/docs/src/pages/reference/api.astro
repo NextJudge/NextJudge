@@ -1,0 +1,73 @@
+---
+const prodSpecUrl = 'https://api.nextjudge.net/v1/openapi.json';
+const embeddedSpecUrl = '/openapi.yaml';
+const specUrl = import.meta.env.PUBLIC_OPENAPI_URL ?? prodSpecUrl;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API Reference | NextJudge Docs</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #0b0d12;
+      }
+      #api-reference {
+        min-height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="api-reference"></div>
+    <script define:vars={{ specUrl, embeddedSpecUrl }}>
+      const configuration = {
+        theme: 'default',
+      };
+
+      async function loadSpec() {
+        try {
+          const response = await fetch(specUrl, { mode: 'cors' });
+          if (response.ok) {
+            return await response.json();
+          }
+        } catch (_error) {
+          // fall through to embedded copy
+        }
+
+        const embedded = await fetch(embeddedSpecUrl);
+        if (!embedded.ok) {
+          throw new Error('unable to load OpenAPI spec');
+        }
+        return embedded.json();
+      }
+
+      loadSpec()
+        .then((spec) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference';
+          script.onload = () => {
+            const mount = document.getElementById('api-reference');
+            if (window.Scalar?.createApiReference) {
+              window.Scalar.createApiReference(mount, { spec, ...configuration });
+              return;
+            }
+            const configNode = document.createElement('script');
+            configNode.id = 'api-reference-config';
+            configNode.type = 'application/json';
+            configNode.textContent = JSON.stringify({ spec, ...configuration });
+            mount.appendChild(configNode);
+          };
+          document.body.appendChild(script);
+        })
+        .catch((error) => {
+          const mount = document.getElementById('api-reference');
+          mount.innerHTML = `<p style="color:#f5f5f5;padding:1rem;">Failed to load API spec: ${error.message}</p>`;
+        });
+    </script>
+  </body>
+</html>

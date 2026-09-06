@@ -85,6 +85,10 @@ func (d *Database) GetOrCreateUserByAccountIdentifier(newUserData *User) (*User,
 		return nil, err
 	}
 
+	if err := d.AssignHandleForUser(newUserData); err != nil {
+		return nil, err
+	}
+
 	return newUserData, nil
 }
 
@@ -92,6 +96,9 @@ func (d *Database) CreateUser(user *User) (*User, error) {
 	user.JoinDate = time.Now()
 	err := d.NextJudgeDB.Create(user).Error
 	if err != nil {
+		return nil, err
+	}
+	if err := d.AssignHandleForUser(user); err != nil {
 		return nil, err
 	}
 	return user, nil
@@ -105,13 +112,18 @@ func (d *Database) CreateUserWithPasswordHash(user *UserWithPassword) (*User, er
 		return nil, err
 	}
 
+	if err := d.AssignHandleForUser(&user.User); err != nil {
+		return nil, err
+	}
+
 	response := &User{
 		ID:                user.ID,
 		AccountIdentifier: user.AccountIdentifier,
 		Email:             user.Email,
 		Name:              user.Name,
-		Image:             user.Image,
+		Handle:            user.Handle,
 		EmailVerified:     user.EmailVerified,
+		Image:             user.Image,
 		JoinDate:          user.JoinDate,
 		IsAdmin:           user.IsAdmin,
 	}
@@ -224,6 +236,9 @@ func (d *Database) SoftDeleteUser(user *User) error {
 			"name":               DeletedUserDisplayName,
 			"email":              deletedUserEmail(user.ID),
 			"image":              "",
+			"handle":             nil,
+			"handle_normalized":  nil,
+			"handle_changed_at":  nil,
 			"account_identifier": deletedUserAccountIdentifier(user.ID),
 			"is_admin":           false,
 		}).Error; err != nil {

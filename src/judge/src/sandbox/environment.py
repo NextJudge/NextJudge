@@ -24,6 +24,21 @@ class Submission:
 
 
 @dataclass
+class ProblemLimits:
+    time_limit: float
+    cpu_limit: float
+    memory_limit_mb: int
+
+    @classmethod
+    def run_defaults(cls) -> "ProblemLimits":
+        return cls(time_limit=10.0, cpu_limit=10.0, memory_limit_mb=1024 * 6)
+
+    @classmethod
+    def compile_defaults(cls) -> "ProblemLimits":
+        return cls(time_limit=30.0, cpu_limit=30.0, memory_limit_mb=1024 * 16)
+
+
+@dataclass
 class Test:
     input: str
     expected_output: str
@@ -129,8 +144,11 @@ def compile_in_jail(
     source_code: str,
     language: Language | None,
     environment: ProgramEnvironment,
+    limits: ProblemLimits | None = None,
     verbose: bool = True,
 ) -> CompileResult:
+    if limits is None:
+        limits = ProblemLimits.compile_defaults()
     if language is None:
         return CompileResult(False, b"", b"")
 
@@ -161,11 +179,11 @@ def compile_in_jail(
     nsjail_args = [
         "nsjail",
         "--mode", "o",
-        "--time_limit", f"{30}",
+        "--time_limit", f"{int(limits.time_limit)}",
         "--max_cpus", max_cpus,
         "--rlimit_nofile", f"{512}",
-        "--rlimit_as", f"{1024*16}",
-        "--rlimit_cpu", f"{30}",
+        "--rlimit_as", f"{limits.memory_limit_mb}",
+        "--rlimit_cpu", f"{int(limits.cpu_limit)}",
         "--rlimit_fsize", f"{512}",
         "--user", f"{config.NEXTJUDGE_USER_ID}:{config.NEXTJUDGE_USER_ID}",
         "--group", f"{config.NEXTJUDGE_USER_ID}:{config.NEXTJUDGE_USER_ID}",
@@ -243,18 +261,21 @@ def compile_in_jail(
 def run_single(
     environment: ProgramEnvironment,
     input: bytes,
+    limits: ProblemLimits | None = None,
     verbose: bool = True,
     language: Language | None = None,
 ) -> RunResult:
+    if limits is None:
+        limits = ProblemLimits.run_defaults()
     nsjail_log_pipes = os.pipe()
 
     nsjail_args = [
         "nsjail",
         "--mode", "o",
-        "--time_limit", f"{10}",
+        "--time_limit", f"{int(limits.time_limit)}",
         "--max_cpus", f"{1}",
-        "--rlimit_as", f"{1024*6}",
-        "--rlimit_cpu", f"{10}",
+        "--rlimit_as", f"{limits.memory_limit_mb}",
+        "--rlimit_cpu", f"{int(limits.cpu_limit)}",
         "--nice_level", "-20",
         "--persona_addr_no_randomize",
         "--user", f"{config.NEXTJUDGE_USER_ID}:{config.NEXTJUDGE_USER_ID}",
@@ -307,7 +328,8 @@ def run_single(
             or "wall time" in nsjail_errors_lower
             or "sigkill" in nsjail_errors_lower
         )
-        is_likely_timeout = elapsed_time >= 9.5 and not run_result.stdout and not run_result.stderr
+        timeout_threshold = max(limits.time_limit - 0.5, limits.time_limit * 0.95)
+        is_likely_timeout = elapsed_time >= timeout_threshold and not run_result.stdout and not run_result.stderr
 
         if has_timeout_keywords or is_likely_timeout:
             if verbose:
@@ -343,10 +365,17 @@ def compare_input_output(expected: str, real: str) -> bool:
 def run_single_test_case(
     testcase: Test,
     environment: ProgramEnvironment,
+    limits: ProblemLimits | None = None,
     verbose: bool = True,
     language: Language | None = None,
 ) -> TestResult:
-    run_result = run_single(environment, testcase.input.encode("utf-8"), verbose, language=language)
+    run_result = run_single(
+        environment,
+        testcase.input.encode("utf-8"),
+        limits=limits,
+        verbose=verbose,
+        language=language,
+    )
 
     if run_result.result != "ACCEPTED":
         return TestResult(run_result.result, run_result.stdout, run_result.stderr)

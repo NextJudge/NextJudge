@@ -13,6 +13,14 @@ export const sidebarNavItems = [
     title: "Contests",
     href: "/platform/admin/contests",
   },
+  {
+    title: "Organizations",
+    href: "/platform/admin/organizations",
+  },
+  {
+    title: "Judge",
+    href: "/platform/admin/judge",
+  },
 ];
 
 export const settingsNavItems = [
@@ -39,6 +47,14 @@ export const links = [
       {
         label: "Contests",
         href: "/platform/admin/contests",
+      },
+      {
+        label: "Organizations",
+        href: "/platform/admin/organizations",
+      },
+      {
+        label: "Judge",
+        href: "/platform/admin/judge",
       },
     ],
   },
@@ -123,6 +139,10 @@ export const platformRoutes: RouteProps[] = [
   {
     href: "/platform/problems",
     label: "Problems",
+  },
+  {
+    href: "/platform/submissions",
+    label: "Submissions",
   },
   {
     href: "/platform/admin",

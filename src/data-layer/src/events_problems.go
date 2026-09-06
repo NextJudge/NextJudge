@@ -42,7 +42,7 @@ func getEventProblemAttempts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	attempts, err := db.GetEventProblemAttempts(event.ID)
+	attempts, err := db.GetEventProblemAttempts(event.ID, nil)
 	if err != nil {
 		logrus.WithError(err).Error("error getting attempts")
 		WriteError(w, http.StatusInternalServerError, "error getting attempts", "500")

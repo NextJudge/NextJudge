@@ -1,0 +1,62 @@
+slug: night-shift-coverage
+name: Night Shift Coverage
+identifier: night-shift-coverage
+difficulty: MEDIUM
+source: NextJudge Original
+topic: interval sweep
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Night Shift Coverage
+
+  A security office schedules night shifts as half-open intervals `[start, end)`, meaning
+  a guard works from minute `start` up to but not including minute `end`.
+
+  Find the **minimum number of guards** that must be on duty simultaneously at some
+  point — equivalently, the maximum depth of overlapping intervals.
+
+  ## Input
+
+  - Line 1: integer `n` (`1 ≤ n ≤ 200000`)
+  - Next `n` lines: two integers `start` and `end` (`0 ≤ start < end ≤ 10^9`)
+
+  ## Output
+
+  Print one integer: the maximum number of overlapping shifts.
+
+  ## Examples
+
+  **Input**
+  ```
+  4
+  0 4
+  1 3
+  2 6
+  5 7
+  ```
+
+  **Output**
+  ```
+  3
+  ```
+
+  Explanation: at minute `2`, shifts `[0,4)`, `[1,3)`, and `[2,6)` all overlap.
+
+  **Input**
+  ```
+  3
+  0 5
+  5 10
+  10 15
+  ```
+
+  **Output**
+  ```
+  1
+  ```

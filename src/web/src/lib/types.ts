@@ -8,11 +8,25 @@ export interface User {
 	id: string;
 	account_identifier: string;
 	name: string;
+	handle: string;
+	handle_changed_at?: string;
 	email: string;
 	emailVerified: string;
 	image: string;
 	join_date: string;
 	is_admin: boolean;
+}
+
+export interface PublicProfile {
+	id: string;
+	handle: string;
+	name: string;
+	image: string;
+	join_date: string;
+	rating?: number;
+	max_rating?: number;
+	contest_count: number;
+	submission_count: number;
 }
 
 export interface UserWithStats extends User {

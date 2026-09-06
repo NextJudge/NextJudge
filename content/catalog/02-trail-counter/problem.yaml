@@ -1,0 +1,58 @@
+slug: trail-counter
+name: Trail Counter
+identifier: trail-counter
+difficulty: VERY EASY
+source: NextJudge Original
+topic: arrays
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Trail Counter
+
+  Rangers log daily foot traffic at trail checkpoints. Each log entry is an integer
+  count. Headquarters wants to know how many days met or exceeded a staffing threshold.
+
+  Given an array of daily counts and a threshold `T`, count how many entries are
+  **greater than or equal to** `T`.
+
+  ## Input
+
+  - Line 1: integer `n` (`1 ≤ n ≤ 100000`) — number of log entries
+  - Line 2: `n` integers — the daily counts (`0 ≤ count ≤ 10^9`)
+  - Line 3: integer `T` (`0 ≤ T ≤ 10^9`)
+
+  ## Output
+
+  Print one integer: the number of entries `≥ T`.
+
+  ## Examples
+
+  **Input**
+  ```
+  5
+  3 1 4 1 5
+  4
+  ```
+
+  **Output**
+  ```
+  2
+  ```
+
+  **Input**
+  ```
+  4
+  10 20 30 40
+  25
+  ```
+
+  **Output**
+  ```
+  2
+  ```

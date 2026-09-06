@@ -5,14 +5,22 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"goji.io"
 	"goji.io/pat"
+
+	"main/src/api"
 )
 
 func addUserRoutes(mux *goji.Mux) {
+	mux.HandleFunc(pat.Get("/v1/users/top-by-contests"), AuthRequired(getTopUsersByContests))
+	mux.HandleFunc(pat.Put("/v1/users/me/handle"), AuthRequired(putMyHandle))
+	mux.HandleFunc(pat.Get("/v1/users/:user_id/submissions/count"), AuthRequired(getUserSubmissionCount))
+	mux.HandleFunc(pat.Get("/v1/users/:user_id/contests/count"), AuthRequired(getUserContestCount))
 	mux.HandleFunc(pat.Get("/v1/users"), AdminRequired(getUsers))
 	mux.HandleFunc(pat.Get("/v1/users/:user_id"), AuthRequired(getUser))
 	mux.HandleFunc(pat.Delete("/v1/users/:user_id"), AuthRequired(deleteUser))
@@ -345,4 +353,186 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type PutMyHandleRequestBody struct {
+	Handle string `json:"handle"`
+}
+
+type PutMyHandleResponseBody struct {
+	Handle          string     `json:"handle"`
+	HandleChangedAt *time.Time `json:"handle_changed_at,omitempty"`
+}
+
+func putMyHandle(w http.ResponseWriter, r *http.Request) {
+	claims, ok := requireAuthenticatedClaims(w, r)
+	if !ok {
+		return
+	}
+
+	reqData := new(PutMyHandleRequestBody)
+	reqBodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		logrus.WithError(err).Error("error reading request body")
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "error reading request body", nil)
+		return
+	}
+
+	if err := json.Unmarshal(reqBodyBytes, reqData); err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		api.WriteAPIError(w, r, http.StatusBadRequest, "INVALID_JSON", "JSON parse error", nil)
+		return
+	}
+
+	newHandle := reqData.Handle
+	if err := validateHandle(newHandle); err != nil {
+		code := "INVALID_HANDLE"
+		if err == errReservedHandle {
+			code = "RESERVED_HANDLE"
+		}
+		api.WriteAPIError(w, r, http.StatusBadRequest, code, err.Error(), nil)
+		return
+	}
+
+	user, err := db.GetUserByID(claims.Id)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving user")
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "error retrieving user", nil)
+		return
+	}
+	if user == nil {
+		api.WriteAPIError(w, r, http.StatusNotFound, "USER_NOT_FOUND", "user not found", nil)
+		return
+	}
+
+	if normalizeHandle(user.Handle) == normalizeHandle(newHandle) {
+		respJSON, err := json.Marshal(PutMyHandleResponseBody{
+			Handle:          user.Handle,
+			HandleChangedAt: user.HandleChangedAt,
+		})
+		if err != nil {
+			logrus.WithError(err).Error("JSON marshal error")
+			api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "JSON marshal error", nil)
+			return
+		}
+		fmt.Fprint(w, string(respJSON))
+		return
+	}
+
+	if remaining := handleCooldownRemaining(user.HandleChangedAt, time.Now()); remaining > 0 {
+		api.WriteAPIError(w, r, http.StatusTooManyRequests, "HANDLE_COOLDOWN", "handle can only be changed once every 30 days", map[string]int64{
+			"retry_after_seconds": int64(remaining.Seconds()),
+		})
+		return
+	}
+
+	existing, err := db.GetUserByHandleNormalizedExcludingUser(normalizeHandle(newHandle), user.ID)
+	if err != nil {
+		logrus.WithError(err).Error("error checking for existing handle")
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "error checking for existing handle", nil)
+		return
+	}
+	if existing != nil {
+		api.WriteAPIError(w, r, http.StatusConflict, "HANDLE_TAKEN", "handle is already taken", nil)
+		return
+	}
+
+	changedAt := time.Now()
+	if err := db.UpdateUserHandle(user, newHandle, changedAt); err != nil {
+		logrus.WithError(err).Error("error updating handle")
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "error updating handle", nil)
+		return
+	}
+
+	respJSON, err := json.Marshal(PutMyHandleResponseBody{
+		Handle:          newHandle,
+		HandleChangedAt: &changedAt,
+	})
+	if err != nil {
+		logrus.WithError(err).Error("JSON marshal error")
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "JSON marshal error", nil)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
+
+func getUserSubmissionCount(w http.ResponseWriter, r *http.Request) {
+	userID, ok := parseAuthorizedUserID(w, r)
+	if !ok {
+		return
+	}
+
+	count, err := db.CountUserSubmissions(userID)
+	if err != nil {
+		logrus.WithError(err).Error("error counting submissions")
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "error counting submissions", nil)
+		return
+	}
+
+	fmt.Fprintf(w, `{"count":%d}`, count)
+}
+
+func getUserContestCount(w http.ResponseWriter, r *http.Request) {
+	userID, ok := parseAuthorizedUserID(w, r)
+	if !ok {
+		return
+	}
+
+	count, err := db.CountUserContests(userID)
+	if err != nil {
+		logrus.WithError(err).Error("error counting contests")
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "error counting contests", nil)
+		return
+	}
+
+	fmt.Fprintf(w, `{"count":%d}`, count)
+}
+
+func getTopUsersByContests(w http.ResponseWriter, r *http.Request) {
+	limit := 10
+	limitParam := r.URL.Query().Get("limit")
+	if limitParam != "" {
+		parsedLimit, err := strconv.Atoi(limitParam)
+		if err != nil || parsedLimit <= 0 {
+			api.WriteAPIError(w, r, http.StatusBadRequest, "INVALID_LIMIT", "limit must be a positive integer", nil)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	users, err := db.GetTopUsersByContests(limit)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving top users")
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "error retrieving top users", nil)
+		return
+	}
+
+	respJSON, err := json.Marshal(users)
+	if err != nil {
+		logrus.WithError(err).Error("JSON marshal error")
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "JSON marshal error", nil)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
+
+func parseAuthorizedUserID(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	userIDParam := pat.Param(r, "user_id")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		api.WriteAPIError(w, r, http.StatusBadRequest, "INVALID_USER_ID", "bad uuid", nil)
+		return uuid.Nil, false
+	}
+
+	claims, ok := requireAuthenticatedClaims(w, r)
+	if !ok {
+		return uuid.Nil, false
+	}
+
+	if !isSelfOrAdmin(claims, userID) {
+		api.WriteAPIError(w, r, http.StatusForbidden, "FORBIDDEN", "forbidden", nil)
+		return uuid.Nil, false
+	}
+
+	return userID, true
 }

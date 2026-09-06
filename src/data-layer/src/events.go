@@ -51,6 +51,12 @@ func addEventsRoutes(mux *goji.Mux) {
 	// ICPC-style attempts/solve-time per user/problem for an event
 	mux.HandleFunc(pat.Get("/v1/events/:event_id/attempts"), AuthRequired(getEventProblemAttempts))
 
+	// Canonical ICPC standings with optional freeze
+	mux.HandleFunc(pat.Get("/v1/events/:event_id/standings"), AuthRequired(getEventStandings))
+
+	// Contest announcements (queued via outbox)
+	mux.HandleFunc(pat.Post("/v1/events/:event_id/announcements"), AuthRequired(createEventAnnouncement))
+
 	// Question management
 	mux.HandleFunc(pat.Get("/v1/events/:event_id/questions"), AuthRequired(getEventQuestions))
 	mux.HandleFunc(pat.Post("/v1/events/:event_id/questions"), AuthRequired(createEventQuestion))

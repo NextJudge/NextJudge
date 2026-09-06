@@ -90,3 +90,19 @@ export async function apiDeleteProblem(
 		headers: authHeaders(token),
 	});
 }
+
+export async function apiSearchProblems(
+	token: string,
+	query: string,
+	limit: number = 50,
+): Promise<ProblemListItem[]> {
+	const params = new URLSearchParams({
+		q: query,
+		limit: String(limit),
+	});
+	const response = await apiFetch(`/v1/problems/search?${params.toString()}`, {
+		headers: authHeaders(token),
+	});
+	const json: unknown = await response.json();
+	return parseProblemList(json);
+}

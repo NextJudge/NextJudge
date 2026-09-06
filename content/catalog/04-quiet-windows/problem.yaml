@@ -1,0 +1,53 @@
+slug: quiet-windows
+name: Quiet Windows
+identifier: quiet-windows
+difficulty: EASY
+source: NextJudge Original
+topic: sliding window
+state: published
+public: true
+limits:
+  accept_timeout: 2.0
+  execution_timeout: 2.0
+  memory_limit: 256
+editorial:
+  visibility: public
+prompt: |
+  # Quiet Windows
+
+  A noise monitor records decibel readings along a street. Analysts slide a window of
+  length `k` across the readings and report the **maximum** value inside each window.
+
+  ## Input
+
+  - Line 1: integers `n` and `k` (`1 ≤ k ≤ n ≤ 200000`)
+  - Line 2: `n` integers — the readings (`-10^9 ≤ value ≤ 10^9`)
+
+  ## Output
+
+  Print `n - k + 1` integers separated by spaces: the maximum in each consecutive
+  window of length `k`, in left-to-right order.
+
+  ## Examples
+
+  **Input**
+  ```
+  8 3
+  1 3 -1 -3 5 3 6 7
+  ```
+
+  **Output**
+  ```
+  3 3 5 5 6 7
+  ```
+
+  **Input**
+  ```
+  5 1
+  4 2 9 1 7
+  ```
+
+  **Output**
+  ```
+  4 2 9 1 7
+  ```

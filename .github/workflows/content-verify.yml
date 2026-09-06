@@ -1,0 +1,30 @@
+name: Content Verify
+
+on:
+  pull_request:
+    paths:
+      - 'content/**'
+      - 'scripts/content-import.py'
+      - '.github/workflows/content-verify.yml'
+  push:
+    branches: [dev/platform-v1, main]
+    paths:
+      - 'content/**'
+
+jobs:
+  verify-catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+      - name: Dry-run content import
+        run: python3 scripts/content-import.py
+      - name: Validate catalog structure
+        run: |
+          count=$(find content/catalog -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+          echo "Catalog problems: $count"
+          test "$count" -ge 15

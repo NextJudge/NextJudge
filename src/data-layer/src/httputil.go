@@ -9,6 +9,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"goji.io/pat"
+
+	"main/src/api"
 )
 
 const maxRequestBodyBytes = 1 << 20 // 1 MiB
@@ -26,20 +28,8 @@ func LimitRequestBodyMiddleware(h http.Handler) http.Handler {
 	})
 }
 
-type ErrorResponse struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
 func WriteError(w http.ResponseWriter, status int, message, code string) {
-	w.WriteHeader(status)
-	respJSON, err := json.Marshal(ErrorResponse{Code: code, Message: message})
-	if err != nil {
-		logrus.WithError(err).Error("JSON marshal error in WriteError")
-		fmt.Fprint(w, `{"code":"500", "message":"internal error"}`)
-		return
-	}
-	fmt.Fprint(w, string(respJSON))
+	api.WriteAPIError(w, nil, status, code, message, nil)
 }
 
 func WriteJSON(w http.ResponseWriter, status int, payload interface{}) {

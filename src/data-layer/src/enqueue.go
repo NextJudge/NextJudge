@@ -25,15 +25,15 @@ func StartEnqueueReaper() {
 	}()
 }
 
-func processEnqueueBacklog() {
+func processEnqueueBacklog() (int, int) {
 	if db == nil || rabbitService == nil {
-		return
+		return 0, 0
 	}
 
 	submissions, err := db.ListSubmissionsNeedingEnqueue(enqueueReaperBatchSize)
 	if err != nil {
 		logrus.WithError(err).Error("failed to list submissions needing enqueue")
-		return
+		return 0, 0
 	}
 	for _, submission := range submissions {
 		enqueueProblemSubmission(submission.ID)
@@ -42,11 +42,13 @@ func processEnqueueBacklog() {
 	inputSubmissions, err := db.ListInputSubmissionsNeedingEnqueue(enqueueReaperBatchSize)
 	if err != nil {
 		logrus.WithError(err).Error("failed to list input submissions needing enqueue")
-		return
+		return len(submissions), 0
 	}
 	for _, submission := range inputSubmissions {
 		enqueueInputSubmission(submission.ID)
 	}
+
+	return len(submissions), len(inputSubmissions)
 }
 
 func enqueueProblemSubmission(submissionID uuid.UUID) {
@@ -55,7 +57,13 @@ func enqueueProblemSubmission(submissionID uuid.UUID) {
 		return
 	}
 
-	if err := publishSubmissionMessage(submissionID.String()); err != nil {
+	run, err := db.CreateSubmissionRun(submissionID)
+	if err != nil {
+		logrus.WithError(err).WithField("submission_id", submissionID).Error("failed to create submission run")
+		return
+	}
+
+	if err := publishSubmissionMessage(submissionID.String(), run.ID.String()); err != nil {
 		logrus.WithError(err).WithField("submission_id", submissionID).Warn("failed to publish submission to RabbitMQ")
 
 		submission, getErr := db.GetSubmission(submissionID)
