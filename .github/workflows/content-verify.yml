@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements.txt
       - name: Dry-run content import
-        run: python3 scripts/content-import.py --dry-run
+        run: python3 scripts/content-import.py
       - name: Validate catalog structure
         run: |
           count=$(find content/catalog -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
