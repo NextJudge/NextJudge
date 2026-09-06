@@ -12,13 +12,17 @@ import (
 	"github.com/sirupsen/logrus"
 	"goji.io"
 	"goji.io/pat"
+
+	"main/src/api"
 )
 
 func addSubmissionRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/submissions"), AuthRequired(AuthenticatedRateLimitMiddleware(submissionLimiter, postSubmission)))
+	mux.HandleFunc(pat.Get("/v1/submissions"), AuthRequired(listSubmissions))
 
 	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id"), AuthRequired(getSubmission))
 	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id/status"), AuthRequired(getSubmissionStatus))
+	mux.HandleFunc(pat.Get("/v1/submissions/:submission_id/runs"), AuthRequired(getSubmissionRuns))
 
 	mux.HandleFunc(pat.Get("/v1/user_submissions/:user_id"), AuthRequired(getSubmissionsForUser))
 	mux.HandleFunc(pat.Get("/v1/user_problem_submissions/:user_id/:problem_id"), AuthRequired(getProblemSubmissionsForUser))
@@ -33,12 +37,15 @@ type TestCaseResultRequest struct {
 }
 
 type UpdateSubmissionStatusPatchBody struct {
+	RunID            *uuid.UUID              `json:"run_id,omitempty"`
 	Status           Status                  `json:"status"`
 	FailedTestCaseID *uuid.UUID              `json:"failed_test_case_id,omitempty"`
 	Stdout           string                  `json:"stdout"`
 	Stderr           string                  `json:"stderr"`
 	TestCaseResults  []TestCaseResultRequest `json:"test_case_results,omitempty"`
 	TimeElapsed      *float32                `json:"time_elapsed,omitempty"`
+	JudgeWorkerID    *string                 `json:"judge_worker_id,omitempty"`
+	Reason           *string                 `json:"reason,omitempty"`
 }
 
 type PostSubmissionBodyType struct {
@@ -97,6 +104,13 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 
 	if problemDesc == nil {
 		logrus.Warn("problem not found")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		return
+	}
+
+	claims, _ := claimsFromContext(r)
+	if (reqData.EventID == nil || *reqData.EventID == 0) && !canReadGlobalProblem(claims, problemDesc) {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
 		return
@@ -229,6 +243,7 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 
 	// send submission to judge (reaper retries if this fails)
 	tryEnqueueProblemSubmission(response.ID)
+	recordSubmissionIntegritySignals(r, response.UserID, response.ID, response.EventID)
 
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, string(respJSON))
@@ -237,6 +252,91 @@ func postSubmission(w http.ResponseWriter, r *http.Request) {
 type GetSubmissionReturnBody struct {
 	Id     uuid.UUID `json:"id"`
 	Status Status    `json:"status"`
+}
+
+func isValidListSubmissionStatus(status Status) bool {
+	switch status {
+	case Accepted, WrongAnswer, TimeLimitExceeded, MemoryLimitExceeded, RuntimeError, CompileTimeError, Pending:
+		return true
+	default:
+		return false
+	}
+}
+
+func parseSubmissionListLimit(r *http.Request) int {
+	limitParam := r.URL.Query().Get("limit")
+	if limitParam == "" {
+		return api.DefaultCursorPageLimit
+	}
+	limit, err := strconv.Atoi(limitParam)
+	if err != nil {
+		return api.DefaultCursorPageLimit
+	}
+	return api.NormalizeCursorLimit(limit)
+}
+
+func listSubmissions(w http.ResponseWriter, r *http.Request) {
+	claims, ok := claimsFromContext(r)
+	if !ok {
+		writeNotAuthenticated(w)
+		return
+	}
+
+	filter := ListSubmissionsFilter{
+		UserID: claims.Id,
+		Limit:  parseSubmissionListLimit(r),
+	}
+
+	if statusParam := r.URL.Query().Get("status"); statusParam != "" {
+		status := Status(statusParam)
+		if !isValidListSubmissionStatus(status) {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"invalid status"}`)
+			return
+		}
+		filter.Status = &status
+	}
+
+	if problemParam := r.URL.Query().Get("problem_id"); problemParam != "" {
+		problemID, err := strconv.Atoi(problemParam)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"invalid problem_id"}`)
+			return
+		}
+		filter.ProblemID = &problemID
+	}
+
+	if languageParam := r.URL.Query().Get("language_id"); languageParam != "" {
+		languageID, err := uuid.Parse(languageParam)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"invalid language_id"}`)
+			return
+		}
+		filter.LanguageID = &languageID
+	}
+
+	if cursorParam := r.URL.Query().Get("cursor"); cursorParam != "" {
+		cursorTime, cursorID, err := api.DecodeTimeIDCursor(cursorParam)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"invalid cursor"}`)
+			return
+		}
+		filter.CursorSubmitTime = &cursorTime
+		filter.CursorID = &cursorID
+	}
+
+	submissions, nextCursor, err := db.ListSubmissions(filter)
+	if err != nil {
+		logrus.WithError(err).Error("error listing submissions")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error listing submissions"}`)
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, api.NewCursorPage(submissions, nextCursor))
 }
 
 func getSubmissionStatus(w http.ResponseWriter, r *http.Request) {
@@ -326,6 +426,59 @@ func getSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respJSON, err := json.Marshal(submission)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
+
+func getSubmissionRuns(w http.ResponseWriter, r *http.Request) {
+	submissionIdParam := pat.Param(r, "submission_id")
+	submissionId, err := uuid.Parse(submissionIdParam)
+	if err != nil {
+		logrus.Warn("bad uuid")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		return
+	}
+
+	submission, err := db.GetSubmission(submissionId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving submission")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving submission"}`)
+		return
+	}
+	if submission == nil {
+		logrus.Warn("submission not found")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"code":"404", "message":"submission not found"}`)
+		return
+	}
+
+	if !canReadSubmission(r, submission.UserID) {
+		if _, ok := claimsFromContext(r); !ok {
+			writeNotAuthenticated(w)
+		} else {
+			logrus.Error("Unauthorized get submission runs")
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, `{"message":"Unauthorized"}`)
+		}
+		return
+	}
+
+	runs, err := db.GetSubmissionRuns(submissionId)
+	if err != nil {
+		logrus.WithError(err).Error("error retrieving submission runs")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error retrieving submission runs"}`)
+		return
+	}
+
+	respJSON, err := json.Marshal(runs)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -469,12 +622,69 @@ func updateSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		"results_count": len(submission.TestCaseResults),
 	}).Info("Updating submission with test case results")
 
-	err = db.UpdateSubmission(submission)
+	var run *SubmissionRun
+	if reqData.RunID != nil {
+		run, err = db.GetSubmissionRun(*reqData.RunID)
+		if err != nil {
+			logrus.WithError(err).Error("error retrieving submission run")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error retrieving submission run"}`)
+			return
+		}
+		if run == nil || run.SubmissionID != submission.ID {
+			logrus.Warn("submission run not found for submission")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"submission run not found"}`)
+			return
+		}
+	} else {
+		run, err = db.GetLatestPendingSubmissionRun(submission.ID)
+		if err != nil {
+			logrus.WithError(err).Error("error retrieving pending submission run")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"code":"500", "message":"error retrieving submission run"}`)
+			return
+		}
+		if run == nil {
+			logrus.Warn("no pending submission run found")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"code":"400", "message":"run_id is required"}`)
+			return
+		}
+	}
+
+	finishedAt := time.Now()
+	runUpdate := &SubmissionRun{
+		ID:            run.ID,
+		Status:        reqData.Status,
+		Reason:        reqData.Reason,
+		JudgeWorkerID: reqData.JudgeWorkerID,
+		Stdout:        reqData.Stdout,
+		Stderr:        reqData.Stderr,
+		FinishedAt:    &finishedAt,
+	}
+	if reqData.TimeElapsed != nil {
+		runUpdate.TimeElapsed = reqData.TimeElapsed
+	}
+
+	err = db.UpdateSubmissionRun(runUpdate)
+	if err != nil {
+		logrus.WithError(err).Error("error updating submission run in db")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{"code":"500", "message":"error updating submission run in db"}`)
+		return
+	}
+
+	err = db.UpdateSubmission(submission, run.ID)
 	if err != nil {
 		logrus.WithError(err).Error("error updating submission status in db")
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, `{"code":"500", "message":"error updating submission status in db"}`)
 		return
+	}
+
+	if reqData.Status == Accepted {
+		queueSubmissionFingerprint(submission.ID, submission.ProblemID)
 	}
 
 	w.WriteHeader(http.StatusNoContent)

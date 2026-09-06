@@ -27,8 +27,9 @@ type RabbitMQService struct {
 var rabbitService *RabbitMQService
 
 type RabbitMQSubmission struct {
-	Type string `json:"type"`
-	Id   string `json:"id"`
+	Type  string `json:"type"`
+	Id    string `json:"id"`
+	RunID string `json:"run_id"`
 }
 
 type RabbitMQCustomInputSubmission struct {
@@ -167,10 +168,11 @@ func (r *RabbitMQService) publish(body []byte) error {
 	return lastErr
 }
 
-func publishSubmissionMessage(id string) error {
+func publishSubmissionMessage(id string, runID string) error {
 	data := RabbitMQSubmission{
-		Type: "submission",
-		Id:   id,
+		Type:  "submission",
+		Id:    id,
+		RunID: runID,
 	}
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -189,6 +191,34 @@ func publishInputSubmissionMessage(id string) error {
 		return err
 	}
 	return rabbitService.publish(jsonData)
+}
+
+func getRabbitQueueDepth(queueName string) (int, error) {
+	if rabbitService == nil {
+		return 0, fmt.Errorf("rabbitmq not connected")
+	}
+
+	rabbitService.mu.Lock()
+	channel := rabbitService.channel
+	rabbitService.mu.Unlock()
+
+	if channel == nil {
+		return 0, fmt.Errorf("rabbitmq channel unavailable")
+	}
+
+	queue, err := channel.QueueDeclarePassive(
+		queueName,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	return queue.Messages, nil
 }
 
 func CloseRabbitMQConnection() {

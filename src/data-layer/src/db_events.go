@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"time"
@@ -544,7 +546,7 @@ type EventProblemAttempt struct {
 	FirstAcceptedTime *time.Time `json:"first_accepted_time"`
 }
 
-func (d *Database) GetEventProblemAttempts(eventID int) ([]EventProblemAttempt, error) {
+func (d *Database) GetEventProblemAttempts(eventID int, cutoff *time.Time) ([]EventProblemAttempt, error) {
 	var results []EventProblemAttempt
 
 	err := d.NextJudgeDB.Raw(`
@@ -552,6 +554,7 @@ func (d *Database) GetEventProblemAttempts(eventID int) ([]EventProblemAttempt, 
             SELECT user_id, problem_id, MIN(submit_time) AS first_accepted_time
             FROM submissions
             WHERE event_id = ? AND status = 'ACCEPTED'
+              AND (?::timestamptz IS NULL OR submit_time <= ?::timestamptz)
             GROUP BY user_id, problem_id
         ),
         contest_completion AS (
@@ -561,6 +564,7 @@ func (d *Database) GetEventProblemAttempts(eventID int) ([]EventProblemAttempt, 
             FROM submissions s
             INNER JOIN event_problems ep ON ep.problem_id = s.problem_id AND ep.event_id = s.event_id
             WHERE s.event_id = ? AND s.status = 'ACCEPTED'
+              AND (?::timestamptz IS NULL OR s.submit_time <= ?::timestamptz)
             GROUP BY s.user_id
             HAVING COUNT(DISTINCT s.problem_id) = (
                 SELECT COUNT(*) FROM event_problems WHERE event_id = ?
@@ -588,8 +592,9 @@ func (d *Database) GetEventProblemAttempts(eventID int) ([]EventProblemAttempt, 
         LEFT JOIN fa ON fa.user_id = s.user_id AND fa.problem_id = s.problem_id
         LEFT JOIN contest_completion cc ON cc.user_id = s.user_id
         WHERE s.event_id = ?
+          AND (?::timestamptz IS NULL OR s.submit_time <= ?::timestamptz)
         GROUP BY s.user_id, s.problem_id, fa.first_accepted_time, cc.completion_time
-    `, eventID, eventID, eventID, eventID).Scan(&results).Error
+    `, eventID, cutoff, cutoff, eventID, cutoff, cutoff, eventID, eventID, cutoff, cutoff).Scan(&results).Error
 	if err != nil {
 		return nil, err
 	}
@@ -694,4 +699,221 @@ func (d *Database) HasUserCompletedAllEventProblems(userID uuid.UUID, eventID in
 	}
 
 	return acceptedProblems >= totalProblems, nil
+}
+
+func hashInviteCode(plainCode string) []byte {
+	sum := sha256.Sum256([]byte(plainCode))
+	return sum[:]
+}
+
+func (d *Database) ValidateEventInviteCode(event *Event, plainCode string) bool {
+	if event == nil || len(event.InviteCodeHash) == 0 {
+		return false
+	}
+	if plainCode == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare(event.InviteCodeHash, hashInviteCode(plainCode)) == 1
+}
+
+func (d *Database) SetEventInviteCode(eventID int, plainCode string) error {
+	hash := hashInviteCode(plainCode)
+	return d.NextJudgeDB.Model(&Event{}).Where("id = ?", eventID).Update("invite_code_hash", hash).Error
+}
+
+func (d *Database) CreateEventRole(userID uuid.UUID, eventID int, role EventRoleKind) error {
+	record := &EventRole{
+		UserID:  userID,
+		EventID: eventID,
+		Role:    role,
+	}
+	return d.NextJudgeDB.Create(record).Error
+}
+
+func (d *Database) UserHasEventRole(userID uuid.UUID, eventID int, roles ...EventRoleKind) bool {
+	if len(roles) == 0 {
+		return false
+	}
+	var count int64
+	err := d.NextJudgeDB.Model(&EventRole{}).
+		Where("user_id = ? AND event_id = ? AND role IN ?", userID, eventID, roles).
+		Count(&count).Error
+	return err == nil && count > 0
+}
+
+func (d *Database) GetEventParticipantCount(eventID int) (int, error) {
+	var count int64
+	err := d.NextJudgeDB.Model(&EventUser{}).Where("event_id = ?", eventID).Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
+func (d *Database) RegistrationOpen(event *Event, now time.Time) bool {
+	if event.RegistrationStart != nil && now.Before(*event.RegistrationStart) {
+		return false
+	}
+	if event.RegistrationEnd != nil && now.After(*event.RegistrationEnd) {
+		return false
+	}
+	return true
+}
+
+func (d *Database) ParticipantLimitReached(event *Event) (bool, error) {
+	if event.ParticipantLimit == nil {
+		return false, nil
+	}
+	count, err := d.GetEventParticipantCount(event.ID)
+	if err != nil {
+		return false, err
+	}
+	return count >= *event.ParticipantLimit, nil
+}
+
+func (d *Database) GetOfficialEventParticipants(eventID int) ([]User, error) {
+	var users []User
+	err := d.NextJudgeDB.Model(&User{}).Unscoped().
+		Joins("JOIN event_users ON users.id = event_users.user_id").
+		Where("event_users.event_id = ? AND event_users.participation_mode = ?", eventID, ParticipationOfficial).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+type EventStandingProblem struct {
+	ProblemID         int        `json:"problem_id"`
+	Attempts          int        `json:"attempts"`
+	TotalAttempts     int        `json:"total_attempts"`
+	FirstAcceptedTime *time.Time `json:"first_accepted_time,omitempty"`
+	MinutesToSolve    *int       `json:"minutes_to_solve,omitempty"`
+}
+
+type EventStandingRow struct {
+	User               User                   `json:"user"`
+	TotalAccepted      int                    `json:"total_accepted"`
+	TotalSubmissions   int                    `json:"total_submissions"`
+	PenaltyTimeMinutes int                    `json:"penalty_time_minutes"`
+	ProblemResults     []EventStandingProblem `json:"problem_results"`
+}
+
+func (d *Database) GetEventStandings(event *Event, frozen bool) ([]EventStandingRow, error) {
+	cutoff := standingsCutoff(event, frozen)
+
+	participants, err := d.GetOfficialEventParticipants(event.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	attempts, err := d.GetEventProblemAttempts(event.ID, cutoff)
+	if err != nil {
+		return nil, err
+	}
+
+	penaltyMinutes := event.PenaltyMinutes
+	if penaltyMinutes <= 0 {
+		penaltyMinutes = 20
+	}
+
+	rows := buildEventStandings(event, participants, attempts, penaltyMinutes)
+	return rows, nil
+}
+
+func standingsCutoff(event *Event, frozen bool) *time.Time {
+	if !frozen {
+		return nil
+	}
+	if event.FreezeAt != nil {
+		return event.FreezeAt
+	}
+	now := time.Now()
+	if event.EndTime.Before(now) {
+		return &event.EndTime
+	}
+	return &now
+}
+
+func buildEventStandings(
+	event *Event,
+	participants []User,
+	attempts []EventProblemAttempt,
+	penaltyMinutes int,
+) []EventStandingRow {
+	rowMap := make(map[uuid.UUID]*EventStandingRow, len(participants))
+	for _, participant := range participants {
+		rowMap[participant.ID] = &EventStandingRow{
+			User:           participant,
+			ProblemResults: []EventStandingProblem{},
+		}
+	}
+
+	for _, attempt := range attempts {
+		row, ok := rowMap[attempt.UserID]
+		if !ok {
+			continue
+		}
+
+		var minutes *int
+		if attempt.FirstAcceptedTime != nil {
+			m := int(attempt.FirstAcceptedTime.Sub(event.StartTime).Minutes())
+			if m < 0 {
+				m = 0
+			}
+			minutes = &m
+		}
+
+		problemResult := EventStandingProblem{
+			ProblemID:         attempt.ProblemID,
+			Attempts:          attempt.Attempts,
+			TotalAttempts:     attempt.TotalAttempts,
+			FirstAcceptedTime: attempt.FirstAcceptedTime,
+			MinutesToSolve:    minutes,
+		}
+		row.ProblemResults = append(row.ProblemResults, problemResult)
+
+		if attempt.FirstAcceptedTime != nil {
+			row.TotalAccepted++
+			wrongBeforeAC := attempt.Attempts - 1
+			if wrongBeforeAC < 0 {
+				wrongBeforeAC = 0
+			}
+			solveMinutes := 0
+			if minutes != nil {
+				solveMinutes = *minutes
+			}
+			row.PenaltyTimeMinutes += solveMinutes + penaltyMinutes*wrongBeforeAC
+		}
+
+		row.TotalSubmissions += attempt.TotalAttempts
+	}
+
+	rows := make([]EventStandingRow, 0, len(rowMap))
+	for _, row := range rowMap {
+		rows = append(rows, *row)
+	}
+
+	sortEventStandings(rows)
+	return rows
+}
+
+func sortEventStandings(rows []EventStandingRow) {
+	for i := 0; i < len(rows); i++ {
+		for j := i + 1; j < len(rows); j++ {
+			if standingsRank(rows[j], rows[i]) {
+				rows[i], rows[j] = rows[j], rows[i]
+			}
+		}
+	}
+}
+
+func standingsRank(a, b EventStandingRow) bool {
+	if a.TotalAccepted != b.TotalAccepted {
+		return a.TotalAccepted > b.TotalAccepted
+	}
+	if a.PenaltyTimeMinutes != b.PenaltyTimeMinutes {
+		return a.PenaltyTimeMinutes < b.PenaltyTimeMinutes
+	}
+	return a.TotalSubmissions < b.TotalSubmissions
 }

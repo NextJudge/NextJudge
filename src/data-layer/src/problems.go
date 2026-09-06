@@ -6,12 +6,15 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"goji.io"
 	"goji.io/pat"
+
+	"main/src/api"
 )
 
 // TODO: add PUT endpoints for problems and test cases
@@ -21,6 +24,7 @@ func addProblemRoutes(mux *goji.Mux) {
 	mux.HandleFunc(pat.Post("/v1/problems"), AdminRequired(postProblem))
 	// Get problems - public only for users, all for admins
 	mux.HandleFunc(pat.Get("/v1/problems"), AuthRequired(getGeneralProblems))
+	mux.HandleFunc(pat.Get("/v1/problems/search"), AuthRequired(searchProblems))
 	mux.HandleFunc(pat.Put("/v1/problems/:problem_id"), AdminRequired(putProblem))
 	mux.HandleFunc(pat.Put("/v1/admin/problems/:problem_id/toggle-visibility"), AdminRequired(toggleProblemVisibility))
 
@@ -32,6 +36,14 @@ func addProblemRoutes(mux *goji.Mux) {
 
 	mux.HandleFunc(pat.Get("/v1/categories"), AuthRequired(getCategories))
 	mux.HandleFunc(pat.Get("/v1/categories/:problem_id"), AuthRequired(getProblemCategories))
+}
+
+func writeProblemError(w http.ResponseWriter, r *http.Request, status int, message string) {
+	api.WriteAPIError(w, r, status, strconv.Itoa(status), message, nil)
+}
+
+func writeProblemErrorWithDetails(w http.ResponseWriter, r *http.Request, status int, message string, details interface{}) {
+	api.WriteAPIError(w, r, status, strconv.Itoa(status), message, details)
 }
 
 type PostProblemRequestBody struct {
@@ -61,36 +73,32 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading request body")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error reading request body")
 		return
 	}
 
 	err = json.Unmarshal(reqBodyBytes, reqData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
 		return
 	}
 
 	user, err := db.GetUserByID(reqData.UserID)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing user")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing user"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error checking for existing user")
 		return
 	}
 	if user == nil {
 		logrus.Warn("user does not exist")
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"user does not exist"}`)
+		writeProblemError(w, r, http.StatusNotFound, "user does not exist")
 		return
 	}
 
 	if statusCode, message := validateProblemRequestBody(reqData); statusCode != 0 {
 		logrus.WithField("message", message).Warn("invalid problem request")
-		writeProblemValidationError(w, statusCode, message)
+		writeProblemValidationError(w, r, statusCode, message)
 		return
 	}
 
@@ -111,14 +119,12 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 	problem, err := db.GetProblemDescriptionByIdentifer(reqData.Identifier)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing problem with identifier")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing problem"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error checking for existing problem")
 		return
 	}
 	if problem != nil {
 		logrus.Warn("problem already exists")
-		w.WriteHeader(http.StatusConflict)
-		fmt.Fprintf(w, `{"code":"409", "message":"problem already exists", "id":%d}`, problem.ID)
+		writeProblemErrorWithDetails(w, r, http.StatusConflict, "problem already exists", map[string]int{"id": problem.ID})
 		return
 	}
 
@@ -162,15 +168,13 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 		category, err := db.GetCategoryByID(categoryId)
 		if err != nil {
 			logrus.WithError(err).Error("error checking for category")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error checking for category"}`)
+			writeProblemError(w, r, http.StatusInternalServerError, "error checking for category")
 			return
 		}
 
 		if category == nil {
 			logrus.Warn("category not found")
-			w.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(w, `{"code":"404", "message":"category not found"}`)
+			writeProblemError(w, r, http.StatusNotFound, "category not found")
 			return
 		}
 
@@ -180,8 +184,7 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 	dbProblem, err := db.CreateProblemDescription(newProblem)
 	if err != nil {
 		logrus.WithError(err).Error("error inserting problem into db")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error inserting problem into db"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error inserting problem into db")
 		return
 	}
 
@@ -196,8 +199,7 @@ func postProblem(w http.ResponseWriter, r *http.Request) {
 	respJSON, err := json.Marshal(returnJSONStruct)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -209,8 +211,7 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 	problemId, err := strconv.Atoi(problemIdParam)
 	if err != nil {
 		logrus.Warn("bad id")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"bad id"}`)
+		writeProblemError(w, r, http.StatusBadRequest, "bad id")
 		return
 	}
 
@@ -218,16 +219,14 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading request body")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error reading request body")
 		return
 	}
 
 	err = json.Unmarshal(reqBodyBytes, reqData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
 		return
 	}
 
@@ -235,14 +234,12 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 	existingProblem, err := db.GetProblemDescriptionByID(problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing problem")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing problem"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error checking for existing problem")
 		return
 	}
 	if existingProblem == nil {
 		logrus.Warn("problem not found")
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		writeProblemError(w, r, http.StatusNotFound, "problem not found")
 		return
 	}
 
@@ -250,20 +247,18 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 	user, err := db.GetUserByID(reqData.UserID)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing user")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing user"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error checking for existing user")
 		return
 	}
 	if user == nil {
 		logrus.Warn("user does not exist")
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"user does not exist"}`)
+		writeProblemError(w, r, http.StatusNotFound, "user does not exist")
 		return
 	}
 
 	if statusCode, message := validateProblemRequestBody(reqData); statusCode != 0 {
 		logrus.WithField("message", message).Warn("invalid problem request")
-		writeProblemValidationError(w, statusCode, message)
+		writeProblemValidationError(w, r, statusCode, message)
 		return
 	}
 
@@ -271,14 +266,12 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 	conflictProblem, err := db.GetProblemDescriptionByIdentifer(reqData.Identifier)
 	if err != nil {
 		logrus.WithError(err).Error("error checking for existing problem with identifier")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error checking for existing problem"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error checking for existing problem")
 		return
 	}
 	if conflictProblem != nil && conflictProblem.ID != problemId {
 		logrus.Warn("problem identifier already exists")
-		w.WriteHeader(http.StatusConflict)
-		fmt.Fprintf(w, `{"code":"409", "message":"problem identifier already exists", "id":%d}`, conflictProblem.ID)
+		writeProblemErrorWithDetails(w, r, http.StatusConflict, "problem identifier already exists", map[string]int{"id": conflictProblem.ID})
 		return
 	}
 
@@ -315,16 +308,14 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 	err = db.NextJudgeDB.Where("problem_id = ?", problemId).Delete(&TestCase{}).Error
 	if err != nil {
 		logrus.WithError(err).Error("error clearing existing test cases")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error clearing existing test cases"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error clearing existing test cases")
 		return
 	}
 
 	err = db.NextJudgeDB.Model(existingProblem).Association("Categories").Clear()
 	if err != nil {
 		logrus.WithError(err).Error("error clearing existing categories")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error clearing existing categories"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error clearing existing categories")
 		return
 	}
 
@@ -340,15 +331,13 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 		category, err := db.GetCategoryByID(categoryId)
 		if err != nil {
 			logrus.WithError(err).Error("error checking for category")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error checking for category"}`)
+			writeProblemError(w, r, http.StatusInternalServerError, "error checking for category")
 			return
 		}
 
 		if category == nil {
 			logrus.Warn("category not found")
-			w.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(w, `{"code":"404", "message":"category not found"}`)
+			writeProblemError(w, r, http.StatusNotFound, "category not found")
 			return
 		}
 
@@ -359,8 +348,7 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 	err = db.UpdateProblemDescription(existingProblem)
 	if err != nil {
 		logrus.WithError(err).Error("error updating problem in db")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error updating problem in db"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error updating problem in db")
 		return
 	}
 
@@ -372,8 +360,7 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 	respJSON, err := json.Marshal(returnJSONStruct)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -382,27 +369,27 @@ func putProblem(w http.ResponseWriter, r *http.Request) {
 
 // Users call this to get more fine-grained info on a problem, including public tests
 func getPublicProblemData(w http.ResponseWriter, r *http.Request) {
-	// TODO FIX
+	claims, ok := requireAuthenticatedClaims(w, r)
+	if !ok {
+		return
+	}
 	problemIdParam := pat.Param(r, "problem_id")
 	problemId, err := strconv.Atoi(problemIdParam)
 	if err != nil {
 		logrus.Warn("bad id")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"bad id"}`)
+		writeProblemError(w, r, http.StatusBadRequest, "bad id")
 		return
 	}
 
 	problemExt, err := db.GetProblemDescriptionByID(problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving problem")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error retrieving problem")
 		return
 	}
-	if problemExt == nil {
+	if !canReadGlobalProblem(claims, problemExt) {
 		logrus.Warn("problem not found")
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		writeProblemError(w, r, http.StatusNotFound, "problem not found")
 		return
 	}
 
@@ -445,8 +432,7 @@ func getPublicProblemData(w http.ResponseWriter, r *http.Request) {
 	respJSON, err := json.Marshal(problem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
 		return
 	}
 	fmt.Fprint(w, string(respJSON))
@@ -459,30 +445,26 @@ func getProblemTestData(w http.ResponseWriter, r *http.Request) {
 	problemId, err := strconv.Atoi(problemIdParam)
 	if err != nil {
 		logrus.Warn("bad id")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"bad id"}`)
+		writeProblemError(w, r, http.StatusBadRequest, "bad id")
 		return
 	}
 
 	problem, err := db.GetProblemDescriptionByID(problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving problem")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error retrieving problem")
 		return
 	}
 	if problem == nil {
 		logrus.Warn("problem not found")
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		writeProblemError(w, r, http.StatusNotFound, "problem not found")
 		return
 	}
 
 	respJSON, err := json.Marshal(problem)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
 		return
 	}
 	fmt.Fprint(w, string(respJSON))
@@ -501,32 +483,74 @@ func getGeneralProblems(w http.ResponseWriter, r *http.Request) {
 		problems, err = db.GetAllProblems()
 		if err != nil {
 			logrus.WithError(err).Error("error retrieving admin problems")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error retrieving admin problems"}`)
+			writeProblemError(w, r, http.StatusInternalServerError, "error retrieving admin problems")
 			return
 		}
 	} else {
 		problems, err = db.GetPublicProblems()
 		if err != nil {
 			logrus.WithError(err).Error("error retrieving problems")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems"}`)
+			writeProblemError(w, r, http.StatusInternalServerError, "error retrieving problems")
 			return
 		}
 	}
 
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving problems")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problems"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error retrieving problems")
 		return
 	}
 
 	respJSON, err := json.Marshal(problems)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
+		return
+	}
+	fmt.Fprint(w, string(respJSON))
+}
+
+func searchProblems(w http.ResponseWriter, r *http.Request) {
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	if query == "" {
+		writeProblemError(w, r, http.StatusBadRequest, "search query is required")
+		return
+	}
+
+	claims, hasClaims := claimsFromContext(r)
+	if !hasClaims {
+		writeNotAuthenticated(w)
+		return
+	}
+
+	limit := 50
+	if limitParam := r.URL.Query().Get("limit"); limitParam != "" {
+		parsedLimit, err := strconv.Atoi(limitParam)
+		if err != nil || parsedLimit <= 0 {
+			writeProblemError(w, r, http.StatusBadRequest, "limit must be a positive integer")
+			return
+		}
+		limit = parsedLimit
+	}
+
+	var problems []GetEventProblemType
+	var err error
+
+	if claims.Role == AdminRoleEnum {
+		problems, err = db.SearchProblems(query, limit, false)
+	} else {
+		problems, err = db.SearchProblems(query, limit, true)
+	}
+	if err != nil {
+		logrus.WithError(err).Error("error searching problems")
+		writeProblemError(w, r, http.StatusInternalServerError, "error searching problems")
+		return
+	}
+
+	respJSON, err := json.Marshal(problems)
+	if err != nil {
+		logrus.WithError(err).Error("JSON parse error")
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
 		return
 	}
 	fmt.Fprint(w, string(respJSON))
@@ -537,22 +561,19 @@ func toggleProblemVisibility(w http.ResponseWriter, r *http.Request) {
 	problemId, err := strconv.Atoi(problemIdParam)
 	if err != nil {
 		logrus.Warn("bad id")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"bad id"}`)
+		writeProblemError(w, r, http.StatusBadRequest, "bad id")
 		return
 	}
 
 	problem, err := db.GetProblemDescriptionByID(problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving problem")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error retrieving problem")
 		return
 	}
 	if problem == nil {
 		logrus.Warn("problem not found")
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		writeProblemError(w, r, http.StatusNotFound, "problem not found")
 		return
 	}
 
@@ -562,8 +583,7 @@ func toggleProblemVisibility(w http.ResponseWriter, r *http.Request) {
 	err = db.UpdateProblemDescription(problem)
 	if err != nil {
 		logrus.WithError(err).Error("error updating problem visibility")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error updating problem visibility"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error updating problem visibility")
 		return
 	}
 
@@ -586,8 +606,7 @@ func toggleProblemVisibility(w http.ResponseWriter, r *http.Request) {
 	respJSON, err := json.Marshal(problemData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
 		return
 	}
 	fmt.Fprint(w, string(respJSON))
@@ -598,30 +617,26 @@ func deleteProblem(w http.ResponseWriter, r *http.Request) {
 	problemId, err := strconv.Atoi(problemIdParam)
 	if err != nil {
 		logrus.Warn("bad uuid")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		writeProblemError(w, r, http.StatusBadRequest, "bad uuid")
 		return
 	}
 
 	problem, err := db.GetProblemDescriptionByID(problemId)
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving problem")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving problem"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error retrieving problem")
 		return
 	}
 	if problem == nil {
 		logrus.WithError(err).Warn("problem not found")
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, `{"code":"404", "message":"problem not found"}`)
+		writeProblemError(w, r, http.StatusNotFound, "problem not found")
 		return
 	}
 
 	err = db.DeleteProblem(problem)
 	if err != nil {
 		logrus.WithError(err).Error("error deleting problem")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error deleting problem"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error deleting problem")
 		return
 	}
 
@@ -632,44 +647,48 @@ func getCategories(w http.ResponseWriter, r *http.Request) {
 	categories, err := db.GetCategories()
 	if err != nil {
 		logrus.WithError(err).Error("error retrieving categories")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving categories"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "error retrieving categories")
 		return
 	}
 
 	respJSON, err := json.Marshal(categories)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
 		return
 	}
 	fmt.Fprint(w, string(respJSON))
 }
 
 func getProblemCategories(w http.ResponseWriter, r *http.Request) {
+	claims, ok := requireAuthenticatedClaims(w, r)
+	if !ok {
+		return
+	}
 	problemIdParam := pat.Param(r, "problem_id")
 	problemId, err := strconv.Atoi(problemIdParam)
 	if err != nil {
 		logrus.Warn("bad uuid")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"code":"400", "message":"bad uuid"}`)
+		writeProblemError(w, r, http.StatusBadRequest, "bad uuid")
 		return
 	}
 
-	categories, err := db.GetProblemCategories(problemId)
+	problem, err := db.GetProblemDescriptionByID(problemId)
 	if err != nil {
-		logrus.WithError(err).Error("error retrieving categories")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error retrieving categories"}`)
+		logrus.WithError(err).Error("error retrieving problem categories")
+		writeProblemError(w, r, http.StatusInternalServerError, "error retrieving categories")
 		return
 	}
+	if !canReadGlobalProblem(claims, problem) {
+		writeProblemError(w, r, http.StatusNotFound, "problem not found")
+		return
+	}
+	categories := problem.Categories
 
 	respJSON, err := json.Marshal(categories)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		writeProblemError(w, r, http.StatusInternalServerError, "JSON parse error")
 		return
 	}
 	fmt.Fprint(w, string(respJSON))

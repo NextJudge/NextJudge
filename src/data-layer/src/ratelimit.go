@@ -121,6 +121,9 @@ var authenticatedInputLimiter = newKeyedRateLimiter(rate.Limit(30.0/60.0), 10)
 // submissionLimiter: per-user graded submissions
 var submissionLimiter = newKeyedRateLimiter(rate.Limit(20.0/60.0), 5)
 
+// ugcLimiter: community solutions and comments
+var ugcLimiter = newKeyedRateLimiter(rate.Limit(10.0/60.0), 5)
+
 func getClientIP(r *http.Request) string {
 	if cfg.TrustedProxy {
 		xff := r.Header.Get("X-Forwarded-For")

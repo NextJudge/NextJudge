@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/argon2"
@@ -18,6 +19,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"goji.io"
 	"goji.io/pat"
+
+	"main/src/api"
 )
 
 func addAuthRoutes(mux *goji.Mux) {
@@ -37,10 +40,6 @@ type CreateTokenResponse struct {
 	Image string    `json:"image,omitempty"`
 }
 
-type authErrorResponse struct {
-	Error string `json:"error"`
-	Code  string `json:"code"`
-}
 
 type RoleEnum int
 
@@ -87,7 +86,7 @@ func skipUserExistenceCheck(claims *NextJudgeClaims) bool {
 	return claims.Role == JudgeRoleEnum && claims.Id == uuid.Nil
 }
 
-func validateTokenUserExists(w http.ResponseWriter, claims *NextJudgeClaims) bool {
+func validateTokenUserExists(w http.ResponseWriter, r *http.Request, claims *NextJudgeClaims) bool {
 	if skipUserExistenceCheck(claims) {
 		return true
 	}
@@ -95,15 +94,13 @@ func validateTokenUserExists(w http.ResponseWriter, claims *NextJudgeClaims) boo
 	user, err := db.GetUserByID(claims.Id)
 	if err != nil {
 		logrus.WithError(err).Error("error validating user for token")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"error":"Internal server error"}`)
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Internal server error", nil)
 		return false
 	}
 
 	if user == nil {
 		logrus.Warn("JWT token references deleted or missing user")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"error":"User account no longer exists"}`)
+		api.WriteAPIError(w, r, http.StatusUnauthorized, "USER_NOT_FOUND", "User account no longer exists", nil)
 		return false
 	}
 
@@ -117,25 +114,39 @@ func AuthValidate(next http.HandlerFunc, validateFunc AllowTokenFunc) http.Handl
 
 		if !ok {
 			logrus.Error("Authorization header missing")
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, `{"error":"Authorization header missing"}`)
+			api.WriteAPIError(w, r, http.StatusUnauthorized, "AUTHORIZATION_MISSING", "Authorization header missing", nil)
 			return
 		}
 
 		if len(auth_header) != 1 {
 			logrus.Error("Authorization header requires exactly one value")
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, `{"error":"Authorization header requires exactly one value"}`)
+			api.WriteAPIError(w, r, http.StatusUnauthorized, "AUTHORIZATION_INVALID", "Authorization header requires exactly one value", nil)
 			return
 		}
 
-		token, err := jwt.ParseWithClaims(auth_header[0], &NextJudgeClaims{}, func(token *jwt.Token) (interface{}, error) {
+		authValue := extractAuthorizationValue(auth_header[0])
+
+		if strings.HasPrefix(authValue, apiTokenPrefix) {
+			claims, handled := tryAuthenticateAPIToken(w, r, authValue)
+			if handled {
+				return
+			}
+			if validateFunc != nil && !validateFunc(claims) {
+				api.WriteAPIError(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", nil)
+				return
+			}
+			ctx := context.WithValue(r.Context(), ContextTokenKey, claims)
+			r = r.WithContext(ctx)
+			next(w, r)
+			return
+		}
+
+		token, err := jwt.ParseWithClaims(authValue, &NextJudgeClaims{}, func(token *jwt.Token) (interface{}, error) {
 			return cfg.JwtSigningSecret, nil
 		}, jwt.WithValidMethods([]string{"HS256"}))
 		if err != nil {
 			logrus.Warn(err)
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, `{"error":"Malformed JWT token"}`)
+			api.WriteAPIError(w, r, http.StatusUnauthorized, "MALFORMED_JWT", "Malformed JWT token", nil)
 			return
 		}
 
@@ -143,12 +154,11 @@ func AuthValidate(next http.HandlerFunc, validateFunc AllowTokenFunc) http.Handl
 
 		if validateFunc != nil && !validateFunc(claims) {
 			logrus.Warn(err)
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, `{"error":"Unauthorized"}`)
+			api.WriteAPIError(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", nil)
 			return
 		}
 
-		if !validateTokenUserExists(w, claims) {
+		if !validateTokenUserExists(w, r, claims) {
 			return
 		}
 
@@ -192,16 +202,14 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading request body")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"error reading request body"}`)
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "500", "error reading request body", nil)
 		return
 	}
 
 	err = json.Unmarshal(reqBodyBytes, reqData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"code":"500", "message":"JSON parse error"}`)
+		api.WriteAPIError(w, r, http.StatusInternalServerError, "500", "JSON parse error", nil)
 		return
 	}
 
@@ -211,15 +219,13 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 
 	if !ok {
 		logrus.Error("Authorization header missing")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `Authorization header missing`)
+		api.WriteAPIError(w, r, http.StatusUnauthorized, "AUTHORIZATION_MISSING", "Authorization header missing", nil)
 		return
 	}
 
 	if len(auth_header) != 1 {
 		logrus.Error("Authorization header requires exactly one value")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `Authorization header requires exactly one value`)
+		api.WriteAPIError(w, r, http.StatusUnauthorized, "AUTHORIZATION_INVALID", "Authorization header requires exactly one value", nil)
 		return
 	}
 
@@ -236,8 +242,7 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 		user, err := db.GetOrCreateUserByAccountIdentifier(&newUserData)
 		if err != nil {
 			logrus.WithError(err).Error("error creating or fetching user")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"message":"error inserting user"}`)
+			api.WriteAPIError(w, r, http.StatusInternalServerError, "DATABASE_ERROR", "error inserting user", nil)
 			return
 		}
 
@@ -248,8 +253,7 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 		newToken, err := createToken(user.ID, role)
 		if err != nil {
 			logrus.WithError(err).Error("error creating JWT token")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"message":"error creating JWT token"}`)
+			api.WriteAPIError(w, r, http.StatusInternalServerError, "TOKEN_ERROR", "error creating JWT token", nil)
 			return
 		}
 
@@ -265,9 +269,7 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 		respJSON, err := json.Marshal(respData)
 		if err != nil {
 			logrus.WithError(err).Error("JSON parse error")
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"message":"JSON parse error"}`)
+			api.WriteAPIError(w, r, http.StatusInternalServerError, "500", "JSON parse error", nil)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -275,8 +277,7 @@ func createOrLoginUser(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		logrus.Warn("Auth failure in creating user")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"error":"Unauthorized"}`)
+		api.WriteAPIError(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", nil)
 		return
 	}
 }
@@ -286,15 +287,13 @@ func loginJudge(w http.ResponseWriter, r *http.Request) {
 
 	if !ok {
 		logrus.Error("Authorization header missing")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `Authorization header missing`)
+		api.WriteAPIError(w, r, http.StatusUnauthorized, "AUTHORIZATION_MISSING", "Authorization header missing", nil)
 		return
 	}
 
 	if len(auth_header) != 1 {
 		logrus.Error("Authorization header requires exactly one value")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `Authorization header requires exactly one value`)
+		api.WriteAPIError(w, r, http.StatusUnauthorized, "AUTHORIZATION_INVALID", "Authorization header requires exactly one value", nil)
 		return
 	}
 
@@ -303,8 +302,7 @@ func loginJudge(w http.ResponseWriter, r *http.Request) {
 		newToken, err := createToken(uuid.Nil, JudgeRoleEnum)
 		if err != nil {
 			logrus.WithError(err).Error("error creating JWT token")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"message":"error creating JWT token"}`)
+			api.WriteAPIError(w, r, http.StatusInternalServerError, "TOKEN_ERROR", "error creating JWT token", nil)
 			return
 		}
 
@@ -315,17 +313,14 @@ func loginJudge(w http.ResponseWriter, r *http.Request) {
 		respJSON, err := json.Marshal(respData)
 		if err != nil {
 			logrus.WithError(err).Error("JSON parse error")
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, `{"message":"JSON parse error"}`)
+			api.WriteAPIError(w, r, http.StatusInternalServerError, "500", "JSON parse error", nil)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprint(w, string(respJSON))
 	} else {
 		logrus.Warn("Auth failure in creating user")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"error":"Unauthorized"}`)
+		api.WriteAPIError(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", nil)
 		return
 	}
 }
@@ -346,16 +341,13 @@ func isAdminEmail(email string) bool {
 	return false
 }
 
-func writeErrorResponse(w http.ResponseWriter, statusCode int, errorMsg string, errorCode string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	errorResp := authErrorResponse{Error: errorMsg, Code: errorCode}
-	json.NewEncoder(w).Encode(errorResp)
+func writeErrorResponse(w http.ResponseWriter, r *http.Request, statusCode int, errorMsg string, errorCode string) {
+	api.WriteAPIError(w, r, statusCode, errorCode, errorMsg, nil)
 }
 
 func basicRegister(w http.ResponseWriter, r *http.Request) {
 	if !cfg.BasicRegistrationEnabled {
-		writeErrorResponse(w, http.StatusForbidden, "Basic registration is disabled; use GitHub to create an account", "BASIC_REGISTRATION_DISABLED")
+		writeErrorResponse(w, r, http.StatusForbidden, "Basic registration is disabled; use GitHub to create an account", "BASIC_REGISTRATION_DISABLED")
 		return
 	}
 
@@ -363,14 +355,14 @@ func basicRegister(w http.ResponseWriter, r *http.Request) {
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading request body")
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
 		return
 	}
 
 	err = json.Unmarshal(reqBodyBytes, reqData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
 		return
 	}
 
@@ -379,13 +371,13 @@ func basicRegister(w http.ResponseWriter, r *http.Request) {
 	user, err := db.GetUserByAccountIdentifier(accountIdentifier)
 	if err != nil {
 		logrus.WithError(err).Error("Database error")
-		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
 		return
 	}
 
 	if user != nil {
 		logrus.Error("User already exists")
-		writeErrorResponse(w, http.StatusConflict, "User already exists", "USER_EXISTS")
+		writeErrorResponse(w, r, http.StatusConflict, "User already exists", "USER_EXISTS")
 		return
 	}
 
@@ -393,7 +385,7 @@ func basicRegister(w http.ResponseWriter, r *http.Request) {
 	_, err = rand.Read(salt)
 	if err != nil {
 		logrus.Error("User registration failed - could not create random number")
-		writeErrorResponse(w, http.StatusInternalServerError, "Registration failed", "SALT_GENERATION_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Registration failed", "SALT_GENERATION_ERROR")
 		return
 	}
 
@@ -414,7 +406,7 @@ func basicRegister(w http.ResponseWriter, r *http.Request) {
 	newUser, err := db.CreateUserWithPasswordHash(&newUserData)
 	if err != nil {
 		logrus.Error("User registration failed - database failure")
-		writeErrorResponse(w, http.StatusInternalServerError, "Registration failed", "DATABASE_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Registration failed", "DATABASE_ERROR")
 		return
 	}
 
@@ -425,7 +417,7 @@ func basicRegister(w http.ResponseWriter, r *http.Request) {
 	newToken, err := createToken(newUser.ID, role)
 	if err != nil {
 		logrus.WithError(err).Error("error creating JWT token")
-		writeErrorResponse(w, http.StatusInternalServerError, "Token creation failed", "TOKEN_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Token creation failed", "TOKEN_ERROR")
 		return
 	}
 
@@ -446,14 +438,14 @@ func basicLogin(w http.ResponseWriter, r *http.Request) {
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading request body")
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
 		return
 	}
 
 	err = json.Unmarshal(reqBodyBytes, reqData)
 	if err != nil {
 		logrus.WithError(err).Error("JSON parse error")
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
 		return
 	}
 
@@ -462,7 +454,7 @@ func basicLogin(w http.ResponseWriter, r *http.Request) {
 
 	if user == nil {
 		logrus.WithError(err).Error("No such user or database error")
-		writeErrorResponse(w, http.StatusUnauthorized, "Invalid credentials", "INVALID_CREDENTIALS")
+		writeErrorResponse(w, r, http.StatusUnauthorized, "Invalid credentials", "INVALID_CREDENTIALS")
 		return
 	}
 
@@ -470,7 +462,7 @@ func basicLogin(w http.ResponseWriter, r *http.Request) {
 
 	if subtle.ConstantTimeCompare([]byte(currentPasswordHash), user.PasswordHash) != 1 {
 		logrus.Warn("Incorrect credential attempt")
-		writeErrorResponse(w, http.StatusUnauthorized, "Invalid credentials", "INVALID_CREDENTIALS")
+		writeErrorResponse(w, r, http.StatusUnauthorized, "Invalid credentials", "INVALID_CREDENTIALS")
 		return
 	}
 
@@ -482,7 +474,7 @@ func basicLogin(w http.ResponseWriter, r *http.Request) {
 	newToken, err := createToken(user.ID, role)
 	if err != nil {
 		logrus.WithError(err).Error("error creating JWT token")
-		writeErrorResponse(w, http.StatusInternalServerError, "Token creation failed", "TOKEN_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Token creation failed", "TOKEN_ERROR")
 		return
 	}
 
@@ -524,22 +516,22 @@ func basicRequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	req := new(PasswordResetRequest)
 	body, err := readLimitedBody(r)
 	if err != nil {
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
 		return
 	}
 	if err := json.Unmarshal(body, req); err != nil {
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
 		return
 	}
 
 	if req.Email == "" {
-		writeErrorResponse(w, http.StatusBadRequest, "Email required", "EMAIL_REQUIRED")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Email required", "EMAIL_REQUIRED")
 		return
 	}
 
 	user, err := db.GetUserByEmail(req.Email)
 	if err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
 		return
 	}
 
@@ -547,11 +539,11 @@ func basicRequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	if user != nil {
 		plainToken, tokenErr := generatePasswordResetPlainToken()
 		if tokenErr != nil {
-			writeErrorResponse(w, http.StatusInternalServerError, "Token generation failed", "TOKEN_GENERATION_ERROR")
+			writeErrorResponse(w, r, http.StatusInternalServerError, "Token generation failed", "TOKEN_GENERATION_ERROR")
 			return
 		}
 		if storeErr := db.CreatePasswordResetToken(user.ID, plainToken, time.Hour); storeErr != nil {
-			writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+			writeErrorResponse(w, r, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
 			return
 		}
 		if cfg.PasswordResetDebug || isTrustedWebBridgeRequest(r) {
@@ -570,40 +562,40 @@ func basicResetPassword(w http.ResponseWriter, r *http.Request) {
 	req := new(PasswordResetDirect)
 	body, err := readLimitedBody(r)
 	if err != nil {
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Invalid request body", "INVALID_BODY")
 		return
 	}
 	if err := json.Unmarshal(body, req); err != nil {
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Invalid JSON", "INVALID_JSON")
 		return
 	}
 
 	if req.Email == "" || req.NewPassword == "" {
-		writeErrorResponse(w, http.StatusBadRequest, "Email and new_password required", "INPUT_REQUIRED")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Email and new_password required", "INPUT_REQUIRED")
 		return
 	}
 
 	if cfg.AllowInsecurePasswordReset && req.Token == "" {
-		basicResetPasswordInsecure(w, req)
+		basicResetPasswordInsecure(w, r, req)
 		return
 	}
 
 	if req.Token == "" {
-		writeErrorResponse(w, http.StatusBadRequest, "Reset token required", "TOKEN_REQUIRED")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Reset token required", "TOKEN_REQUIRED")
 		return
 	}
 
 	user, err := db.ValidatePasswordResetToken(req.Email, req.Token)
 	if err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
 		return
 	}
 	if user == nil {
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid or expired reset token", "INVALID_TOKEN")
+		writeErrorResponse(w, r, http.StatusBadRequest, "Invalid or expired reset token", "INVALID_TOKEN")
 		return
 	}
 
-	if err := applyPasswordReset(w, user, req.NewPassword); err != nil {
+	if err := applyPasswordReset(w, r, user, req.NewPassword); err != nil {
 		return
 	}
 
@@ -615,11 +607,11 @@ func basicResetPassword(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, `{"status":"ok"}`)
 }
 
-func basicResetPasswordInsecure(w http.ResponseWriter, req *PasswordResetDirect) {
+func basicResetPasswordInsecure(w http.ResponseWriter, r *http.Request, req *PasswordResetDirect) {
 	logrus.Warn("ALLOW_INSECURE_PASSWORD_RESET enabled: resetting password without token")
 	user, err := db.GetUserByEmail(req.Email)
 	if err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
 		return
 	}
 	if user == nil {
@@ -627,28 +619,28 @@ func basicResetPasswordInsecure(w http.ResponseWriter, req *PasswordResetDirect)
 		fmt.Fprint(w, `{"status":"ok"}`)
 		return
 	}
-	if err := applyPasswordReset(w, user, req.NewPassword); err != nil {
+	if err := applyPasswordReset(w, r, user, req.NewPassword); err != nil {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, `{"status":"ok"}`)
 }
 
-func applyPasswordReset(w http.ResponseWriter, user *User, newPassword string) error {
+func applyPasswordReset(w http.ResponseWriter, r *http.Request, user *User, newPassword string) error {
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Salt generation failed", "SALT_GENERATION_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Salt generation failed", "SALT_GENERATION_ERROR")
 		return err
 	}
 	passwordHash := argon2.IDKey([]byte(newPassword), salt, 1, 64*1024, 4, 32)
 
 	updatedUser, err := db.UpdateUserPasswordByEmail(user.Email, salt, passwordHash)
 	if err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
 		return err
 	}
 	if updatedUser == nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
+		writeErrorResponse(w, r, http.StatusInternalServerError, "Database error", "DATABASE_ERROR")
 		return fmt.Errorf("user not updated")
 	}
 	return nil

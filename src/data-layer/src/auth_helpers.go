@@ -25,6 +25,12 @@ func writeNotAuthenticated(w http.ResponseWriter) {
 	fmt.Fprint(w, `{"code":"401", "message":"Not authenticated"}`)
 }
 
+// Global problem access does not grant access through contest membership.
+// Contest routes enforce their own visibility and participation rules.
+func canReadGlobalProblem(claims *NextJudgeClaims, problem *ProblemDescriptionExt) bool {
+	return claims != nil && problem != nil && (problem.Public || claims.Role == AdminRoleEnum)
+}
+
 func resolveActingUserID(w http.ResponseWriter, r *http.Request, bodyUserID uuid.UUID) (uuid.UUID, bool) {
 	claims, ok := requireAuthenticatedClaims(w, r)
 	if !ok {
@@ -55,11 +61,51 @@ func canReadSubmissionForClaims(claims *NextJudgeClaims, submissionUserID uuid.U
 }
 
 func canViewAllEventSubmissions(claims *NextJudgeClaims, event *Event) bool {
-	return claims.Role >= JudgeRoleEnum || claims.Id == event.UserID
+	if claims.Role >= JudgeRoleEnum {
+		return true
+	}
+	if claims.Id == event.UserID {
+		return true
+	}
+	return db.UserHasEventRole(claims.Id, event.ID, EventRoleOwner, EventRoleOrganizer, EventRoleJudge)
 }
 
 func canManageEvent(claims *NextJudgeClaims, event *Event) bool {
-	return claims.Role >= JudgeRoleEnum || claims.Id == event.UserID
+	if claims.Role >= JudgeRoleEnum {
+		return true
+	}
+	if claims.Id == event.UserID {
+		return true
+	}
+	return db.UserHasEventRole(claims.Id, event.ID, EventRoleOwner, EventRoleOrganizer)
+}
+
+func canViewEvent(claims *NextJudgeClaims, event *Event) bool {
+	if event.Visibility == EventVisibilityPublic || event.Visibility == EventVisibilityUnlisted {
+		return true
+	}
+	if claims == nil {
+		return false
+	}
+	if canManageEvent(claims, event) {
+		return true
+	}
+	eventUser, err := db.GetEventUser(claims.Id, event.ID)
+	return err == nil && eventUser != nil
+}
+
+func canViewEventStandings(claims *NextJudgeClaims, event *Event) bool {
+	if event.Visibility == EventVisibilityPublic {
+		return true
+	}
+	if claims == nil {
+		return false
+	}
+	if canManageEvent(claims, event) {
+		return true
+	}
+	eventUser, err := db.GetEventUser(claims.Id, event.ID)
+	return err == nil && eventUser != nil
 }
 
 func redactSubmissionForViewer(claims *NextJudgeClaims, submission Submission) Submission {

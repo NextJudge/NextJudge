@@ -105,6 +105,39 @@ func (d *Database) ListSubmissionsNeedingEnqueue(limit int) ([]Submission, error
 	return submissions, nil
 }
 
+func (d *Database) CountSubmissionsByStatusAndEnqueueState(status Status, states []EnqueueState) (int64, error) {
+	var count int64
+	err := d.NextJudgeDB.Model(&Submission{}).
+		Where("status = ?", status).
+		Where("enqueue_state IN ?", states).
+		Count(&count).Error
+	return count, err
+}
+
+func (d *Database) CountInputSubmissionsByEnqueueState(states []EnqueueState) (int64, error) {
+	var count int64
+	err := d.NextJudgeDB.Model(&InputSubmission{}).
+		Where("finished = ?", false).
+		Where("enqueue_state IN ?", states).
+		Count(&count).Error
+	return count, err
+}
+
+func (d *Database) ResetSubmissionForRejudge(submissionID uuid.UUID) error {
+	return d.NextJudgeDB.Model(&Submission{}).
+		Where("id = ?", submissionID).
+		Updates(map[string]interface{}{
+			"status":              Pending,
+			"enqueue_state":       EnqueuePending,
+			"enqueue_attempts":    0,
+			"enqueued_at":         nil,
+			"failed_test_case_id": nil,
+			"stdout":              "",
+			"stderr":              "",
+			"time_elapsed":        0,
+		}).Error
+}
+
 func (d *Database) ListInputSubmissionsNeedingEnqueue(limit int) ([]InputSubmission, error) {
 	cutoff := time.Now().Add(-staleQueuedThreshold)
 	submissions := []InputSubmission{}
