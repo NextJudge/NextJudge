@@ -28,6 +28,7 @@ const scalarDocsHTML = `<!doctype html>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>NextJudge API Reference</title>
+    <link rel="icon" type="image/png" href="https://docs.nextjudge.net/favicon.png">
     <style>html, body { margin: 0; min-height: 100%; } #api-reference { min-height: 100vh; }</style>
   </head>
   <body>
