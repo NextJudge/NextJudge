@@ -26,6 +26,11 @@ func RunMigrations(database *Database) error {
 		return err
 	}
 
+	if err := bootstrapLegacyGooseVersion(database, sqlDB); err != nil {
+		logrus.WithError(err).Error("failed to bootstrap goose version for legacy database")
+		return err
+	}
+
 	logrus.Info("Running goose migrations...")
 	if err := goose.Up(sqlDB, "."); err != nil {
 		logrus.WithError(err).Error("failed to run goose migrations")

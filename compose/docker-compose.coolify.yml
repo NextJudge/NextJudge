@@ -26,6 +26,11 @@ services:
       - AUTH_RATE_LIMIT_BURST=${AUTH_RATE_LIMIT_BURST}
     networks:
       - internal
+    labels:
+      - traefik.http.routers.http-0-${COOLIFY_RESOURCE_UUID}-nextjudge-data-layer.service=http-0-${COOLIFY_RESOURCE_UUID}-nextjudge-data-layer
+      - traefik.http.routers.https-0-${COOLIFY_RESOURCE_UUID}-nextjudge-data-layer.service=https-0-${COOLIFY_RESOURCE_UUID}-nextjudge-data-layer
+      - traefik.http.services.http-0-${COOLIFY_RESOURCE_UUID}-nextjudge-data-layer.loadbalancer.server.port=5000
+      - traefik.http.services.https-0-${COOLIFY_RESOURCE_UUID}-nextjudge-data-layer.loadbalancer.server.port=5000
     healthcheck:
       test: ["CMD", "/main", "-healthcheck", "-p", "5000"]
       interval: 30s
