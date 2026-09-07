@@ -31,8 +31,8 @@ const scalarDocsHTML = `<!doctype html>
     <link rel="icon" type="image/png" href="https://docs.nextjudge.net/favicon.png">
     <style>
       html, body { margin: 0; min-height: 100%; }
-      #api-reference { min-height: 100vh; }
-      #api-reference:empty::before {
+      #scalar-docs { min-height: 100vh; }
+      #scalar-docs:empty::before {
         color: #8b8b8b;
         content: 'Loading API reference…';
         display: block;
@@ -42,14 +42,17 @@ const scalarDocsHTML = `<!doctype html>
     </style>
   </head>
   <body>
-    <div id="api-reference"></div>
-    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <div id="scalar-docs"></div>
     <script>
-      window.addEventListener('load', () => {
-        Scalar.createApiReference('#api-reference', {
-          url: '/v1/openapi.json',
-          pageTitle: 'NextJudge API Reference'
-        });
+      if (!window.location.hash) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search + '#description/introduction');
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.68.0"></script>
+    <script>
+      Scalar.createApiReference('#scalar-docs', {
+        url: '/v1/openapi.json',
+        pageTitle: 'NextJudge API Reference'
       });
     </script>
   </body>
