@@ -72,7 +72,7 @@ Copy `src/web/.env.example` → `src/web/.env.local`:
 | `WEB_BRIDGE_SECRET` | Yes | Must match data layer |
 | `AUTH_GITHUB_ID` | For GitHub login | OAuth app client ID |
 | `AUTH_GITHUB_SECRET` | For GitHub login | OAuth app client secret |
-| `AUTH_REDIRECT_PROXY_URL` | PR previews | Production OAuth callback host, e.g. `https://nextjudge.net/api/auth` |
+| `AUTH_REDIRECT_PROXY_URL` | PR previews only | Production OAuth callback host, e.g. `https://nextjudge.net/api/auth`. Do **not** set on production web. |
 | `AUTH_TRUST_HOST` | PR previews | `true` when behind Coolify Traefik |
 | `NEXT_PUBLIC_API_URL` | Self-hosted prod | Set at **`next build`**. Omit on Coolify **preview** web (runtime routing) |
 | `NEXTAUTH_URL` | Self-hosted prod | Public HTTPS URL of the web app |
@@ -142,7 +142,7 @@ Each PR gets an isolated stack:
 
 **Web preview env:** do **not** set `NEXT_PUBLIC_API_URL` — `{PR}-web` hostnames route API calls to `{PR}-api` at runtime.
 
-**GitHub OAuth:** one production callback (`https://nextjudge.net/api/auth/callback/github`). Set `AUTH_REDIRECT_PROXY_URL=https://nextjudge.net/api/auth` and `AUTH_TRUST_HOST=true` on production and preview web. Share `AUTH_SECRET` with production; use preview-only GitHub credentials and `WEB_BRIDGE_SECRET`.
+**GitHub OAuth:** one production callback (`https://nextjudge.net/api/auth/callback/github`). On **preview web only**, set `AUTH_REDIRECT_PROXY_URL=https://nextjudge.net/api/auth` and `AUTH_TRUST_HOST=true`. Production web must omit `AUTH_REDIRECT_PROXY_URL`. Share `AUTH_SECRET` with production; use preview-only GitHub credentials and a preview `WEB_BRIDGE_SECRET` that matches the preview backend.
 
 **Setup scripts** (require `coolify.env` + `ssh nextjudge`):
 

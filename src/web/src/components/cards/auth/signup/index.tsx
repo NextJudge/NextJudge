@@ -52,13 +52,15 @@ export function SignUpCard({
     try {
       const { name, email, password, confirmPassword } = data;
       const res = await signUpUser({ name, email, password, confirmPassword });
+      if (res.status === "error") {
+        toast.error(res.message);
+        return;
+      }
       toast.success(res.message);
       router.push("/auth/login");
     } catch (error) {
       console.error("Signup error:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Registration failed";
-      toast.error(errorMessage);
+      toast.error("Registration failed. Please try again.");
     }
   }
 

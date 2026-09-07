@@ -188,24 +188,29 @@ project="$1"
 pr="$2"
 dir="$HOME/nextjudge-previews/pr-${pr}"
 
-if [[ -d "$dir" ]]; then
-  cd "$dir"
-  if [[ -f traefik.override.yml ]]; then
-    if [[ -f docker-compose.preview.yml ]]; then
-      docker compose --project-name "$project" -f docker-compose.coolify.yml -f docker-compose.preview.yml -f traefik.override.yml down -v --remove-orphans
-    else
-      docker compose --project-name "$project" -f docker-compose.coolify.yml -f traefik.override.yml down -v --remove-orphans
-    fi
-  else
-    docker compose --project-name "$project" -f docker-compose.coolify.yml down -v --remove-orphans
+teardown_compose_project() {
+  local compose_project="$1"
+  mapfile -t containers < <(docker ps -aq --filter "label=com.docker.compose.project=${compose_project}" 2>/dev/null || true)
+  if ((${#containers[@]} > 0)); then
+    docker rm -f "${containers[@]}"
   fi
+
+  mapfile -t volumes < <(docker volume ls -q --filter "label=com.docker.compose.project=${compose_project}" 2>/dev/null || true)
+  if ((${#volumes[@]} > 0)); then
+    docker volume rm -f "${volumes[@]}" 2>/dev/null || true
+  fi
+
+  mapfile -t networks < <(docker network ls -q --filter "label=com.docker.compose.project=${compose_project}" 2>/dev/null || true)
+  if ((${#networks[@]} > 0)); then
+    docker network rm "${networks[@]}" 2>/dev/null || true
+  fi
+}
+
+if [[ -d "$dir" ]]; then
   rm -rf "$dir"
 fi
 
-mapfile -t containers < <(docker ps -aq --filter "label=com.docker.compose.project=${project}" 2>/dev/null || true)
-if ((${#containers[@]} > 0)); then
-  docker rm -f "${containers[@]}"
-fi
+teardown_compose_project "$project"
 
 echo "Cleaned up preview backend for PR #${pr}."
 REMOTE

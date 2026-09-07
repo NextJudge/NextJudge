@@ -58,8 +58,8 @@ gh workflow run deploy-production.yml \
   -f deploy_web=true \
   -f deploy_docs=true
 
-printf '\n[4/5] Operator: import launch catalog\n'
-printf '  python3 scripts/content-import.py --execute --api https://api.nextjudge.net\n'
+printf '\n[4/5] Operator: import launch catalog (manual SSH, not CI)\n'
+printf '  ADMIN_USER_ID=<admin-uuid> %s/prod-recovery/run-catalog-import.sh\n' "${REPO_ROOT}/scripts"
 
 printf '\n[5/5] Smoke checklist:\n'
 printf '  - curl https://api.nextjudge.net/healthy\n'
