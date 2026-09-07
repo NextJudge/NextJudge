@@ -29,9 +29,11 @@ const envSpecUrl = import.meta.env.PUBLIC_OPENAPI_URL ?? '';
         theme: 'default',
       };
 
+      const toAbsoluteUrl = (url) => new URL(url, window.location.origin).href;
+
       const resolvePrimarySpecUrl = () => {
         if (envSpecUrl) {
-          return envSpecUrl;
+          return toAbsoluteUrl(envSpecUrl);
         }
 
         const previewMatch = window.location.hostname.match(/^(\d+)-docs\.preview\./);
@@ -53,11 +55,12 @@ const envSpecUrl = import.meta.env.PUBLIC_OPENAPI_URL ?? '';
           // fall through to embedded copy
         }
 
-        const embedded = await fetch(embeddedSpecUrl);
+        const embeddedAbsolute = toAbsoluteUrl(embeddedSpecUrl);
+        const embedded = await fetch(embeddedAbsolute);
         if (!embedded.ok) {
           throw new Error('unable to load OpenAPI spec');
         }
-        return embeddedSpecUrl;
+        return embeddedAbsolute;
       };
 
       resolveSpecUrl()
@@ -66,7 +69,10 @@ const envSpecUrl = import.meta.env.PUBLIC_OPENAPI_URL ?? '';
           script.src = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference';
           script.onload = () => {
             const mount = document.getElementById('api-reference');
-            const scalarConfig = { url, ...configuration };
+            const scalarConfig = {
+              ...configuration,
+              sources: [{ url, default: true }],
+            };
             if (window.Scalar?.createApiReference) {
               window.Scalar.createApiReference(mount, scalarConfig);
               return;
