@@ -34,6 +34,10 @@ Run from `src/docs`:
 | `bun run preview` | Preview the production build locally |
 | `bun astro sync` | Regenerate content/types after config changes |
 
+The navbar API link uses `PUBLIC_API_DOCS_URL` when set, derives a PR preview
+API host from `PR_NUMBER`, and otherwise defaults to the local API in dev or
+`https://api.nextjudge.net/docs` for production builds.
+
 ## Stack
 
 - Astro 7 + Vite 8 (Rust compiler, Sätteri markdown pipeline)

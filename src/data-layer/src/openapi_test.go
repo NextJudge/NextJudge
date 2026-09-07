@@ -4,8 +4,26 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
+
+func TestGetScalarDocs(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	getScalarDocs(recorder, httptest.NewRequest(http.MethodGet, "/docs", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", recorder.Code)
+	}
+	if contentType := recorder.Header().Get("Content-Type"); contentType != "text/html; charset=utf-8" {
+		t.Fatalf("expected HTML content type, got %q", contentType)
+	}
+	for _, expected := range []string{"@scalar/api-reference", "'/v1/openapi.json'", "NextJudge API Reference"} {
+		if !strings.Contains(recorder.Body.String(), expected) {
+			t.Fatalf("expected docs response to contain %q", expected)
+		}
+	}
+}
 
 func TestGetOpenAPISpec(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/v1/openapi.json", nil)

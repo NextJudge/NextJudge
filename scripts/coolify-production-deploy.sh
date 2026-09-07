@@ -39,6 +39,7 @@ DEPLOY_POLL_INTERVAL_SEC="${DEPLOY_POLL_INTERVAL_SEC:-15}"
 HEALTH_TIMEOUT_SEC="${HEALTH_TIMEOUT_SEC:-300}"
 HEALTH_POLL_INTERVAL_SEC="${HEALTH_POLL_INTERVAL_SEC:-10}"
 PROD_API_HEALTH_URL="${PROD_API_HEALTH_URL:-https://api.nextjudge.net/healthy}"
+PROD_API_DOCS_URL="${PROD_API_DOCS_URL:-https://api.nextjudge.net/docs}"
 PROD_WEB_HEALTH_URL="${PROD_WEB_HEALTH_URL:-https://nextjudge.net/}"
 PROD_DOCS_HEALTH_URL="${PROD_DOCS_HEALTH_URL:-https://docs.nextjudge.net/}"
 IMAGE_TAG="sha-${TARGET_SHA}"
@@ -374,6 +375,7 @@ fi
 
 if [[ "$failed" == "false" ]]; then
   wait_for_url "$PROD_API_HEALTH_URL" API || failed=true
+  [[ "$failed" == "true" ]] || wait_for_url "$PROD_API_DOCS_URL" "API docs" || failed=true
   [[ "$failed" == "true" ]] || wait_for_url "$PROD_WEB_HEALTH_URL" web || failed=true
   [[ "$failed" == "true" ]] || wait_for_url "$PROD_DOCS_HEALTH_URL" docs || failed=true
 fi

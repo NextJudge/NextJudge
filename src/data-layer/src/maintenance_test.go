@@ -6,20 +6,23 @@ import (
 	"testing"
 )
 
-func TestMaintenanceMiddlewareExemptsHealth(t *testing.T) {
+func TestMaintenanceMiddlewareExemptsHealthAndDocs(t *testing.T) {
 	cfg.MaintenanceMode = true
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	for _, path := range []string{"/health", "/docs", "/docs/"} {
+		mux.HandleFunc(path, func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+	}
 
 	handler := MaintenanceMiddleware(mux)
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
+	for _, path := range []string{"/health", "/docs/"} {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected %s to return 200, got %d", path, rec.Code)
+		}
 	}
 }
 

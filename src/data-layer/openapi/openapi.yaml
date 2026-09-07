@@ -14,10 +14,8 @@ info:
     identifier: LicenseRef-Proprietary
 
 servers:
-  - url: http://localhost:5000
-    description: Local development
-  - url: https://api.nextjudge.net
-    description: Production
+  - url: /
+    description: The API host serving this document (local, preview, or production)
 
 tags:
   - name: auth

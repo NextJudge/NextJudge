@@ -11,6 +11,24 @@ import {
   DOCS_TITLE_DELIMITER,
 } from './src/lib/site.ts';
 
+const resolveApiDocsUrl = (command, env = process.env) => {
+  const configured = env.PUBLIC_API_DOCS_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/$/, '');
+  }
+
+  const previewNumber = env.PR_NUMBER?.trim() ?? env.GITHUB_PR_NUMBER?.trim();
+  if (previewNumber && /^\d+$/.test(previewNumber)) {
+    return `https://${previewNumber}-api.preview.nextjudge.net/docs`;
+  }
+
+  if (command === 'dev' || env.NODE_ENV === 'development') {
+    return 'http://localhost:5000/docs';
+  }
+
+  return 'https://api.nextjudge.net/docs';
+};
+
 /** Appends NextJudge CSS after Lucode so brand overrides win. */
 const nextJudgeTheme = () => ({
   name: 'nextjudge-docs-theme',
@@ -24,7 +42,7 @@ const nextJudgeTheme = () => ({
 });
 
 // https://astro.build/config
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   site: DOCS_SITE_URL,
   markdown: {
     processor: unified(),
@@ -45,12 +63,20 @@ export default defineConfig({
             href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap',
           },
         },
+        {
+          tag: 'script',
+          attrs: { src: '/api-docs-link.js', defer: true },
+        },
       ],
       plugins: [
         lucode({
           navLinks: [
             { label: 'Docs', link: '/start/getting-started/' },
-            { label: 'API', link: '/reference/api/' },
+            {
+              label: 'API',
+              link: resolveApiDocsUrl(command),
+              attrs: { 'data-api-docs-link': 'true' },
+            },
             { label: 'Platform', link: 'https://nextjudge.net' },
           ],
           footerText: '',
@@ -98,4 +124,4 @@ export default defineConfig({
       ],
     }),
   ],
-});
+}));

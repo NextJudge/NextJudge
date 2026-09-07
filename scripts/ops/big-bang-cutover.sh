@@ -63,7 +63,7 @@ printf '  ADMIN_USER_ID=<admin-uuid> %s/prod-recovery/run-catalog-import.sh\n' "
 
 printf '\n[5/5] Smoke checklist:\n'
 printf '  - curl https://api.nextjudge.net/healthy\n'
-printf '  - curl https://docs.nextjudge.net/reference/api/\n'
+printf '  - curl https://api.nextjudge.net/docs\n'
 printf '  - GitHub login + solve beacon-checksum\n'
 printf '  - gh pr checks (if tracking PR open)\n'
 

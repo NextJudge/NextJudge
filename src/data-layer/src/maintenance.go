@@ -26,7 +26,7 @@ func MaintenanceMiddleware(h http.Handler) http.Handler {
 
 func isMaintenanceExemptPath(path string) bool {
 	switch strings.TrimSuffix(path, "/") {
-	case "", "/health", "/healthy", "/v1/openapi.json":
+	case "", "/docs", "/health", "/healthy", "/v1/openapi.json":
 		return true
 	default:
 		return false

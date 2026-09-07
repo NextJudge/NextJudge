@@ -22,8 +22,36 @@ var (
 	openapiJSONErr  error
 )
 
+const scalarDocsHTML = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NextJudge API Reference</title>
+    <style>html, body { margin: 0; min-height: 100%; } #api-reference { min-height: 100vh; }</style>
+  </head>
+  <body>
+    <div id="api-reference"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <script>
+      Scalar.createApiReference('#api-reference', {
+        url: '/v1/openapi.json',
+        pageTitle: 'NextJudge API Reference'
+      });
+    </script>
+  </body>
+</html>`
+
 func addOpenAPIRoutes(mux *goji.Mux) {
+	mux.HandleFunc(pat.Get("/docs"), getScalarDocs)
+	mux.HandleFunc(pat.Get("/docs/"), getScalarDocs)
 	mux.HandleFunc(pat.Get("/v1/openapi.json"), getOpenAPISpec)
+}
+
+func getScalarDocs(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = fmt.Fprint(w, scalarDocsHTML)
 }
 
 func getOpenAPIJSON() ([]byte, error) {
