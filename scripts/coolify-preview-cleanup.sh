@@ -69,17 +69,29 @@ set -euo pipefail
 pr="$1"
 mapfile -t containers < <(
   while read -r id name; do
-    [[ "$name" =~ -pr-${pr}$ ]] && echo "$id"
+    if [[ "$name" =~ -pr-${pr}$ ]] || [[ "$name" =~ ^nextjudge-pr-${pr}- ]]; then
+      echo "$id"
+    fi
   done < <(docker ps -a --format '{{.ID}} {{.Names}}')
 )
 if ((${#containers[@]} == 0)); then
   echo "No preview containers found for PR #${pr}."
   exit 0
 fi
-docker ps -a --format '{{.Names}}' | grep -E -- "-pr-${pr}$" || true
+docker ps -a --format '{{.Names}}' | grep -E -- "(-pr-${pr}$|^nextjudge-pr-${pr}-)" || true
 docker rm -f "${containers[@]}"
 echo "Removed ${#containers[@]} container(s) for PR #${pr}."
 REMOTE
+}
+
+prune_preview_server() {
+  if [[ -z "${COOLIFY_SSH_HOST:-}" ]]; then
+    return 0
+  fi
+
+  echo "Pruning unused preview resources on server..." >&2
+  ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$COOLIFY_SSH_HOST" \
+    "VACUUM_JOURNAL=${VACUUM_JOURNAL:-1} bash -s" < "${SCRIPT_DIR}/coolify-preview-server-prune.sh"
 }
 
 cleanup_pr() {
@@ -95,7 +107,8 @@ cleanup_pr() {
     fi
     if [[ -n "${COOLIFY_BACKEND_SERVICE_UUID:-}" ]]; then
       if [[ -n "${COOLIFY_SSH_HOST:-}" ]]; then
-        COOLIFY_BACKEND_SERVICE_UUID="${COOLIFY_BACKEND_SERVICE_UUID}" \
+        PR_NUMBER="$pr_number" \
+          COOLIFY_BACKEND_SERVICE_UUID="${COOLIFY_BACKEND_SERVICE_UUID}" \
           COOLIFY_SSH_HOST="${COOLIFY_SSH_HOST}" \
           "${SCRIPT_DIR}/coolify-preview-backend-ssh.sh" cleanup || api_ok=1
       else
@@ -114,6 +127,8 @@ cleanup_pr() {
       return 1
     fi
   fi
+
+  prune_preview_server
 }
 
 cleanup_all_via_ssh() {
@@ -124,17 +139,20 @@ cleanup_all_via_ssh() {
 set -euo pipefail
 mapfile -t containers < <(
   while read -r id name; do
-    [[ "$name" =~ -pr-[0-9]+$ ]] && echo "$id"
+    if [[ "$name" =~ -pr-[0-9]+$ ]] || [[ "$name" =~ ^nextjudge-pr-[0-9]+- ]]; then
+      echo "$id"
+    fi
   done < <(docker ps -a --format '{{.ID}} {{.Names}}')
 )
 if ((${#containers[@]} == 0)); then
   echo "No preview containers found."
   exit 0
 fi
-docker ps -a --format '{{.Names}}' | grep -E -- '-pr-[0-9]+$' || true
+docker ps -a --format '{{.Names}}' | grep -E -- '(-pr-[0-9]+$|^nextjudge-pr-[0-9]+-)' || true
 docker rm -f "${containers[@]}"
 echo "Removed ${#containers[@]} preview container(s)."
 REMOTE
+  prune_preview_server
 }
 
 main() {
