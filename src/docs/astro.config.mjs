@@ -53,7 +53,6 @@ export default defineConfig({
     processor: unified(),
   },
   integrations: [
-    mdx(),
     mermaid({ autoTheme: true }),
     starlight({
       title: DOCS_BRAND,
@@ -129,5 +128,6 @@ export default defineConfig({
         },
       ],
     }),
+    mdx(),
   ],
 });
