@@ -30,6 +30,10 @@ const resolveApiDocsUrl = (command, env = process.env) => {
   return 'https://api.nextjudge.net/docs';
 };
 
+const apiDocsUrl = resolveApiDocsUrl(
+  process.env.NODE_ENV === 'development' ? 'dev' : 'build',
+);
+
 /** Appends NextJudge CSS after Lucode so brand overrides win. */
 const nextJudgeTheme = () => ({
   name: 'nextjudge-docs-theme',
@@ -43,7 +47,7 @@ const nextJudgeTheme = () => ({
 });
 
 // https://astro.build/config
-export default defineConfig(({ command }) => ({
+export default defineConfig({
   site: DOCS_SITE_URL,
   markdown: {
     processor: unified(),
@@ -76,7 +80,7 @@ export default defineConfig(({ command }) => ({
             { label: 'Docs', link: '/start/getting-started/' },
             {
               label: 'API',
-              link: resolveApiDocsUrl(command),
+              link: apiDocsUrl,
               attrs: { 'data-api-docs-link': 'true' },
             },
             { label: 'Platform', link: 'https://nextjudge.net' },
@@ -126,4 +130,4 @@ export default defineConfig(({ command }) => ({
       ],
     }),
   ],
-}));
+});
