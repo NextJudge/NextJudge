@@ -175,8 +175,12 @@ wait_for_service_stack() {
       echo "${label} compose service ${service_uuid} is healthy." >&2
       return 0
     fi
-    if [[ "$status" == *unhealthy* || "$status" == *exited* ]]; then
+    if [[ "$status" == *exited* ]]; then
       echo "${label} compose service ${service_uuid} ended with status '${status}'." >&2
+      return 1
+    fi
+    if [[ "$status" == running:*unhealthy* || "$data_layer_status" == "running:unhealthy" ]]; then
+      echo "${label} compose service ${service_uuid} ended with status '${status}' (data-layer: ${data_layer_status})." >&2
       return 1
     fi
     sleep "$DEPLOY_POLL_INTERVAL_SEC"
