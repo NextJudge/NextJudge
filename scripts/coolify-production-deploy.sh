@@ -145,16 +145,53 @@ queue_deploy() {
       '.deployments[]? | select(.resource_uuid == $uuid) | .deployment_uuid // empty' \
       <<<"$response" | head -1
   )"
-  if [[ -z "$deployment_uuid" ]]; then
-    echo "Coolify did not return a deployment UUID for resource ${resource_uuid}." >&2
-    return 1
+  if [[ -n "$deployment_uuid" ]]; then
+    printf '%s\n' "$deployment_uuid"
+    return 0
   fi
-  printf '%s\n' "$deployment_uuid"
+  if jq -e --arg uuid "$resource_uuid" \
+    '.deployments[]? | select(.resource_uuid == $uuid and (.message // "" | test("started"; "i")))' \
+    <<<"$response" >/dev/null; then
+    printf 'compose:%s\n' "$resource_uuid"
+    return 0
+  fi
+  echo "Coolify did not return a deployment UUID for resource ${resource_uuid}." >&2
+  return 1
+}
+
+wait_for_service_stack() {
+  local service_uuid="$1"
+  local label="$2"
+  local deadline status data_layer_status
+  deadline=$((SECONDS + DEPLOY_TIMEOUT_SEC))
+  echo "Waiting for ${label} compose service ${service_uuid}." >&2
+  while (( SECONDS < deadline )); do
+    status="$(api_get "${COOLIFY_API_URL}/services/${service_uuid}" | jq -r '.status // empty')"
+    data_layer_status="$(
+      api_get "${COOLIFY_API_URL}/services/${service_uuid}" |
+        jq -r '.applications[]? | select(.name == "nextjudge-data-layer") | .status // empty'
+    )"
+    if [[ "$status" == running:* && "$data_layer_status" == "running:healthy" ]]; then
+      echo "${label} compose service ${service_uuid} is healthy." >&2
+      return 0
+    fi
+    if [[ "$status" == *unhealthy* || "$status" == *exited* ]]; then
+      echo "${label} compose service ${service_uuid} ended with status '${status}'." >&2
+      return 1
+    fi
+    sleep "$DEPLOY_POLL_INTERVAL_SEC"
+  done
+  echo "Timed out waiting for ${label} compose service ${service_uuid}." >&2
+  return 1
 }
 
 wait_for_deployment() {
   local deployment_uuid="$1"
   local label="$2"
+  if [[ "$deployment_uuid" == compose:* ]]; then
+    wait_for_service_stack "${deployment_uuid#compose:}" "$label"
+    return $?
+  fi
   local deadline status
   deadline=$((SECONDS + DEPLOY_TIMEOUT_SEC))
   echo "Waiting for ${label} deployment ${deployment_uuid}." >&2
