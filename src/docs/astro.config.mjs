@@ -1,4 +1,5 @@
 import starlight from '@astrojs/starlight';
+import mdx from '@astrojs/mdx';
 import { unified } from '@astrojs/markdown-remark';
 import mermaid from 'astro-mermaid';
 import lucode from 'lucode-starlight';
@@ -48,6 +49,7 @@ export default defineConfig(({ command }) => ({
     processor: unified(),
   },
   integrations: [
+    mdx(),
     mermaid({ autoTheme: true }),
     starlight({
       title: DOCS_BRAND,
