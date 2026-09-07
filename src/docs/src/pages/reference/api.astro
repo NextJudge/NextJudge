@@ -1,7 +1,7 @@
 ---
 const prodSpecUrl = 'https://api.nextjudge.net/v1/openapi.json';
 const embeddedSpecUrl = '/openapi.yaml';
-const specUrl = import.meta.env.PUBLIC_OPENAPI_URL ?? prodSpecUrl;
+const envSpecUrl = import.meta.env.PUBLIC_OPENAPI_URL ?? '';
 ---
 <!doctype html>
 <html lang="en">
@@ -24,16 +24,30 @@ const specUrl = import.meta.env.PUBLIC_OPENAPI_URL ?? prodSpecUrl;
   </head>
   <body>
     <div id="api-reference"></div>
-    <script define:vars={{ specUrl, embeddedSpecUrl }}>
+    <script define:vars={{ prodSpecUrl, embeddedSpecUrl, envSpecUrl }}>
       const configuration = {
         theme: 'default',
       };
 
-      async function loadSpec() {
+      const resolvePrimarySpecUrl = () => {
+        if (envSpecUrl) {
+          return envSpecUrl;
+        }
+
+        const previewMatch = window.location.hostname.match(/^(\d+)-docs\.preview\./);
+        if (previewMatch) {
+          return `https://${previewMatch[1]}-api.preview.nextjudge.net/v1/openapi.json`;
+        }
+
+        return prodSpecUrl;
+      };
+
+      const resolveSpecUrl = async () => {
+        const primary = resolvePrimarySpecUrl();
         try {
-          const response = await fetch(specUrl, { mode: 'cors' });
+          const response = await fetch(primary, { mode: 'cors' });
           if (response.ok) {
-            return await response.json();
+            return primary;
           }
         } catch (_error) {
           // fall through to embedded copy
@@ -43,23 +57,24 @@ const specUrl = import.meta.env.PUBLIC_OPENAPI_URL ?? prodSpecUrl;
         if (!embedded.ok) {
           throw new Error('unable to load OpenAPI spec');
         }
-        return embedded.json();
-      }
+        return embeddedSpecUrl;
+      };
 
-      loadSpec()
-        .then((spec) => {
+      resolveSpecUrl()
+        .then((url) => {
           const script = document.createElement('script');
           script.src = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference';
           script.onload = () => {
             const mount = document.getElementById('api-reference');
+            const scalarConfig = { url, ...configuration };
             if (window.Scalar?.createApiReference) {
-              window.Scalar.createApiReference(mount, { spec, ...configuration });
+              window.Scalar.createApiReference(mount, scalarConfig);
               return;
             }
             const configNode = document.createElement('script');
             configNode.id = 'api-reference-config';
             configNode.type = 'application/json';
-            configNode.textContent = JSON.stringify({ spec, ...configuration });
+            configNode.textContent = JSON.stringify(scalarConfig);
             mount.appendChild(configNode);
           };
           document.body.appendChild(script);
